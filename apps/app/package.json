@@ -8,7 +8,8 @@
     "build": "expo export",
     "lint": "eslint app",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@recetario/shared": "workspace:*",
@@ -20,6 +21,7 @@
     "react-native": "^0.76.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/react": "^18.3.0",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
