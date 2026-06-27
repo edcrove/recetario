@@ -1,0 +1,24 @@
+{
+  "name": "recetario-app",
+  "version": "0.0.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "dev": "expo start",
+    "build": "expo export",
+    "lint": "eslint app",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@recetario/shared": "workspace:*",
+    "expo": "~53.0.0",
+    "expo-router": "~4.0.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "react-native": "^0.76.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "typescript": "^5.7.0"
+  }
+}
