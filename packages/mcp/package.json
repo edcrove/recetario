@@ -13,7 +13,8 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "latest",
-    "@recetario/shared": "workspace:*"
+    "@recetario/shared": "workspace:*",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "tsx": "^4.0.0",

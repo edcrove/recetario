@@ -1,11 +1,55 @@
-// TODO: Implement MCP server for Recetario
-// The MCP package provides the agent write path: MCP → API → DB
-// No LLM inference happens in the app; all AI interactions go through this server.
-//
-// Phase 1 will implement:
-// - McpServer from @modelcontextprotocol/sdk
-// - Tools: create_recipe, update_recipe, search_recipes, etc.
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 
-import { VERSION } from '@recetario/shared'
+const API_BASE_URL = process.env['API_BASE_URL'] ?? 'http://localhost:3000'
+const API_KEY = process.env['MCP_API_KEY'] ?? ''
 
-console.log(`@recetario/mcp starting (shared version: ${VERSION})`)
+export function createApiClient() {
+  return {
+    async request(path: string, options: RequestInit = {}) {
+      const res = await fetch(`${API_BASE_URL}${path}`, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${API_KEY}`,
+          ...options.headers,
+        },
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(`API error ${res.status}: ${JSON.stringify(body)}`)
+      }
+      return res.json()
+    },
+  }
+}
+
+export function createMcpServer() {
+  const server = new McpServer({
+    name: 'recetario',
+    version: '1.0.0',
+  })
+  return server
+}
+
+async function main() {
+  const server = createMcpServer()
+  const apiClient = createApiClient()
+
+  // Tools registered from other modules
+  const { registerCreateRecipe } = await import('./tools/createRecipe.js')
+  const { registerReadTools } = await import('./tools/readRecipes.js')
+  const { registerMutationTools } = await import('./tools/mutateRecipes.js')
+
+  registerCreateRecipe(server, apiClient)
+  registerReadTools(server, apiClient)
+  registerMutationTools(server, apiClient)
+
+  const transport = new StdioServerTransport()
+  await server.connect(transport)
+  console.error('Recetario MCP server running on stdio')
+}
+
+if (process.env['NODE_ENV'] !== 'test') {
+  main().catch(console.error)
+}

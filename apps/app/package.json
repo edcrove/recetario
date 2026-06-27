@@ -7,10 +7,12 @@
     "dev": "expo start",
     "build": "expo export",
     "lint": "eslint app",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@recetario/shared": "workspace:*",
+    "@tanstack/react-query": "^5.0.0",
     "expo": "~53.0.0",
     "expo-router": "~4.0.0",
     "react": "^18.3.0",
@@ -19,6 +21,7 @@
   },
   "devDependencies": {
     "@types/react": "^18.3.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
   }
 }

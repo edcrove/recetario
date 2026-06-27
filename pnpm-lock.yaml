@@ -47,6 +47,9 @@ importers:
       '@recetario/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@tanstack/react-query':
+        specifier: ^5.0.0
+        version: 5.101.2(react@18.3.1)
       expo:
         specifier: ~53.0.0
         version: 53.0.27(@babel/core@7.29.7)(@expo/metro-runtime@4.0.1(react-native@0.76.9(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.3.31)(react@18.3.1)))(react-native@0.76.9(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.3.31)(react@18.3.1))(react@18.3.1)
@@ -69,12 +72,21 @@ importers:
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.6(@types/node@26.0.1)(jiti@2.6.1)(lightningcss@1.27.0)(terser@5.48.0)(tsx@4.22.4)(yaml@2.9.0)
 
   packages/api:
     dependencies:
       '@hono/node-server':
         specifier: ^1.13.0
         version: 1.19.14(hono@4.12.27)
+      '@hono/swagger-ui':
+        specifier: ^0.6.1
+        version: 0.6.1(hono@4.12.27)
+      '@hono/zod-openapi':
+        specifier: ^1.4.0
+        version: 1.4.0(hono@4.12.27)(zod@4.4.3)
       '@recetario/shared':
         specifier: workspace:*
         version: link:../shared
@@ -87,6 +99,9 @@ importers:
       postgres:
         specifier: ^3.4.0
         version: 3.4.9
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       drizzle-kit:
         specifier: ^0.31.0
@@ -109,6 +124,9 @@ importers:
       '@recetario/shared':
         specifier: workspace:*
         version: link:../shared
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       tsx:
         specifier: ^4.0.0
@@ -142,6 +160,11 @@ packages:
     peerDependenciesMeta:
       graphql:
         optional: true
+
+  '@asteasolutions/zod-to-openapi@8.5.0':
+    resolution: {integrity: sha512-SABbKiObg5dLRiTFnqiW1WWwGcg1BJfmHtT2asIBnBHg6Smy/Ms2KHc650+JI4Hw7lSkdiNebEGXpwoxfben8Q==}
+    peerDependencies:
+      zod: ^4.0.0
 
   '@babel/code-frame@7.10.4':
     resolution: {integrity: sha512-vG6SvB6oYEhvgisZNFRmRCUkLz11c7rp+tbNTynGqc6mS1d5ATd/sGyV6W0KZZnXRKMTzZDRgQT3Ou9jhpAfUg==}
@@ -1542,6 +1565,24 @@ packages:
     peerDependencies:
       hono: ^4
 
+  '@hono/swagger-ui@0.6.1':
+    resolution: {integrity: sha512-sJTvldu1GPeEPfyeLG7gRj+W4vEuD+JDi+JjJ3TJs/DvMUtBLs0KJO5yokGegWWdy5qrbdnQGekbhgNRmPmYKQ==}
+    peerDependencies:
+      hono: '>=4.0.0'
+
+  '@hono/zod-openapi@1.4.0':
+    resolution: {integrity: sha512-AFchqR1N/NxfI4hUOSGI2/g8zLROxA1OE7Oh5JJFlTaGxhrdRyH+93gd0tIBpb0z8s9r8hUoNnaOBfHbdb4NMw==}
+    engines: {node: '>=16.0.0'}
+    peerDependencies:
+      hono: '>=4.10.0'
+      zod: ^4.0.0
+
+  '@hono/zod-validator@0.8.0':
+    resolution: {integrity: sha512-5uS4S1/LKtZQYvD4BtpPUFkOv8d1wNxHHrChm26buMiEYc1FrHWvDUaKVBwkiVtvSExHSpLGDvcnpI2Copyj9w==}
+    peerDependencies:
+      hono: '>=4.10.0'
+      zod: ^3.25.0 || ^4.0.0
+
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
     engines: {node: '>=18.18.0'}
@@ -1918,6 +1959,14 @@ packages:
 
   '@sinonjs/fake-timers@10.3.0':
     resolution: {integrity: sha512-V4BG07kuYSUkTCSBHG8G8TNhM+F19jXFWnQtzj+we8DrkpSBCee9Z3Ms8yiGer/dlmhe35/Xdgyo3/0rQKg7YA==}
+
+  '@tanstack/query-core@5.101.2':
+    resolution: {integrity: sha512-hH5MLoJhF7KaIGd7q3xTXGXvslI+GYlM1Z/35aSHHWaCJWB7XvTSHYuV3eM7tw+aE0mT/xMro4M4Q9rCGHT0lw==}
+
+  '@tanstack/react-query@5.101.2':
+    resolution: {integrity: sha512-seDkr6kzGzX1okaaTtZPtgA688CDPlXUz1C6xSg0ESqn04Vuc8tlrYms1s3de+znBqhPVxFRfpAfUf+6XvfPWg==}
+    peerDependencies:
+      react: ^18 || ^19
 
   '@turbo/darwin-64@2.10.0':
     resolution: {integrity: sha512-EwvHThXzpY0KGd1/NAmuewI5D+aVa3Rl/OlxE36yfjUKb/+ySrfJrSlEFt8aD1OXwnnaHnQnPKHFndor0Zxlsg==}
@@ -4018,6 +4067,9 @@ packages:
     resolution: {integrity: sha512-7x81NCL719oNbsq/3mh+hVrAWmFuEYUqrq/Iw3kUzH8ReypT9QQ0BLoJS7/G9k6N81XjW4qHWtjWwe/9eLy1EQ==}
     engines: {node: '>=12'}
 
+  openapi3-ts@4.6.0:
+    resolution: {integrity: sha512-a4sfn6L2sIShhtzJqmjGrARvxAW/3F2BJDdyRVvNF9VhAsZSh5hSyI3a9TNvmzBxXmq66nY5LNT5bQcBxYAZZg==}
+
   optionator@0.9.4:
     resolution: {integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==}
     engines: {node: '>= 0.8.0'}
@@ -5144,6 +5196,11 @@ packages:
 snapshots:
 
   '@0no-co/graphql.web@1.3.2': {}
+
+  '@asteasolutions/zod-to-openapi@8.5.0(zod@4.4.3)':
+    dependencies:
+      openapi3-ts: 4.6.0
+      zod: 4.4.3
 
   '@babel/code-frame@7.10.4':
     dependencies:
@@ -6782,6 +6839,23 @@ snapshots:
     dependencies:
       hono: 4.12.27
 
+  '@hono/swagger-ui@0.6.1(hono@4.12.27)':
+    dependencies:
+      hono: 4.12.27
+
+  '@hono/zod-openapi@1.4.0(hono@4.12.27)(zod@4.4.3)':
+    dependencies:
+      '@asteasolutions/zod-to-openapi': 8.5.0(zod@4.4.3)
+      '@hono/zod-validator': 0.8.0(hono@4.12.27)(zod@4.4.3)
+      hono: 4.12.27
+      openapi3-ts: 4.6.0
+      zod: 4.4.3
+
+  '@hono/zod-validator@0.8.0(hono@4.12.27)(zod@4.4.3)':
+    dependencies:
+      hono: 4.12.27
+      zod: 4.4.3
+
   '@humanfs/core@0.19.2':
     dependencies:
       '@humanfs/types': 0.15.0
@@ -7315,6 +7389,13 @@ snapshots:
   '@sinonjs/fake-timers@10.3.0':
     dependencies:
       '@sinonjs/commons': 3.0.1
+
+  '@tanstack/query-core@5.101.2': {}
+
+  '@tanstack/react-query@5.101.2(react@18.3.1)':
+    dependencies:
+      '@tanstack/query-core': 5.101.2
+      react: 18.3.1
 
   '@turbo/darwin-64@2.10.0':
     optional: true
@@ -9566,6 +9647,10 @@ snapshots:
       is-docker: 2.2.1
       is-wsl: 2.2.0
 
+  openapi3-ts@4.6.0:
+    dependencies:
+      yaml: 2.9.0
+
   optionator@0.9.4:
     dependencies:
       deep-is: 0.1.4
@@ -10662,8 +10747,7 @@ snapshots:
 
   yallist@5.0.0: {}
 
-  yaml@2.9.0:
-    optional: true
+  yaml@2.9.0: {}
 
   yargs-parser@21.1.1: {}
 
