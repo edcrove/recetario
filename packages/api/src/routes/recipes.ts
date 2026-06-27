@@ -1,9 +1,19 @@
 import { createRoute as defineRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { RecipeSchema, CreateRecipeSchema, UpdateRecipeSchema } from '@recetario/shared'
 import { recipeRepository } from '../db/repository.js'
+import { authMiddleware } from '../middleware/auth.js'
+import { rateLimitMiddleware } from '../middleware/rateLimit.js'
 import '../types.js'
 
 export const recipesRoute = new OpenAPIHono()
+
+// Auth on all /v1/recipes routes
+recipesRoute.use('/recipes', authMiddleware)
+recipesRoute.use('/recipes/*', authMiddleware)
+
+// Rate limit on write operations (/recipes POST and /recipes/:id PUT+DELETE)
+recipesRoute.use('/recipes/:id', rateLimitMiddleware)
+recipesRoute.use('/recipes', rateLimitMiddleware)
 
 const errorSchema = z.object({ error: z.string(), details: z.unknown().optional() })
 

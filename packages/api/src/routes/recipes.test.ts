@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from 'vitest'
 import type { Recipe } from '@recetario/shared'
 
 // Mock the repository module before importing the app
@@ -18,8 +18,17 @@ vi.mock('../db/repository.js', () => {
   }
 })
 
+// Mock the DB module to prevent connection attempts in auth middleware
+vi.mock('../db/index.js', () => ({
+  getDb: vi.fn(() => {
+    throw new Error('DB not available in tests')
+  }),
+  schema: {},
+}))
+
 import { app } from '../index.js'
 import { recipeRepository } from '../db/repository.js'
+import { requests as rateLimitStore } from '../middleware/rateLimit.js'
 
 const mockRepo = recipeRepository as unknown as {
   upsert: ReturnType<typeof vi.fn>
@@ -30,6 +39,9 @@ const mockRepo = recipeRepository as unknown as {
   delete: ReturnType<typeof vi.fn>
   create: ReturnType<typeof vi.fn>
 }
+
+const DEV_KEY = 'recipes-test-key'
+const AUTH_HEADERS = { Authorization: `Bearer ${DEV_KEY}` }
 
 const sampleRecipe: Recipe = {
   id: '550e8400-e29b-41d4-a716-446655440000',
@@ -56,8 +68,17 @@ const validCreateBody = {
   steps: [{ text: 'Batir los huevos' }],
 }
 
+beforeAll(() => {
+  process.env['DEV_API_KEY'] = DEV_KEY
+})
+
+afterAll(() => {
+  delete process.env['DEV_API_KEY']
+})
+
 beforeEach(() => {
   vi.clearAllMocks()
+  rateLimitStore.clear()
 })
 
 describe('POST /v1/recipes', () => {
@@ -66,7 +87,7 @@ describe('POST /v1/recipes', () => {
 
     const res = await app.request('/v1/recipes', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...AUTH_HEADERS },
       body: JSON.stringify(validCreateBody),
     })
 
@@ -78,7 +99,7 @@ describe('POST /v1/recipes', () => {
   it('returns 422 on invalid body (missing title)', async () => {
     const res = await app.request('/v1/recipes', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...AUTH_HEADERS },
       body: JSON.stringify({ servings: 4 }),
     })
 
@@ -90,7 +111,7 @@ describe('POST /v1/recipes', () => {
 
     const res = await app.request('/v1/recipes', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...AUTH_HEADERS },
       body: JSON.stringify({
         ...validCreateBody,
         source: { type: 'url', url: 'https://example.com/recipe' },
@@ -105,7 +126,7 @@ describe('POST /v1/recipes', () => {
 
     const res = await app.request('/v1/recipes', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...AUTH_HEADERS },
       body: JSON.stringify({
         ...validCreateBody,
         source: { type: 'url', url: 'https://newrecipe.com/1' },
@@ -120,7 +141,9 @@ describe('GET /v1/recipes/:id', () => {
   it('returns 404 when recipe not found', async () => {
     mockRepo.findById.mockResolvedValue(null)
 
-    const res = await app.request('/v1/recipes/550e8400-e29b-41d4-a716-446655440000')
+    const res = await app.request('/v1/recipes/550e8400-e29b-41d4-a716-446655440000', {
+      headers: AUTH_HEADERS,
+    })
     expect(res.status).toBe(404)
     const body = await res.json()
     expect(body.error).toBe('Recipe not found')
@@ -129,7 +152,9 @@ describe('GET /v1/recipes/:id', () => {
   it('returns 200 with recipe when found', async () => {
     mockRepo.findById.mockResolvedValue(sampleRecipe)
 
-    const res = await app.request('/v1/recipes/550e8400-e29b-41d4-a716-446655440000')
+    const res = await app.request('/v1/recipes/550e8400-e29b-41d4-a716-446655440000', {
+      headers: AUTH_HEADERS,
+    })
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.title).toBe('Tortilla española')
@@ -140,7 +165,7 @@ describe('GET /v1/recipes', () => {
   it('returns 200 with array', async () => {
     mockRepo.list.mockResolvedValue([sampleRecipe])
 
-    const res = await app.request('/v1/recipes')
+    const res = await app.request('/v1/recipes', { headers: AUTH_HEADERS })
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(Array.isArray(body)).toBe(true)
@@ -152,7 +177,7 @@ describe('GET /v1/recipes/search', () => {
   it('returns 200 with search results', async () => {
     mockRepo.search.mockResolvedValue([sampleRecipe])
 
-    const res = await app.request('/v1/recipes/search?q=tortilla')
+    const res = await app.request('/v1/recipes/search?q=tortilla', { headers: AUTH_HEADERS })
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(Array.isArray(body)).toBe(true)
@@ -165,6 +190,7 @@ describe('DELETE /v1/recipes/:id', () => {
 
     const res = await app.request('/v1/recipes/550e8400-e29b-41d4-a716-446655440000', {
       method: 'DELETE',
+      headers: AUTH_HEADERS,
     })
     expect(res.status).toBe(204)
   })
@@ -174,6 +200,7 @@ describe('DELETE /v1/recipes/:id', () => {
 
     const res = await app.request('/v1/recipes/550e8400-e29b-41d4-a716-446655440000', {
       method: 'DELETE',
+      headers: AUTH_HEADERS,
     })
     expect(res.status).toBe(404)
   })
