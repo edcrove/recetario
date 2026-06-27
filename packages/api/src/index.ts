@@ -1,10 +1,26 @@
-import { Hono } from 'hono'
+import { OpenAPIHono } from '@hono/zod-openapi'
+import { swaggerUI } from '@hono/swagger-ui'
 import { VERSION } from '@recetario/shared'
+import { healthRoute } from './routes/health.js'
 
-console.log(`@recetario/api starting (shared version: ${VERSION})`)
+export const app = new OpenAPIHono()
 
-const app = new Hono()
+app.openAPIRegistry.registerComponent('securitySchemes', 'ApiKeyAuth', {
+  type: 'apiKey',
+  in: 'header',
+  name: 'Authorization',
+  description: 'API key as "Bearer <key>"',
+})
 
-app.get('/health', (c) => c.json({ status: 'ok' }))
+app.route('/', healthRoute)
+
+app.doc('/openapi.json', {
+  openapi: '3.1.0',
+  info: { title: 'Recetario API', version: '1.0.0' },
+})
+
+app.get('/docs', swaggerUI({ url: '/openapi.json' }))
+
+console.log(`@recetario/api starting (shared v${VERSION})`)
 
 export default app

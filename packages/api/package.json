@@ -14,10 +14,13 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.13.0",
+    "@hono/swagger-ui": "^0.6.1",
+    "@hono/zod-openapi": "^1.4.0",
     "@recetario/shared": "workspace:*",
     "drizzle-orm": "^0.41.0",
     "hono": "^4.7.0",
-    "postgres": "^3.4.0"
+    "postgres": "^3.4.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "drizzle-kit": "^0.31.0",
