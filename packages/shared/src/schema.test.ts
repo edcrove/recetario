@@ -100,6 +100,7 @@ describe('RecipeSchema', () => {
   })
 
   it('fails when title is missing', () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { title: _title, ...noTitle } = validRecipe
     expect(() => RecipeSchema.parse(noTitle)).toThrow()
   })
