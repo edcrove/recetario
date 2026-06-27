@@ -1,0 +1,73 @@
+import type { CreateRecipe } from './schema.js'
+
+export const DEMO_RECIPES: CreateRecipe[] = [
+  {
+    title: 'Tortilla española',
+    servings: 4,
+    category: 'Almuerzo',
+    tags: ['española', 'huevos', 'patatas'],
+    totalTimeMin: 40,
+    originalLanguage: 'es',
+    images: [],
+    translations: [],
+    ingredients: [
+      { name: 'Huevos', quantity: 6, unit: 'unit' },
+      { name: 'Patatas', quantity: 500, unit: 'g' },
+      { name: 'Cebolla', quantity: 1, unit: 'unit', presentation: 'en juliana' },
+      { name: 'Aceite de oliva', quantity: 4, unit: 'tbsp' },
+      { name: 'Sal', quantity: null, unit: null, note: 'a gusto' },
+    ],
+    steps: [
+      { text: 'Pelar y cortar las patatas en láminas finas.' },
+      {
+        text: 'Freír las patatas y la cebolla en aceite a fuego medio hasta que estén tiernas.',
+        durationMin: 20,
+      },
+      { text: 'Batir los huevos con sal y mezclar con las patatas.' },
+      { text: 'Cuajar la tortilla a fuego bajo por ambos lados.', durationMin: 10 },
+    ],
+    source: { type: 'manual' },
+  },
+  {
+    title: 'Pasta al pomodoro',
+    servings: 2,
+    category: 'Cena',
+    tags: ['italiana', 'pasta', 'vegetariano'],
+    totalTimeMin: 25,
+    originalLanguage: 'es',
+    images: [],
+    translations: [],
+    ingredients: [
+      { name: 'Spaghetti', quantity: 200, unit: 'g' },
+      { name: 'Tomates perita', quantity: 400, unit: 'g', presentation: 'triturados' },
+      { name: 'Ajo', quantity: 2, unit: 'clove' },
+      { name: 'Albahaca fresca', quantity: null, unit: null },
+      { name: 'Aceite de oliva', quantity: 2, unit: 'tbsp' },
+      { name: 'Sal', quantity: null, unit: null, note: 'a gusto' },
+    ],
+    steps: [
+      { text: 'Cocinar la pasta en agua con sal hasta al dente.', durationMin: 10 },
+      { text: 'Saltear el ajo en aceite, agregar los tomates y cocinar.', durationMin: 10 },
+      { text: 'Mezclar la pasta con la salsa y servir con albahaca.' },
+    ],
+    source: { type: 'manual' },
+  },
+  {
+    title: 'Smoothie de banana y avena',
+    servings: 1,
+    category: 'Desayuno',
+    tags: ['smoothie', 'saludable', 'rápido'],
+    totalTimeMin: 5,
+    originalLanguage: 'es',
+    images: [],
+    translations: [],
+    ingredients: [
+      { name: 'Banana', quantity: 1, unit: 'unit', presentation: 'madura' },
+      { name: 'Avena', quantity: 3, unit: 'tbsp' },
+      { name: 'Leche', quantity: 1, unit: 'cup' },
+      { name: 'Miel', quantity: 1, unit: 'tsp' },
+    ],
+    steps: [{ text: 'Licuar todos los ingredientes hasta obtener una mezcla homogénea.' }],
+    source: { type: 'manual' },
+  },
+]
