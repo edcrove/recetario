@@ -5,20 +5,22 @@
   "main": "expo-router/entry",
   "scripts": {
     "dev": "expo start",
-    "build": "expo export",
+    "build": "expo export --platform web",
     "lint": "eslint app",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@expo/metro-runtime": "^56.0.15",
     "@recetario/shared": "workspace:*",
     "@tanstack/react-query": "^5.0.0",
     "expo": "~53.0.0",
     "expo-router": "~4.0.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "react-native": "^0.76.0"
+    "react-native": "^0.76.0",
+    "react-native-web": "^0.21.2"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
