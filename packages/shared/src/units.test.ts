@@ -45,4 +45,12 @@ describe('convertUnit - pass-through', () => {
   it('returns qty unchanged for same unit', () => {
     expect(convertUnit(1, 'cup', 'cup')).toBe(1)
   })
+
+  it('returns qty unchanged when from is null', () => {
+    expect(convertUnit(1, null, 'ml')).toBe(1)
+  })
+
+  it('returns qty unchanged when to is null', () => {
+    expect(convertUnit(1, 'ml', null)).toBe(1)
+  })
 })

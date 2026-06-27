@@ -45,7 +45,7 @@ const postRecipeRoute = defineRoute({
 })
 
 recipesRoute.openapi(postRecipeRoute, async (c) => {
-  const ownerId = c.get('ownerId') ?? 'dev'
+  const ownerId = c.get('ownerId')
   const body = c.req.valid('json')
 
   const { recipe, created } = await recipeRepository.upsert(ownerId, body)
@@ -74,7 +74,7 @@ const searchRecipesRoute = defineRoute({
 })
 
 recipesRoute.openapi(searchRecipesRoute, async (c) => {
-  const ownerId = c.get('ownerId') ?? 'dev'
+  const ownerId = c.get('ownerId')
   const { q, tag, category, ingredient } = c.req.valid('query')
   const recipes = await recipeRepository.search(ownerId, { q, tag, category, ingredient })
   return c.json(recipes, 200)
@@ -87,8 +87,8 @@ const listRecipesRoute = defineRoute({
   security: [{ ApiKeyAuth: [] }],
   request: {
     query: z.object({
-      limit: z.coerce.number().int().positive().max(100).default(20).optional(),
-      offset: z.coerce.number().int().min(0).default(0).optional(),
+      limit: z.coerce.number().int().positive().max(100).default(20),
+      offset: z.coerce.number().int().min(0).default(0),
     }),
   },
   responses: {
@@ -100,7 +100,7 @@ const listRecipesRoute = defineRoute({
 })
 
 recipesRoute.openapi(listRecipesRoute, async (c) => {
-  const ownerId = c.get('ownerId') ?? 'dev'
+  const ownerId = c.get('ownerId')
   const { limit, offset } = c.req.valid('query')
   const recipes = await recipeRepository.list(ownerId, { limit, offset })
   return c.json(recipes, 200)
@@ -127,7 +127,7 @@ const getRecipeByIdRoute = defineRoute({
 })
 
 recipesRoute.openapi(getRecipeByIdRoute, async (c) => {
-  const ownerId = c.get('ownerId') ?? 'dev'
+  const ownerId = c.get('ownerId')
   const { id } = c.req.valid('param')
   const recipe = await recipeRepository.findById(id, ownerId)
   if (!recipe) return c.json({ error: 'Recipe not found' }, 404)
@@ -159,7 +159,7 @@ const putRecipeRoute = defineRoute({
 })
 
 recipesRoute.openapi(putRecipeRoute, async (c) => {
-  const ownerId = c.get('ownerId') ?? 'dev'
+  const ownerId = c.get('ownerId')
   const { id } = c.req.valid('param')
   const body = c.req.valid('json')
   const recipe = await recipeRepository.update(id, ownerId, body)
@@ -187,7 +187,7 @@ const deleteRecipeRoute = defineRoute({
 })
 
 recipesRoute.openapi(deleteRecipeRoute, async (c) => {
-  const ownerId = c.get('ownerId') ?? 'dev'
+  const ownerId = c.get('ownerId')
   const { id } = c.req.valid('param')
   const deleted = await recipeRepository.delete(id, ownerId)
   if (!deleted) return c.json({ error: 'Recipe not found' }, 404)
