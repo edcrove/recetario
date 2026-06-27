@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "recetario",
+    "slug": "recetario",
+    "scheme": "recetario",
+    "version": "1.0.0",
+    "platforms": ["ios", "android", "web"],
+    "assetBundlePatterns": ["**/*"]
+  }
+}
