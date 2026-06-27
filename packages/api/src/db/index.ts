@@ -15,3 +15,7 @@ export function getDb() {
 }
 
 export { schema }
+
+export function resetDb() {
+  _db = null
+}
