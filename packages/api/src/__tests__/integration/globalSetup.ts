@@ -25,10 +25,18 @@ export async function setup() {
       await container.stop()
     }
     await seedTestDb(url)
-  } catch {
-    // Docker not available — mark integration tests to be skipped
-    process.env['SKIP_INTEGRATION'] = 'true'
-    console.warn('[integration] Docker unavailable — integration tests will be skipped')
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    if (
+      msg.includes('container runtime') ||
+      msg.includes('Cannot connect') ||
+      msg.includes('ENOENT')
+    ) {
+      process.env['SKIP_INTEGRATION'] = 'true'
+      console.warn('[integration] Docker unavailable — integration tests will be skipped')
+    } else {
+      throw err
+    }
   }
 }
 
@@ -46,7 +54,7 @@ async function seedTestDb(url: string) {
   const client = postgres(url, { max: 1 })
   const db = drizzle(client, { schema })
   await migrate(db, {
-    migrationsFolder: path.join(__dirname, '../../../../drizzle/migrations'),
+    migrationsFolder: path.join(__dirname, '../../../drizzle/migrations'),
   })
 
   const keyHash = createHash('sha256').update(TEST_API_KEY).digest('hex')

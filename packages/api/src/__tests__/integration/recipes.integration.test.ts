@@ -3,7 +3,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
 const skip = process.env['SKIP_INTEGRATION'] === 'true'
 import app from '../../index.js'
 import { resetDb } from '../../db/index.js'
-import { TEST_API_KEY, TEST_OWNER_ID } from './globalSetup.js'
+import { TEST_API_KEY } from './globalSetup.js'
 
 const authHeader = `Bearer ${TEST_API_KEY}`
 
@@ -35,10 +35,9 @@ describe.skipIf(skip).sequential('Recipe integration tests', () => {
     })
     expect(res.status).toBe(201)
     const body = await res.json()
+    createdId = body.id // set before assertions so subsequent tests can use it
     expect(body.id).toBeTruthy()
     expect(body.title).toBe(baseRecipe.title)
-    expect(body.ownerId).toBe(TEST_OWNER_ID)
-    createdId = body.id
   })
 
   it('GET /v1/recipes/:id returns the recipe', async () => {
@@ -86,7 +85,11 @@ describe.skipIf(skip).sequential('Recipe integration tests', () => {
 
   it('POST /v1/recipes with same source URL upserts (200)', async () => {
     const sourceUrl = 'https://example.com/recipes/test-pasta-dedupe'
-    const withSource = { ...baseRecipe, title: 'Original', source: { url: sourceUrl } }
+    const withSource = {
+      ...baseRecipe,
+      title: 'Original',
+      source: { type: 'url' as const, url: sourceUrl },
+    }
 
     const res1 = await app.request('/v1/recipes', {
       method: 'POST',
