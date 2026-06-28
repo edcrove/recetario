@@ -1,0 +1,28 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "node",
+  "packages": {
+    "packages/shared": {
+      "release-type": "node",
+      "package-name": "@recetario/shared",
+      "changelog-path": "CHANGELOG.md"
+    },
+    "packages/api": {
+      "release-type": "node",
+      "package-name": "@recetario/api",
+      "changelog-path": "CHANGELOG.md"
+    },
+    "packages/mcp": {
+      "release-type": "node",
+      "package-name": "@recetario/mcp",
+      "changelog-path": "CHANGELOG.md"
+    },
+    "apps/app": {
+      "release-type": "node",
+      "package-name": "recetario-app",
+      "changelog-path": "CHANGELOG.md"
+    }
+  },
+  "separate-pull-requests": false,
+  "pull-request-title-pattern": "chore: release ${version}"
+}
