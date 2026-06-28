@@ -20,6 +20,11 @@
       "prettier --write"
     ]
   },
+  "pnpm": {
+    "overrides": {
+      "@xmldom/xmldom": ">=0.8.13"
+    }
+  },
   "devDependencies": {
     "@commitlint/cli": "^19.0.0",
     "@commitlint/config-conventional": "^19.0.0",
