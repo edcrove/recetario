@@ -1,5 +1,6 @@
 import {
   pgTable,
+  pgEnum,
   uuid,
   text,
   integer,
@@ -8,6 +9,14 @@ import {
   index,
   uniqueIndex,
 } from 'drizzle-orm/pg-core'
+
+export const menuSlot = pgEnum('menu_slot', [
+  'Desayuno',
+  'Almuerzo',
+  'Merienda',
+  'Cena',
+  'Snacks/Otros',
+])
 
 export const recipes = pgTable(
   'recipes',
@@ -82,6 +91,26 @@ export const recipeSources = pgTable(
   (t) => [
     uniqueIndex('recipe_sources_owner_url_idx').on(t.ownerId, t.sourceUrl),
     uniqueIndex('recipe_sources_owner_ext_idx').on(t.ownerId, t.externalId),
+  ],
+)
+
+export const menuEntries = pgTable(
+  'menu_entries',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ownerId: text('owner_id').notNull(),
+    date: text('date').notNull(), // ISO date YYYY-MM-DD
+    slot: menuSlot('slot').notNull(),
+    recipeId: uuid('recipe_id')
+      .notNull()
+      .references(() => recipes.id, { onDelete: 'cascade' }),
+    servings: integer('servings').notNull().default(1),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('menu_entries_owner_date_slot_idx').on(t.ownerId, t.date, t.slot),
+    index('menu_entries_owner_idx').on(t.ownerId),
   ],
 )
 

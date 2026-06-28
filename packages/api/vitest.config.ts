@@ -16,6 +16,7 @@ export default defineConfig({
         'src/scripts/**',
         'src/index.ts',
         'src/types.ts',
+        'src/db/schema/**',
       ],
       thresholds: {
         statements: 100,
