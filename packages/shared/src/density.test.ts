@@ -39,4 +39,16 @@ describe('convertWithDensity', () => {
   it('converts 1 cup to 240 ml within-dimension (no ingredient needed)', () => {
     expect(convertWithDensity(1, 'cup', 'ml', undefined)).toBe(240)
   })
+
+  it('returns qty unchanged when from equals to (same unit)', () => {
+    expect(convertWithDensity(1, 'cup', 'cup', 'flour')).toBe(1)
+  })
+
+  it('returns qty unchanged when from is null', () => {
+    expect(convertWithDensity(1, null, 'g', 'flour')).toBe(1)
+  })
+
+  it('returns qty unchanged when to is null', () => {
+    expect(convertWithDensity(1, 'ml', null, 'water')).toBe(1)
+  })
 })

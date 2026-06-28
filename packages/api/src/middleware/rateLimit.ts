@@ -5,7 +5,7 @@ const WINDOW_MS = 60_000
 const MAX_REQUESTS = 100
 
 export const rateLimitMiddleware = createMiddleware(async (c, next) => {
-  const ownerId = c.get('ownerId') ?? c.req.header('x-forwarded-for') ?? 'unknown'
+  const ownerId = c.get('ownerId')
   const now = Date.now()
   const windowStart = now - WINDOW_MS
 

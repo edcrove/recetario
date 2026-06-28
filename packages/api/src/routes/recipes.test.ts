@@ -184,6 +184,37 @@ describe('GET /v1/recipes/search', () => {
   })
 })
 
+describe('PUT /v1/recipes/:id', () => {
+  it('returns 200 with updated recipe', async () => {
+    mockRepo.findById.mockResolvedValue(sampleRecipe)
+    mockRepo.update.mockResolvedValue({ ...sampleRecipe, title: 'Updated', servings: 6 })
+
+    const res = await app.request('/v1/recipes/550e8400-e29b-41d4-a716-446655440000', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...AUTH_HEADERS },
+      body: JSON.stringify({ title: 'Updated', servings: 6 }),
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.title).toBe('Updated')
+    expect(body.servings).toBe(6)
+  })
+
+  it('returns 404 when recipe not found', async () => {
+    mockRepo.findById.mockResolvedValue(null)
+    mockRepo.update.mockResolvedValue(null)
+
+    const res = await app.request('/v1/recipes/550e8400-e29b-41d4-a716-446655440000', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...AUTH_HEADERS },
+      body: JSON.stringify({ title: 'Updated' }),
+    })
+    expect(res.status).toBe(404)
+    const body = await res.json()
+    expect(body.error).toBe('Recipe not found')
+  })
+})
+
 describe('DELETE /v1/recipes/:id', () => {
   it('returns 204 when deleted', async () => {
     mockRepo.delete.mockResolvedValue(true)
