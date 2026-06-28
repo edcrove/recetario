@@ -1,5 +1,10 @@
 import { createRoute as defineRoute, OpenAPIHono, z } from '@hono/zod-openapi'
-import { MenuEntrySchema, MenuSlotSchema, CreateMenuEntrySchema } from '@recetario/shared'
+import {
+  MenuEntrySchema,
+  MenuSlotSchema,
+  CreateMenuEntrySchema,
+  aggregateIngredients,
+} from '@recetario/shared'
 import { menuRepository } from '../db/menu-repository.js'
 import { authMiddleware } from '../middleware/auth.js'
 import '../types.js'
@@ -92,4 +97,36 @@ menuRoute.openapi(getMenuRoute, async (c) => {
   const { weekStart } = c.req.valid('query')
   const entries = await menuRepository.getWeek(ownerId, weekStart)
   return c.json(entries, 200)
+})
+
+// GET /v1/menu/shopping-list — generate shopping list from planned week
+const ShoppingListItemSchema = z.object({
+  ingredient: z.string(),
+  quantity: z.number().nullable(),
+  unit: z.string().nullable(),
+})
+
+const getShoppingListRoute = defineRoute({
+  method: 'get',
+  path: '/menu/shopping-list',
+  security: [{ ApiKeyAuth: [] }],
+  request: {
+    query: z.object({
+      weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    }),
+  },
+  responses: {
+    200: {
+      content: { 'application/json': { schema: z.array(ShoppingListItemSchema) } },
+      description: 'Aggregated shopping list for the week',
+    },
+  },
+})
+
+menuRoute.openapi(getShoppingListRoute, async (c) => {
+  const ownerId = c.get('ownerId')
+  const { weekStart } = c.req.valid('query')
+  const scaled = await menuRepository.getScaledIngredients(ownerId, weekStart)
+  const list = aggregateIngredients(scaled)
+  return c.json(list, 200)
 })

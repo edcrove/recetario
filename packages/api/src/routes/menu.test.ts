@@ -6,6 +6,7 @@ vi.mock('../db/menu-repository.js', () => {
     upsert: vi.fn(),
     remove: vi.fn(),
     getWeek: vi.fn(),
+    getScaledIngredients: vi.fn(),
   }
   return {
     menuRepository: mockRepo,
@@ -32,6 +33,7 @@ const mockRepo = menuRepository as unknown as {
   upsert: ReturnType<typeof vi.fn>
   remove: ReturnType<typeof vi.fn>
   getWeek: ReturnType<typeof vi.fn>
+  getScaledIngredients: ReturnType<typeof vi.fn>
 }
 
 const DEV_KEY = 'menu-test-key'
@@ -168,5 +170,52 @@ describe('GET /v1/menu', () => {
     })
 
     expect(res.status).toBe(400)
+  })
+})
+
+describe('GET /v1/menu/shopping-list', () => {
+  it('returns 200 with aggregated shopping list', async () => {
+    mockRepo.getScaledIngredients.mockResolvedValue([
+      { name: 'pasta', quantity: 200, unit: 'g' },
+      { name: 'pasta', quantity: 100, unit: 'g' },
+    ])
+
+    const res = await app.request('/v1/menu/shopping-list?weekStart=2026-06-30', {
+      method: 'GET',
+      headers: AUTH,
+    })
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json).toEqual([{ ingredient: 'pasta', quantity: 300, unit: 'g' }])
+  })
+
+  it('returns empty array when no menu entries', async () => {
+    mockRepo.getScaledIngredients.mockResolvedValue([])
+
+    const res = await app.request('/v1/menu/shopping-list?weekStart=2026-06-30', {
+      method: 'GET',
+      headers: AUTH,
+    })
+
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual([])
+  })
+
+  it('returns 400 when weekStart is missing', async () => {
+    const res = await app.request('/v1/menu/shopping-list', {
+      method: 'GET',
+      headers: AUTH,
+    })
+
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 401 without auth', async () => {
+    const res = await app.request('/v1/menu/shopping-list?weekStart=2026-06-30', {
+      method: 'GET',
+    })
+
+    expect(res.status).toBe(401)
   })
 })

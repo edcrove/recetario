@@ -1,5 +1,11 @@
 import { eq, and, gte, lte, inArray } from 'drizzle-orm'
-import type { MenuEntry, CreateMenuEntry, MenuSlot } from '@recetario/shared'
+import type {
+  MenuEntry,
+  CreateMenuEntry,
+  MenuSlot,
+  ScaledIngredient,
+  Unit,
+} from '@recetario/shared'
 import { getDb, schema } from './index.js'
 
 type MenuRow = typeof schema.menuEntries.$inferSelect
@@ -105,13 +111,58 @@ export class MenuRepository {
 
     const recipeMap = new Map(recipes.map((r) => [r.id, r.title]))
 
-    return rows.map((row) =>
+    return rows.map((row) => {
       /* v8 ignore next */
-      mapToMenuEntry(
-        row,
-        recipeMap.has(row.recipeId) ? { title: recipeMap.get(row.recipeId)! } : undefined,
-      ),
-    )
+      const recipeName = recipeMap.has(row.recipeId)
+        ? { title: recipeMap.get(row.recipeId)! }
+        : undefined
+      return mapToMenuEntry(row, recipeName)
+    })
+  }
+
+  async getScaledIngredients(ownerId: string, weekStart: string): Promise<ScaledIngredient[]> {
+    const db = this.db
+    const weekEndDate = addDays(weekStart, 6)
+
+    const entries = await db
+      .select({
+        recipeId: schema.menuEntries.recipeId,
+        entryServings: schema.menuEntries.servings,
+        recipeServings: schema.recipes.servings,
+      })
+      .from(schema.menuEntries)
+      .innerJoin(schema.recipes, eq(schema.menuEntries.recipeId, schema.recipes.id))
+      .where(
+        and(
+          eq(schema.menuEntries.ownerId, ownerId),
+          gte(schema.menuEntries.date, weekStart),
+          lte(schema.menuEntries.date, weekEndDate),
+        ),
+      )
+
+    if (entries.length === 0) return []
+
+    const recipeIds = [...new Set(entries.map((e) => e.recipeId))]
+    const ingredientRows = await db
+      .select()
+      .from(schema.ingredients)
+      .where(inArray(schema.ingredients.recipeId, recipeIds))
+
+    const scaled: ScaledIngredient[] = []
+    for (const entry of entries) {
+      const scale = entry.entryServings / entry.recipeServings
+      const recipeIngredients = ingredientRows.filter((i) => i.recipeId === entry.recipeId)
+      for (const ing of recipeIngredients) {
+        const qty = ing.quantity !== null ? Number(ing.quantity) * scale : null
+        scaled.push({
+          name: ing.name,
+          quantity: qty !== null ? Math.round(qty * 1000) / 1000 : null,
+          unit: (ing.unit as Unit | null) ?? null,
+        })
+      }
+    }
+
+    return scaled
   }
 }
 

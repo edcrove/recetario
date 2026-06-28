@@ -134,4 +134,76 @@ describe.skipIf(skip).sequential('Menu integration tests', () => {
     expect(res.status).toBe(200)
     expect((await res.json()).servings).toBe(1)
   })
+
+  it('GET /v1/menu/shopping-list returns aggregated ingredients', async () => {
+    // Add another entry for the same week to test aggregation
+    await app.request('/v1/menu', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: auth },
+      body: JSON.stringify({ date: '2026-07-09', slot: 'Cena', recipeId, servings: 4 }),
+    })
+
+    const res = await app.request('/v1/menu/shopping-list?weekStart=2026-07-07', {
+      headers: { Authorization: auth },
+    })
+
+    expect(res.status).toBe(200)
+    const list = await res.json()
+    expect(Array.isArray(list)).toBe(true)
+    // Should have aggregated ingredients from the recipe entries
+    expect(list.length).toBeGreaterThan(0)
+    const pasta = list.find((i: { ingredient: string }) => i.ingredient === 'pasta')
+    expect(pasta).toBeDefined()
+    expect(pasta.unit).toBe('g')
+  })
+
+  it('GET /v1/menu/shopping-list returns empty for week with no menu', async () => {
+    const res = await app.request('/v1/menu/shopping-list?weekStart=2020-01-06', {
+      headers: { Authorization: auth },
+    })
+
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual([])
+  })
+
+  it('GET /v1/menu/shopping-list handles null-quantity ("to taste") ingredients', async () => {
+    // Create a recipe with a null-quantity ingredient
+    const recipeWithNullQty = {
+      title: 'Salt Test Recipe',
+      servings: 2,
+      category: 'Cena' as const,
+      ingredients: [
+        { name: 'pasta', quantity: 100, unit: 'g' as const },
+        { name: 'salt', quantity: null, unit: null }, // to taste
+      ],
+      steps: [{ text: 'Cook.' }],
+    }
+    const createRes = await app.request('/v1/recipes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: auth },
+      body: JSON.stringify(recipeWithNullQty),
+    })
+    const { id: saltRecipeId } = await createRes.json()
+
+    await app.request('/v1/menu', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: auth },
+      body: JSON.stringify({
+        date: '2026-07-10',
+        slot: 'Cena',
+        recipeId: saltRecipeId,
+        servings: 2,
+      }),
+    })
+
+    const res = await app.request('/v1/menu/shopping-list?weekStart=2026-07-07', {
+      headers: { Authorization: auth },
+    })
+
+    expect(res.status).toBe(200)
+    const list = await res.json()
+    const salt = list.find((i: { ingredient: string }) => i.ingredient === 'salt')
+    expect(salt).toBeDefined()
+    expect(salt.quantity).toBeNull()
+  })
 })
