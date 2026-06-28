@@ -3,6 +3,7 @@ import { swaggerUI } from '@hono/swagger-ui'
 import { VERSION } from '@recetario/shared'
 import { healthRoute } from './routes/health.js'
 import { recipesRoute } from './routes/recipes.js'
+import { menuRoute } from './routes/menu.js'
 
 export const app = new OpenAPIHono()
 
@@ -15,6 +16,7 @@ app.openAPIRegistry.registerComponent('securitySchemes', 'ApiKeyAuth', {
 
 app.route('/', healthRoute)
 app.route('/v1', recipesRoute)
+app.route('/v1', menuRoute)
 
 app.doc('/openapi.json', {
   openapi: '3.1.0',
