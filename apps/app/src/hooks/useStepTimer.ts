@@ -10,21 +10,48 @@ export function formatTime(seconds: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
+export interface TimerState {
+  secondsLeft: number
+  isRunning: boolean
+  completed: boolean
+}
+
+export function initTimer(durationMin: number | null): TimerState {
+  const secs = timerSeconds(durationMin)
+  return { secondsLeft: secs, isRunning: secs > 0, completed: false }
+}
+
+export function tickTimer(state: TimerState): TimerState {
+  if (!state.isRunning || state.completed) return state
+  const next = Math.max(0, state.secondsLeft - 1)
+  if (next <= 0) return { secondsLeft: 0, isRunning: false, completed: true }
+  return { ...state, secondsLeft: next }
+}
+
+export function toggleTimer(state: TimerState): TimerState {
+  if (state.completed) return state
+  return { ...state, isRunning: !state.isRunning }
+}
+
+export function resetTimer(durationMin: number | null): TimerState {
+  return initTimer(durationMin)
+}
+
 export function useStepTimer(durationMin: number | null, onComplete?: () => void) {
-  const total = timerSeconds(durationMin)
-  const [secondsLeft, setSecondsLeft] = useState(total)
-  const [isRunning, setIsRunning] = useState(total > 0)
-  const secondsRef = useRef(total)
+  const init = initTimer(durationMin)
+  const [secondsLeft, setSecondsLeft] = useState(init.secondsLeft)
+  const [isRunning, setIsRunning] = useState(init.isRunning)
+  const secondsRef = useRef(init.secondsLeft)
   const completedRef = useRef(false)
   const onCompleteRef = useRef(onComplete)
   onCompleteRef.current = onComplete
 
   useEffect(() => {
-    const secs = timerSeconds(durationMin)
-    secondsRef.current = secs
+    const state = initTimer(durationMin)
+    secondsRef.current = state.secondsLeft
     completedRef.current = false
-    setSecondsLeft(secs)
-    setIsRunning(secs > 0)
+    setSecondsLeft(state.secondsLeft)
+    setIsRunning(state.isRunning)
   }, [durationMin])
 
   useEffect(() => {
@@ -45,11 +72,11 @@ export function useStepTimer(durationMin: number | null, onComplete?: () => void
   const toggle = useCallback(() => setIsRunning((r) => !r), [])
 
   const reset = useCallback(() => {
-    const secs = timerSeconds(durationMin)
+    const state = initTimer(durationMin)
     completedRef.current = false
-    secondsRef.current = secs
-    setSecondsLeft(secs)
-    setIsRunning(secs > 0)
+    secondsRef.current = state.secondsLeft
+    setSecondsLeft(state.secondsLeft)
+    setIsRunning(state.isRunning)
   }, [durationMin])
 
   return { secondsLeft, isRunning, toggle, reset }
