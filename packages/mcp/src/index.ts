@@ -40,10 +40,12 @@ async function main() {
   const { registerCreateRecipe } = await import('./tools/createRecipe.js')
   const { registerReadTools } = await import('./tools/readRecipes.js')
   const { registerMutationTools } = await import('./tools/mutateRecipes.js')
+  const { registerMenuTools } = await import('./tools/menu.js')
 
   registerCreateRecipe(server, apiClient)
   registerReadTools(server, apiClient)
   registerMutationTools(server, apiClient)
+  registerMenuTools(server, apiClient)
 
   const transport = new StdioServerTransport()
   await server.connect(transport)
