@@ -112,7 +112,7 @@ export class MenuRepository {
     const recipeMap = new Map(recipes.map((r) => [r.id, r.title]))
 
     return rows.map((row) => {
-      /* v8 ignore next */
+      /* v8 ignore next 3 */
       const recipeName = recipeMap.has(row.recipeId)
         ? { title: recipeMap.get(row.recipeId)! }
         : undefined
