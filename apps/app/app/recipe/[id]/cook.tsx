@@ -14,11 +14,13 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../../../src/api/client'
 import { useStepTimer, formatTime } from '../../../src/hooks/useStepTimer'
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake'
+import { IngredientChecklist } from '../../../src/components/IngredientChecklist'
 
 export default function CookModeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
   const [stepIndex, setStepIndex] = useState(0)
+  const [tab, setTab] = useState<'steps' | 'ingredients'>('steps')
 
   const { data: recipe, isLoading } = useQuery({
     queryKey: ['recipe', id],
@@ -77,28 +79,50 @@ export default function CookModeScreen() {
           <Text style={s.closeBtnText}>✕</Text>
         </TouchableOpacity>
         <Text style={s.counter}>
-          Paso {stepIndex + 1} / {total}
+          {tab === 'steps' ? `Paso ${stepIndex + 1} / ${total}` : 'Ingredientes'}
         </Text>
         <View style={s.closePlaceholder} />
       </View>
 
-      <View style={s.body}>
-        <Text style={s.stepText}>{current?.text}</Text>
-
-        {current?.durationMin != null && (
-          <View style={s.timerRow}>
-            <Text style={[s.timerChip, secondsLeft === 0 && s.timerChipDone]}>
-              {formatTime(secondsLeft)}
+      <View style={s.tabBar}>
+        {(['steps', 'ingredients'] as const).map((t) => (
+          <TouchableOpacity
+            key={t}
+            style={[s.tabBtn, tab === t && s.tabBtnActive]}
+            onPress={() => setTab(t)}
+          >
+            <Text style={[s.tabBtnText, tab === t && s.tabBtnTextActive]}>
+              {t === 'steps' ? 'Pasos' : 'Ingredientes'}
             </Text>
-            <TouchableOpacity style={s.timerBtn} onPress={toggle}>
-              <Text style={s.timerBtnText}>{isRunning ? 'Pausar' : 'Reanudar'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={s.timerBtn} onPress={reset}>
-              <Text style={s.timerBtnText}>↺</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+          </TouchableOpacity>
+        ))}
       </View>
+
+      {tab === 'ingredients' ? (
+        <IngredientChecklist
+          ingredients={recipe?.ingredients ?? []}
+          baseServings={recipe?.servings ?? 1}
+          targetServings={recipe?.servings ?? 1}
+        />
+      ) : (
+        <View style={s.body}>
+          <Text style={s.stepText}>{current?.text}</Text>
+
+          {current?.durationMin != null && (
+            <View style={s.timerRow}>
+              <Text style={[s.timerChip, secondsLeft === 0 && s.timerChipDone]}>
+                {formatTime(secondsLeft)}
+              </Text>
+              <TouchableOpacity style={s.timerBtn} onPress={toggle}>
+                <Text style={s.timerBtnText}>{isRunning ? 'Pausar' : 'Reanudar'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.timerBtn} onPress={reset}>
+                <Text style={s.timerBtnText}>↺</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      )}
 
       <View style={s.nav}>
         <TouchableOpacity
@@ -145,6 +169,21 @@ const s = StyleSheet.create({
     paddingHorizontal: 32,
     paddingVertical: 24,
   },
+  tabBar: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  tabBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabBtnActive: { borderBottomColor: '#2563eb' },
+  tabBtnText: { fontSize: 14, fontWeight: '600', color: '#6b7280' },
+  tabBtnTextActive: { color: '#2563eb' },
   stepText: { fontSize: 22, lineHeight: 34, color: '#111827' },
   timerRow: {
     flexDirection: 'row',
