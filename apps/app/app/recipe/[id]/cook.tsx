@@ -6,8 +6,6 @@ import {
   StyleSheet,
   SafeAreaView,
   ActivityIndicator,
-  Alert,
-  Vibration,
 } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
@@ -15,7 +13,7 @@ import { api } from '../../../src/api/client'
 import { useStepTimer, formatTime } from '../../../src/hooks/useStepTimer'
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake'
 import { IngredientChecklist } from '../../../src/components/IngredientChecklist'
-import * as Speech from 'expo-speech'
+import { onStepTimerComplete, startSpeech, stopSpeech } from '../../../src/utils/cookEffects'
 
 export default function CookModeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
@@ -41,27 +39,26 @@ export default function CookModeScreen() {
 
   const toggleSpeech = useCallback(() => {
     if (isSpeaking) {
-      void Speech.stop()
+      stopSpeech()
       setIsSpeaking(false)
     } else if (current?.text) {
-      Speech.speak(current.text, {
-        language: 'es',
-        onDone: () => setIsSpeaking(false),
-        onStopped: () => setIsSpeaking(false),
-        onError: () => setIsSpeaking(false),
-      })
+      startSpeech(
+        current.text,
+        () => setIsSpeaking(false),
+        () => setIsSpeaking(false),
+        () => setIsSpeaking(false),
+      )
       setIsSpeaking(true)
     }
   }, [isSpeaking, current?.text])
 
   useEffect(() => {
-    void Speech.stop()
+    stopSpeech()
     setIsSpeaking(false)
   }, [stepIndex])
 
   const handleTimerComplete = useCallback(() => {
-    Vibration.vibrate([0, 400, 200, 400])
-    Alert.alert('¡Tiempo!', 'El tiempo de este paso ha terminado.')
+    onStepTimerComplete()
   }, [])
 
   const { secondsLeft, isRunning, toggle, reset } = useStepTimer(

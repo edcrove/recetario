@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router'
 import { api } from '../../src/api/client'
 import type { MenuEntry, MenuSlot } from '@recetario/shared'
 import { getWeekStart, addDays, formatDate } from '../../src/utils/weekMath'
+import { buildEntryMap } from '../../src/utils/menuLogic'
 
 const SLOTS: MenuSlot[] = ['Desayuno', 'Almuerzo', 'Merienda', 'Cena', 'Snacks/Otros']
 
@@ -36,10 +37,7 @@ export default function MenuWeekScreen() {
     },
   })
 
-  const entryMap = new Map<string, MenuEntry>()
-  for (const entry of entries) {
-    entryMap.set(`${entry.date}::${entry.slot}`, entry)
-  }
+  const entryMap = buildEntryMap(entries)
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
 

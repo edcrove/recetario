@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { api } from '../../src/api/client'
 import type { ShoppingListItem } from '@recetario/shared'
+import { formatShoppingQty } from '../../src/utils/menuLogic'
 
 export default function ShoppingListScreen() {
   const router = useRouter()
@@ -51,11 +52,7 @@ export default function ShoppingListScreen() {
         renderItem={({ item }: { item: ShoppingListItem }) => (
           <View style={styles.row}>
             <Text style={styles.name}>{item.ingredient}</Text>
-            <Text style={styles.qty}>
-              {item.quantity != null
-                ? `${item.quantity}${item.unit ? ` ${item.unit}` : ''}`
-                : 'al gusto'}
-            </Text>
+            <Text style={styles.qty}>{formatShoppingQty(item)}</Text>
           </View>
         )}
         ListEmptyComponent={<Text style={styles.empty}>No hay ingredientes para esta semana</Text>}
