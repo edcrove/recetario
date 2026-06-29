@@ -1,4 +1,10 @@
-import type { Recipe, CreateRecipe, UpdateRecipe } from '@recetario/shared'
+import type {
+  Recipe,
+  CreateRecipe,
+  UpdateRecipe,
+  MenuEntry,
+  ShoppingListItem,
+} from '@recetario/shared'
 
 const BASE_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
 const API_KEY = process.env['EXPO_PUBLIC_API_KEY'] ?? ''
@@ -42,5 +48,14 @@ export const api = {
     update: (id: string, data: UpdateRecipe) =>
       request<Recipe>(`/v1/recipes/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string) => request<void>(`/v1/recipes/${id}`, { method: 'DELETE' }),
+  },
+  menu: {
+    getWeek: (weekStart: string) => request<MenuEntry[]>(`/v1/menu?weekStart=${weekStart}`),
+    add: (data: { date: string; slot: string; recipeId: string; servings: number }) =>
+      request<MenuEntry>('/v1/menu', { method: 'POST', body: JSON.stringify(data) }),
+    remove: (date: string, slot: string) =>
+      request<void>(`/v1/menu/${date}/${encodeURIComponent(slot)}`, { method: 'DELETE' }),
+    shoppingList: (weekStart: string) =>
+      request<ShoppingListItem[]>(`/v1/menu/shopping-list?weekStart=${weekStart}`),
   },
 }
