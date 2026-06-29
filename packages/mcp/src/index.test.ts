@@ -1,15 +1,61 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createMcpServer, createApiClient } from './index.js'
+
+const mockFetch = vi.fn()
+
+beforeEach(() => {
+  vi.stubGlobal('fetch', mockFetch)
+  mockFetch.mockReset()
+})
 
 describe('MCP server', () => {
   it('creates server with correct name', () => {
     const server = createMcpServer()
-    // McpServer doesn't expose name directly, just verify it constructs
     expect(server).toBeDefined()
   })
 
   it('createApiClient returns an object with request method', () => {
     const client = createApiClient()
     expect(typeof client.request).toBe('function')
+  })
+})
+
+describe('createApiClient.request', () => {
+  it('throws with status and body on non-ok response', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 422,
+      json: async () => ({ error: 'Validation failed' }),
+    })
+
+    const client = createApiClient()
+    const err = await client.request('/v1/recipes').catch((e: Error) => e)
+    expect(err).toBeInstanceOf(Error)
+    expect(err.message).toContain('API error 422')
+    expect(err.message).toContain('Validation failed')
+  })
+
+  it('throws with empty body when json parsing fails', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => {
+        throw new Error('invalid json')
+      },
+    })
+
+    const client = createApiClient()
+    await expect(client.request('/v1/recipes')).rejects.toThrow('API error 500')
+  })
+
+  it('returns parsed json on success', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: '123', title: 'Test' }),
+    })
+
+    const client = createApiClient()
+    const result = await client.request('/v1/recipes')
+    expect(result).toEqual({ id: '123', title: 'Test' })
   })
 })

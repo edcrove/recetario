@@ -10,45 +10,8 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../src/api/client'
-import { scaleQuantity, convertUnit, convertWithDensity } from '@recetario/shared'
-import type { Ingredient, Unit } from '@recetario/shared'
-
-type DisplayMode = 'cooking' | 'metric' | 'imperial'
-
-function formatQuantity(qty: number | null): string {
-  if (qty === null) return 'c/n'
-  if (qty === Math.floor(qty)) return String(qty)
-  return qty.toFixed(2).replace(/\.?0+$/, '')
-}
-
-function displayIngredient(
-  ing: Ingredient,
-  baseServings: number,
-  targetServings: number,
-  mode: DisplayMode,
-): string {
-  const scaled = scaleQuantity(ing.quantity, baseServings, targetServings)
-
-  // Unit toggle
-  let finalQty = scaled
-  let finalUnit = ing.unit
-
-  if (scaled !== null && ing.unit) {
-    if (mode === 'metric') {
-      finalUnit = ing.unit && ['tsp', 'tbsp', 'cup'].includes(ing.unit) ? 'ml' : ing.unit
-      finalQty = convertUnit(scaled, ing.unit, finalUnit)
-    } else if (mode === 'imperial') {
-      finalUnit = ing.unit === 'ml' ? 'tsp' : ing.unit === 'l' ? 'cup' : ing.unit
-      finalQty = convertUnit(scaled, ing.unit, finalUnit)
-    }
-    // Try mass/volume conversion if density available
-    finalQty = convertWithDensity(scaled, ing.unit as Unit, finalUnit as Unit, ing.name)
-  }
-
-  const qtyStr = formatQuantity(finalQty)
-  const parts = [qtyStr, finalUnit, ing.presentation, ing.name].filter(Boolean)
-  return parts.join(' ') + (ing.note ? ` (${ing.note})` : '')
-}
+import { displayIngredient } from '../../src/utils/displayIngredient'
+import type { DisplayMode } from '../../src/utils/displayIngredient'
 
 export default function RecipeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
