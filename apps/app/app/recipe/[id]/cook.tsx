@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import {
   View,
   Text,
@@ -6,10 +6,13 @@ import {
   StyleSheet,
   SafeAreaView,
   ActivityIndicator,
+  Alert,
+  Vibration,
 } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../../src/api/client'
+import { useStepTimer, formatTime } from '../../../src/hooks/useStepTimer'
 
 export default function CookModeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
@@ -21,6 +24,19 @@ export default function CookModeScreen() {
     queryFn: () => api.recipes.get(id),
   })
 
+  const steps = recipe?.steps ?? []
+  const current = steps[stepIndex]
+
+  const handleTimerComplete = useCallback(() => {
+    Vibration.vibrate([0, 400, 200, 400])
+    Alert.alert('¡Tiempo!', 'El tiempo de este paso ha terminado.')
+  }, [])
+
+  const { secondsLeft, isRunning, toggle, reset } = useStepTimer(
+    current?.durationMin ?? null,
+    handleTimerComplete,
+  )
+
   if (isLoading)
     return (
       <SafeAreaView style={s.container}>
@@ -28,11 +44,11 @@ export default function CookModeScreen() {
       </SafeAreaView>
     )
 
-  const steps = recipe?.steps ?? []
   const total = steps.length
-  const current = steps[stepIndex]
   const isFirst = stepIndex === 0
   const isLast = stepIndex === total - 1
+
+  const goTo = (index: number) => setStepIndex(index)
 
   if (total === 0)
     return (
@@ -60,20 +76,33 @@ export default function CookModeScreen() {
 
       <View style={s.body}>
         <Text style={s.stepText}>{current?.text}</Text>
-        {current?.durationMin != null && <Text style={s.duration}>{current.durationMin} min</Text>}
+
+        {current?.durationMin != null && (
+          <View style={s.timerRow}>
+            <Text style={[s.timerChip, secondsLeft === 0 && s.timerChipDone]}>
+              {formatTime(secondsLeft)}
+            </Text>
+            <TouchableOpacity style={s.timerBtn} onPress={toggle}>
+              <Text style={s.timerBtnText}>{isRunning ? 'Pausar' : 'Reanudar'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={s.timerBtn} onPress={reset}>
+              <Text style={s.timerBtnText}>↺</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       <View style={s.nav}>
         <TouchableOpacity
           style={[s.navBtn, isFirst && s.navBtnDisabled]}
-          onPress={() => setStepIndex((i) => i - 1)}
+          onPress={() => goTo(stepIndex - 1)}
           disabled={isFirst}
         >
           <Text style={[s.navBtnText, isFirst && s.navBtnTextDisabled]}>Anterior</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[s.navBtn, s.navBtnPrimary]}
-          onPress={() => (isLast ? router.back() : setStepIndex((i) => i + 1))}
+          onPress={() => (isLast ? router.back() : goTo(stepIndex + 1))}
         >
           <Text style={[s.navBtnText, s.navBtnTextPrimary]}>
             {isLast ? 'Finalizar' : 'Siguiente'}
@@ -109,12 +138,27 @@ const s = StyleSheet.create({
     paddingVertical: 24,
   },
   stepText: { fontSize: 22, lineHeight: 34, color: '#111827' },
-  duration: {
-    marginTop: 24,
-    fontSize: 15,
-    color: '#2563eb',
-    fontWeight: '500',
+  timerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 28,
+    gap: 10,
   },
+  timerChip: {
+    fontSize: 28,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+    color: '#2563eb',
+    minWidth: 80,
+  },
+  timerChipDone: { color: '#ef4444' },
+  timerBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 8,
+  },
+  timerBtnText: { fontSize: 14, fontWeight: '600', color: '#374151' },
   nav: {
     flexDirection: 'row',
     gap: 12,
