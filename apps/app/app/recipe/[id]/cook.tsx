@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../../src/api/client'
 import { useStepTimer, formatTime } from '../../../src/hooks/useStepTimer'
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake'
 
 export default function CookModeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
@@ -23,6 +24,13 @@ export default function CookModeScreen() {
     queryKey: ['recipe', id],
     queryFn: () => api.recipes.get(id),
   })
+
+  useEffect(() => {
+    void activateKeepAwakeAsync()
+    return () => {
+      void deactivateKeepAwake()
+    }
+  }, [])
 
   const steps = recipe?.steps ?? []
   const current = steps[stepIndex]
