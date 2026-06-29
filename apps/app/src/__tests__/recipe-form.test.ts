@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { buildPayload, validatePayload } from '../utils/recipeForm'
+import { buildPayload, validatePayload, recipeToFormState } from '../utils/recipeForm'
 import type { IngredientRow, StepRow } from '../utils/recipeForm'
+import type { Recipe } from '@recetario/shared'
 
 const validIngredients: IngredientRow[] = [
   { name: 'Harina', quantity: '200', unit: 'g', presentation: '' },
@@ -133,5 +134,63 @@ describe('validatePayload', () => {
     const { valid, errors } = validatePayload(payload)
     expect(valid).toBe(false)
     expect(errors.ingredients).toBeDefined()
+  })
+})
+
+describe('recipeToFormState', () => {
+  const recipe: Recipe = {
+    title: 'Pasta',
+    servings: 4,
+    category: 'Cena',
+    tags: ['italiana', 'rápida'],
+    images: [],
+    originalLanguage: 'es',
+    translations: [],
+    notes: 'Al dente',
+    ingredients: [
+      { name: 'Pasta', quantity: 200, unit: 'g' },
+      { name: 'Sal', quantity: null, unit: null, presentation: 'fina' },
+    ],
+    steps: [{ text: 'Hervir' }, { text: 'Escurrir' }],
+  }
+
+  it('maps recipe to form state', () => {
+    const form = recipeToFormState(recipe)
+    expect(form.title).toBe('Pasta')
+    expect(form.servings).toBe('4')
+    expect(form.category).toBe('Cena')
+    expect(form.tags).toBe('italiana, rápida')
+    expect(form.notes).toBe('Al dente')
+  })
+
+  it('converts null quantity to empty string', () => {
+    const form = recipeToFormState(recipe)
+    expect(form.ingredients[1]?.quantity).toBe('')
+  })
+
+  it('converts null unit to empty string', () => {
+    const form = recipeToFormState(recipe)
+    expect(form.ingredients[1]?.unit).toBe('')
+  })
+
+  it('converts numeric quantity to string', () => {
+    const form = recipeToFormState(recipe)
+    expect(form.ingredients[0]?.quantity).toBe('200')
+  })
+
+  it('maps presentation or defaults to empty string', () => {
+    const form = recipeToFormState(recipe)
+    expect(form.ingredients[0]?.presentation).toBe('')
+    expect(form.ingredients[1]?.presentation).toBe('fina')
+  })
+
+  it('maps steps to text rows', () => {
+    const form = recipeToFormState(recipe)
+    expect(form.steps).toEqual([{ text: 'Hervir' }, { text: 'Escurrir' }])
+  })
+
+  it('handles null notes', () => {
+    const form = recipeToFormState({ ...recipe, notes: undefined })
+    expect(form.notes).toBe('')
   })
 })
