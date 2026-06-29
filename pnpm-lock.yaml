@@ -65,6 +65,9 @@ importers:
       expo-router:
         specifier: ~4.0.0
         version: 4.0.22(expo-constants@17.1.8(expo@53.0.27)(react-native@0.76.9(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.3.31)(react@18.3.1)))(expo-linking@7.0.5(expo@53.0.27)(react-native@0.76.9(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.3.31)(react@18.3.1))(react@18.3.1))(expo@53.0.27)(react-dom@18.3.1(react@18.3.1))(react-native-safe-area-context@5.8.0(react-native@0.76.9(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.3.31)(react@18.3.1))(react@18.3.1))(react-native-screens@4.25.2(react-native@0.76.9(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.3.31)(react@18.3.1))(react@18.3.1))(react-native@0.76.9(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.3.31)(react@18.3.1))(react@18.3.1)
+      expo-speech:
+        specifier: ~13.1.7
+        version: 13.1.7(expo@53.0.27)
       react:
         specifier: ^18.3.0
         version: 18.3.1
@@ -3386,6 +3389,11 @@ packages:
         optional: true
       react-native-reanimated:
         optional: true
+
+  expo-speech@13.1.7:
+    resolution: {integrity: sha512-RMMgK6IIPQD9uLhmY2Q9v+2j3wmTGqB/qZ7sdy5//5TLCzFwAq1vlpy5A2psVsctoWVxUO4EmlaNai0ahQmKRg==}
+    peerDependencies:
+      expo: '*'
 
   expo@53.0.27:
     resolution: {integrity: sha512-iQwe2uWLb88opUY4vBYEW1d2GUq3lsa43gsMBEdDV+6pw0Oek93l/4nDLe0ODDdrBRjIJm/rdhKqJC/ehHCUqw==}
@@ -9419,6 +9427,10 @@ snapshots:
       - react-dom
       - react-native
       - supports-color
+
+  expo-speech@13.1.7(expo@53.0.27):
+    dependencies:
+      expo: 53.0.27(@babel/core@7.29.7)(@expo/dom-webview@56.0.5)(@expo/metro-runtime@56.0.15)(react-native@0.76.9(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.3.31)(react@18.3.1))(react@18.3.1)
 
   expo@53.0.27(@babel/core@7.29.7)(@expo/dom-webview@56.0.5)(@expo/metro-runtime@56.0.15)(react-native@0.76.9(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.3.31)(react@18.3.1))(react@18.3.1):
     dependencies:
