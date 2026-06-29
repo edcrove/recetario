@@ -132,7 +132,12 @@ export default function RecipeDetailScreen() {
       {/* Steps */}
       {recipe.steps.length > 0 && (
         <>
-          <Text style={s.sectionTitle}>Preparación</Text>
+          <View style={s.sectionHeader}>
+            <Text style={s.sectionTitle}>Preparación</Text>
+            <TouchableOpacity style={s.cookBtn} onPress={() => router.push(`/recipe/${id}/cook`)}>
+              <Text style={s.cookBtnText}>Iniciar cocina</Text>
+            </TouchableOpacity>
+          </View>
           {recipe.steps.map((step, i) => (
             <View key={i} style={s.step}>
               <Text style={s.stepNum}>{i + 1}</Text>
@@ -176,7 +181,21 @@ const s = StyleSheet.create({
   toggleActive: { backgroundColor: '#2563eb' },
   toggleText: { color: '#333' },
   toggleTextActive: { color: '#fff' },
-  sectionTitle: { fontSize: 18, fontWeight: '600', marginTop: 16, marginBottom: 8 },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  sectionTitle: { fontSize: 18, fontWeight: '600' },
+  cookBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#16a34a',
+    borderRadius: 8,
+  },
+  cookBtnText: { color: '#fff', fontWeight: '600', fontSize: 13 },
   ingredient: { fontSize: 15, marginBottom: 4, paddingLeft: 4 },
   step: { flexDirection: 'row', marginBottom: 12, gap: 8 },
   stepNum: { fontWeight: 'bold', color: '#2563eb', width: 24 },
