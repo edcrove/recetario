@@ -11,32 +11,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { api } from '../../src/api/client'
 import type { MenuEntry, MenuSlot } from '@recetario/shared'
+import { getWeekStart, addDays, formatDate } from '../../src/utils/weekMath'
 
 const SLOTS: MenuSlot[] = ['Desayuno', 'Almuerzo', 'Merienda', 'Cena', 'Snacks/Otros']
-
-function getWeekStart(date: Date): string {
-  const d = new Date(date)
-  const day = d.getUTCDay()
-  const diff = day === 0 ? -6 : 1 - day
-  d.setUTCDate(d.getUTCDate() + diff)
-  return d.toISOString().slice(0, 10)
-}
-
-function addDays(isoDate: string, days: number): string {
-  const d = new Date(isoDate)
-  d.setUTCDate(d.getUTCDate() + days)
-  return d.toISOString().slice(0, 10)
-}
-
-function formatDate(isoDate: string): string {
-  const d = new Date(isoDate + 'T00:00:00Z')
-  return d.toLocaleDateString('es-AR', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    timeZone: 'UTC',
-  })
-}
 
 export default function MenuWeekScreen() {
   const router = useRouter()
