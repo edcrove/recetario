@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__claude_ai_Notion__notion-fetch",
+      "mcp__claude_ai_Notion__notion-search",
+      "mcp__claude_ai_Notion__notion-query-data-sources",
+      "mcp__claude_ai_Notion__notion-query-database-view",
+      "mcp__claude_ai_Notion__notion-get-comments",
+      "mcp__claude_ai_Notion__notion-get-teams",
+      "mcp__claude_ai_Notion__notion-get-users",
+      "Bash(pnpm test)",
+      "Bash(pnpm --filter @recetario/api test)",
+      "Bash(pnpm --filter @recetario/shared test)",
+      "Bash(pnpm --filter @recetario/mcp test)",
+      "Bash(pnpm --filter recetario-app test)",
+      "Bash(pnpm typecheck)",
+      "Bash(pnpm lint)",
+      "Bash(pnpm build)",
+      "Bash(pnpm --filter recetario-app exec tsc --noEmit)",
+      "Bash(pnpm --filter @recetario/api exec tsc --noEmit)",
+      "Bash(docker compose up -d)",
+      "Bash(docker compose exec postgres pg_isready *)"
+    ]
+  }
+}

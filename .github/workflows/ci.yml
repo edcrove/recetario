@@ -1,11 +1,132 @@
 name: CI
+
 on:
   push:
     branches: [main, 'chore/**', 'feat/**', 'fix/**']
   pull_request:
 
 jobs:
-  ci:
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run ESLint
+        run: pnpm turbo run lint
+
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run tsc --noEmit
+        run: pnpm turbo run typecheck
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: recetario_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Run unit & integration tests
+        id: tests
+        run: |
+          set -o pipefail
+          pnpm turbo run test 2>&1 | tee test-output.txt
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/recetario_test
+
+      - name: Parse test results
+        if: always()
+        id: summary
+        run: |
+          {
+            echo "report<<SUMMARY_EOF"
+            echo "### Test Results"
+            echo ""
+            echo "| Package | Files | Tests | Status |"
+            echo "|---------|-------|-------|--------|"
+            # Extract per-package results from turbo output
+            for pkg in "@recetario/shared" "@recetario/api" "@recetario/mcp" "recetario-app"; do
+              # Find the "Test Files" line after the package name
+              files=$(grep -A 50 "${pkg}:test:" test-output.txt | grep "Test Files" | tail -1 | sed 's/.*  //' || echo "—")
+              tests=$(grep -A 50 "${pkg}:test:" test-output.txt | grep "      Tests" | tail -1 | sed 's/.*  //' || echo "—")
+              if echo "$files" | grep -q "passed"; then
+                status="✅"
+              elif echo "$files" | grep -q "failed"; then
+                status="❌"
+              else
+                status="⏭️"
+              fi
+              echo "| \`${pkg}\` | ${files} | ${tests} | ${status} |"
+            done
+            echo ""
+            # Overall summary
+            total_passed=$(grep -c "✓" test-output.txt || true)
+            total_failed=$(grep -c "✗\|FAIL" test-output.txt || true)
+            if [ "$total_failed" -gt 0 ]; then
+              echo "**Overall: ❌ Some tests failed**"
+            else
+              echo "**Overall: ✅ All tests passed**"
+            fi
+            echo ""
+            echo "SUMMARY_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Comment test results on PR
+        if: always() && github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: test-results
+          message: |
+            ${{ steps.summary.outputs.report }}
+
+            📊 [Full coverage report](https://${{ github.repository_owner }}.github.io/recetario/) · [CI run details](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+  coverage:
+    name: Coverage Report
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -33,16 +154,15 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm turbo run lint
-      - run: pnpm turbo run typecheck
-      - run: pnpm turbo run test
+
+      - name: Generate API coverage
+        run: pnpm --filter @recetario/api test:coverage
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/recetario_test
-      - run: pnpm --filter @recetario/api test:coverage
-        env:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/recetario_test
-      - run: pnpm --filter @recetario/shared test:coverage
-      - run: pnpm turbo run build
+
+      - name: Generate shared coverage
+        run: pnpm --filter @recetario/shared test:coverage
+
       - name: Prepare coverage pages
         run: |
           mkdir -p gh-pages/api gh-pages/shared
@@ -74,14 +194,51 @@ jobs:
           </body>
           </html>
           HTMLEOF
-      - uses: actions/upload-artifact@v4
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: gh-pages/
           retention-days: 14
+
       - name: Deploy to GitHub Pages
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./gh-pages
+
+  build:
+    name: Build
+    needs: [lint, typecheck]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build all packages
+        run: pnpm turbo run build
+
+  ci:
+    name: CI Gate
+    if: always()
+    needs: [lint, typecheck, test, build, coverage]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check all jobs passed
+        run: |
+          results=("${{ needs.lint.result }}" "${{ needs.typecheck.result }}" "${{ needs.test.result }}" "${{ needs.build.result }}" "${{ needs.coverage.result }}")
+          for r in "${results[@]}"; do
+            if [ "$r" != "success" ]; then
+              echo "Job failed with result: $r"
+              exit 1
+            fi
+          done
+          echo "All jobs passed"
