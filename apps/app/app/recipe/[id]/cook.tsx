@@ -15,12 +15,14 @@ import { api } from '../../../src/api/client'
 import { useStepTimer, formatTime } from '../../../src/hooks/useStepTimer'
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake'
 import { IngredientChecklist } from '../../../src/components/IngredientChecklist'
+import * as Speech from 'expo-speech'
 
 export default function CookModeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
   const [stepIndex, setStepIndex] = useState(0)
   const [tab, setTab] = useState<'steps' | 'ingredients'>('steps')
+  const [isSpeaking, setIsSpeaking] = useState(false)
 
   const { data: recipe, isLoading } = useQuery({
     queryKey: ['recipe', id],
@@ -36,6 +38,26 @@ export default function CookModeScreen() {
 
   const steps = recipe?.steps ?? []
   const current = steps[stepIndex]
+
+  const toggleSpeech = useCallback(() => {
+    if (isSpeaking) {
+      void Speech.stop()
+      setIsSpeaking(false)
+    } else if (current?.text) {
+      Speech.speak(current.text, {
+        language: 'es',
+        onDone: () => setIsSpeaking(false),
+        onStopped: () => setIsSpeaking(false),
+        onError: () => setIsSpeaking(false),
+      })
+      setIsSpeaking(true)
+    }
+  }, [isSpeaking, current?.text])
+
+  useEffect(() => {
+    void Speech.stop()
+    setIsSpeaking(false)
+  }, [stepIndex])
 
   const handleTimerComplete = useCallback(() => {
     Vibration.vibrate([0, 400, 200, 400])
@@ -81,7 +103,15 @@ export default function CookModeScreen() {
         <Text style={s.counter}>
           {tab === 'steps' ? `Paso ${stepIndex + 1} / ${total}` : 'Ingredientes'}
         </Text>
-        <View style={s.closePlaceholder} />
+        {tab === 'steps' ? (
+          <TouchableOpacity style={s.closeBtn} onPress={toggleSpeech}>
+            <Text style={[s.closeBtnText, isSpeaking && s.speakingIcon]}>
+              {isSpeaking ? '🔊' : '🔈'}
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={s.closePlaceholder} />
+        )}
       </View>
 
       <View style={s.tabBar}>
@@ -161,6 +191,7 @@ const s = StyleSheet.create({
   },
   closeBtn: { padding: 8 },
   closeBtnText: { fontSize: 20, color: '#6b7280' },
+  speakingIcon: { color: '#2563eb' },
   closePlaceholder: { width: 36 },
   counter: { fontSize: 15, fontWeight: '600', color: '#374151' },
   body: {
