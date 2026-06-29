@@ -4,6 +4,9 @@ import {
   CreateRecipeSchema,
   IngredientSchema,
   RecipeSchema,
+  SourceSchema,
+  StepSchema,
+  TranslationSchema,
   UnitSchema,
   UpdateRecipeSchema,
 } from './schema.js'
@@ -43,6 +46,72 @@ describe('CategorySchema', () => {
   it('fails on invalid category', () => {
     expect(() => CategorySchema.parse('Breakfast')).toThrow()
     expect(() => CategorySchema.parse('dessert')).toThrow()
+  })
+})
+
+describe('SourceSchema', () => {
+  it('accepts valid source with url', () => {
+    const result = SourceSchema.parse({ type: 'url', url: 'https://example.com/recipe' })
+    expect(result.type).toBe('url')
+    expect(result.url).toBe('https://example.com/recipe')
+  })
+
+  it('rejects invalid type', () => {
+    expect(() => SourceSchema.parse({ type: 'pdf' })).toThrow()
+  })
+
+  it('rejects invalid url format', () => {
+    expect(() => SourceSchema.parse({ type: 'url', url: 'not-a-url' })).toThrow()
+  })
+
+  it('accepts source without url (manual/photo)', () => {
+    expect(() => SourceSchema.parse({ type: 'manual' })).not.toThrow()
+    expect(() => SourceSchema.parse({ type: 'photo' })).not.toThrow()
+  })
+})
+
+describe('StepSchema', () => {
+  it('accepts valid step with duration', () => {
+    const result = StepSchema.parse({ text: 'Mix well', durationMin: 5 })
+    expect(result.text).toBe('Mix well')
+    expect(result.durationMin).toBe(5)
+  })
+
+  it('rejects empty text', () => {
+    expect(() => StepSchema.parse({ text: '' })).toThrow()
+  })
+
+  it('rejects negative durationMin', () => {
+    expect(() => StepSchema.parse({ text: 'Mix', durationMin: -1 })).toThrow()
+  })
+
+  it('rejects zero durationMin', () => {
+    expect(() => StepSchema.parse({ text: 'Mix', durationMin: 0 })).toThrow()
+  })
+
+  it('accepts step with ovenTempC', () => {
+    const result = StepSchema.parse({ text: 'Bake', ovenTempC: 180 })
+    expect(result.ovenTempC).toBe(180)
+  })
+})
+
+describe('TranslationSchema', () => {
+  it('accepts valid 2-char language', () => {
+    const result = TranslationSchema.parse({ language: 'es', title: 'Torta' })
+    expect(result.language).toBe('es')
+  })
+
+  it('accepts valid 5-char language (BCP-47)', () => {
+    const result = TranslationSchema.parse({ language: 'pt-BR' })
+    expect(result.language).toBe('pt-BR')
+  })
+
+  it('rejects 1-char language', () => {
+    expect(() => TranslationSchema.parse({ language: 'e' })).toThrow()
+  })
+
+  it('rejects 6-char language', () => {
+    expect(() => TranslationSchema.parse({ language: 'toolng' })).toThrow()
   })
 })
 

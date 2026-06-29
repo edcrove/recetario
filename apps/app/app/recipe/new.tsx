@@ -2,9 +2,15 @@ import { useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { CreateRecipeSchema } from '@recetario/shared'
 import type { Category, Unit } from '@recetario/shared'
 import { api } from '../../src/api/client'
+import {
+  buildPayload,
+  validatePayload,
+  type IngredientRow,
+  type StepRow,
+  type FieldErrors,
+} from '../../src/utils/recipeForm'
 
 const CATEGORIES: Category[] = ['Desayuno', 'Almuerzo', 'Cena', 'Postre', 'Snack', 'Bebida', 'Otro']
 
@@ -22,26 +28,6 @@ const UNITS: (Unit | '')[] = [
   'slice',
   'clove',
 ]
-
-interface IngredientRow {
-  name: string
-  quantity: string
-  unit: string
-  presentation: string
-}
-
-interface StepRow {
-  text: string
-}
-
-interface FieldErrors {
-  title?: string
-  servings?: string
-  category?: string
-  ingredients?: string
-  steps?: string
-  general?: string
-}
 
 export default function NewRecipeScreen() {
   const router = useRouter()
@@ -69,51 +55,15 @@ export default function NewRecipeScreen() {
     },
   })
 
-  function validate(): boolean {
-    const data = buildPayload()
-    const result = CreateRecipeSchema.safeParse(data)
-    if (!result.success) {
-      const fieldErrors: FieldErrors = {}
-      for (const issue of result.error.issues) {
-        const path = issue.path[0]
-        if (path === 'title') fieldErrors.title = issue.message
-        else if (path === 'servings') fieldErrors.servings = issue.message
-        else if (path === 'category') fieldErrors.category = issue.message
-        else if (path === 'ingredients') fieldErrors.ingredients = issue.message
-        else fieldErrors.general = issue.message
-      }
+  function handleSubmit() {
+    const payload = buildPayload(title, servings, category, tags, notes, ingredients, steps)
+    const { valid, errors: fieldErrors } = validatePayload(payload)
+    if (!valid) {
       setErrors(fieldErrors)
-      return false
+      return
     }
     setErrors({})
-    return true
-  }
-
-  function buildPayload() {
-    return {
-      title: title.trim(),
-      servings: parseInt(servings, 10) || 0,
-      category,
-      tags: tags
-        .split(',')
-        .map((t) => t.trim())
-        .filter(Boolean),
-      notes: notes.trim() || undefined,
-      ingredients: ingredients
-        .filter((i) => i.name.trim())
-        .map((i) => ({
-          name: i.name.trim(),
-          quantity: i.quantity ? parseFloat(i.quantity) : null,
-          unit: (i.unit as Unit) || null,
-          presentation: i.presentation.trim() || undefined,
-        })),
-      steps: steps.filter((s) => s.text.trim()).map((s) => ({ text: s.text.trim() })),
-    }
-  }
-
-  function handleSubmit() {
-    if (!validate()) return
-    mutation.mutate(buildPayload() as Parameters<typeof api.recipes.create>[0])
+    mutation.mutate(payload as Parameters<typeof api.recipes.create>[0])
   }
 
   function updateIngredient(index: number, field: keyof IngredientRow, value: string) {
