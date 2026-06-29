@@ -54,7 +54,7 @@ describe('menu tools', () => {
 
       const handler = getToolHandler(server, 'addToMenu')
 
-      const result = (await handler(
+      const resultRaw = await handler(
         {
           date: '2026-07-07',
           slot: 'Cena',
@@ -62,7 +62,9 @@ describe('menu tools', () => {
           servings: 4,
         },
         {},
-      )) as any
+      )
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = resultRaw as any
 
       expect(mockFetch).toHaveBeenCalledOnce()
       const [url, opts] = mockFetch.mock.calls[0] as [string, RequestInit]
