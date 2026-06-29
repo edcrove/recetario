@@ -51,9 +51,14 @@ export default function HomeScreen() {
         onChangeText={setQuery}
         clearButtonMode="while-editing"
       />
-      <TouchableOpacity style={styles.addButton} onPress={() => router.push('/recipe/new')}>
-        <Text style={styles.addButtonText}>+ Nueva Receta</Text>
-      </TouchableOpacity>
+      <View style={styles.actions}>
+        <TouchableOpacity style={styles.addButton} onPress={() => router.push('/recipe/new')}>
+          <Text style={styles.addButtonText}>+ Nueva Receta</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.menuButton} onPress={() => router.push('/menu')}>
+          <Text style={styles.menuButtonText}>Menú Semanal</Text>
+        </TouchableOpacity>
+      </View>
       <FlatList
         data={recipes}
         keyExtractor={(item: Recipe) => item.id ?? item.title}
@@ -87,15 +92,21 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     fontSize: 16,
   },
+  actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginBottom: 12 },
   addButton: {
-    alignSelf: 'flex-end',
-    marginBottom: 12,
     paddingHorizontal: 16,
     paddingVertical: 8,
     backgroundColor: '#2563eb',
     borderRadius: 8,
   },
   addButtonText: { color: '#fff', fontWeight: '600' },
+  menuButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#16a34a',
+    borderRadius: 8,
+  },
+  menuButtonText: { color: '#fff', fontWeight: '600' },
   card: { padding: 16, borderRadius: 8, backgroundColor: '#f9f9f9', marginBottom: 8 },
   cardTitle: { fontSize: 18, fontWeight: '600' },
   cardMeta: { color: '#666', marginTop: 4 },

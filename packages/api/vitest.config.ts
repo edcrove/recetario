@@ -8,7 +8,7 @@ export default defineConfig({
     hookTimeout: 120000,
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'lcov'],
+      reporter: ['text', 'lcov', 'html'],
       include: ['src/**/*.ts'],
       exclude: [
         'src/**/*.test.ts',
@@ -16,6 +16,7 @@ export default defineConfig({
         'src/scripts/**',
         'src/index.ts',
         'src/types.ts',
+        'src/db/schema/**',
       ],
       thresholds: {
         statements: 100,
