@@ -37,7 +37,7 @@ const postRecipeRoute = defineRoute({
       content: { 'application/json': { schema: RecipeSchema } },
       description: 'Recipe updated (dedupe upsert)',
     },
-    422: {
+    400: {
       content: { 'application/json': { schema: errorSchema } },
       description: 'Validation error',
     },

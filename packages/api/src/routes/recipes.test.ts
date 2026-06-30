@@ -96,7 +96,7 @@ describe('POST /v1/recipes', () => {
     expect(body.title).toBe('Tortilla española')
   })
 
-  it('returns 422 on invalid body (missing title)', async () => {
+  it('returns 400 on invalid body (missing title)', async () => {
     const res = await app.request('/v1/recipes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...AUTH_HEADERS },

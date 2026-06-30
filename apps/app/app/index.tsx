@@ -25,7 +25,9 @@ export default function HomeScreen() {
   } = useQuery({
     queryKey: ['recipes', query],
     queryFn: () =>
-      query.trim() ? api.recipes.search({ q: query }) : api.recipes.list({ limit: 50 }),
+      getQueryFnKey(query) === 'search'
+        ? api.recipes.search({ q: query })
+        : api.recipes.list({ limit: 50 }),
   })
 
   if (isLoading)
@@ -73,9 +75,7 @@ export default function HomeScreen() {
             {item.tags.length > 0 && <Text style={styles.tags}>{item.tags.join(', ')}</Text>}
           </TouchableOpacity>
         )}
-        ListEmptyComponent={
-          <Text style={styles.empty}>{query ? 'Sin resultados' : 'No hay recetas aún'}</Text>
-        }
+        ListEmptyComponent={<Text style={styles.empty}>{getEmptyMessage(query, recipes)}</Text>}
       />
     </View>
   )
