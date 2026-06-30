@@ -8,18 +8,60 @@
       "mcp__claude_ai_Notion__notion-get-comments",
       "mcp__claude_ai_Notion__notion-get-teams",
       "mcp__claude_ai_Notion__notion-get-users",
+      "mcp__claude_ai_Notion__notion-create-pages",
+      "mcp__claude_ai_Notion__notion-update-page",
+
       "Bash(pnpm test)",
       "Bash(pnpm --filter @recetario/api test)",
+      "Bash(pnpm --filter @recetario/api test:coverage)",
       "Bash(pnpm --filter @recetario/shared test)",
       "Bash(pnpm --filter @recetario/mcp test)",
       "Bash(pnpm --filter recetario-app test)",
+      "Bash(pnpm --filter recetario-app exec vitest run --config vitest.screen.config.ts)",
       "Bash(pnpm typecheck)",
       "Bash(pnpm lint)",
       "Bash(pnpm build)",
+      "Bash(pnpm ci:local)",
       "Bash(pnpm --filter recetario-app exec tsc --noEmit)",
+      "Bash(pnpm --filter recetario-app exec tsc --noEmit --project tsconfig.screens.json)",
       "Bash(pnpm --filter @recetario/api exec tsc --noEmit)",
+      "Bash(pnpm --filter @recetario/shared exec tsc --noEmit)",
+      "Bash(pnpm --filter @recetario/mcp exec tsc --noEmit)",
+
+      "Bash(pnpm --filter @recetario/api exec drizzle-kit generate)",
+      "Bash(pnpm --filter @recetario/api exec drizzle-kit migrate)",
+      "Bash(pnpm --filter @recetario/api exec drizzle-kit studio)",
+
       "Bash(docker compose up -d)",
-      "Bash(docker compose exec postgres pg_isready *)"
+      "Bash(docker compose exec postgres pg_isready *)",
+      "Bash(docker compose ps)",
+
+      "Bash(gh pr view *)",
+      "Bash(gh pr list *)",
+      "Bash(gh run list *)",
+      "Bash(gh run view *)",
+      "Bash(gh repo view *)",
+      "Bash(gh api repos/edcrove/recetario *)",
+
+      "Bash(git log *)",
+      "Bash(git branch *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git fetch *)",
+      "Bash(git stash list)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "mcp__claude_ai_Notion__notion-update-page",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '[Notion] Page updated'"
+          }
+        ]
+      }
     ]
   }
 }
