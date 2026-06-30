@@ -9,6 +9,7 @@ export default defineConfig({
     globals: true,
     include: ['src/__screen-tests__/**/*.test.{ts,tsx}'],
     setupFiles: ['./src/__mocks__/screen-setup.ts'],
+    typecheck: { tsconfig: './tsconfig.screens.json' },
     alias: {
       'react-native': path.resolve(__dirname, 'src/__mocks__/react-native.tsx'),
       'expo-router': path.resolve(__dirname, 'src/__mocks__/expo-router.ts'),

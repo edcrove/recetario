@@ -6,5 +6,6 @@
     "jsx": "react-native",
     "noEmit": true
   },
-  "include": ["app", "**/*.ts", "**/*.tsx"]
+  "include": ["app", "**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules", "src/__screen-tests__", "src/__mocks__"]
 }

@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "types": ["vitest/globals", "@testing-library/jest-dom"]
+  },
+  "include": [
+    "src/__screen-tests__/**/*.ts",
+    "src/__screen-tests__/**/*.tsx",
+    "src/__mocks__/**/*.ts",
+    "src/__mocks__/**/*.tsx"
+  ],
+  "exclude": ["node_modules"]
+}
