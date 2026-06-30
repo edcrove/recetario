@@ -1,5 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createMcpServer, createApiClient } from './index.js'
+import { createMcpServer, createApiClient, registerAllTools } from './index.js'
+
+const EXPECTED_TOOLS = [
+  'createRecipe',
+  'getRecipe',
+  'searchRecipes',
+  'listRecipes',
+  'updateRecipe',
+  'deleteRecipe',
+  'addToMenu',
+  'removeFromMenu',
+  'getMenu',
+  'generateShoppingList',
+]
 
 const mockFetch = vi.fn()
 
@@ -17,6 +30,29 @@ describe('MCP server', () => {
   it('createApiClient returns an object with request method', () => {
     const client = createApiClient()
     expect(typeof client.request).toBe('function')
+  })
+})
+
+describe('registerAllTools (main bootstrap)', () => {
+  it('registers all 10 expected tools', async () => {
+    const server = createMcpServer()
+    const apiClient = createApiClient()
+    const spy = vi.spyOn(server, 'tool')
+
+    await registerAllTools(server, apiClient)
+
+    const registeredNames = spy.mock.calls.map((call) => call[0] as string)
+    expect(registeredNames.sort()).toEqual(EXPECTED_TOOLS.sort())
+  })
+
+  it('registers exactly 10 tools — no duplicates, no missing', async () => {
+    const server = createMcpServer()
+    const apiClient = createApiClient()
+    const spy = vi.spyOn(server, 'tool')
+
+    await registerAllTools(server, apiClient)
+
+    expect(spy).toHaveBeenCalledTimes(10)
   })
 })
 

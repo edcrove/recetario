@@ -9,6 +9,7 @@
     "lint": "eslint app",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:screens": "vitest run --config vitest.screen.config.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {
@@ -26,7 +27,19 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
+    "@react-native/jest-preset": "^0.86.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/react-hooks": "^8.0.1",
+    "@testing-library/react-native": "^14.0.1",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/jest": "^29.5.14",
     "@types/react": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "babel-jest": "^29.7.0",
+    "jest": "^29.7.0",
+    "jest-expo": "^56.0.5",
+    "jsdom": "^29.1.1",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
   }

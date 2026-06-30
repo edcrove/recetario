@@ -206,4 +206,42 @@ describe.skipIf(skip).sequential('Menu integration tests', () => {
     expect(salt).toBeDefined()
     expect(salt.quantity).toBeNull()
   })
+
+  it('getScaledIngredients: scales qty by entryServings/recipeServings exactly', async () => {
+    // Recipe has 200g pasta for 4 servings. Entry orders 8 servings → expect 400g.
+    const createRes = await app.request('/v1/recipes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: auth },
+      body: JSON.stringify({
+        title: 'Scale Test Recipe',
+        servings: 4,
+        category: 'Cena',
+        ingredients: [{ name: 'scale-pasta', quantity: 200, unit: 'g' }],
+        steps: [],
+      }),
+    })
+    const scaleRecipe = (await createRes.json()) as { id: string }
+
+    await app.request('/v1/menu', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: auth },
+      body: JSON.stringify({
+        date: '2026-07-10',
+        slot: 'Almuerzo',
+        recipeId: scaleRecipe.id,
+        servings: 8,
+      }),
+    })
+
+    const res = await app.request('/v1/menu/shopping-list?weekStart=2026-07-07', {
+      headers: { Authorization: auth },
+    })
+    const list = await res.json()
+    const item = (
+      list as { ingredient: string; quantity: number | null; unit: string | null }[]
+    ).find((i) => i.ingredient === 'scale-pasta')
+    expect(item).toBeDefined()
+    expect(item?.quantity).toBe(400) // 200 * (8/4)
+    expect(item?.unit).toBe('g')
+  })
 })

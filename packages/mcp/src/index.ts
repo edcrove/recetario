@@ -32,11 +32,10 @@ export function createMcpServer() {
   return server
 }
 
-async function main() {
-  const server = createMcpServer()
-  const apiClient = createApiClient()
-
-  // Tools registered from other modules
+export async function registerAllTools(
+  server: ReturnType<typeof createMcpServer>,
+  apiClient: ReturnType<typeof createApiClient>,
+): Promise<void> {
   const { registerCreateRecipe } = await import('./tools/createRecipe.js')
   const { registerReadTools } = await import('./tools/readRecipes.js')
   const { registerMutationTools } = await import('./tools/mutateRecipes.js')
@@ -46,7 +45,12 @@ async function main() {
   registerReadTools(server, apiClient)
   registerMutationTools(server, apiClient)
   registerMenuTools(server, apiClient)
+}
 
+async function main() {
+  const server = createMcpServer()
+  const apiClient = createApiClient()
+  await registerAllTools(server, apiClient)
   const transport = new StdioServerTransport()
   await server.connect(transport)
   console.error('Recetario MCP server running on stdio')

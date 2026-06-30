@@ -1,5 +1,5 @@
 import { CreateRecipeSchema } from '@recetario/shared'
-import type { Category, Unit } from '@recetario/shared'
+import type { Category, Recipe, Unit } from '@recetario/shared'
 
 export interface IngredientRow {
   name: string
@@ -68,4 +68,29 @@ export function validatePayload(payload: ReturnType<typeof buildPayload>): {
     else errors.general = issue.message
   }
   return { valid: false, errors }
+}
+
+export function recipeToFormState(recipe: Recipe): {
+  title: string
+  servings: string
+  category: Category
+  tags: string
+  notes: string
+  ingredients: IngredientRow[]
+  steps: StepRow[]
+} {
+  return {
+    title: recipe.title,
+    servings: String(recipe.servings),
+    category: recipe.category,
+    tags: recipe.tags.join(', '),
+    notes: recipe.notes ?? '',
+    ingredients: recipe.ingredients.map((ing) => ({
+      name: ing.name,
+      quantity: ing.quantity != null ? String(ing.quantity) : '',
+      unit: ing.unit ?? '',
+      presentation: ing.presentation ?? '',
+    })),
+    steps: recipe.steps.map((s) => ({ text: s.text })),
+  }
 }

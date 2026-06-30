@@ -12,6 +12,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { api } from '../../src/api/client'
 import type { Recipe } from '@recetario/shared'
+import { parseServings } from '../../src/utils/menuLogic'
 
 export default function PickRecipeScreen() {
   const router = useRouter()
@@ -36,7 +37,7 @@ export default function PickRecipeScreen() {
         date: date ?? '',
         slot: slot ?? '',
         recipeId: recipe.id ?? '',
-        servings: parseInt(servings, 10) || recipe.servings,
+        servings: parseServings(servings, recipe.servings),
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['menu', weekStart] })
