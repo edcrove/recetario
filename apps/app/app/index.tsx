@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   View,
   Text,
@@ -13,10 +13,19 @@ import { useRouter } from 'expo-router'
 import { api } from '../src/api/client'
 import type { Recipe } from '@recetario/shared'
 import { getEmptyMessage, getQueryFnKey } from '../src/utils/homeScreen'
+import { useAuth } from '../src/providers/AuthProvider'
 
 export default function HomeScreen() {
   const [query, setQuery] = useState('')
   const router = useRouter()
+  const { token, isLoading: authLoading, signOut } = useAuth()
+
+  // Auth guard: redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !token) {
+      router.replace('/auth/login')
+    }
+  }, [token, authLoading, router])
 
   const {
     data: recipes = [],
@@ -60,6 +69,9 @@ export default function HomeScreen() {
         </TouchableOpacity>
         <TouchableOpacity style={styles.menuButton} onPress={() => router.push('/menu')}>
           <Text style={styles.menuButtonText}>Menú Semanal</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.profileButton} onPress={() => router.push('/profile')}>
+          <Text style={styles.profileButtonText}>👤</Text>
         </TouchableOpacity>
       </View>
       <FlatList
@@ -108,6 +120,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   menuButtonText: { color: '#fff', fontWeight: '600' },
+  profileButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#f3f4f6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileButtonText: { fontSize: 18 },
   card: { padding: 16, borderRadius: 8, backgroundColor: '#f9f9f9', marginBottom: 8 },
   cardTitle: { fontSize: 18, fontWeight: '600' },
   cardMeta: { color: '#666', marginTop: 4 },
