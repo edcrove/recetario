@@ -8,9 +8,10 @@ const mockApi = { request: mockRequest }
 describe('registerIdentityTools', () => {
   it('registers whoami, updateProfile, listHouseholdMembers tools', () => {
     const server = createMcpServer()
-    const spy = vi.spyOn(server, 'tool')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const spy = vi.spyOn(server as any, 'tool')
     registerIdentityTools(server, mockApi as never)
-    const names = spy.mock.calls.map((c) => c[0])
+    const names = spy.mock.calls.map((c: unknown[]) => c[0])
     expect(names).toContain('whoami')
     expect(names).toContain('updateProfile')
     expect(names).toContain('listHouseholdMembers')
@@ -18,8 +19,9 @@ describe('registerIdentityTools', () => {
 })
 
 // Helper: get the last argument of a tool call (always the handler)
-function getHandler(spy: ReturnType<typeof vi.spyOn>, name: string) {
-  const call = spy.mock.calls.find((c) => c[0] === name)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getHandler(spy: any, name: string) {
+  const call = spy.mock.calls.find((c: unknown[]) => c[0] === name)
   return call?.[call.length - 1] as (...args: unknown[]) => Promise<unknown>
 }
 

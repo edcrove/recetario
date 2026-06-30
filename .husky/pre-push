@@ -9,29 +9,28 @@ if [ "$SKIP_PRE_PUSH" = "1" ]; then
 fi
 
 echo "🔍 pre-push: running CI checks..."
-
 EVIDENCE_FILE=".last-ci-output.txt"
+> "$EVIDENCE_FILE"
 
-{
-  echo "=== Lint ==="
-  pnpm turbo run lint 2>&1 | tail -3 || exit 1
-  echo ""
-  echo "=== Type check ==="
-  pnpm turbo run typecheck 2>&1 | tail -3 || exit 1
-  echo ""
-  echo "=== Tests ==="
-  pnpm turbo run test 2>&1 | grep -E "Test Files|Tests|Duration|passed|failed" | tail -8 || exit 1
-  echo ""
-  echo "=== Build ==="
-  pnpm turbo run build 2>&1 | tail -3 || exit 1
-} | tee "$EVIDENCE_FILE"
-
-EXIT_CODE=${PIPESTATUS[0]}
-
-if [ $EXIT_CODE -ne 0 ]; then
-  echo "\n❌ pre-push checks failed. Push aborted."
+fail() {
+  echo "\n❌ pre-push: $1 failed. Push aborted."
   exit 1
-fi
+}
+
+run_step() {
+  STEP_NAME="$1"
+  shift
+  echo "\n=== $STEP_NAME ===" | tee -a "$EVIDENCE_FILE"
+  OUTPUT=$("$@" 2>&1)
+  CODE=$?
+  echo "$OUTPUT" | tail -4 | tee -a "$EVIDENCE_FILE"
+  [ $CODE -ne 0 ] && fail "$STEP_NAME"
+}
+
+run_step "Lint"       pnpm turbo run lint
+run_step "Typecheck"  pnpm turbo run typecheck
+run_step "Tests"      pnpm turbo run test
+run_step "Build"      pnpm turbo run build
 
 echo "\n✅ All checks passed — pushing."
 echo "(Evidence saved to $EVIDENCE_FILE for use in PR description)"
