@@ -46,6 +46,13 @@ export default function RecipeDetailScreen() {
     queryFn: () => api.recipes.get(id),
   })
 
+  // All hooks must be called before any conditional return
+  const { data: sessions = [] } = useQuery({
+    queryKey: ['cook-sessions', id],
+    queryFn: () => api.cookSessions.listByRecipe(id),
+    enabled: detailTab === 'history' && !!recipe,
+  })
+
   if (isLoading)
     return (
       <View style={s.center}>
@@ -61,12 +68,6 @@ export default function RecipeDetailScreen() {
 
   const base = recipe.servings
   const current = targetServings ?? base
-
-  const { data: sessions = [] } = useQuery({
-    queryKey: ['cook-sessions', id],
-    queryFn: () => api.cookSessions.listByRecipe(id),
-    enabled: detailTab === 'history',
-  })
 
   return (
     <ScrollView style={s.container} contentContainerStyle={s.content}>
