@@ -25,6 +25,7 @@ export default function RootLayout() {
             options={{ title: 'Reset Password', headerShown: false }}
           />
           <Stack.Screen name="profile/index" options={{ title: 'Profile' }} />
+          <Stack.Screen name="household/index" options={{ title: 'Household' }} />
         </Stack>
       </QueryProvider>
     </AuthProvider>
