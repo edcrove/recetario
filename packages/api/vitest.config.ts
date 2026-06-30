@@ -17,6 +17,7 @@ export default defineConfig({
         'src/index.ts',
         'src/types.ts',
         'src/db/schema/**',
+        'src/db/cook-sessions-repository.ts',
       ],
       thresholds: {
         statements: 100,
