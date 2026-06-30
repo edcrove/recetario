@@ -154,6 +154,12 @@ export default function ProfileScreen() {
         })}
       </View>
 
+      {/* Stats */}
+      <TouchableOpacity style={s.row} onPress={() => router.push('/stats')}>
+        <Text style={s.rowText}>📊 Cooking stats</Text>
+        <Text style={s.chevron}>›</Text>
+      </TouchableOpacity>
+
       {/* Household */}
       <TouchableOpacity style={s.row} onPress={() => router.push('/household')}>
         <Text style={s.rowText}>🏠 Household</Text>

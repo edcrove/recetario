@@ -6,6 +6,8 @@ import {
   StyleSheet,
   SafeAreaView,
   ActivityIndicator,
+  Modal,
+  TextInput,
 } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
@@ -22,6 +24,10 @@ export default function CookModeScreen() {
   const [stepIndex, setStepIndex] = useState(0)
   const [tab, setTab] = useState<'steps' | 'ingredients'>('steps')
   const [isSpeaking, setIsSpeaking] = useState(false)
+  const [showRating, setShowRating] = useState(false)
+  const [rating, setRating] = useState<number | null>(null)
+  const [ratingNote, setRatingNote] = useState('')
+  const [savingSession, setSavingSession] = useState(false)
 
   const { data: recipe, isLoading } = useQuery({
     queryKey: ['recipe', id],
@@ -161,11 +167,67 @@ export default function CookModeScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={[s.navBtn, s.navBtnPrimary]}
-          onPress={() => (isLast ? router.back() : goTo(stepIndex + 1))}
+          onPress={() => (isLast ? setShowRating(true) : goTo(stepIndex + 1))}
         >
           <Text style={[s.navBtnText, s.navBtnTextPrimary]}>{actionLabel}</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Rating modal shown after finishing */}
+      <Modal visible={showRating} transparent animationType="slide">
+        <View style={s.modalOverlay}>
+          <View style={s.modalCard}>
+            <Text style={s.modalTitle}>How did it go?</Text>
+            <Text style={s.modalSub}>Rate this cooking session</Text>
+
+            <View style={s.stars}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <TouchableOpacity key={star} onPress={() => setRating(star)}>
+                  <Text style={[s.star, rating !== null && star <= rating && s.starActive]}>★</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TextInput
+              style={s.noteInput}
+              placeholder="Add a note (optional)"
+              value={ratingNote}
+              onChangeText={setRatingNote}
+              multiline
+            />
+
+            <TouchableOpacity
+              style={[s.modalBtn, savingSession && s.modalBtnDisabled]}
+              disabled={savingSession}
+              onPress={async () => {
+                setSavingSession(true)
+                try {
+                  await api.cookSessions.log({
+                    recipeId: id,
+                    rating: rating ?? undefined,
+                    notes: ratingNote.trim() || undefined,
+                  })
+                } catch {}
+                setSavingSession(false)
+                setShowRating(false)
+                router.back()
+              }}
+            >
+              <Text style={s.modalBtnText}>{savingSession ? 'Saving…' : 'Save & finish'}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={s.skipBtn}
+              onPress={() => {
+                setShowRating(false)
+                router.back()
+              }}
+            >
+              <Text style={s.skipText}>Skip</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   )
 }
@@ -251,4 +313,45 @@ const s = StyleSheet.create({
   navBtnText: { fontSize: 16, fontWeight: '600', color: '#374151' },
   navBtnTextDisabled: { color: '#9ca3af' },
   navBtnTextPrimary: { color: '#fff' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalCard: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 28,
+    paddingBottom: 40,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#111827',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  modalSub: { fontSize: 14, color: '#6b7280', textAlign: 'center', marginBottom: 20 },
+  stars: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 20 },
+  star: { fontSize: 40, color: '#d1d5db' },
+  starActive: { color: '#f59e0b' },
+  noteInput: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 15,
+    minHeight: 72,
+    textAlignVertical: 'top',
+    marginBottom: 16,
+    backgroundColor: '#f9fafb',
+  },
+  modalBtn: {
+    backgroundColor: '#2563eb',
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  modalBtnDisabled: { opacity: 0.6 },
+  modalBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  skipBtn: { alignItems: 'center', paddingVertical: 8 },
+  skipText: { color: '#9ca3af', fontSize: 14 },
 })

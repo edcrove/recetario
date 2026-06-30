@@ -111,6 +111,32 @@ export const api = {
         allergens: string[]
       }>('/auth/profile', { method: 'PATCH', body: JSON.stringify(data) }),
   },
+  cookSessions: {
+    log: (data: { recipeId: string; rating?: number | null; notes?: string }) =>
+      request<{
+        id: string
+        recipeId: string
+        rating: number | null
+        notes: string | null
+        cookedAt: string
+      }>('/v1/cook-sessions', { method: 'POST', body: JSON.stringify(data) }),
+    listByRecipe: (recipeId: string, limit = 20) =>
+      request<
+        Array<{
+          id: string
+          recipeId: string
+          rating: number | null
+          notes: string | null
+          cookedAt: string
+        }>
+      >(`/v1/cook-sessions?recipeId=${recipeId}&limit=${limit}`),
+    stats: (since?: string) =>
+      request<{
+        totalSessions: number
+        topRecipes: Array<{ recipeId: string; count: number; lastCookedAt: string }>
+        frequencyByWeek: Array<{ week: string; count: number }>
+      }>(`/v1/cook-sessions/stats${since ? `?since=${since}` : ''}`),
+  },
   households: {
     create: (name: string) =>
       request<{ id: string; name: string; ownerId: string }>('/v1/households', {

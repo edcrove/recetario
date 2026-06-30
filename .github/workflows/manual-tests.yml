@@ -1,0 +1,70 @@
+name: Manual Test Run
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to test (defaults to the branch you trigger from)'
+        required: false
+        default: ''
+
+jobs:
+  test:
+    name: Tests (manual)
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: recetario_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Run lint
+        run: pnpm turbo run lint
+
+      - name: Run typecheck
+        run: pnpm turbo run typecheck
+
+      - name: Run all tests
+        run: pnpm turbo run test
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/recetario_test
+
+      - name: Run screen component tests
+        run: pnpm --filter recetario-app test:screens
+
+      - name: Run build
+        run: pnpm turbo run build
+
+      - name: Parse and post test summary
+        if: always() && github.event_name == 'workflow_dispatch'
+        run: |
+          echo "### Manual Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Branch: \`${{ github.event.inputs.branch || github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "Triggered by: @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
