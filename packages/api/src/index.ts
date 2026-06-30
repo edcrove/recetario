@@ -5,6 +5,9 @@ import { healthRoute } from './routes/health.js'
 import { recipesRoute } from './routes/recipes.js'
 import { menuRoute } from './routes/menu.js'
 import { authRoute } from './routes/auth.js'
+import { assertJwtSecretConfigured } from './auth/service.js'
+
+assertJwtSecretConfigured()
 
 export const app = new OpenAPIHono()
 

@@ -1,5 +1,26 @@
 import { describe, it, expect } from 'vitest'
-import { hashPassword, verifyPassword, signJwt, verifyJwt } from './service.js'
+import {
+  hashPassword,
+  verifyPassword,
+  signJwt,
+  verifyJwt,
+  assertJwtSecretConfigured,
+} from './service.js'
+
+describe('assertJwtSecretConfigured', () => {
+  it('does not throw in test/development environment (NODE_ENV=test)', () => {
+    // In test env, the check is skipped regardless of JWT_SECRET value
+    expect(() => assertJwtSecretConfigured()).not.toThrow()
+  })
+
+  it('throws with helpful message when called in production with insecure default', () => {
+    const originalEnv = process.env['NODE_ENV']
+    process.env['NODE_ENV'] = 'production'
+    // RAW_JWT_SECRET is module-level and resolves to the default at import time in tests
+    expect(() => assertJwtSecretConfigured()).toThrow('JWT_SECRET env var is not set')
+    process.env['NODE_ENV'] = originalEnv
+  })
+})
 
 describe('hashPassword / verifyPassword', () => {
   it('hashes a password and verifies it correctly', async () => {

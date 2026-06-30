@@ -108,6 +108,18 @@ describe('POST /auth/register', () => {
     expect(res.status).toBe(400)
   })
 
+  it('returns 201 without displayName (uses null fallback)', async () => {
+    mockUsersInsert.mockReturnValue([{ ...DEMO_USER, displayName: null }])
+    const res = await app.request('/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'test@test.com', password: 'password123' }),
+    })
+    expect(res.status).toBe(201)
+    const body = await res.json()
+    expect(body.user.displayName).toBeNull()
+  })
+
   it('returns 400 for invalid email', async () => {
     const res = await app.request('/auth/register', {
       method: 'POST',
