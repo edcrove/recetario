@@ -149,10 +149,7 @@ cookSessionsRoute.openapi(statsRoute, async (c) => {
     topRecipes: stats.topRecipes.map((r) => ({
       recipeId: r.recipeId,
       count: r.count,
-      lastCookedAt:
-        /* v8 ignore next */ r.lastCookedAt instanceof Date
-          ? r.lastCookedAt.toISOString()
-          : String(r.lastCookedAt),
+      lastCookedAt: new Date(r.lastCookedAt).toISOString(),
     })),
     frequencyByWeek: stats.frequencyByWeek,
   })
