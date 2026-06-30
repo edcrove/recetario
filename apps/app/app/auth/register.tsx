@@ -1,0 +1,164 @@
+import { useState } from 'react'
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+  ScrollView,
+} from 'react-native'
+import { useRouter } from 'expo-router'
+import { api } from '../../src/api/client'
+import { useAuth } from '../../src/providers/AuthProvider'
+
+export default function RegisterScreen() {
+  const router = useRouter()
+  const { signIn } = useAuth()
+  const [displayName, setDisplayName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [passwordConfirm, setPasswordConfirm] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  async function handleRegister() {
+    if (!email.trim() || !password) {
+      setError('Email and password are required.')
+      return
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.')
+      return
+    }
+    if (password !== passwordConfirm) {
+      setError('Passwords do not match.')
+      return
+    }
+    setError('')
+    setLoading(true)
+    try {
+      const { token } = await api.auth.register({
+        email: email.trim(),
+        password,
+        displayName: displayName.trim() || undefined,
+      })
+      await signIn(token)
+      router.replace('/')
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : ''
+      if (msg.includes('409') || msg.includes('already')) {
+        setError('This email is already registered.')
+      } else {
+        setError('Registration failed. Please try again.')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <KeyboardAvoidingView
+      style={s.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView contentContainerStyle={s.inner} keyboardShouldPersistTaps="handled">
+        <Text style={s.title}>Create account</Text>
+        <Text style={s.subtitle}>Join Recetario to start cooking</Text>
+
+        <Text style={s.label}>Name (optional)</Text>
+        <TextInput
+          style={s.input}
+          placeholder="Your name"
+          value={displayName}
+          onChangeText={setDisplayName}
+          autoCapitalize="words"
+          autoComplete="name"
+        />
+
+        <Text style={s.label}>Email</Text>
+        <TextInput
+          style={s.input}
+          placeholder="you@example.com"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoComplete="email"
+        />
+
+        <Text style={s.label}>Password</Text>
+        <TextInput
+          style={s.input}
+          placeholder="At least 8 characters"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          autoComplete="new-password"
+        />
+
+        <Text style={s.label}>Confirm password</Text>
+        <TextInput
+          style={s.input}
+          placeholder="Repeat password"
+          value={passwordConfirm}
+          onChangeText={setPasswordConfirm}
+          secureTextEntry
+          autoComplete="new-password"
+        />
+
+        {error ? <Text style={s.error}>{error}</Text> : null}
+
+        <TouchableOpacity
+          style={[s.btn, loading && s.btnDisabled]}
+          onPress={handleRegister}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={s.btnText}>Create account</Text>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity style={s.link} onPress={() => router.push('/auth/login')}>
+          <Text style={s.linkText}>
+            Already have an account? <Text style={s.linkBold}>Sign in</Text>
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  )
+}
+
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#fff' },
+  inner: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 32, paddingVertical: 40 },
+  title: { fontSize: 28, fontWeight: '800', color: '#111827', marginBottom: 4 },
+  subtitle: { fontSize: 15, color: '#6b7280', marginBottom: 28 },
+  label: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 4, marginTop: 8 },
+  input: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 10,
+    padding: 14,
+    fontSize: 16,
+    marginBottom: 4,
+    backgroundColor: '#f9fafb',
+  },
+  error: { color: '#ef4444', fontSize: 14, marginVertical: 8 },
+  btn: {
+    backgroundColor: '#2563eb',
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  btnDisabled: { opacity: 0.6 },
+  btnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  link: { marginTop: 20, alignItems: 'center' },
+  linkText: { color: '#6b7280', fontSize: 14 },
+  linkBold: { color: '#2563eb', fontWeight: '600' },
+})

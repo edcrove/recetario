@@ -7,14 +7,26 @@ import type {
 } from '@recetario/shared'
 
 const BASE_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
-const API_KEY = process.env['EXPO_PUBLIC_API_KEY'] ?? ''
+const STATIC_API_KEY = process.env['EXPO_PUBLIC_API_KEY'] ?? ''
+
+// Lazily imported to avoid circular dependency with AuthProvider
+async function getAuthToken(): Promise<string> {
+  try {
+    const { getStoredToken } = await import('../providers/AuthProvider')
+    const token = await getStoredToken()
+    return token ?? STATIC_API_KEY
+  } catch {
+    return STATIC_API_KEY
+  }
+}
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const token = await getAuthToken()
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${API_KEY}`,
+      Authorization: `Bearer ${token}`,
       ...options.headers,
     },
   })
@@ -57,5 +69,21 @@ export const api = {
       request<void>(`/v1/menu/${date}/${encodeURIComponent(slot)}`, { method: 'DELETE' }),
     shoppingList: (weekStart: string) =>
       request<ShoppingListItem[]>(`/v1/menu/shopping-list?weekStart=${weekStart}`),
+  },
+  auth: {
+    register: (data: { email: string; password: string; displayName?: string }) =>
+      request<{ user: { id: string; email: string; displayName: string | null }; token: string }>(
+        '/auth/register',
+        { method: 'POST', body: JSON.stringify(data) },
+      ),
+    login: (data: { email: string; password: string }) =>
+      request<{ user: { id: string; email: string; displayName: string | null }; token: string }>(
+        '/auth/login',
+        { method: 'POST', body: JSON.stringify(data) },
+      ),
+    me: () =>
+      request<{ id: string; email: string; displayName: string | null; createdAt: string }>(
+        '/auth/me',
+      ),
   },
 }
