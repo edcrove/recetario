@@ -13,11 +13,29 @@ import { api } from '../../src/api/client'
 import { displayIngredient } from '../../src/utils/displayIngredient'
 import type { DisplayMode } from '../../src/utils/displayIngredient'
 
+type DetailTab = 'recipe' | 'history'
+
+function StarRating({ rating }: { rating: number | null }) {
+  if (rating === null) return <Text style={ratingStyle.none}>No rating</Text>
+  return (
+    <Text style={ratingStyle.stars}>
+      {'★'.repeat(rating)}
+      {'☆'.repeat(5 - rating)}
+    </Text>
+  )
+}
+
+const ratingStyle = StyleSheet.create({
+  stars: { color: '#f59e0b', fontSize: 14 },
+  none: { color: '#d1d5db', fontSize: 13 },
+})
+
 export default function RecipeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
   const [targetServings, setTargetServings] = useState<number | null>(null)
   const [mode, setMode] = useState<DisplayMode>('cooking')
+  const [detailTab, setDetailTab] = useState<DetailTab>('recipe')
 
   const {
     data: recipe,
@@ -26,6 +44,13 @@ export default function RecipeDetailScreen() {
   } = useQuery({
     queryKey: ['recipe', id],
     queryFn: () => api.recipes.get(id),
+  })
+
+  // All hooks must be called before any conditional return
+  const { data: sessions = [] } = useQuery({
+    queryKey: ['cook-sessions', id],
+    queryFn: () => api.cookSessions.listByRecipe(id),
+    enabled: detailTab === 'history' && !!recipe,
   })
 
   if (isLoading)
@@ -57,6 +82,47 @@ export default function RecipeDetailScreen() {
         {recipe.totalTimeMin ? ` · ${recipe.totalTimeMin} min` : ''}
       </Text>
 
+      {/* Tab bar */}
+      <View style={s.tabBar}>
+        {(['recipe', 'history'] as const).map((t) => (
+          <TouchableOpacity
+            key={t}
+            style={[s.tabBtn, detailTab === t && s.tabBtnActive]}
+            onPress={() => setDetailTab(t)}
+          >
+            <Text style={[s.tabBtnText, detailTab === t && s.tabBtnTextActive]}>
+              {t === 'recipe'
+                ? 'Recipe'
+                : `History${sessions.length > 0 ? ` (${sessions.length})` : ''}`}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {detailTab === 'history' && (
+        <View>
+          {sessions.length === 0 ? (
+            <Text style={s.emptyHistory}>You haven't cooked this recipe yet.</Text>
+          ) : (
+            sessions.map((session) => (
+              <View key={session.id} style={s.sessionRow}>
+                <View style={s.sessionLeft}>
+                  <Text style={s.sessionDate}>
+                    {new Date(session.cookedAt).toLocaleDateString('es-AR', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </Text>
+                  {session.notes ? <Text style={s.sessionNote}>{session.notes}</Text> : null}
+                </View>
+                <StarRating rating={session.rating} />
+              </View>
+            ))
+          )}
+        </View>
+      )}
+
       {/* Servings stepper */}
       <View style={s.row}>
         <Text style={s.label}>Porciones:</Text>
@@ -69,51 +135,58 @@ export default function RecipeDetailScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Unit toggle */}
-      <View style={s.row}>
-        {(['cooking', 'metric', 'imperial'] as DisplayMode[]).map((m) => (
-          <TouchableOpacity
-            key={m}
-            style={[s.toggle, mode === m && s.toggleActive]}
-            onPress={() => setMode(m)}
-          >
-            <Text style={[s.toggleText, mode === m && s.toggleTextActive]}>
-              {m === 'cooking' ? 'Cocina' : m === 'metric' ? 'Métrico' : 'Imperial'}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Ingredients */}
-      <Text style={s.sectionTitle}>Ingredientes</Text>
-      {recipe.ingredients.map((ing, i) => (
-        <Text key={i} style={s.ingredient}>
-          • {displayIngredient(ing, base, current, mode)}
-        </Text>
-      ))}
-
-      {/* Steps */}
-      {recipe.steps.length > 0 && (
+      {detailTab === 'recipe' && (
         <>
-          <View style={s.sectionHeader}>
-            <Text style={s.sectionTitle}>Preparación</Text>
-            <TouchableOpacity style={s.cookBtn} onPress={() => router.push(`/recipe/${id}/cook`)}>
-              <Text style={s.cookBtnText}>Iniciar cocina</Text>
-            </TouchableOpacity>
+          {/* Unit toggle */}
+          <View style={s.row}>
+            {(['cooking', 'metric', 'imperial'] as DisplayMode[]).map((m) => (
+              <TouchableOpacity
+                key={m}
+                style={[s.toggle, mode === m && s.toggleActive]}
+                onPress={() => setMode(m)}
+              >
+                <Text style={[s.toggleText, mode === m && s.toggleTextActive]}>
+                  {m === 'cooking' ? 'Cocina' : m === 'metric' ? 'Métrico' : 'Imperial'}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
-          {recipe.steps.map((step, i) => (
-            <View key={i} style={s.step}>
-              <Text style={s.stepNum}>{i + 1}</Text>
-              <Text style={s.stepText}>{step.text}</Text>
-            </View>
-          ))}
-        </>
-      )}
 
-      {recipe.notes && (
-        <>
-          <Text style={s.sectionTitle}>Notas</Text>
-          <Text style={s.notes}>{recipe.notes}</Text>
+          {/* Ingredients */}
+          <Text style={s.sectionTitle}>Ingredientes</Text>
+          {recipe.ingredients.map((ing, i) => (
+            <Text key={i} style={s.ingredient}>
+              • {displayIngredient(ing, base, current, mode)}
+            </Text>
+          ))}
+
+          {/* Steps */}
+          {recipe.steps.length > 0 && (
+            <>
+              <View style={s.sectionHeader}>
+                <Text style={s.sectionTitle}>Preparación</Text>
+                <TouchableOpacity
+                  style={s.cookBtn}
+                  onPress={() => router.push(`/recipe/${id}/cook`)}
+                >
+                  <Text style={s.cookBtnText}>Iniciar cocina</Text>
+                </TouchableOpacity>
+              </View>
+              {recipe.steps.map((step, i) => (
+                <View key={i} style={s.step}>
+                  <Text style={s.stepNum}>{i + 1}</Text>
+                  <Text style={s.stepText}>{step.text}</Text>
+                </View>
+              ))}
+            </>
+          )}
+
+          {recipe.notes && (
+            <>
+              <Text style={s.sectionTitle}>Notas</Text>
+              <Text style={s.notes}>{recipe.notes}</Text>
+            </>
+          )}
         </>
       )}
     </ScrollView>
@@ -152,6 +225,34 @@ const s = StyleSheet.create({
     marginBottom: 8,
   },
   sectionTitle: { fontSize: 18, fontWeight: '600' },
+  tabBar: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderColor: '#f3f4f6',
+    marginVertical: 12,
+  },
+  tabBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabBtnActive: { borderBottomColor: '#2563eb' },
+  tabBtnText: { fontSize: 14, fontWeight: '600', color: '#9ca3af' },
+  tabBtnTextActive: { color: '#2563eb' },
+  emptyHistory: { color: '#9ca3af', textAlign: 'center', marginTop: 24, fontSize: 14 },
+  sessionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderColor: '#f3f4f6',
+  },
+  sessionLeft: { flex: 1, marginRight: 12 },
+  sessionDate: { fontSize: 14, fontWeight: '600', color: '#374151' },
+  sessionNote: { fontSize: 13, color: '#6b7280', marginTop: 2 },
   cookBtn: {
     paddingHorizontal: 12,
     paddingVertical: 6,
