@@ -50,10 +50,9 @@ describe('mutation tools', () => {
 
       const handler = getToolHandler(server, 'updateRecipe')
 
-      const result = (await handler(
-        { id: TEST_ID, title: 'Updated Title', servings: 6 },
-        {},
-      )) as any
+      const result = (await handler({ id: TEST_ID, title: 'Updated Title', servings: 6 }, {})) as {
+        content: Array<{ type: string; text: string }>
+      }
 
       expect(mockFetch).toHaveBeenCalledOnce()
       const [url, opts] = mockFetch.mock.calls[0] as [string, RequestInit]

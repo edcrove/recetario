@@ -10,7 +10,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { api } from '../../src/api/client'
-import type { MenuEntry, MenuSlot } from '@recetario/shared'
+import type { MenuSlot } from '@recetario/shared'
 import { getWeekStart, addDays, formatDate } from '../../src/utils/weekMath'
 import { buildEntryMap } from '../../src/utils/menuLogic'
 
