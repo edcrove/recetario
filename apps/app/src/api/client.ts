@@ -111,6 +111,49 @@ export const api = {
         allergens: string[]
       }>('/auth/profile', { method: 'PATCH', body: JSON.stringify(data) }),
   },
+  taxonomy: {
+    foodTypes: () =>
+      request<Array<{ id: string; name: string; slug: string; isSystem: boolean }>>(
+        '/v1/food-types',
+      ),
+    collections: () =>
+      request<
+        Array<{
+          id: string
+          name: string
+          emoji: string | null
+          description: string | null
+          recipeCount: number
+        }>
+      >('/v1/collections'),
+    createCollection: (data: { name: string; emoji?: string; description?: string }) =>
+      request<{ id: string; name: string; emoji: string | null }>('/v1/collections', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    addToCollection: (collectionId: string, recipeId: string) =>
+      request<{ collectionId: string; recipeId: string }>(
+        `/v1/collections/${collectionId}/recipes`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ recipeId }),
+        },
+      ),
+    removeFromCollection: (collectionId: string, recipeId: string) =>
+      request<void>(`/v1/collections/${collectionId}/recipes/${recipeId}`, { method: 'DELETE' }),
+    relations: (recipeId: string) =>
+      request<Array<{ fromId: string; toId: string; relationType: string }>>(
+        `/v1/recipes/${recipeId}/relations`,
+      ),
+    addRelation: (fromId: string, toId: string, relationType: string) =>
+      request<{ fromId: string; toId: string; relationType: string }>(
+        `/v1/recipes/${fromId}/relations`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ toId, relationType }),
+        },
+      ),
+  },
   cookSessions: {
     log: (data: { recipeId: string; rating?: number | null; notes?: string }) =>
       request<{

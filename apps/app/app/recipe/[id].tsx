@@ -53,6 +53,12 @@ export default function RecipeDetailScreen() {
     enabled: detailTab === 'history' && !!recipe,
   })
 
+  const { data: relations = [] } = useQuery({
+    queryKey: ['relations', id],
+    queryFn: () => api.taxonomy.relations(id),
+    enabled: detailTab === 'recipe' && !!recipe,
+  })
+
   if (isLoading)
     return (
       <View style={s.center}>
@@ -187,6 +193,31 @@ export default function RecipeDetailScreen() {
               <Text style={s.notes}>{recipe.notes}</Text>
             </>
           )}
+
+          {relations.length > 0 && (
+            <>
+              <Text style={s.sectionTitle}>Te puede gustar</Text>
+              {relations.slice(0, 4).map((rel) => (
+                <TouchableOpacity
+                  key={rel.toId}
+                  style={s.relatedRow}
+                  onPress={() => router.push(`/recipe/${rel.toId}`)}
+                >
+                  <Text style={s.relatedLabel}>
+                    {rel.relationType === 'variation'
+                      ? 'Variación'
+                      : rel.relationType === 'similar'
+                        ? 'Similar'
+                        : 'Inspiración'}
+                  </Text>
+                  <Text style={s.relatedId} numberOfLines={1}>
+                    {rel.toId.slice(0, 8)}…
+                  </Text>
+                  <Text style={s.chevron}>›</Text>
+                </TouchableOpacity>
+              ))}
+            </>
+          )}
         </>
       )}
     </ScrollView>
@@ -242,6 +273,25 @@ const s = StyleSheet.create({
   tabBtnText: { fontSize: 14, fontWeight: '600', color: '#9ca3af' },
   tabBtnTextActive: { color: '#2563eb' },
   emptyHistory: { color: '#9ca3af', textAlign: 'center', marginTop: 24, fontSize: 14 },
+  relatedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderColor: '#f3f4f6',
+    gap: 10,
+  },
+  relatedLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#2563eb',
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  relatedId: { flex: 1, fontSize: 13, color: '#374151' },
+  chevron: { fontSize: 18, color: '#9ca3af' },
   sessionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

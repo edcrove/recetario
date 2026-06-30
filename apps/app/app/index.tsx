@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
@@ -19,6 +20,13 @@ export default function HomeScreen() {
   const [query, setQuery] = useState('')
   const router = useRouter()
   const { token, isLoading: authLoading } = useAuth()
+  const [activeType, setActiveType] = useState<string | null>(null)
+
+  const { data: foodTypes = [] } = useQuery({
+    queryKey: ['food-types'],
+    queryFn: () => api.taxonomy.foodTypes(),
+    enabled: !!token,
+  })
 
   // Auth guard: redirect to login if not authenticated
   useEffect(() => {
@@ -63,12 +71,52 @@ export default function HomeScreen() {
         onChangeText={setQuery}
         clearButtonMode="while-editing"
       />
+      {/* Food type quick filters */}
+      {foodTypes.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterScroll}
+          contentContainerStyle={styles.filterRow}
+        >
+          <TouchableOpacity
+            style={[styles.filterChip, activeType === null && styles.filterChipActive]}
+            onPress={() => setActiveType(null)}
+          >
+            <Text
+              style={[styles.filterChipText, activeType === null && styles.filterChipTextActive]}
+            >
+              All
+            </Text>
+          </TouchableOpacity>
+          {foodTypes.slice(0, 8).map((t) => (
+            <TouchableOpacity
+              key={t.id}
+              style={[styles.filterChip, activeType === t.id && styles.filterChipActive]}
+              onPress={() => setActiveType(activeType === t.id ? null : t.id)}
+            >
+              <Text
+                style={[styles.filterChipText, activeType === t.id && styles.filterChipTextActive]}
+              >
+                {t.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
+
       <View style={styles.actions}>
         <TouchableOpacity style={styles.addButton} onPress={() => router.push('/recipe/new')}>
           <Text style={styles.addButtonText}>+ Nueva Receta</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.menuButton} onPress={() => router.push('/menu')}>
           <Text style={styles.menuButtonText}>Menú Semanal</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.collectionsButton}
+          onPress={() => router.push('/collections')}
+        >
+          <Text style={styles.collectionsButtonText}>📋</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.profileButton} onPress={() => router.push('/profile')}>
           <Text style={styles.profileButtonText}>👤</Text>
@@ -120,6 +168,26 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   menuButtonText: { color: '#fff', fontWeight: '600' },
+  filterScroll: { marginBottom: 8 },
+  filterRow: { gap: 6, paddingHorizontal: 2 },
+  filterChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    backgroundColor: '#f3f4f6',
+  },
+  filterChipActive: { backgroundColor: '#2563eb' },
+  filterChipText: { fontSize: 12, color: '#6b7280', fontWeight: '500' },
+  filterChipTextActive: { color: '#fff', fontWeight: '600' },
+  collectionsButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#f3f4f6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  collectionsButtonText: { fontSize: 18 },
   profileButton: {
     width: 36,
     height: 36,
