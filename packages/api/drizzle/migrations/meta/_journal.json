@@ -15,6 +15,20 @@
       "when": 1782610268035,
       "tag": "0001_lazy_black_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782791896824,
+      "tag": "0002_mysterious_iron_fist",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1782793953346,
+      "tag": "0003_fresh_captain_cross",
+      "breakpoints": true
     }
   ]
 }

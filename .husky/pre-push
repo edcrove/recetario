@@ -1,0 +1,37 @@
+#!/bin/sh
+# Replicates the CI pipeline locally before every push.
+# Aborts the push if any step fails.
+# Set SKIP_PRE_PUSH=1 to bypass (emergency only).
+
+if [ "$SKIP_PRE_PUSH" = "1" ]; then
+  echo "⚠️  pre-push hook skipped (SKIP_PRE_PUSH=1)"
+  exit 0
+fi
+
+echo "🔍 pre-push: running CI checks..."
+
+EVIDENCE_FILE=".last-ci-output.txt"
+
+{
+  echo "=== Lint ==="
+  pnpm turbo run lint 2>&1 | tail -3 || exit 1
+  echo ""
+  echo "=== Type check ==="
+  pnpm turbo run typecheck 2>&1 | tail -3 || exit 1
+  echo ""
+  echo "=== Tests ==="
+  pnpm turbo run test 2>&1 | grep -E "Test Files|Tests|Duration|passed|failed" | tail -8 || exit 1
+  echo ""
+  echo "=== Build ==="
+  pnpm turbo run build 2>&1 | tail -3 || exit 1
+} | tee "$EVIDENCE_FILE"
+
+EXIT_CODE=${PIPESTATUS[0]}
+
+if [ $EXIT_CODE -ne 0 ]; then
+  echo "\n❌ pre-push checks failed. Push aborted."
+  exit 1
+fi
+
+echo "\n✅ All checks passed — pushing."
+echo "(Evidence saved to $EVIDENCE_FILE for use in PR description)"

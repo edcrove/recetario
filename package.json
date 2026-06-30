@@ -9,6 +9,9 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
+    "ci:local": "pnpm turbo run lint typecheck test build",
+    "ci:full": "DATABASE_URL=postgres://postgres:postgres@localhost:5432/recetario_test pnpm turbo run lint typecheck test build",
+    "pr": "bash scripts/pr.sh",
     "prepare": "husky"
   },
   "lint-staged": {

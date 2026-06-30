@@ -44,6 +44,7 @@ vi.mock('../db/menu-repository.js', () => ({
 
 import { app } from '../index.js'
 import { requests as rateLimitStore } from './rateLimit.js'
+import { signJwt } from '../auth/service.js'
 
 describe('auth middleware — DB hash path', () => {
   beforeEach(() => {
@@ -83,5 +84,34 @@ describe('auth middleware — DB hash path', () => {
       headers: { Authorization: `Bearer ${TEST_KEY}` },
     })
     expect(res.status).toBe(200)
+  })
+})
+
+describe('auth middleware — JWT path', () => {
+  beforeEach(() => {
+    delete process.env['DEV_API_KEY']
+    rateLimitStore.clear()
+    mockDbResult = []
+  })
+
+  afterEach(() => {
+    rateLimitStore.clear()
+  })
+
+  it('authenticates with a valid JWT and sets ownerId to sub claim', async () => {
+    const token = await signJwt({ sub: 'user-jwt-123', email: 'test@test.com' })
+
+    const res = await app.request('/v1/recipes', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    expect(res.status).toBe(200)
+  })
+
+  it('rejects an invalid JWT and falls through to API key lookup', async () => {
+    mockDbResult = []
+    const res = await app.request('/v1/recipes', {
+      headers: { Authorization: 'Bearer not.a.valid.jwt' },
+    })
+    expect(res.status).toBe(401)
   })
 })

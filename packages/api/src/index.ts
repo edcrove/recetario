@@ -4,6 +4,10 @@ import { VERSION } from '@recetario/shared'
 import { healthRoute } from './routes/health.js'
 import { recipesRoute } from './routes/recipes.js'
 import { menuRoute } from './routes/menu.js'
+import { authRoute } from './routes/auth.js'
+import { assertJwtSecretConfigured } from './auth/service.js'
+
+assertJwtSecretConfigured()
 
 export const app = new OpenAPIHono()
 
@@ -14,9 +18,16 @@ app.openAPIRegistry.registerComponent('securitySchemes', 'ApiKeyAuth', {
   description: 'API key as "Bearer <key>"',
 })
 
+app.openAPIRegistry.registerComponent('securitySchemes', 'BearerAuth', {
+  type: 'http',
+  scheme: 'bearer',
+  bearerFormat: 'JWT',
+})
+
 app.route('/', healthRoute)
 app.route('/v1', recipesRoute)
 app.route('/v1', menuRoute)
+app.route('/auth', authRoute)
 
 app.doc('/openapi.json', {
   openapi: '3.1.0',
