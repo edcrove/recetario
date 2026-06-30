@@ -154,6 +154,12 @@ export default function ProfileScreen() {
         })}
       </View>
 
+      {/* Configurator */}
+      <TouchableOpacity style={s.row} onPress={() => router.push('/config')}>
+        <Text style={s.rowText}>⚙️ Configuración de taxonomía</Text>
+        <Text style={s.chevron}>›</Text>
+      </TouchableOpacity>
+
       {/* Stats */}
       <TouchableOpacity style={s.row} onPress={() => router.push('/stats')}>
         <Text style={s.rowText}>📊 Cooking stats</Text>
