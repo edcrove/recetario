@@ -1,0 +1,24 @@
+=== Lint ===
+Cached:    0 cached, 5 total
+  Time:    2.962s 
+
+
+=== Type check ===
+Cached:    1 cached, 5 total
+  Time:    3.737s 
+
+
+=== Tests ===
+@recetario/shared:test:       Tests  97 passed (97)
+@recetario/shared:test:    Duration  1.64s (transform 427ms, setup 0ms, collect 1.43s, tests 171ms, environment 1ms, prepare 1.54s)
+recetario-app:test:  Test Files  15 passed (15)
+recetario-app:test:       Tests  163 passed (163)
+recetario-app:test:    Duration  2.36s (transform 679ms, setup 0ms, collect 2.71s, tests 205ms, environment 3.28s, prepare 3.60s)
+@recetario/api:test:  Test Files  16 passed (16)
+@recetario/api:test:       Tests  113 passed (113)
+@recetario/api:test:    Duration  7.32s (transform 346ms, setup 0ms, collect 7.13s, tests 6.08s, environment 1ms, prepare 870ms)
+
+=== Build ===
+Cached:    1 cached, 4 total
+  Time:    8.575s 
+

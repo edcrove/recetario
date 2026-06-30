@@ -40,11 +40,13 @@ export async function registerAllTools(
   const { registerReadTools } = await import('./tools/readRecipes.js')
   const { registerMutationTools } = await import('./tools/mutateRecipes.js')
   const { registerMenuTools } = await import('./tools/menu.js')
+  const { registerIdentityTools } = await import('./tools/identity.js')
 
   registerCreateRecipe(server, apiClient)
   registerReadTools(server, apiClient)
   registerMutationTools(server, apiClient)
   registerMenuTools(server, apiClient)
+  registerIdentityTools(server, apiClient)
 }
 
 async function main() {
