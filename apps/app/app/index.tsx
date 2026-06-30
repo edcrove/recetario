@@ -18,7 +18,7 @@ import { useAuth } from '../src/providers/AuthProvider'
 export default function HomeScreen() {
   const [query, setQuery] = useState('')
   const router = useRouter()
-  const { token, isLoading: authLoading, signOut } = useAuth()
+  const { token, isLoading: authLoading } = useAuth()
 
   // Auth guard: redirect to login if not authenticated
   useEffect(() => {

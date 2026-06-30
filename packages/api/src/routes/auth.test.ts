@@ -16,7 +16,7 @@ vi.mock('../db/index.js', () => ({
         }),
       }),
     }),
-    insert: (table: unknown) => ({
+    insert: (_table: unknown) => ({
       values: () => ({
         returning: () => Promise.resolve(mockUsersInsert()),
         onConflictDoNothing: () => Promise.resolve(mockProfileInsert()),

@@ -82,7 +82,7 @@ describe('MenuEntrySchema', () => {
   })
 
   it('rejects missing required fields', () => {
-    const { id: _, ...noId } = valid
+    const { id: _id, ...noId } = valid
     expect(() => MenuEntrySchema.parse(noId)).toThrow()
   })
 })
