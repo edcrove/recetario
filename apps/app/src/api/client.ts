@@ -111,6 +111,48 @@ export const api = {
         allergens: string[]
       }>('/auth/profile', { method: 'PATCH', body: JSON.stringify(data) }),
   },
+  config: {
+    taxonomy: () =>
+      request<{
+        mealCategories: Array<{
+          id: string
+          name: string
+          slug: string
+          usageCount: number
+          isDeletable: boolean
+          isSystem?: boolean
+        }>
+        foodTypes: Array<{
+          id: string
+          name: string
+          slug: string
+          usageCount: number
+          isDeletable: boolean
+          isSystem?: boolean
+        }>
+        tags: Array<{
+          id: string
+          name: string
+          slug: string
+          usageCount: number
+          isDeletable: boolean
+        }>
+      }>('/v1/config/taxonomy'),
+    rename: (type: 'categories' | 'food-types' | 'tags', id: string, name: string) =>
+      request<{ id: string; name: string }>(`/v1/config/${type}/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ name }),
+      }),
+    delete: (type: 'categories' | 'food-types' | 'tags', id: string, reassignTo?: string) =>
+      request<void>(`/v1/config/${type}/${id}${reassignTo ? `?reassignTo=${reassignTo}` : ''}`, {
+        method: 'DELETE',
+      }),
+    mergeTags: (sourceId: string, targetId: string) =>
+      request<{ merged: number }>('/v1/config/tags/merge', {
+        method: 'POST',
+        body: JSON.stringify({ sourceId, targetId }),
+      }),
+  },
   taxonomy: {
     foodTypes: () =>
       request<Array<{ id: string; name: string; slug: string; isSystem: boolean }>>(
