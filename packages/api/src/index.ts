@@ -7,6 +7,7 @@ import { menuRoute } from './routes/menu.js'
 import { authRoute } from './routes/auth.js'
 import { profileRoute } from './routes/profile.js'
 import { householdsRoute } from './routes/households.js'
+import { cookSessionsRoute } from './routes/cook-sessions.js'
 import { assertJwtSecretConfigured } from './auth/service.js'
 
 assertJwtSecretConfigured()
@@ -32,6 +33,7 @@ app.route('/v1', menuRoute)
 app.route('/auth', authRoute)
 app.route('/auth', profileRoute)
 app.route('/v1/households', householdsRoute)
+app.route('/v1/cook-sessions', cookSessionsRoute)
 
 app.doc('/openapi.json', {
   openapi: '3.1.0',
