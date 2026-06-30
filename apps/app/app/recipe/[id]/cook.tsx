@@ -14,6 +14,7 @@ import { useStepTimer, formatTime } from '../../../src/hooks/useStepTimer'
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake'
 import { IngredientChecklist } from '../../../src/components/IngredientChecklist'
 import { onStepTimerComplete, startSpeech, stopSpeech } from '../../../src/utils/cookEffects'
+import { cookModeNav } from '../../../src/utils/cookModeNav'
 
 export default function CookModeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
@@ -74,8 +75,7 @@ export default function CookModeScreen() {
     )
 
   const total = steps.length
-  const isFirst = stepIndex === 0
-  const isLast = stepIndex === total - 1
+  const { isFirst, isLast, actionLabel } = cookModeNav(total, stepIndex)
 
   const goTo = (index: number) => setStepIndex(index)
 
@@ -163,9 +163,7 @@ export default function CookModeScreen() {
           style={[s.navBtn, s.navBtnPrimary]}
           onPress={() => (isLast ? router.back() : goTo(stepIndex + 1))}
         >
-          <Text style={[s.navBtnText, s.navBtnTextPrimary]}>
-            {isLast ? 'Finalizar' : 'Siguiente'}
-          </Text>
+          <Text style={[s.navBtnText, s.navBtnTextPrimary]}>{actionLabel}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

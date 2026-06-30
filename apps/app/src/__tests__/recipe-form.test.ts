@@ -135,6 +135,16 @@ describe('validatePayload', () => {
     expect(valid).toBe(false)
     expect(errors.ingredients).toBeDefined()
   })
+
+  it('returns category error for invalid category', () => {
+    const payload = {
+      ...buildPayload('Torta', '4', 'Postre', '', '', validIngredients, validSteps),
+      category: 'Brunch' as never,
+    }
+    const { valid, errors } = validatePayload(payload)
+    expect(valid).toBe(false)
+    expect(errors.category ?? errors.general).toBeDefined()
+  })
 })
 
 describe('recipeToFormState', () => {

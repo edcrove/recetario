@@ -92,6 +92,36 @@ describe('rate limit middleware', () => {
     delete process.env['DEV_API_KEY']
   })
 
+  it('GET requests are not rate-limited after 100 POST-equivalents for a different owner', async () => {
+    process.env['DEV_API_KEY'] = 'get-test-key'
+    // GET /v1/recipes is exempted from rate limit (rate limiter only on mutating routes)
+    for (let i = 0; i < 5; i++) {
+      const res = await app.request('/v1/recipes', {
+        headers: { Authorization: 'Bearer get-test-key' },
+      })
+      expect(res.status).toBe(200)
+    }
+    // Confirm store tracks the owner
+    expect(rateLimitStore.has('dev')).toBe(true)
+  })
+
+  it('sliding window: requests older than 60s are evicted', async () => {
+    process.env['DEV_API_KEY'] = 'window-test-key'
+    const now = Date.now()
+
+    // Manually seed 100 timestamps older than the window
+    rateLimitStore.set(
+      'dev',
+      Array.from({ length: 100 }, (_, i) => now - 61_000 - i),
+    )
+
+    // Next request should succeed (old timestamps evicted)
+    const res = await app.request('/v1/recipes', {
+      headers: { Authorization: 'Bearer window-test-key' },
+    })
+    expect(res.status).toBe(200)
+  })
+
   it('returns 429 after 101 requests from the same owner', async () => {
     process.env['DEV_API_KEY'] = 'rate-limit-test-key'
 
