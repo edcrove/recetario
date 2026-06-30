@@ -42,6 +42,7 @@ export async function registerAllTools(
   const { registerMenuTools } = await import('./tools/menu.js')
   const { registerIdentityTools } = await import('./tools/identity.js')
   const { registerCookHistoryTools } = await import('./tools/cookHistory.js')
+  const { registerTaxonomyTools } = await import('./tools/taxonomy.js')
 
   registerCreateRecipe(server, apiClient)
   registerReadTools(server, apiClient)
@@ -49,6 +50,7 @@ export async function registerAllTools(
   registerMenuTools(server, apiClient)
   registerIdentityTools(server, apiClient)
   registerCookHistoryTools(server, apiClient)
+  registerTaxonomyTools(server, apiClient)
 }
 
 async function main() {
