@@ -65,7 +65,7 @@ describe('mutation tools', () => {
       // id should not be in body
       expect(body.id).toBeUndefined()
 
-      const parsed = JSON.parse(result.content[0].text)
+      const parsed = JSON.parse(result.content[0]!.text)
       expect(parsed).toEqual(updatedRecipe)
     })
   })
@@ -91,7 +91,7 @@ describe('mutation tools', () => {
       expect(url).toContain(`/v1/recipes/${TEST_ID}`)
       expect(opts.method).toBe('DELETE')
 
-      const parsed = JSON.parse(result.content[0].text)
+      const parsed = JSON.parse(result.content[0]!.text)
       expect(parsed.deleted).toBe(true)
       expect(parsed.id).toBe(TEST_ID)
     })
