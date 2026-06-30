@@ -77,6 +77,9 @@ jobs:
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/recetario_test
 
+      - name: Run screen component tests (Vitest + jsdom)
+        run: pnpm --filter recetario-app test:screens
+
       - name: Parse test results
         if: always()
         id: summary
@@ -162,6 +165,9 @@ jobs:
 
       - name: Generate shared coverage
         run: pnpm --filter @recetario/shared test:coverage
+
+      - name: Run screen component tests in coverage job
+        run: pnpm --filter recetario-app test:screens
 
       - name: Prepare coverage pages
         run: |
