@@ -146,6 +146,38 @@ Include the PR link in the story's PR field.
 - #510 Taxonomy, collections & recipe relations
 - #520 Taxonomy configurator
 
+## Secrets & environment variables
+
+### Required vars per environment
+
+| Variable              | Package | Required in prod | Notes                                                                     |
+| --------------------- | ------- | ---------------- | ------------------------------------------------------------------------- |
+| `DATABASE_URL`        | api     | ✅               | Postgres connection string                                                |
+| `JWT_SECRET`          | api     | ✅               | ≥64 random hex chars. **Fails fast at startup if missing in production.** |
+| `DEV_API_KEY`         | api     | ❌               | Local/CI fallback auth. Never in production.                              |
+| `API_BASE_URL`        | mcp     | ✅               | URL of the API the MCP server calls                                       |
+| `MCP_API_KEY`         | mcp     | ✅               | API key for MCP→API auth (from api_keys table)                            |
+| `EXPO_PUBLIC_API_URL` | app     | ✅               | Public — embedded at build time                                           |
+| `EXPO_PUBLIC_API_KEY` | app     | ❌               | Public — never put secrets here                                           |
+
+### Local development
+
+Copy `.env.example` to `.env` at root and per-package. All `.env` files are gitignored.
+
+### Generating secrets
+
+```bash
+# JWT_SECRET
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+
+# API key pair (key to share + hash to store in DB)
+pnpm --filter @recetario/api exec tsx src/scripts/generate-key.ts
+```
+
+### Production safeguard
+
+`JWT_SECRET` throws at startup if `NODE_ENV=production` and the var is missing or is the default value. This prevents accidental insecure deploys.
+
 ## React Native / Expo rules
 
 - **Current SDK**: Expo 56, React Native 0.85, React 19.
