@@ -32,7 +32,7 @@ const postMenuRoute = defineRoute({
       content: { 'application/json': { schema: MenuEntrySchema } },
       description: 'Menu entry upserted',
     },
-    422: {
+    400: {
       content: { 'application/json': { schema: errorSchema } },
       description: 'Validation error',
     },

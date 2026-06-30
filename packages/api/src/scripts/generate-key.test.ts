@@ -17,6 +17,9 @@ describe('generateApiKey', () => {
 
   it('hash matches SHA-256 of the generated key', () => {
     const { key, hash } = generateApiKey()
+    // API keys are random 256-bit tokens — SHA-256 without salt is the industry
+    // standard (GitHub, npm). CodeQL flags this as a password hash; it is not.
+    // lgtm[js/weak-cryptographic-algorithm]
     expect(hash).toBe(createHash('sha256').update(key).digest('hex'))
   })
 
