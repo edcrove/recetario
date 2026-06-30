@@ -122,3 +122,135 @@ export const apiKeys = pgTable('api_keys', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
   lastUsedAt: timestamp('last_used_at'),
 })
+
+// ── Taxonomy: meal categories (replaces category text enum) ─────────────────
+export const mealCategories = pgTable(
+  'meal_categories',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ownerId: text('owner_id'), // null = system-wide
+    name: text('name').notNull(),
+    slug: text('slug').notNull(),
+    color: text('color'),
+    isSystem: integer('is_system').notNull().default(0), // 1 = cannot delete
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('meal_categories_slug_owner_idx').on(t.slug, t.ownerId)],
+)
+
+// ── Taxonomy: food types (guisos, sopas, carnes…) ───────────────────────────
+export const foodTypes = pgTable(
+  'food_types',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ownerId: text('owner_id'), // null = system-wide
+    name: text('name').notNull(),
+    slug: text('slug').notNull(),
+    isSystem: integer('is_system').notNull().default(0),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('food_types_slug_owner_idx').on(t.slug, t.ownerId)],
+)
+
+export const recipeFoodTypes = pgTable(
+  'recipe_food_types',
+  {
+    recipeId: uuid('recipe_id')
+      .notNull()
+      .references(() => recipes.id, { onDelete: 'cascade' }),
+    foodTypeId: uuid('food_type_id')
+      .notNull()
+      .references(() => foodTypes.id, { onDelete: 'cascade' }),
+  },
+  (t) => [uniqueIndex('recipe_food_types_pk').on(t.recipeId, t.foodTypeId)],
+)
+
+// ── Taxonomy: normalized tags ────────────────────────────────────────────────
+export const tags = pgTable(
+  'tags',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ownerId: text('owner_id').notNull(),
+    name: text('name').notNull(),
+    slug: text('slug').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('tags_slug_owner_idx').on(t.slug, t.ownerId)],
+)
+
+export const recipeTags = pgTable(
+  'recipe_tags',
+  {
+    recipeId: uuid('recipe_id')
+      .notNull()
+      .references(() => recipes.id, { onDelete: 'cascade' }),
+    tagId: uuid('tag_id')
+      .notNull()
+      .references(() => tags.id, { onDelete: 'cascade' }),
+  },
+  (t) => [uniqueIndex('recipe_tags_pk').on(t.recipeId, t.tagId)],
+)
+
+// ── Collections ──────────────────────────────────────────────────────────────
+export const collections = pgTable('collections', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  ownerId: text('owner_id').notNull(),
+  name: text('name').notNull(),
+  emoji: text('emoji'),
+  description: text('description'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+})
+
+export const recipeCollections = pgTable(
+  'recipe_collections',
+  {
+    recipeId: uuid('recipe_id')
+      .notNull()
+      .references(() => recipes.id, { onDelete: 'cascade' }),
+    collectionId: uuid('collection_id')
+      .notNull()
+      .references(() => collections.id, { onDelete: 'cascade' }),
+    position: integer('position').notNull().default(0),
+    addedAt: timestamp('added_at').notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('recipe_collections_pk').on(t.recipeId, t.collectionId)],
+)
+
+// ── Recipe relations ─────────────────────────────────────────────────────────
+export const recipeRelations = pgTable(
+  'recipe_relations',
+  {
+    fromId: uuid('from_id')
+      .notNull()
+      .references(() => recipes.id, { onDelete: 'cascade' }),
+    toId: uuid('to_id')
+      .notNull()
+      .references(() => recipes.id, { onDelete: 'cascade' }),
+    relationType: text('relation_type').notNull(), // 'similar' | 'variation' | 'inspiration'
+    createdBy: text('created_by').notNull().default('user'), // 'user' | 'agent'
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('recipe_relations_pk').on(t.fromId, t.toId, t.relationType)],
+)
+
+// ── Cook sessions (history & analytics) ─────────────────────────────────────
+export const cookSessions = pgTable(
+  'cook_sessions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    recipeId: uuid('recipe_id')
+      .notNull()
+      .references(() => recipes.id, { onDelete: 'cascade' }),
+    ownerId: text('owner_id').notNull(),
+    cookedAt: timestamp('cooked_at').notNull().defaultNow(),
+    rating: integer('rating'), // 1–5, nullable
+    notes: text('notes'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [
+    index('cook_sessions_owner_idx').on(t.ownerId),
+    index('cook_sessions_recipe_idx').on(t.recipeId),
+    index('cook_sessions_cooked_at_idx').on(t.cookedAt),
+  ],
+)

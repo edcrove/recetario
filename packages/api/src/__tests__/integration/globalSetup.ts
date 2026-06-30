@@ -58,10 +58,42 @@ async function seedTestDb(url: string) {
   })
 
   const keyHash = createHash('sha256').update(TEST_API_KEY).digest('hex')
-  // Insert only if not already present (idempotent)
   await db
     .insert(schema.apiKeys)
     .values({ keyHash, ownerId: TEST_OWNER_ID, label: 'test' })
     .onConflictDoNothing()
+
+  // Seed system meal categories
+  const mealCategorySeeds = [
+    { name: 'Desayuno', slug: 'desayuno', isSystem: 1 },
+    { name: 'Almuerzo', slug: 'almuerzo', isSystem: 1 },
+    { name: 'Cena', slug: 'cena', isSystem: 1 },
+    { name: 'Postre', slug: 'postre', isSystem: 1 },
+    { name: 'Snack', slug: 'snack', isSystem: 1 },
+    { name: 'Bebida', slug: 'bebida', isSystem: 1 },
+    { name: 'Otro', slug: 'otro', isSystem: 1 },
+  ]
+  for (const cat of mealCategorySeeds) {
+    await db.insert(schema.mealCategories).values(cat).onConflictDoNothing()
+  }
+
+  // Seed system food types
+  const foodTypeSeeds = [
+    { name: 'Guiso', slug: 'guiso', isSystem: 1 },
+    { name: 'Sopa', slug: 'sopa', isSystem: 1 },
+    { name: 'Carne', slug: 'carne', isSystem: 1 },
+    { name: 'Minuta', slug: 'minuta', isSystem: 1 },
+    { name: 'Ensalada', slug: 'ensalada', isSystem: 1 },
+    { name: 'Pasta', slug: 'pasta', isSystem: 1 },
+    { name: 'Postre', slug: 'postre-tipo', isSystem: 1 },
+    { name: 'Bebida', slug: 'bebida-tipo', isSystem: 1 },
+    { name: 'Saludable', slug: 'saludable', isSystem: 1 },
+    { name: 'Panificado', slug: 'panificado', isSystem: 1 },
+    { name: 'Tarta / Empanada', slug: 'tarta', isSystem: 1 },
+  ]
+  for (const ft of foodTypeSeeds) {
+    await db.insert(schema.foodTypes).values(ft).onConflictDoNothing()
+  }
+
   await client.end()
 }
