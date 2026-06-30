@@ -85,5 +85,62 @@ export const api = {
       request<{ id: string; email: string; displayName: string | null; createdAt: string }>(
         '/auth/me',
       ),
+    updateMe: (data: { displayName?: string; avatarUrl?: string }) =>
+      request<{ id: string; email: string; displayName: string | null }>('/auth/me', {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
+    getProfile: () =>
+      request<{
+        preferredServings: number | null
+        dietaryRestrictions: string[]
+        allergens: string[]
+        goals: string[]
+        timezone: string | null
+      }>('/auth/profile'),
+    updateProfile: (data: {
+      preferredServings?: number
+      dietaryRestrictions?: string[]
+      allergens?: string[]
+      goals?: string[]
+      timezone?: string
+    }) =>
+      request<{
+        preferredServings: number | null
+        dietaryRestrictions: string[]
+        allergens: string[]
+      }>('/auth/profile', { method: 'PATCH', body: JSON.stringify(data) }),
+  },
+  households: {
+    create: (name: string) =>
+      request<{ id: string; name: string; ownerId: string }>('/v1/households', {
+        method: 'POST',
+        body: JSON.stringify({ name }),
+      }),
+    mine: () =>
+      request<
+        Array<{
+          id: string
+          name: string
+          ownerId: string
+          members?: Array<{
+            userId: string
+            role: string
+            invitedAt: string
+            acceptedAt: string | null
+          }>
+        }>
+      >('/v1/households/mine'),
+    invite: (householdId: string, userId: string, role: string) =>
+      request<{ userId: string; role: string }>(`/v1/households/${householdId}/invite`, {
+        method: 'POST',
+        body: JSON.stringify({ userId, role }),
+      }),
+    accept: (householdId: string) =>
+      request<{ userId: string; role: string }>(`/v1/households/${householdId}/accept`, {
+        method: 'POST',
+      }),
+    removeMember: (householdId: string, userId: string) =>
+      request<void>(`/v1/households/${householdId}/members/${userId}`, { method: 'DELETE' }),
   },
 }
