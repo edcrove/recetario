@@ -16,7 +16,17 @@ const passThrough =
 
 export const View = passThrough('div')
 export const Text = passThrough('span')
-export const ScrollView = passThrough('div')
+export const ScrollView = ({
+  children,
+  testID,
+  style: _style,
+  contentContainerStyle: _ccs,
+  ...rest
+}: React.HTMLAttributes<HTMLElement> & {
+  testID?: string
+  style?: unknown
+  contentContainerStyle?: unknown
+}) => React.createElement('div', { 'data-testid': testID, ...rest }, children)
 export const SafeAreaView = passThrough('div')
 export const FlatList = ({
   data,
