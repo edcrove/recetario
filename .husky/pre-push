@@ -9,29 +9,34 @@ if [ "$SKIP_PRE_PUSH" = "1" ]; then
 fi
 
 echo "🔍 pre-push: running CI checks..."
-
 EVIDENCE_FILE=".last-ci-output.txt"
 
-{
-  echo "=== Lint ==="
-  pnpm turbo run lint 2>&1 | tail -3 || exit 1
-  echo ""
-  echo "=== Type check ==="
-  pnpm turbo run typecheck 2>&1 | tail -3 || exit 1
-  echo ""
-  echo "=== Tests ==="
-  pnpm turbo run test 2>&1 | grep -E "Test Files|Tests|Duration|passed|failed" | tail -8 || exit 1
-  echo ""
-  echo "=== Build ==="
-  pnpm turbo run build 2>&1 | tail -3 || exit 1
-} | tee "$EVIDENCE_FILE"
-
-EXIT_CODE=${PIPESTATUS[0]}
-
-if [ $EXIT_CODE -ne 0 ]; then
-  echo "\n❌ pre-push checks failed. Push aborted."
-  exit 1
+echo "=== Lint ===" > "$EVIDENCE_FILE"
+if ! pnpm turbo run lint >> "$EVIDENCE_FILE" 2>&1; then
+  echo "❌ Lint failed. Push aborted."; exit 1
 fi
 
-echo "\n✅ All checks passed — pushing."
+echo "" >> "$EVIDENCE_FILE"
+echo "=== Typecheck ===" >> "$EVIDENCE_FILE"
+if ! pnpm turbo run typecheck >> "$EVIDENCE_FILE" 2>&1; then
+  echo "❌ Typecheck failed. Push aborted."; exit 1
+fi
+
+echo "" >> "$EVIDENCE_FILE"
+echo "=== Tests ===" >> "$EVIDENCE_FILE"
+if ! pnpm turbo run test >> "$EVIDENCE_FILE" 2>&1; then
+  echo "❌ Tests failed. Push aborted."; exit 1
+fi
+
+echo "" >> "$EVIDENCE_FILE"
+echo "=== Build ===" >> "$EVIDENCE_FILE"
+if ! pnpm turbo run build >> "$EVIDENCE_FILE" 2>&1; then
+  echo "❌ Build failed. Push aborted."; exit 1
+fi
+
+# Show summary from evidence file
+grep -E "Tasks:|Tests |Duration" "$EVIDENCE_FILE" | tail -8
+
+echo ""
+echo "✅ All checks passed — pushing."
 echo "(Evidence saved to $EVIDENCE_FILE for use in PR description)"

@@ -1,7 +1,6 @@
 #!/bin/bash
-# pnpm pr — Runs CI locally, captures evidence, and opens a PR with it embedded.
-# Usage: pnpm pr [--base <branch>] [--title "..."] [--draft]
-# If title is omitted, uses the last commit message subject.
+# pnpm pr — Runs CI locally, captures test evidence, and opens a PR with it pre-filled.
+# Usage: pnpm pr [--base <branch>] [--title "..."] [--draft] [--skip-ci]
 
 set -euo pipefail
 
@@ -20,76 +19,85 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Default title from last commit
 if [ -z "$TITLE" ]; then
   TITLE=$(git log -1 --format="%s")
 fi
 
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 CI_OUTPUT_FILE=$(mktemp)
+TEST_DETAIL_FILE=$(mktemp)
 
 echo "🔍 Running CI pipeline to collect evidence..."
 echo ""
 
-CI_PASSED=1
 if [ "$SKIP_CI" = "0" ]; then
-  {
-    echo "=== Lint ==="
-    pnpm turbo run lint 2>&1 | tail -3
-    echo ""
-    echo "=== Type check ==="
-    pnpm turbo run typecheck 2>&1 | tail -3
-    echo ""
-    echo "=== Tests ==="
-    pnpm turbo run test 2>&1 | grep -E "Test Files|Tests|Duration|passed|failed" | tail -8
-    echo ""
-    echo "=== Build ==="
-    pnpm turbo run build 2>&1 | tail -3
-  } > "$CI_OUTPUT_FILE" 2>&1 || CI_PASSED=0
-
-  if [ "$CI_PASSED" = "0" ]; then
-    echo "❌ CI failed. Fix errors before opening PR."
-    cat "$CI_OUTPUT_FILE"
-    rm "$CI_OUTPUT_FILE"
-    exit 1
+  # Run lint + typecheck
+  if ! pnpm turbo run lint >> "$CI_OUTPUT_FILE" 2>&1; then
+    echo "❌ Lint failed. Fix errors before opening PR."
+    cat "$CI_OUTPUT_FILE"; rm "$CI_OUTPUT_FILE" "$TEST_DETAIL_FILE"; exit 1
   fi
+
+  if ! pnpm turbo run typecheck >> "$CI_OUTPUT_FILE" 2>&1; then
+    echo "❌ Typecheck failed. Fix errors before opening PR."
+    cat "$CI_OUTPUT_FILE"; rm "$CI_OUTPUT_FILE" "$TEST_DETAIL_FILE"; exit 1
+  fi
+
+  # Run tests and capture full output
+  if ! pnpm turbo run test 2>&1 | tee -a "$CI_OUTPUT_FILE" | tee "$TEST_DETAIL_FILE" > /dev/null; then
+    echo "❌ Tests failed. Fix errors before opening PR."
+    cat "$CI_OUTPUT_FILE"; rm "$CI_OUTPUT_FILE" "$TEST_DETAIL_FILE"; exit 1
+  fi
+
+  if ! pnpm turbo run build >> "$CI_OUTPUT_FILE" 2>&1; then
+    echo "❌ Build failed. Fix errors before opening PR."
+    cat "$CI_OUTPUT_FILE"; rm "$CI_OUTPUT_FILE" "$TEST_DETAIL_FILE"; exit 1
+  fi
+
   echo "✅ CI passed."
+
+  # Extract test summary per package
+  TEST_SUMMARY=$(grep -E "Test Files|Tests |Duration|passed|failed" "$TEST_DETAIL_FILE" 2>/dev/null | tail -20 || echo "(run pnpm test for details)")
+
+  # Extract overall counts
+  TOTAL_TESTS=$(grep -E "^@|^recetario" "$TEST_DETAIL_FILE" | grep "Tests " | awk '{sum += $NF} END {print sum}' 2>/dev/null || echo "?")
+  TOTAL_FILES=$(grep -E "^@|^recetario" "$TEST_DETAIL_FILE" | grep "Test Files" | grep -oE "[0-9]+ passed" | awk '{sum += $1} END {print sum}' 2>/dev/null || echo "?")
 else
   echo "⚠️  CI skipped (--skip-ci)"
-  echo "(CI skipped — run pnpm ci:local to verify)" > "$CI_OUTPUT_FILE"
+  TEST_SUMMARY="(CI skipped — run pnpm ci:local to verify)"
+  TOTAL_TESTS="?"
+  TOTAL_FILES="?"
 fi
 
-CI_SUMMARY=$(cat "$CI_OUTPUT_FILE")
-rm "$CI_OUTPUT_FILE"
+CI_SUMMARY="$TEST_SUMMARY"
+rm "$CI_OUTPUT_FILE" "$TEST_DETAIL_FILE" 2>/dev/null || true
 
-# Notion stories from recent commits (grep for notion URLs)
-NOTION_LINKS=$(git log "origin/$BASE..HEAD" --format="%B" 2>/dev/null | grep -o 'https://app.notion.com/p/[a-z0-9]*' | sort -u | head -5 || echo "")
+# Notion stories from recent commits
+NOTION_LINKS=$(git log "origin/$BASE..HEAD" --format="%B" 2>/dev/null \
+  | grep -o 'https://app.notion.com/p/[a-z0-9]*' | sort -u | head -5 || echo "")
 
-# Build PR body
+# Commits since base
+COMMITS=$(git log "origin/$BASE..HEAD" --format="- %s" 2>/dev/null | head -10)
+
 PR_BODY=$(cat <<PREOF
-## ¿Qué hace este PR?
+## What does this PR do?
 
 -
 
-## Motivación
+## Motivation
 
 
 
-## Cambios principales
+## Key changes
 
-$(git log "origin/$BASE..HEAD" --format="- %s" 2>/dev/null | head -10)
+$COMMITS
 
-## Evidencia
+## Evidence
 
-### ✅ CI local (\`pnpm ci:local\`)
+### ✅ Local CI (\`pnpm ci:local\`)
 
 \`\`\`
 $CI_SUMMARY
 \`\`\`
-
-### 📸 Screenshots / output
-
-N/A
 
 ## Notion
 
@@ -97,11 +105,11 @@ $(if [ -n "$NOTION_LINKS" ]; then echo "$NOTION_LINKS" | while read -r url; do e
 
 ## Checklist
 
-- [x] \`pnpm ci:local\` pasó sin errores
-- [ ] Sin \`console.log\` de debug ni \`any\` innecesarios
-- [ ] Story en Notion → "In review" con link a este PR
-- [ ] Migration incluida si hay cambios de DB
-- [ ] Testeado en web + mobile si hay cambios de UI
+- [x] \`pnpm ci:local\` passed without errors
+- [ ] No debug \`console.log\` or unnecessary \`any\`
+- [ ] Notion story → "In review" with link to this PR
+- [ ] DB migration included if schema changed
+- [ ] New routes/functions have tests maintaining 100% coverage
 PREOF
 )
 
@@ -117,4 +125,4 @@ gh pr create \
   $DRAFT_FLAG
 
 echo ""
-echo "🎉 PR created. Update the description with screenshots/details as needed."
+echo "🎉 PR created. Fill in 'What does this PR do?' and 'Motivation' sections."

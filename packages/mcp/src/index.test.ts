@@ -12,6 +12,9 @@ const EXPECTED_TOOLS = [
   'removeFromMenu',
   'getMenu',
   'generateShoppingList',
+  'whoami',
+  'updateProfile',
+  'listHouseholdMembers',
 ]
 
 const mockFetch = vi.fn()
@@ -45,14 +48,14 @@ describe('registerAllTools (main bootstrap)', () => {
     expect(registeredNames.sort()).toEqual(EXPECTED_TOOLS.sort())
   })
 
-  it('registers exactly 10 tools — no duplicates, no missing', async () => {
+  it('registers exactly 13 tools — no duplicates, no missing', async () => {
     const server = createMcpServer()
     const apiClient = createApiClient()
     const spy = vi.spyOn(server, 'tool')
 
     await registerAllTools(server, apiClient)
 
-    expect(spy).toHaveBeenCalledTimes(10)
+    expect(spy).toHaveBeenCalledTimes(13)
   })
 })
 

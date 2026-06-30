@@ -1,0 +1,24 @@
+=== Lint ===
+Cached:    3 cached, 5 total
+  Time:    1.286s 
+
+
+=== Type check ===
+Failed:    @recetario/mcp#typecheck
+
+ ERROR  run failed: command  exited (2)
+
+=== Tests ===
+recetario-app:test:       Tests  163 passed (163)
+recetario-app:test:    Duration  2.36s (transform 679ms, setup 0ms, collect 2.71s, tests 205ms, environment 3.28s, prepare 3.60s)
+@recetario/mcp:test:  Test Files  6 passed (6)
+@recetario/mcp:test:       Tests  30 passed (30)
+@recetario/mcp:test:    Duration  625ms (transform 236ms, setup 0ms, collect 1.69s, tests 125ms, environment 1ms, prepare 411ms)
+@recetario/api:test:  Test Files  18 passed (18)
+@recetario/api:test:       Tests  132 passed (132)
+@recetario/api:test:    Duration  5.61s (transform 460ms, setup 0ms, collect 8.42s, tests 6.21s, environment 2ms, prepare 903ms)
+
+=== Build ===
+Failed:    @recetario/mcp#build
+
+ ERROR  run failed: command  exited (2)
