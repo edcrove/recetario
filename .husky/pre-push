@@ -1,0 +1,25 @@
+#!/bin/sh
+# Replicates the CI pipeline locally before every push.
+# Aborts the push if any step fails.
+# Set SKIP_PRE_PUSH=1 to bypass (emergency only).
+
+if [ "$SKIP_PRE_PUSH" = "1" ]; then
+  echo "⚠️  pre-push hook skipped (SKIP_PRE_PUSH=1)"
+  exit 0
+fi
+
+echo "🔍 pre-push: running CI checks..."
+
+echo "\n📐 Lint..."
+pnpm turbo run lint || exit 1
+
+echo "\n🔠 Type check..."
+pnpm turbo run typecheck || exit 1
+
+echo "\n🧪 Tests (unit, no DB required)..."
+pnpm turbo run test || exit 1
+
+echo "\n🏗️  Build..."
+pnpm turbo run build || exit 1
+
+echo "\n✅ All checks passed — pushing."
