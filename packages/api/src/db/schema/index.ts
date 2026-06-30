@@ -114,6 +114,55 @@ export const menuEntries = pgTable(
   ],
 )
 
+// ── Identity ─────────────────────────────────────────────────────────────────
+export const householdRole = pgEnum('household_role', ['owner', 'admin', 'member', 'viewer'])
+
+export const users = pgTable('users', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  email: text('email').notNull().unique(),
+  passwordHash: text('password_hash').notNull(),
+  displayName: text('display_name'),
+  avatarUrl: text('avatar_url'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+})
+
+export const userProfiles = pgTable('user_profiles', {
+  userId: uuid('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  preferredServings: integer('preferred_servings').default(2),
+  dietaryRestrictions: jsonb('dietary_restrictions').notNull().default([]),
+  allergens: jsonb('allergens').notNull().default([]),
+  goals: jsonb('goals').notNull().default([]),
+  timezone: text('timezone').default('UTC'),
+})
+
+export const households = pgTable('households', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  ownerId: uuid('owner_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+})
+
+export const householdMembers = pgTable(
+  'household_members',
+  {
+    householdId: uuid('household_id')
+      .notNull()
+      .references(() => households.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    role: householdRole('role').notNull().default('member'),
+    invitedAt: timestamp('invited_at').notNull().defaultNow(),
+    acceptedAt: timestamp('accepted_at'),
+  },
+  (t) => [uniqueIndex('household_members_pk').on(t.householdId, t.userId)],
+)
+
 export const apiKeys = pgTable('api_keys', {
   id: uuid('id').primaryKey().defaultRandom(),
   keyHash: text('key_hash').notNull().unique(),
