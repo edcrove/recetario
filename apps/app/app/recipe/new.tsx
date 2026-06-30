@@ -11,6 +11,7 @@ import {
   type StepRow,
   type FieldErrors,
 } from '../../src/utils/recipeForm'
+import { FoodTypePicker } from '../../src/components/FoodTypePicker'
 
 const CATEGORIES: Category[] = ['Desayuno', 'Almuerzo', 'Cena', 'Postre', 'Snack', 'Bebida', 'Otro']
 
@@ -38,6 +39,7 @@ export default function NewRecipeScreen() {
   const [category, setCategory] = useState<Category>('Cena')
   const [tags, setTags] = useState('')
   const [notes, setNotes] = useState('')
+  const [foodTypeIds, setFoodTypeIds] = useState<string[]>([])
   const [ingredients, setIngredients] = useState<IngredientRow[]>([
     { name: '', quantity: '', unit: '', presentation: '' },
   ])
@@ -128,6 +130,10 @@ export default function NewRecipeScreen() {
           </TouchableOpacity>
         ))}
       </View>
+
+      {/* Food types */}
+      <Text style={st.label}>Tipo de comida (hasta 3)</Text>
+      <FoodTypePicker selected={foodTypeIds} onChange={setFoodTypeIds} />
 
       {/* Tags */}
       <Text style={st.label}>Etiquetas (separadas por coma)</Text>
