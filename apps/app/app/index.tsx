@@ -15,12 +15,14 @@ import { api } from '../src/api/client'
 import type { Recipe } from '@recetario/shared'
 import { getEmptyMessage, getQueryFnKey } from '../src/utils/homeScreen'
 import { useAuth } from '../src/providers/AuthProvider'
+import { UserMenu } from '../src/components/UserMenu'
 
 export default function HomeScreen() {
   const [query, setQuery] = useState('')
   const router = useRouter()
   const { token, isLoading: authLoading } = useAuth()
   const [activeType, setActiveType] = useState<string | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const { data: foodTypes = [] } = useQuery({
     queryKey: ['food-types'],
@@ -118,10 +120,12 @@ export default function HomeScreen() {
         >
           <Text style={styles.collectionsButtonText}>📋</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.profileButton} onPress={() => router.push('/profile')}>
+        <TouchableOpacity style={styles.profileButton} onPress={() => setMenuOpen(true)}>
           <Text style={styles.profileButtonText}>👤</Text>
         </TouchableOpacity>
       </View>
+
+      <UserMenu visible={menuOpen} onClose={() => setMenuOpen(false)} />
       <FlatList
         data={recipes}
         keyExtractor={(item: Recipe) => item.id ?? item.title}
