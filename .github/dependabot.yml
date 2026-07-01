@@ -5,17 +5,30 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    open-pull-requests-limit: 10
     groups:
       dev-dependencies:
         dependency-type: development
+        update-types: [patch, minor]
       production-dependencies:
         dependency-type: production
+        update-types: [patch, minor]
     ignore:
       - dependency-name: '*'
         update-types: ['version-update:semver-major']
+    labels:
+      - dependencies
+    commit-message:
+      prefix: chore
+      prefix-development: chore(dev-deps)
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
       day: monday
+    labels:
+      - dependencies
+      - ci
+    commit-message:
+      prefix: chore(ci)

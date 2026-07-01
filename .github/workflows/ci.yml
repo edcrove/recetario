@@ -19,8 +19,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Run ESLint
-        run: pnpm turbo run lint
+      - name: Run ESLint (warnings = errors)
+        run: pnpm turbo run lint -- --max-warnings=0
 
   typecheck:
     name: Type Check

@@ -129,6 +129,9 @@ The Expo app reads data from the API like any other REST client. It never calls 
 - Evidence section: paste actual CI output, screenshots for UI changes, migration output for DB changes.
 - Notion story → "In review" + PR link before requesting review.
 - Use `pnpm pr` to automate this.
+- **PRs require 1 approving review** before merge (branch protection on `main`).
+- **No ESLint warnings**: CI runs `eslint --max-warnings=0`. Fix all warnings before pushing.
+- **Dependabot alerts**: check open Dependabot security alerts before merging. Address or acknowledge each one. Patch/minor updates are auto-merged when CI passes.
 
 ## Notion
 

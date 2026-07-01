@@ -16,7 +16,8 @@ vi.mock('../db/index.js', () => ({
         }),
       }),
     }),
-    insert: (_table: unknown) => ({
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    insert: (_t: unknown) => ({
       values: () => ({
         returning: () => Promise.resolve(mockUsersInsert()),
         onConflictDoNothing: () => Promise.resolve(mockProfileInsert()),
