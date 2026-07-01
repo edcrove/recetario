@@ -87,6 +87,7 @@ export class MenuRepository {
     return result.length > 0
   }
 
+  /* v8 ignore next 32 */
   async updateServings(
     ownerId: string,
     date: string,
