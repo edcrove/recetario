@@ -184,7 +184,9 @@ describe('validatePayload', () => {
     )
     // Force a Zod issue on an unknown path by corrupting the payload type
     const corrupted = { ...payload, steps: 'not-an-array' }
-    const { valid, errors } = validatePayload(corrupted as Parameters<typeof validatePayload>[0])
+    const { valid, errors } = validatePayload(
+      corrupted as unknown as Parameters<typeof validatePayload>[0],
+    )
     expect(valid).toBe(false)
     expect(errors.general).toBeDefined()
   })
