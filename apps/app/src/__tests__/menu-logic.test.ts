@@ -89,4 +89,20 @@ describe('formatShoppingQty', () => {
     const item: ShoppingListItem = { ingredient: 'Sal', quantity: 0, unit: 'g' }
     expect(formatShoppingQty(item)).toBe('0 g')
   })
+
+  // regression: bug 403 — units were shown in English (tsp instead of cdta)
+  it('translates tsp to cdta', () => {
+    const item: ShoppingListItem = { ingredient: 'Sal', quantity: 1, unit: 'tsp' }
+    expect(formatShoppingQty(item)).toBe('1 cdta')
+  })
+
+  it('translates tbsp to cda', () => {
+    const item: ShoppingListItem = { ingredient: 'Aceite', quantity: 2, unit: 'tbsp' }
+    expect(formatShoppingQty(item)).toBe('2 cda')
+  })
+
+  it('translates cup to taza', () => {
+    const item: ShoppingListItem = { ingredient: 'Harina', quantity: 1, unit: 'cup' }
+    expect(formatShoppingQty(item)).toBe('1 taza')
+  })
 })

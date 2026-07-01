@@ -1,6 +1,34 @@
 import { describe, it, expect } from 'vitest'
-import { formatQuantity, displayIngredient } from '../utils/displayIngredient'
+import { formatQuantity, displayIngredient, unitLabel } from '../utils/displayIngredient'
 import type { Ingredient } from '@recetario/shared'
+
+// regression: bug 403 — units were shown in English
+describe('unitLabel', () => {
+  it.each([
+    ['tsp', 'cdta'],
+    ['tbsp', 'cda'],
+    ['cup', 'taza'],
+    ['unit', 'u'],
+    ['pinch', 'pizca'],
+    ['slice', 'rodaja'],
+    ['clove', 'diente'],
+    ['g', 'g'],
+    ['kg', 'kg'],
+    ['ml', 'ml'],
+    ['l', 'l'],
+  ])('translates %s → %s', (input, expected) => {
+    expect(unitLabel(input)).toBe(expected)
+  })
+
+  it('passes through unknown units unchanged', () => {
+    expect(unitLabel('oz')).toBe('oz')
+  })
+
+  it('returns empty string for null/undefined', () => {
+    expect(unitLabel(null)).toBe('')
+    expect(unitLabel(undefined)).toBe('')
+  })
+})
 
 describe('formatQuantity', () => {
   it('returns c/n for null', () => {

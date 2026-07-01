@@ -1,30 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
-import * as SecureStore from 'expo-secure-store'
-import { Platform } from 'react-native'
+import { authStorage as storage } from '../utils/authStorage'
 
 const TOKEN_KEY = 'auth_token'
-
-// expo-secure-store web implementation is a no-op — fall back to localStorage
-const storage = {
-  async get(key: string): Promise<string | null> {
-    if (Platform.OS === 'web') return localStorage.getItem(key)
-    return SecureStore.getItemAsync(key)
-  },
-  async set(key: string, value: string): Promise<void> {
-    if (Platform.OS === 'web') {
-      localStorage.setItem(key, value)
-      return
-    }
-    return SecureStore.setItemAsync(key, value)
-  },
-  async del(key: string): Promise<void> {
-    if (Platform.OS === 'web') {
-      localStorage.removeItem(key)
-      return
-    }
-    return SecureStore.deleteItemAsync(key)
-  },
-}
 
 interface AuthState {
   token: string | null

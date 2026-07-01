@@ -72,7 +72,18 @@ describe('aggregateIngredients', () => {
     expect(result).toHaveLength(2)
   })
 
-  it('handles null quantity ("to taste") — keeps null', () => {
+  // regression: bug 404 — zero-quantity items from scaling were appearing in the list
+  it('filters out zero-quantity items (e.g. scaled to 0 servings)', () => {
+    const result = aggregateIngredients([{ name: 'salt', quantity: 0, unit: 'g' }])
+    expect(result).toHaveLength(0)
+  })
+
+  it('filters out negative-quantity items', () => {
+    const result = aggregateIngredients([{ name: 'sugar', quantity: -1, unit: 'g' }])
+    expect(result).toHaveLength(0)
+  })
+
+  it('keeps null-quantity items as "al gusto" — user still needs to buy some', () => {
     const result = aggregateIngredients([
       { name: 'salt', quantity: null, unit: null },
       { name: 'salt', quantity: null, unit: null },
@@ -81,12 +92,15 @@ describe('aggregateIngredients', () => {
     expect(result[0]!.quantity).toBeNull()
   })
 
-  it('propagates null when mixing null + numeric (same key)', () => {
+  it('keeps measurable items when mixed with null-qty of same ingredient (different units)', () => {
     const result = aggregateIngredients([
       { name: 'pepper', quantity: null, unit: null },
-      { name: 'pepper', quantity: null, unit: null },
+      { name: 'pepper', quantity: 2, unit: 'g' },
     ])
-    expect(result[0]!.quantity).toBeNull()
+    // null goes into __null__ key, 2g goes into g key — two separate groups
+    const withQty = result.find((r) => r.quantity !== null)
+    expect(withQty).toBeDefined()
+    expect(withQty!.quantity).toBe(2)
   })
 
   it('sorts results alphabetically by ingredient', () => {
