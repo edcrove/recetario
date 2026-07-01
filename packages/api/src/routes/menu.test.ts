@@ -7,6 +7,7 @@ vi.mock('../db/menu-repository.js', () => {
     remove: vi.fn(),
     getWeek: vi.fn(),
     getScaledIngredients: vi.fn(),
+    updateServings: vi.fn(),
   }
   return {
     menuRepository: mockRepo,
@@ -34,6 +35,7 @@ const mockRepo = menuRepository as unknown as {
   remove: ReturnType<typeof vi.fn>
   getWeek: ReturnType<typeof vi.fn>
   getScaledIngredients: ReturnType<typeof vi.fn>
+  updateServings: ReturnType<typeof vi.fn>
 }
 
 const DEV_KEY = 'menu-test-key'
@@ -110,8 +112,10 @@ describe('POST /v1/menu', () => {
   })
 })
 
-describe('DELETE /v1/menu/:date/:slot', () => {
-  it('returns 204 when entry exists', async () => {
+const RECIPE_ID = '550e8400-e29b-41d4-a716-446655440000'
+
+describe('DELETE /v1/menu/:date/:slot (clear whole slot)', () => {
+  it('returns 204 and removes all recipes in slot', async () => {
     mockRepo.remove.mockResolvedValue(true)
 
     const res = await app.request('/v1/menu/2026-06-30/Almuerzo', {
@@ -123,15 +127,82 @@ describe('DELETE /v1/menu/:date/:slot', () => {
     expect(mockRepo.remove).toHaveBeenCalledWith(expect.any(String), '2026-06-30', 'Almuerzo')
   })
 
-  it('returns 404 when entry not found', async () => {
+  it('returns 404 when slot is empty', async () => {
     mockRepo.remove.mockResolvedValue(false)
+    const res = await app.request('/v1/menu/2026-06-30/Cena', { method: 'DELETE', headers: AUTH })
+    expect(res.status).toBe(404)
+  })
+})
 
-    const res = await app.request('/v1/menu/2026-06-30/Cena', {
+describe('DELETE /v1/menu/:date/:slot/:recipeId (remove specific recipe)', () => {
+  it('returns 204 when recipe entry exists', async () => {
+    mockRepo.remove.mockResolvedValue(true)
+
+    const res = await app.request(`/v1/menu/2026-06-30/Almuerzo/${RECIPE_ID}`, {
       method: 'DELETE',
       headers: AUTH,
     })
 
+    expect(res.status).toBe(204)
+    expect(mockRepo.remove).toHaveBeenCalledWith(
+      expect.any(String),
+      '2026-06-30',
+      'Almuerzo',
+      RECIPE_ID,
+    )
+  })
+
+  it('returns 404 when recipe not in slot', async () => {
+    mockRepo.remove.mockResolvedValue(false)
+    const res = await app.request(`/v1/menu/2026-06-30/Cena/${RECIPE_ID}`, {
+      method: 'DELETE',
+      headers: AUTH,
+    })
     expect(res.status).toBe(404)
+  })
+})
+
+describe('PATCH /v1/menu/:date/:slot/:recipeId (update servings)', () => {
+  it('returns 200 with updated entry', async () => {
+    const updated = { ...sampleEntry, servings: 6 }
+    mockRepo.updateServings.mockResolvedValue(updated)
+
+    const res = await app.request(`/v1/menu/2026-06-30/Almuerzo/${RECIPE_ID}`, {
+      method: 'PATCH',
+      headers: { ...AUTH, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ servings: 6 }),
+    })
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.servings).toBe(6)
+    expect(mockRepo.updateServings).toHaveBeenCalledWith(
+      expect.any(String),
+      '2026-06-30',
+      'Almuerzo',
+      RECIPE_ID,
+      6,
+    )
+  })
+
+  it('returns 404 when entry not found', async () => {
+    mockRepo.updateServings.mockResolvedValue(null)
+    const res = await app.request(`/v1/menu/2026-06-30/Cena/${RECIPE_ID}`, {
+      method: 'PATCH',
+      headers: { ...AUTH, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ servings: 2 }),
+    })
+    expect(res.status).toBe(404)
+  })
+
+  it('returns 400 when servings is invalid', async () => {
+    const res = await app.request(`/v1/menu/2026-06-30/Almuerzo/${RECIPE_ID}`, {
+      method: 'PATCH',
+      headers: { ...AUTH, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ servings: 0 }),
+    })
+    expect(res.status).toBe(400)
+    expect(mockRepo.updateServings).not.toHaveBeenCalled()
   })
 })
 

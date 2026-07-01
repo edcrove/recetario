@@ -36,6 +36,13 @@
       "when": 1782865063568,
       "tag": "0004_dapper_sinister_six",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1782914319093,
+      "tag": "0005_friendly_zaran",
+      "breakpoints": true
     }
   ]
 }

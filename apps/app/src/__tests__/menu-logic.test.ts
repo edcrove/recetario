@@ -2,12 +2,12 @@ import { describe, it, expect } from 'vitest'
 import { buildEntryMap, parseServings, formatShoppingQty } from '../utils/menuLogic'
 import type { MenuEntry, ShoppingListItem } from '@recetario/shared'
 
-const makeEntry = (date: string, slot: MenuEntry['slot']): MenuEntry => ({
-  id: `${date}-${slot}`,
+const makeEntry = (date: string, slot: MenuEntry['slot'], recipeId = 'recipe-1'): MenuEntry => ({
+  id: `${date}-${slot}-${recipeId}`,
   ownerId: 'owner',
   date,
   slot,
-  recipeId: 'recipe-1',
+  recipeId,
   servings: 2,
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',
@@ -18,10 +18,10 @@ describe('buildEntryMap', () => {
     expect(buildEntryMap([])).toEqual(new Map())
   })
 
-  it('keys entries by date::slot', () => {
+  it('keys entries by date::slot as array', () => {
     const entry = makeEntry('2026-06-29', 'Almuerzo')
     const map = buildEntryMap([entry])
-    expect(map.get('2026-06-29::Almuerzo')).toBe(entry)
+    expect(map.get('2026-06-29::Almuerzo')).toEqual([entry])
   })
 
   it('handles multiple entries across days and slots', () => {
@@ -30,16 +30,23 @@ describe('buildEntryMap', () => {
     const e3 = makeEntry('2026-06-30', 'Almuerzo')
     const map = buildEntryMap([e1, e2, e3])
     expect(map.size).toBe(3)
-    expect(map.get('2026-06-29::Desayuno')).toBe(e1)
-    expect(map.get('2026-06-29::Cena')).toBe(e2)
-    expect(map.get('2026-06-30::Almuerzo')).toBe(e3)
+    expect(map.get('2026-06-29::Desayuno')).toEqual([e1])
+    expect(map.get('2026-06-29::Cena')).toEqual([e2])
+    expect(map.get('2026-06-30::Almuerzo')).toEqual([e3])
   })
 
-  it('last entry wins for duplicate date+slot (upsert behavior)', () => {
-    const e1 = makeEntry('2026-06-29', 'Almuerzo')
-    const e2 = { ...makeEntry('2026-06-29', 'Almuerzo'), id: 'newer' }
+  it('groups multiple recipes in the same slot', () => {
+    const e1 = makeEntry('2026-06-29', 'Almuerzo', 'recipe-1')
+    const e2 = makeEntry('2026-06-29', 'Almuerzo', 'recipe-2')
     const map = buildEntryMap([e1, e2])
-    expect(map.get('2026-06-29::Almuerzo')?.id).toBe('newer')
+    const entries = map.get('2026-06-29::Almuerzo')
+    expect(entries).toHaveLength(2)
+    expect(entries?.map((e) => e.recipeId)).toEqual(['recipe-1', 'recipe-2'])
+  })
+
+  it('returns empty array for unknown slot (via ?? [])', () => {
+    const map = buildEntryMap([])
+    expect(map.get('2026-06-29::Almuerzo') ?? []).toEqual([])
   })
 })
 
