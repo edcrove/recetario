@@ -32,8 +32,13 @@ export default function LoginScreen() {
       const { token } = await api.auth.login({ email: email.trim(), password })
       await signIn(token)
       router.replace('/')
-    } catch {
-      setError('Email o contraseña incorrectos.')
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      if (msg.includes('401') || msg.includes('Invalid') || msg.includes('incorrect')) {
+        setError('Email o contraseña incorrectos.')
+      } else {
+        setError(`Error al conectar con el servidor. (${msg})`)
+      }
     } finally {
       setLoading(false)
     }

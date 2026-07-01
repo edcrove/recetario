@@ -1,7 +1,30 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import * as SecureStore from 'expo-secure-store'
+import { Platform } from 'react-native'
 
 const TOKEN_KEY = 'auth_token'
+
+// expo-secure-store web implementation is a no-op — fall back to localStorage
+const storage = {
+  async get(key: string): Promise<string | null> {
+    if (Platform.OS === 'web') return localStorage.getItem(key)
+    return SecureStore.getItemAsync(key)
+  },
+  async set(key: string, value: string): Promise<void> {
+    if (Platform.OS === 'web') {
+      localStorage.setItem(key, value)
+      return
+    }
+    return SecureStore.setItemAsync(key, value)
+  },
+  async del(key: string): Promise<void> {
+    if (Platform.OS === 'web') {
+      localStorage.removeItem(key)
+      return
+    }
+    return SecureStore.deleteItemAsync(key)
+  },
+}
 
 interface AuthState {
   token: string | null
@@ -22,19 +45,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    SecureStore.getItemAsync(TOKEN_KEY)
+    storage
+      .get(TOKEN_KEY)
       .then((t) => setToken(t))
       .catch(() => setToken(null))
       .finally(() => setIsLoading(false))
   }, [])
 
   const signIn = useCallback(async (newToken: string) => {
-    await SecureStore.setItemAsync(TOKEN_KEY, newToken)
+    await storage.set(TOKEN_KEY, newToken)
     setToken(newToken)
   }, [])
 
   const signOut = useCallback(async () => {
-    await SecureStore.deleteItemAsync(TOKEN_KEY)
+    await storage.del(TOKEN_KEY)
     setToken(null)
   }, [])
 
@@ -51,7 +75,7 @@ export function useAuth() {
 
 export async function getStoredToken(): Promise<string | null> {
   try {
-    return await SecureStore.getItemAsync(TOKEN_KEY)
+    return await storage.get(TOKEN_KEY)
   } catch {
     return null
   }
