@@ -3,6 +3,25 @@ import type { Ingredient, Unit } from '@recetario/shared'
 
 export type DisplayMode = 'cooking' | 'metric' | 'imperial'
 
+const UNIT_ES: Record<string, string> = {
+  tsp: 'cdta',
+  tbsp: 'cda',
+  cup: 'taza',
+  unit: 'u',
+  pinch: 'pizca',
+  slice: 'rodaja',
+  clove: 'diente',
+  g: 'g',
+  kg: 'kg',
+  ml: 'ml',
+  l: 'l',
+}
+
+export function unitLabel(unit: string | null | undefined): string {
+  if (!unit) return ''
+  return UNIT_ES[unit] ?? unit
+}
+
 export function formatQuantity(qty: number | null): string {
   if (qty === null) return 'c/n'
   if (qty === Math.floor(qty)) return String(qty)
@@ -32,6 +51,6 @@ export function displayIngredient(
   }
 
   const qtyStr = formatQuantity(finalQty)
-  const parts = [qtyStr, finalUnit, ing.presentation, ing.name].filter(Boolean)
+  const parts = [qtyStr, unitLabel(finalUnit), ing.presentation, ing.name].filter(Boolean)
   return parts.join(' ') + (ing.note ? ` (${ing.note})` : '')
 }

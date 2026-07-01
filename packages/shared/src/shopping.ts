@@ -94,10 +94,11 @@ function tryMerge(name: string, items: UnitGroup[]): ShoppingListItem[] {
  * are merged via the density model when possible, otherwise kept as separate lines.
  */
 export function aggregateIngredients(ingredients: ScaledIngredient[]): ShoppingListItem[] {
-  // Step 1: Group by (normalized name, unit) and sum quantities
+  // Step 1: Group by (normalized name, unit) and sum quantities — skip zero-quantity items
   const grouped = new Map<string, UnitGroup>()
 
   for (const ing of ingredients) {
+    if (ing.quantity !== null && ing.quantity <= 0) continue
     const key = `${normalizeKey(ing.name)}::${ing.unit ?? '__null__'}`
     const existing = grouped.get(key)
     if (existing) {

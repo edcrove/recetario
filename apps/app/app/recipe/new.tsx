@@ -11,6 +11,7 @@ import {
   type StepRow,
   type FieldErrors,
 } from '../../src/utils/recipeForm'
+import { unitLabel } from '../../src/utils/displayIngredient'
 import { FoodTypePicker } from '../../src/components/FoodTypePicker'
 
 const CATEGORIES: Category[] = ['Desayuno', 'Almuerzo', 'Cena', 'Postre', 'Snack', 'Bebida', 'Otro']
@@ -179,7 +180,7 @@ export default function NewRecipeScreen() {
                 onPress={() => updateIngredient(i, 'unit', u)}
               >
                 <Text style={[st.unitBtnText, ing.unit === u && st.unitBtnTextActive]}>
-                  {u || '—'}
+                  {u ? unitLabel(u) : '—'}
                 </Text>
               </TouchableOpacity>
             ))}

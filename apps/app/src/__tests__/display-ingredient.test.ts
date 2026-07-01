@@ -36,16 +36,16 @@ describe('displayIngredient', () => {
     expect(result).toContain('ml')
   })
 
-  it('imperial mode: converts ml to tsp', () => {
+  it('imperial mode: converts ml to tsp and shows cdta label', () => {
     const ing: Ingredient = { name: 'Agua', quantity: 5, unit: 'ml' }
     const result = displayIngredient(ing, 1, 1, 'imperial')
-    expect(result).toContain('tsp')
+    expect(result).toContain('cdta')
   })
 
-  it('imperial mode: converts l to cup', () => {
+  it('imperial mode: converts l to cup and shows taza label', () => {
     const ing: Ingredient = { name: 'Caldo', quantity: 1, unit: 'l' }
     const result = displayIngredient(ing, 1, 1, 'imperial')
-    expect(result).toContain('cup')
+    expect(result).toContain('taza')
   })
 
   it('handles null quantity (al gusto)', () => {
