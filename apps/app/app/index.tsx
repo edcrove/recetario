@@ -16,6 +16,7 @@ import type { Recipe } from '@recetario/shared'
 import { getEmptyMessage, getQueryFnKey } from '../src/utils/homeScreen'
 import { useAuth } from '../src/providers/AuthProvider'
 import { UserMenu } from '../src/components/UserMenu'
+import { getWeekStart } from '../src/utils/weekMath'
 
 export default function HomeScreen() {
   const [query, setQuery] = useState('')
@@ -115,6 +116,17 @@ export default function HomeScreen() {
           <Text style={styles.menuButtonText}>Menú Semanal</Text>
         </TouchableOpacity>
         <TouchableOpacity
+          style={styles.menuButton}
+          onPress={() =>
+            router.push({
+              pathname: '/menu/shopping-list',
+              params: { weekStart: getWeekStart(new Date()) },
+            } as never)
+          }
+        >
+          <Text style={styles.menuButtonText}>🛒 Compras</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
           style={styles.collectionsButton}
           onPress={() => router.push('/collections')}
         >
@@ -175,13 +187,16 @@ const styles = StyleSheet.create({
   filterScroll: { marginBottom: 8 },
   filterRow: { gap: 6, paddingHorizontal: 2 },
   filterChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
     backgroundColor: '#f3f4f6',
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
   },
-  filterChipActive: { backgroundColor: '#2563eb' },
-  filterChipText: { fontSize: 12, color: '#6b7280', fontWeight: '500' },
+  filterChipActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
+  filterChipText: { fontSize: 13, color: '#6b7280', fontWeight: '500' },
   filterChipTextActive: { color: '#fff', fontWeight: '600' },
   collectionsButton: {
     width: 36,
