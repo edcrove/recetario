@@ -238,10 +238,92 @@ jobs:
       - name: Build all packages
         run: pnpm turbo run build
 
+  e2e:
+    name: E2E Tests (Playwright)
+    needs: [build]
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: recetario
+          POSTGRES_PASSWORD: recetario
+          POSTGRES_DB: recetario
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build shared
+        run: pnpm --filter @recetario/shared build
+
+      - name: Apply DB migrations
+        run: pnpm --filter @recetario/api exec drizzle-kit migrate
+        env:
+          DATABASE_URL: postgres://recetario:recetario@localhost:5432/recetario
+
+      - name: Start API in background
+        run: |
+          nohup pnpm --filter @recetario/api start &
+          echo "Waiting for API..."
+          timeout 30 bash -c 'until curl -sf http://localhost:3000/health; do sleep 1; done'
+        env:
+          DATABASE_URL: postgres://recetario:recetario@localhost:5432/recetario
+          JWT_SECRET: ci-e2e-secret-not-for-production
+          NODE_ENV: production
+          PORT: 3000
+
+      - name: Seed demo user and recipes
+        run: |
+          TOKEN=$(curl -s -X POST http://localhost:3000/auth/register \
+            -H "Content-Type: application/json" \
+            -d '{"email":"e2e@recetario.app","password":"e2etest1234","displayName":"E2E User"}' | \
+            node -e "process.stdin.resume();let b='';process.stdin.on('data',d=>b+=d);process.stdin.on('end',()=>console.log(JSON.parse(b).token))")
+          echo "E2E_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+        env:
+          DATABASE_URL: postgres://recetario:recetario@localhost:5432/recetario
+
+      - name: Build Expo web app
+        run: pnpm --filter recetario-app build
+        env:
+          EXPO_PUBLIC_API_URL: http://localhost:3000
+
+      - name: Install Playwright browsers
+        run: pnpm --filter recetario-app exec playwright install chromium --with-deps
+
+      - name: Run E2E smoke tests
+        run: pnpm --filter recetario-app exec playwright test e2e/smoke.spec.ts
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:8080
+          EXPO_PUBLIC_API_URL: http://localhost:3000
+          E2E_EMAIL: e2e@recetario.app
+          E2E_PASSWORD: e2etest1234
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/app/playwright-report/
+          retention-days: 7
+
   ci:
     name: CI Gate
     if: always()
-    needs: [lint, typecheck, test, build, coverage]
+    needs: [lint, typecheck, test, build, coverage, e2e]
     runs-on: ubuntu-latest
     steps:
       - name: Check all jobs passed
