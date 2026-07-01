@@ -46,8 +46,18 @@ Build:       success
 - [ ] No ESLint warnings (CI runs with `--max-warnings=0`)
 - [ ] Notion story → "In review" with link to this PR
 - [ ] DB migration included if schema changed
-- [ ] New routes/functions have tests maintaining 100% coverage
+
+### Testing pyramid (every applicable layer must be covered)
+
+- [ ] **Unit tests** — new logic, utils, MCP tools: 100% coverage
+- [ ] **API route tests** — new endpoints: 200 / 400 / 401 / 404 cases
+- [ ] **Integration tests** — DB constraints, multi-step flows (if touching DB)
+- [ ] **Screen tests** — new app screens with non-trivial logic (jsdom)
+- [ ] **E2E (Playwright)** — at least 1 smoke test for each new user-facing screen
+
+### Quality gates
+
 - [ ] **App UI**: all user-visible text is in Spanish (labels, placeholders, error messages, buttons, alerts)
-- [ ] **CORS**: if new API middleware added, verified that preflight and `Origin` header responses work
-- [ ] **Local smoke test**: ran the app locally and verified the golden path end-to-end
-- [ ] **Dependabot**: if Dependabot security alerts are open, address or acknowledge them before merging
+- [ ] **CORS**: if new API middleware added, verified preflight and `Origin` header work
+- [ ] **Local smoke test**: ran `docker compose up -d` and verified the golden path end-to-end
+- [ ] **Dependabot**: no open high-severity security alerts before merging
