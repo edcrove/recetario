@@ -69,83 +69,89 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Recetario</Text>
-      <View style={styles.searchRow}>
-        <TextInput
-          style={styles.search}
-          placeholder="Buscar recetas..."
-          value={query}
-          onChangeText={setQuery}
-          clearButtonMode="while-editing"
-          autoCorrect={false}
-        />
-        {isFetching && <ActivityIndicator size="small" style={styles.searchSpinner} />}
-      </View>
-      {/* Food type quick filters */}
-      {foodTypes.length > 0 && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.filterScroll}
-          contentContainerStyle={styles.filterRow}
-        >
-          <TouchableOpacity
-            style={[styles.filterChip, activeType === null && styles.filterChipActive]}
-            onPress={() => setActiveType(null)}
+      {/* Fixed header — never scrolls */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Recetario</Text>
+        <View style={styles.searchRow}>
+          <TextInput
+            style={styles.search}
+            placeholder="Buscar recetas..."
+            value={query}
+            onChangeText={setQuery}
+            clearButtonMode="while-editing"
+            autoCorrect={false}
+          />
+          {isFetching && <ActivityIndicator size="small" style={styles.searchSpinner} />}
+        </View>
+        {foodTypes.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.filterScroll}
+            contentContainerStyle={styles.filterRow}
           >
-            <Text
-              style={[styles.filterChipText, activeType === null && styles.filterChipTextActive]}
-            >
-              Todas
-            </Text>
-          </TouchableOpacity>
-          {foodTypes.slice(0, 8).map((t) => (
             <TouchableOpacity
-              key={t.id}
-              style={[styles.filterChip, activeType === t.id && styles.filterChipActive]}
-              onPress={() => setActiveType(activeType === t.id ? null : t.id)}
+              style={[styles.filterChip, activeType === null && styles.filterChipActive]}
+              onPress={() => setActiveType(null)}
             >
               <Text
-                style={[styles.filterChipText, activeType === t.id && styles.filterChipTextActive]}
+                style={[styles.filterChipText, activeType === null && styles.filterChipTextActive]}
               >
-                {t.name}
+                Todas
               </Text>
             </TouchableOpacity>
-          ))}
-        </ScrollView>
-      )}
-
-      <View style={styles.actions}>
-        <TouchableOpacity style={styles.addButton} onPress={() => router.push('/recipe/new')}>
-          <Text style={styles.addButtonText}>+ Nueva Receta</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.menuButton} onPress={() => router.push('/menu')}>
-          <Text style={styles.menuButtonText}>Menú Semanal</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.menuButton}
-          onPress={() =>
-            router.push({
-              pathname: '/menu/shopping-list',
-              params: { weekStart: getWeekStart(new Date()) },
-            } as never)
-          }
-        >
-          <Text style={styles.menuButtonText}>🛒 Compras</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.collectionsButton}
-          onPress={() => router.push('/collections')}
-        >
-          <Text style={styles.collectionsButtonText}>📋</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.profileButton} onPress={() => setMenuOpen(true)}>
-          <Text style={styles.profileButtonText}>👤</Text>
-        </TouchableOpacity>
+            {foodTypes.slice(0, 8).map((t) => (
+              <TouchableOpacity
+                key={t.id}
+                style={[styles.filterChip, activeType === t.id && styles.filterChipActive]}
+                onPress={() => setActiveType(activeType === t.id ? null : t.id)}
+              >
+                <Text
+                  style={[
+                    styles.filterChipText,
+                    activeType === t.id && styles.filterChipTextActive,
+                  ]}
+                >
+                  {t.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
+        <View style={styles.actions}>
+          <TouchableOpacity style={styles.addButton} onPress={() => router.push('/recipe/new')}>
+            <Text style={styles.addButtonText}>+ Nueva Receta</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuButton} onPress={() => router.push('/menu')}>
+            <Text style={styles.menuButtonText}>Menú Semanal</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={() =>
+              router.push({
+                pathname: '/menu/shopping-list',
+                params: { weekStart: getWeekStart(new Date()) },
+              } as never)
+            }
+          >
+            <Text style={styles.menuButtonText}>🛒 Compras</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.collectionsButton}
+            onPress={() => router.push('/collections')}
+          >
+            <Text style={styles.collectionsButtonText}>📋</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.profileButton} onPress={() => setMenuOpen(true)}>
+            <Text style={styles.profileButtonText}>👤</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
+      {/* Scrollable recipe list — takes remaining space */}
       <UserMenu visible={menuOpen} onClose={() => setMenuOpen(false)} />
       <FlatList
+        style={styles.list}
         data={recipes}
         keyExtractor={(item: Recipe) => item.id ?? item.title}
         renderItem={({ item }: { item: Recipe }) => (
@@ -165,9 +171,18 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#fff' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 8 },
+  header: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+    backgroundColor: '#fff',
+  },
+  list: { flex: 1, paddingHorizontal: 16 },
+  title: { fontSize: 26, fontWeight: '800', color: '#111827', marginBottom: 8 },
   searchRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   search: {
     flex: 1,
