@@ -46,3 +46,6 @@ Build:       success
 - [ ] Notion story → "In review" with link to this PR
 - [ ] DB migration included if schema changed
 - [ ] New routes/functions have tests maintaining 100% coverage
+- [ ] **App UI**: all user-visible text is in Spanish (labels, placeholders, error messages, buttons, alerts)
+- [ ] **CORS**: if new API middleware added, verified that preflight and `Origin` header responses work
+- [ ] **Local smoke test**: ran the app locally and verified the golden path end-to-end
