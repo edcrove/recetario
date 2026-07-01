@@ -129,10 +129,10 @@ export default function ProfileScreen() {
             onSubmitEditing={() => updateMe.mutate({ displayName })}
           />
           <TouchableOpacity onPress={() => updateMe.mutate({ displayName })}>
-            <Text style={s.saveText}>Save</Text>
+            <Text style={s.saveText}>Guardar</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setEditingName(false)}>
-            <Text style={s.cancelText}>Cancel</Text>
+            <Text style={s.cancelText}>Cancelar</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -142,14 +142,14 @@ export default function ProfileScreen() {
             setEditingName(true)
           }}
         >
-          <Text style={s.name}>{user?.displayName ?? 'Tap to add name'}</Text>
-          <Text style={s.editHint}>tap to edit</Text>
+          <Text style={s.name}>{user?.displayName ?? 'Agregá tu nombre'}</Text>
+          <Text style={s.editHint}>tocá para editar</Text>
         </TouchableOpacity>
       )}
       <Text style={s.email}>{user?.email}</Text>
 
       {/* Preferred servings */}
-      <Text style={s.sectionTitle}>Default servings</Text>
+      <Text style={s.sectionTitle}>Porciones por defecto</Text>
       <View style={s.servingsRow}>
         <TouchableOpacity style={s.servingsBtn} onPress={() => updateServings(-1)}>
           <Text style={s.servingsBtnText}>−</Text>
@@ -161,7 +161,7 @@ export default function ProfileScreen() {
       </View>
 
       {/* Dietary restrictions */}
-      <Text style={s.sectionTitle}>Dietary restrictions</Text>
+      <Text style={s.sectionTitle}>Preferencias dietéticas</Text>
       <View style={s.chips}>
         {DIETARY_OPTIONS.map((opt) => {
           const active = dietary.includes(opt)
@@ -185,7 +185,7 @@ export default function ProfileScreen() {
 
       {/* Stats */}
       <TouchableOpacity style={s.row} onPress={() => router.push('/stats')}>
-        <Text style={s.rowText}>📊 Cooking stats</Text>
+        <Text style={s.rowText}>📊 Estadísticas</Text>
         <Text style={s.chevron}>›</Text>
       </TouchableOpacity>
 
@@ -220,7 +220,7 @@ export default function ProfileScreen() {
 
       {/* Household */}
       <TouchableOpacity style={s.row} onPress={() => router.push('/household')}>
-        <Text style={s.rowText}>🏠 Household</Text>
+        <Text style={s.rowText}>🏠 Mi hogar</Text>
         <Text style={s.chevron}>›</Text>
       </TouchableOpacity>
 
@@ -228,13 +228,13 @@ export default function ProfileScreen() {
       <TouchableOpacity
         style={s.signOutBtn}
         onPress={() =>
-          Alert.alert('Sign out', 'Are you sure?', [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Sign out', style: 'destructive', onPress: handleSignOut },
+          Alert.alert('Cerrar sesión', '¿Estás seguro?', [
+            { text: 'Cancelar', style: 'cancel' },
+            { text: 'Cerrar sesión', style: 'destructive', onPress: handleSignOut },
           ])
         }
       >
-        <Text style={s.signOutText}>Sign out</Text>
+        <Text style={s.signOutText}>Cerrar sesión</Text>
       </TouchableOpacity>
     </ScrollView>
   )

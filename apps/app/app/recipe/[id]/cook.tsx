@@ -177,8 +177,8 @@ export default function CookModeScreen() {
       <Modal visible={showRating} transparent animationType="slide">
         <View style={s.modalOverlay}>
           <View style={s.modalCard}>
-            <Text style={s.modalTitle}>How did it go?</Text>
-            <Text style={s.modalSub}>Rate this cooking session</Text>
+            <Text style={s.modalTitle}>¿Cómo salió?</Text>
+            <Text style={s.modalSub}>Calificá esta sesión de cocina</Text>
 
             <View style={s.stars}>
               {[1, 2, 3, 4, 5].map((star) => (
@@ -190,7 +190,7 @@ export default function CookModeScreen() {
 
             <TextInput
               style={s.noteInput}
-              placeholder="Add a note (optional)"
+              placeholder="Agregar nota (opcional)"
               value={ratingNote}
               onChangeText={setRatingNote}
               multiline
@@ -213,7 +213,9 @@ export default function CookModeScreen() {
                 router.back()
               }}
             >
-              <Text style={s.modalBtnText}>{savingSession ? 'Saving…' : 'Save & finish'}</Text>
+              <Text style={s.modalBtnText}>
+                {savingSession ? 'Guardando…' : 'Guardar y terminar'}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -223,7 +225,7 @@ export default function CookModeScreen() {
                 router.back()
               }}
             >
-              <Text style={s.skipText}>Skip</Text>
+              <Text style={s.skipText}>Omitir</Text>
             </TouchableOpacity>
           </View>
         </View>

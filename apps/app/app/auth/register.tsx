@@ -25,15 +25,15 @@ export default function RegisterScreen() {
 
   async function handleRegister() {
     if (!email.trim() || !password) {
-      setError('Email and password are required.')
+      setError('El email y la contraseña son obligatorios.')
       return
     }
     if (password.length < 8) {
-      setError('Password must be at least 8 characters.')
+      setError('La contraseña debe tener al menos 8 caracteres.')
       return
     }
     if (password !== passwordConfirm) {
-      setError('Passwords do not match.')
+      setError('Las contraseñas no coinciden.')
       return
     }
     setError('')
@@ -49,9 +49,9 @@ export default function RegisterScreen() {
     } catch (e) {
       const msg = e instanceof Error ? e.message : ''
       if (msg.includes('409') || msg.includes('already')) {
-        setError('This email is already registered.')
+        setError('Este email ya está registrado.')
       } else {
-        setError('Registration failed. Please try again.')
+        setError('Error al registrarse. Intentá de nuevo.')
       }
     } finally {
       setLoading(false)
@@ -64,13 +64,13 @@ export default function RegisterScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={s.inner} keyboardShouldPersistTaps="handled">
-        <Text style={s.title}>Create account</Text>
-        <Text style={s.subtitle}>Join Recetario to start cooking</Text>
+        <Text style={s.title}>Crear cuenta</Text>
+        <Text style={s.subtitle}>Unite a Recetario y empezá a cocinar</Text>
 
-        <Text style={s.label}>Name (optional)</Text>
+        <Text style={s.label}>Nombre (opcional)</Text>
         <TextInput
           style={s.input}
-          placeholder="Your name"
+          placeholder="Tu nombre"
           value={displayName}
           onChangeText={setDisplayName}
           autoCapitalize="words"
@@ -80,7 +80,7 @@ export default function RegisterScreen() {
         <Text style={s.label}>Email</Text>
         <TextInput
           style={s.input}
-          placeholder="you@example.com"
+          placeholder="vos@ejemplo.com"
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -88,20 +88,20 @@ export default function RegisterScreen() {
           autoComplete="email"
         />
 
-        <Text style={s.label}>Password</Text>
+        <Text style={s.label}>Contraseña</Text>
         <TextInput
           style={s.input}
-          placeholder="At least 8 characters"
+          placeholder="Mínimo 8 caracteres"
           value={password}
           onChangeText={setPassword}
           secureTextEntry
           autoComplete="new-password"
         />
 
-        <Text style={s.label}>Confirm password</Text>
+        <Text style={s.label}>Confirmá la contraseña</Text>
         <TextInput
           style={s.input}
-          placeholder="Repeat password"
+          placeholder="Repetí la contraseña"
           value={passwordConfirm}
           onChangeText={setPasswordConfirm}
           secureTextEntry
@@ -118,13 +118,13 @@ export default function RegisterScreen() {
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={s.btnText}>Create account</Text>
+            <Text style={s.btnText}>Crear cuenta</Text>
           )}
         </TouchableOpacity>
 
         <TouchableOpacity style={s.link} onPress={() => router.push('/auth/login')}>
           <Text style={s.linkText}>
-            Already have an account? <Text style={s.linkBold}>Sign in</Text>
+            ¿Ya tenés cuenta? <Text style={s.linkBold}>Ingresá</Text>
           </Text>
         </TouchableOpacity>
       </ScrollView>

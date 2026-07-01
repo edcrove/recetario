@@ -26,13 +26,13 @@ export default function ForgotPasswordScreen() {
       <View style={s.container}>
         <View style={s.inner}>
           <Text style={s.icon}>📧</Text>
-          <Text style={s.title}>Check your email</Text>
+          <Text style={s.title}>Revisá tu email</Text>
           <Text style={s.body}>
-            If <Text style={s.bold}>{email}</Text> is registered, you'll receive a password reset
-            link shortly.
+            Si <Text style={s.bold}>{email}</Text> está registrado, recibirás un link para
+            restablecer tu contraseña en breve.
           </Text>
           <TouchableOpacity style={s.btn} onPress={() => router.push('/auth/login')}>
-            <Text style={s.btnText}>Back to Sign In</Text>
+            <Text style={s.btnText}>Volver al inicio</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -45,14 +45,14 @@ export default function ForgotPasswordScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={s.inner}>
-        <Text style={s.title}>Reset password</Text>
+        <Text style={s.title}>Restablecer contraseña</Text>
         <Text style={s.body}>
-          Enter your email and we'll send you a link to reset your password.
+          Ingresá tu email y te enviaremos un link para restablecer tu contraseña.
         </Text>
 
         <TextInput
           style={s.input}
-          placeholder="you@example.com"
+          placeholder="vos@ejemplo.com"
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -65,11 +65,11 @@ export default function ForgotPasswordScreen() {
           onPress={handleSubmit}
           disabled={!email.trim()}
         >
-          <Text style={s.btnText}>Send reset link</Text>
+          <Text style={s.btnText}>Enviar link</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={s.link} onPress={() => router.back()}>
-          <Text style={s.linkText}>← Back to Sign In</Text>
+          <Text style={s.linkText}>← Volver al inicio</Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>

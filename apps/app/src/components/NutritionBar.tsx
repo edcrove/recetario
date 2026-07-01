@@ -56,7 +56,7 @@ export function NutritionBar({
       <View style={s.caloriesRow}>
         <Text style={s.caloriesValue}>{calories}</Text>
         <Text style={s.caloriesUnit}> kcal</Text>
-        {targets && <Text style={s.caloriesTarget}> / {targets.daily_calories} target</Text>}
+        {targets && <Text style={s.caloriesTarget}> / {targets.daily_calories} objetivo</Text>}
       </View>
       <View style={s.macros}>
         <MacroBar

@@ -18,7 +18,7 @@ import { NutritionBar } from '../../src/components/NutritionBar'
 type DetailTab = 'recipe' | 'history'
 
 function StarRating({ rating }: { rating: number | null }) {
-  if (rating === null) return <Text style={ratingStyle.none}>No rating</Text>
+  if (rating === null) return <Text style={ratingStyle.none}>Sin calificación</Text>
   return (
     <Text style={ratingStyle.stars}>
       {'★'.repeat(rating)}
@@ -103,8 +103,8 @@ export default function RecipeDetailScreen() {
           >
             <Text style={[s.tabBtnText, detailTab === t && s.tabBtnTextActive]}>
               {t === 'recipe'
-                ? 'Recipe'
-                : `History${sessions.length > 0 ? ` (${sessions.length})` : ''}`}
+                ? 'Receta'
+                : `Historial${sessions.length > 0 ? ` (${sessions.length})` : ''}`}
             </Text>
           </TouchableOpacity>
         ))}
@@ -113,7 +113,7 @@ export default function RecipeDetailScreen() {
       {detailTab === 'history' && (
         <View>
           {sessions.length === 0 ? (
-            <Text style={s.emptyHistory}>You haven't cooked this recipe yet.</Text>
+            <Text style={s.emptyHistory}>Todavía no cocinaste esta receta.</Text>
           ) : (
             sessions.map((session) => (
               <View key={session.id} style={s.sessionRow}>

@@ -54,7 +54,7 @@ export default function CollectionsScreen() {
         />
         <TextInput
           style={[s.input, { flex: 1 }]}
-          placeholder="New collection…"
+          placeholder="Nueva colección…"
           value={newName}
           onChangeText={setNewName}
         />
@@ -71,7 +71,7 @@ export default function CollectionsScreen() {
         data={collections}
         keyExtractor={(item) => item.id}
         contentContainerStyle={s.list}
-        ListEmptyComponent={<Text style={s.empty}>No collections yet. Create one above!</Text>}
+        ListEmptyComponent={<Text style={s.empty}>Sin colecciones. ¡Creá una arriba!</Text>}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={s.card}
@@ -86,7 +86,7 @@ export default function CollectionsScreen() {
             <View style={s.cardInfo}>
               <Text style={s.cardName}>{item.name}</Text>
               <Text style={s.cardCount}>
-                {item.recipeCount} recipe{item.recipeCount !== 1 ? 's' : ''}
+                {item.recipeCount} receta{item.recipeCount !== 1 ? 's' : ''}
               </Text>
             </View>
             <Text style={s.chevron}>›</Text>

@@ -23,7 +23,7 @@ export default function LoginScreen() {
 
   async function handleLogin() {
     if (!email.trim() || !password) {
-      setError('Email and password are required.')
+      setError('El email y la contraseña son obligatorios.')
       return
     }
     setError('')
@@ -33,7 +33,7 @@ export default function LoginScreen() {
       await signIn(token)
       router.replace('/')
     } catch {
-      setError('Invalid email or password.')
+      setError('Email o contraseña incorrectos.')
     } finally {
       setLoading(false)
     }
@@ -46,7 +46,7 @@ export default function LoginScreen() {
     >
       <View style={s.inner}>
         <Text style={s.title}>Recetario</Text>
-        <Text style={s.subtitle}>Sign in to your account</Text>
+        <Text style={s.subtitle}>Ingresá a tu cuenta</Text>
 
         <TextInput
           style={s.input}
@@ -59,7 +59,7 @@ export default function LoginScreen() {
         />
         <TextInput
           style={s.input}
-          placeholder="Password"
+          placeholder="Contraseña"
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -73,16 +73,16 @@ export default function LoginScreen() {
           onPress={handleLogin}
           disabled={loading}
         >
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={s.btnText}>Sign In</Text>}
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={s.btnText}>Ingresar</Text>}
         </TouchableOpacity>
 
         <TouchableOpacity style={s.link} onPress={() => router.push('/auth/forgot')}>
-          <Text style={s.linkText}>Forgot password?</Text>
+          <Text style={s.linkText}>¿Olvidaste tu contraseña?</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={s.link} onPress={() => router.push('/auth/register')}>
           <Text style={s.linkText}>
-            Don't have an account? <Text style={s.linkBold}>Sign up</Text>
+            ¿No tenés cuenta? <Text style={s.linkBold}>Registrate</Text>
           </Text>
         </TouchableOpacity>
       </View>

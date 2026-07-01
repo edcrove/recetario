@@ -59,7 +59,7 @@ export default function HomeScreen() {
   if (error)
     return (
       <View style={styles.center}>
-        <Text style={styles.error}>Error loading recipes</Text>
+        <Text style={styles.error}>Error al cargar recetas</Text>
       </View>
     )
 
@@ -88,7 +88,7 @@ export default function HomeScreen() {
             <Text
               style={[styles.filterChipText, activeType === null && styles.filterChipTextActive]}
             >
-              All
+              Todas
             </Text>
           </TouchableOpacity>
           {foodTypes.slice(0, 8).map((t) => (
