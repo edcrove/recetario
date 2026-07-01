@@ -20,7 +20,15 @@ export const app = new OpenAPIHono()
 app.use(
   '*',
   cors({
-    origin: ['http://localhost:8081', 'http://localhost:3000', 'http://localhost:19006'],
+    // Allow any localhost port (covers Expo web :8081, docker app :8080, Expo Go :19006, etc.)
+    // and any origin configured via CORS_ORIGIN env var for production
+    origin: (origin) => {
+      if (!origin) return origin
+      const allowed = process.env['CORS_ORIGIN']?.split(',').map((o) => o.trim()) ?? []
+      if (allowed.includes(origin)) return origin
+      if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) return origin
+      return null
+    },
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization'],
   }),

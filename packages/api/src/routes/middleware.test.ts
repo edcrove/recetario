@@ -5,12 +5,20 @@ vi.mock('../db/index.js', () => ({ getDb: vi.fn() }))
 import { app } from '../index.js'
 
 describe('CORS middleware', () => {
-  it('allows requests from localhost:8081 (Expo web)', async () => {
+  it('allows requests from localhost:8081 (Expo web dev)', async () => {
     const req = new Request('http://localhost:3000/health', {
       headers: { Origin: 'http://localhost:8081' },
     })
     const res = await app.fetch(req)
     expect(res.headers.get('access-control-allow-origin')).toBe('http://localhost:8081')
+  })
+
+  it('allows requests from localhost:8080 (Docker app)', async () => {
+    const req = new Request('http://localhost:3000/health', {
+      headers: { Origin: 'http://localhost:8080' },
+    })
+    const res = await app.fetch(req)
+    expect(res.headers.get('access-control-allow-origin')).toBe('http://localhost:8080')
   })
 
   it('allows requests from localhost:19006 (Expo Go)', async () => {
@@ -19,6 +27,14 @@ describe('CORS middleware', () => {
     })
     const res = await app.fetch(req)
     expect(res.headers.get('access-control-allow-origin')).toBe('http://localhost:19006')
+  })
+
+  it('blocks requests from non-localhost origins', async () => {
+    const req = new Request('http://localhost:3000/health', {
+      headers: { Origin: 'https://evil.com' },
+    })
+    const res = await app.fetch(req)
+    expect(res.headers.get('access-control-allow-origin')).toBeNull()
   })
 
   it('handles preflight OPTIONS request', async () => {
