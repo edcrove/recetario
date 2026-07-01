@@ -19,6 +19,37 @@ export const UnitSchema = z.enum([
 ])
 export type Unit = z.infer<typeof UnitSchema>
 
+// Dietary tags
+export const DIETARY_TAGS = [
+  'vegano',
+  'vegetariano',
+  'sin-gluten',
+  'sin-lactosa',
+  'keto',
+  'paleo',
+] as const
+export const DietaryTagSchema = z.enum(DIETARY_TAGS)
+export type DietaryTag = z.infer<typeof DietaryTagSchema>
+
+// Nutrition per serving
+export const NutritionSchema = z.object({
+  calories: z.number().min(0),
+  protein_g: z.number().min(0),
+  carbs_g: z.number().min(0),
+  fat_g: z.number().min(0),
+  fiber_g: z.number().min(0).optional(),
+})
+export type Nutrition = z.infer<typeof NutritionSchema>
+
+// Nutrition targets per day
+export const NutritionTargetsSchema = z.object({
+  daily_calories: z.number().int().min(0),
+  daily_protein_g: z.number().min(0),
+  daily_carbs_g: z.number().min(0),
+  daily_fat_g: z.number().min(0),
+})
+export type NutritionTargets = z.infer<typeof NutritionTargetsSchema>
+
 // Category enum
 export const CategorySchema = z.enum([
   'Desayuno',
@@ -84,6 +115,8 @@ export const RecipeSchema = z.object({
   ingredients: z.array(IngredientSchema).min(1),
   steps: z.array(StepSchema).default([]),
   source: SourceSchema.optional(),
+  dietaryTags: z.array(DietaryTagSchema).optional(),
+  nutrition: NutritionSchema.optional(),
   createdAt: z.string().datetime().optional(),
   updatedAt: z.string().datetime().optional(),
 })
