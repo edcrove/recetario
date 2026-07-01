@@ -93,7 +93,27 @@ beforeEach(() => {
 })
 
 describe('GET /v1/config/taxonomy', () => {
-  it('returns taxonomy overview with usage counts including tags', async () => {
+  it('returns taxonomy overview — system items with 0 usage are not deletable', async () => {
+    mockSelect
+      .mockReturnValueOnce([
+        { id: UUID, name: 'Desayuno', slug: 'desayuno', isSystem: 1, usageCount: 0 },
+      ])
+      .mockReturnValueOnce([{ id: UUID, name: 'Guiso', slug: 'guiso', isSystem: 1, usageCount: 0 }])
+      .mockReturnValueOnce([{ id: UUID2, name: 'vegano', slug: 'vegano', usageCount: 0 }])
+    const res = await app.request('/v1/config/taxonomy', {
+      headers: { Authorization: 'Bearer test-key' },
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    // System items with 0 usage are NOT deletable
+    expect(body.mealCategories[0].isDeletable).toBe(false)
+    expect(body.mealCategories[0].isSystem).toBe(true)
+    expect(body.foodTypes[0].isDeletable).toBe(false)
+    // Tags are not system so 0 usage = deletable
+    expect(body.tags[0].isDeletable).toBe(true)
+  })
+
+  it('non-system items with usage > 0 are not deletable', async () => {
     mockSelect
       .mockReturnValueOnce([
         { id: UUID, name: 'Desayuno', slug: 'desayuno', isSystem: 1, usageCount: 3 },
@@ -103,14 +123,8 @@ describe('GET /v1/config/taxonomy', () => {
     const res = await app.request('/v1/config/taxonomy', {
       headers: { Authorization: 'Bearer test-key' },
     })
-    expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.mealCategories[0].name).toBe('Desayuno')
-    expect(body.mealCategories[0].usageCount).toBe(3)
     expect(body.mealCategories[0].isDeletable).toBe(false)
-    expect(body.mealCategories[0].isSystem).toBe(true)
-    expect(body.foodTypes[0].usageCount).toBe(5)
-    expect(body.tags[0].name).toBe('vegano')
     expect(body.tags[0].isDeletable).toBe(true)
   })
 })

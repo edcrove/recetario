@@ -5,53 +5,53 @@
    • Running lint in 4 packages
    • Remote caching disabled
 
-@recetario/shared:lint: cache hit, replaying logs 61d8945e8959a449
-@recetario/shared:build: cache hit, replaying logs d99dbac9ec4858a6
+@recetario/shared:lint: cache miss, executing 3792ec9ecc5fe410
+@recetario/shared:build: cache hit, replaying logs 3514675a71134a27
 @recetario/shared:build: 
 @recetario/shared:build: > @recetario/shared@0.0.0 build /Users/crove/dev/recetario/packages/shared
 @recetario/shared:build: > tsc -p tsconfig.json
 @recetario/shared:build: 
+recetario-app:lint: cache miss, executing 33ed9c6b01f1d969
+@recetario/api:lint: cache miss, executing 40f2c7efb5f54eab
+@recetario/mcp:lint: cache miss, executing e709d173a343d579
 @recetario/shared:lint: 
 @recetario/shared:lint: > @recetario/shared@0.0.0 lint /Users/crove/dev/recetario/packages/shared
 @recetario/shared:lint: > eslint src
 @recetario/shared:lint: 
+recetario-app:lint: 
+recetario-app:lint: > recetario-app@0.0.0 lint /Users/crove/dev/recetario/apps/app
+recetario-app:lint: > eslint app
+recetario-app:lint: 
+@recetario/mcp:lint: 
+@recetario/mcp:lint: > @recetario/mcp@0.0.0 lint /Users/crove/dev/recetario/packages/mcp
+@recetario/mcp:lint: > eslint src
+@recetario/mcp:lint: 
+@recetario/api:lint: 
+@recetario/api:lint: > @recetario/api@0.0.0 lint /Users/crove/dev/recetario/packages/api
+@recetario/api:lint: > eslint src
+@recetario/api:lint: 
 @recetario/shared:lint: 
 @recetario/shared:lint: /Users/crove/dev/recetario/packages/shared/src/menu.test.ts
 @recetario/shared:lint:   85:17  warning  '_id' is assigned a value but never used  @typescript-eslint/no-unused-vars
 @recetario/shared:lint: 
 @recetario/shared:lint: ✖ 1 problem (0 errors, 1 warning)
 @recetario/shared:lint: 
-recetario-app:lint: cache miss, executing f275e5d5d413e418
-@recetario/mcp:lint: cache hit, replaying logs f69bc2f04e89e6c5
-@recetario/mcp:lint: 
-@recetario/mcp:lint: > @recetario/mcp@0.0.0 lint /Users/crove/dev/recetario/packages/mcp
-@recetario/mcp:lint: > eslint src
-@recetario/mcp:lint: 
-@recetario/api:lint: cache hit, replaying logs 36df79097568ccca
-@recetario/api:lint: 
-@recetario/api:lint: > @recetario/api@0.0.0 lint /Users/crove/dev/recetario/packages/api
-@recetario/api:lint: > eslint src
-@recetario/api:lint: 
-@recetario/api:lint: 
-@recetario/api:lint: /Users/crove/dev/recetario/packages/api/src/routes/auth.test.ts
-@recetario/api:lint:   19:14  warning  '_table' is defined but never used  @typescript-eslint/no-unused-vars
-@recetario/api:lint: 
-@recetario/api:lint: ✖ 1 problem (0 errors, 1 warning)
-@recetario/api:lint: 
-recetario-app:lint: 
-recetario-app:lint: > recetario-app@0.0.0 lint /Users/crove/dev/recetario/apps/app
-recetario-app:lint: > eslint app
-recetario-app:lint: 
 recetario-app:lint: 
 recetario-app:lint: /Users/crove/dev/recetario/apps/app/app/collections/index.tsx
 recetario-app:lint:   10:3  warning  'Alert' is defined but never used  @typescript-eslint/no-unused-vars
 recetario-app:lint: 
 recetario-app:lint: ✖ 1 problem (0 errors, 1 warning)
 recetario-app:lint: 
+@recetario/api:lint: 
+@recetario/api:lint: /Users/crove/dev/recetario/packages/api/src/routes/auth.test.ts
+@recetario/api:lint:   19:14  warning  '_table' is defined but never used  @typescript-eslint/no-unused-vars
+@recetario/api:lint: 
+@recetario/api:lint: ✖ 1 problem (0 errors, 1 warning)
+@recetario/api:lint: 
 
  Tasks:    5 successful, 5 total
-Cached:    4 cached, 5 total
-  Time:    1.063s 
+Cached:    1 cached, 5 total
+  Time:    1.665s 
 
 
 === Typecheck ===
@@ -61,35 +61,35 @@ Cached:    4 cached, 5 total
    • Running typecheck in 4 packages
    • Remote caching disabled
 
-@recetario/shared:build: cache hit, replaying logs d99dbac9ec4858a6
+@recetario/shared:build: cache hit, replaying logs 3514675a71134a27
 @recetario/shared:build: 
 @recetario/shared:build: > @recetario/shared@0.0.0 build /Users/crove/dev/recetario/packages/shared
 @recetario/shared:build: > tsc -p tsconfig.json
 @recetario/shared:build: 
-recetario-app:typecheck: cache miss, executing f64d1a6425d1f1a3
-@recetario/shared:typecheck: cache hit, replaying logs df38f9394b0273f7
+@recetario/shared:typecheck: cache hit, replaying logs 6dac2cba84b82bad
+@recetario/api:typecheck: cache miss, executing 1dfce02169354403
 @recetario/shared:typecheck: 
 @recetario/shared:typecheck: > @recetario/shared@0.0.0 typecheck /Users/crove/dev/recetario/packages/shared
 @recetario/shared:typecheck: > tsc --noEmit
 @recetario/shared:typecheck: 
-@recetario/mcp:typecheck: cache hit, replaying logs f7fabb8ea0e74d04
-@recetario/api:typecheck: cache hit, replaying logs dd8fd69b18e80137
+recetario-app:typecheck: cache hit, replaying logs 11e629d9415746e1
+@recetario/mcp:typecheck: cache hit, replaying logs d931042c00d1002c
 @recetario/mcp:typecheck: 
 @recetario/mcp:typecheck: > @recetario/mcp@0.0.0 typecheck /Users/crove/dev/recetario/packages/mcp
 @recetario/mcp:typecheck: > tsc --noEmit
 @recetario/mcp:typecheck: 
-@recetario/api:typecheck: 
-@recetario/api:typecheck: > @recetario/api@0.0.0 typecheck /Users/crove/dev/recetario/packages/api
-@recetario/api:typecheck: > tsc --noEmit
-@recetario/api:typecheck: 
 recetario-app:typecheck: 
 recetario-app:typecheck: > recetario-app@0.0.0 typecheck /Users/crove/dev/recetario/apps/app
 recetario-app:typecheck: > tsc --noEmit
 recetario-app:typecheck: 
+@recetario/api:typecheck: 
+@recetario/api:typecheck: > @recetario/api@0.0.0 typecheck /Users/crove/dev/recetario/packages/api
+@recetario/api:typecheck: > tsc --noEmit
+@recetario/api:typecheck: 
 
  Tasks:    5 successful, 5 total
 Cached:    4 cached, 5 total
-  Time:    2.051s 
+  Time:    3.245s 
 
 
 === Tests ===
@@ -99,50 +99,100 @@ Cached:    4 cached, 5 total
    • Running test in 4 packages
    • Remote caching disabled
 
-@recetario/shared:build: cache hit, replaying logs d99dbac9ec4858a6
+@recetario/shared:test: cache miss, executing 5603535344010ace
+@recetario/shared:build: cache hit, replaying logs 3514675a71134a27
 @recetario/shared:build: 
 @recetario/shared:build: > @recetario/shared@0.0.0 build /Users/crove/dev/recetario/packages/shared
 @recetario/shared:build: > tsc -p tsconfig.json
 @recetario/shared:build: 
-recetario-app:test: cache miss, executing d3b44f46899e885d
-@recetario/mcp:test: cache hit, replaying logs 6920153a4fc5e8e1
-@recetario/api:test: cache hit, replaying logs 56f5b8e5a83dbf8f
-@recetario/shared:test: cache hit, replaying logs c6e92e9187fda390
+@recetario/api:test: cache miss, executing 27f8a28aaac88aac
+recetario-app:test: cache miss, executing 98c943c42c80b1b4
+@recetario/mcp:test: cache miss, executing f2a7eee031171d5c
+@recetario/shared:test: 
+@recetario/shared:test: > @recetario/shared@0.0.0 test /Users/crove/dev/recetario/packages/shared
+@recetario/shared:test: > vitest run
+@recetario/shared:test: 
+recetario-app:test: 
+recetario-app:test: > recetario-app@0.0.0 test /Users/crove/dev/recetario/apps/app
+recetario-app:test: > vitest run
+recetario-app:test: 
 @recetario/mcp:test: 
 @recetario/mcp:test: > @recetario/mcp@0.0.0 test /Users/crove/dev/recetario/packages/mcp
 @recetario/mcp:test: > vitest run
-@recetario/mcp:test: 
-@recetario/mcp:test: 
-@recetario/mcp:test:  RUN  v3.2.6 /Users/crove/dev/recetario/packages/mcp
-@recetario/mcp:test: 
-@recetario/mcp:test:  ✓ src/tools/taxonomy.test.ts (4 tests) 21ms
-@recetario/mcp:test:  ✓ src/tools/identity.test.ts (4 tests) 16ms
-@recetario/mcp:test:  ✓ src/tools/cookHistory.test.ts (5 tests) 29ms
-@recetario/mcp:test:  ✓ src/tools/createRecipe.test.ts (5 tests) 17ms
-@recetario/mcp:test:  ✓ src/tools/menu.test.ts (6 tests) 23ms
-@recetario/mcp:test:  ✓ src/tools/readRecipes.test.ts (5 tests) 34ms
-@recetario/mcp:test:  ✓ src/index.test.ts (7 tests) 132ms
-@recetario/mcp:test:  ✓ src/tools/mutateRecipes.test.ts (3 tests) 17ms
-@recetario/mcp:test: 
-@recetario/mcp:test:  Test Files  8 passed (8)
-@recetario/mcp:test:       Tests  39 passed (39)
-@recetario/mcp:test:    Start at  14:12:35
-@recetario/mcp:test:    Duration  1.25s (transform 387ms, setup 0ms, collect 2.33s, tests 290ms, environment 2ms, prepare 751ms)
 @recetario/mcp:test: 
 @recetario/api:test: 
 @recetario/api:test: > @recetario/api@0.0.0 test /Users/crove/dev/recetario/packages/api
 @recetario/api:test: > vitest run
 @recetario/api:test: 
+recetario-app:test: 
+recetario-app:test:  RUN  v3.2.6 /Users/crove/dev/recetario/apps/app
+recetario-app:test: 
+@recetario/mcp:test: 
+@recetario/mcp:test:  RUN  v3.2.6 /Users/crove/dev/recetario/packages/mcp
+@recetario/mcp:test: 
 @recetario/api:test: 
 @recetario/api:test:  RUN  v3.2.6 /Users/crove/dev/recetario/packages/api
 @recetario/api:test: 
+@recetario/shared:test: 
+@recetario/shared:test:  RUN  v3.2.6 /Users/crove/dev/recetario/packages/shared
+@recetario/shared:test: 
+recetario-app:test:  ✓ src/__tests__/cook-mode-nav.test.ts (7 tests) 2ms
+@recetario/shared:test:  ✓ src/units.test.ts (12 tests) 10ms
+recetario-app:test:  ✓ src/__tests__/week-math.test.ts (17 tests) 114ms
+@recetario/shared:test:  ✓ src/scaling.test.ts (6 tests) 9ms
+@recetario/shared:test:  ✓ src/density.test.ts (12 tests) 2ms
+@recetario/shared:test:  ✓ src/shopping.test.ts (16 tests) 39ms
+@recetario/shared:test:  ✓ src/schema.test.ts (28 tests) 24ms
+@recetario/shared:test:  ✓ src/menu.test.ts (19 tests) 20ms
+@recetario/shared:test:  ✓ src/fixtures.test.ts (3 tests) 34ms
+@recetario/mcp:test:  ✓ src/tools/readRecipes.test.ts (5 tests) 60ms
+@recetario/mcp:test:  ✓ src/tools/createRecipe.test.ts (5 tests) 93ms
+recetario-app:test:  ✓ src/api/client.test.ts (10 tests) 523ms
+recetario-app:test:    ✓ api.recipes.list > calls GET /v1/recipes with Authorization header  497ms
+recetario-app:test:  ✓ src/screens/RecipeDetail.test.ts (11 tests) 4ms
+recetario-app:test:  ✓ src/screens/RecipeCRUD.test.ts (7 tests) 31ms
+recetario-app:test:  ✓ src/__tests__/display-ingredient.test.ts (13 tests) 2ms
+recetario-app:test:  ✓ src/__tests__/recipe-form.test.ts (24 tests) 6ms
+@recetario/mcp:test:  ✓ src/tools/identity.test.ts (4 tests) 219ms
+@recetario/mcp:test:  ✓ src/tools/cookHistory.test.ts (5 tests) 150ms
+@recetario/mcp:test:  ✓ src/tools/taxonomy.test.ts (4 tests) 60ms
+@recetario/mcp:test:  ✓ src/index.test.ts (7 tests) 359ms
+@recetario/mcp:test:  ✓ src/tools/menu.test.ts (6 tests) 197ms
+recetario-app:test:  ✓ src/__tests__/use-step-timer.test.ts (23 tests) 3ms
+recetario-app:test:  ✓ src/__tests__/cook-effects.test.ts (6 tests) 7ms
+@recetario/shared:test:  ✓ src/index.test.ts (1 test) 5ms
+@recetario/shared:test: 
+@recetario/shared:test:  Test Files  8 passed (8)
+@recetario/shared:test:       Tests  97 passed (97)
+@recetario/shared:test:    Start at  21:30:12
+@recetario/shared:test:    Duration  2.16s (transform 574ms, setup 0ms, collect 2.19s, tests 144ms, environment 1ms, prepare 2.26s)
+@recetario/shared:test: 
+recetario-app:test:  ✓ src/__tests__/menu-logic.test.ts (14 tests) 2ms
+recetario-app:test:  ✓ src/screens/HomeScreen.test.ts (6 tests) 4ms
+recetario-app:test:  ✓ src/__tests__/query-provider.test.ts (3 tests) 5ms
+recetario-app:test:  ✓ src/__tests__/ingredient-checklist.test.ts (10 tests) 5ms
+@recetario/mcp:test:  ✓ src/tools/mutateRecipes.test.ts (3 tests) 48ms
+@recetario/mcp:test: 
+@recetario/mcp:test:  Test Files  8 passed (8)
+@recetario/mcp:test:       Tests  39 passed (39)
+@recetario/mcp:test:    Start at  21:30:12
+@recetario/mcp:test:    Duration  2.57s (transform 228ms, setup 0ms, collect 4.96s, tests 1.19s, environment 2ms, prepare 2.18s)
+@recetario/mcp:test: 
+recetario-app:test:  ✓ src/__tests__/ingredient-checklist-toggle.test.tsx (5 tests) 18ms
+recetario-app:test:  ✓ src/__tests__/use-step-timer-hook.test.ts (7 tests) 20ms
+recetario-app:test: 
+recetario-app:test:  Test Files  15 passed (15)
+recetario-app:test:       Tests  163 passed (163)
+recetario-app:test:    Start at  21:30:12
+recetario-app:test:    Duration  3.28s (transform 1.16s, setup 0ms, collect 4.26s, tests 746ms, environment 1.40s, prepare 3.36s)
+recetario-app:test: 
 @recetario/api:test: stdout | src/routes/auth.test.ts
 @recetario/api:test: @recetario/api starting (shared v0.0.0)
 @recetario/api:test: 
-@recetario/api:test: stdout | src/__tests__/integration/e2e.integration.test.ts
+@recetario/api:test: stdout | src/__tests__/integration/recipes.integration.test.ts
 @recetario/api:test: @recetario/api starting (shared v0.0.0)
 @recetario/api:test: 
-@recetario/api:test: stdout | src/__tests__/integration/recipes.integration.test.ts
+@recetario/api:test: stdout | src/__tests__/integration/e2e.integration.test.ts
 @recetario/api:test: @recetario/api starting (shared v0.0.0)
 @recetario/api:test: 
 @recetario/api:test: stdout | src/__tests__/integration/menu.integration.test.ts
@@ -154,82 +204,71 @@ recetario-app:test: cache miss, executing d3b44f46899e885d
 @recetario/api:test: stdout | src/__tests__/integration/schema-constraints.integration.test.ts
 @recetario/api:test: @recetario/api starting (shared v0.0.0)
 @recetario/api:test: 
-@recetario/api:test:  ✓ src/__tests__/integration/e2e.integration.test.ts (1 test) 110ms
-@recetario/api:test:  ✓ src/__tests__/integration/contract.integration.test.ts (4 tests) 207ms
-@recetario/api:test:  ✓ src/__tests__/integration/schema-constraints.integration.test.ts (4 tests) 259ms
-@recetario/api:test:  ✓ src/__tests__/integration/menu.integration.test.ts (12 tests) 383ms
-@recetario/api:test:  ✓ src/__tests__/integration/recipes.integration.test.ts (16 tests) 542ms
+@recetario/api:test:  ✓ src/__tests__/integration/e2e.integration.test.ts (1 test) 74ms
+@recetario/api:test:  ✓ src/__tests__/integration/contract.integration.test.ts (4 tests) 94ms
+@recetario/api:test:  ✓ src/__tests__/integration/schema-constraints.integration.test.ts (4 tests) 188ms
+@recetario/api:test:  ✓ src/__tests__/integration/menu.integration.test.ts (12 tests) 238ms
+@recetario/api:test:  ✓ src/__tests__/integration/recipes.integration.test.ts (16 tests) 390ms
 @recetario/api:test: stdout | src/middleware/auth-db.test.ts
 @recetario/api:test: @recetario/api starting (shared v0.0.0)
 @recetario/api:test: 
-@recetario/api:test:  ✓ src/middleware/auth-db.test.ts (5 tests) 26ms
-@recetario/api:test: stdout | src/routes/menu.test.ts
-@recetario/api:test: @recetario/api starting (shared v0.0.0)
-@recetario/api:test: 
-@recetario/api:test:  ✓ src/routes/menu.test.ts (12 tests) 22ms
-@recetario/api:test: stdout | src/routes/households.test.ts
-@recetario/api:test: @recetario/api starting (shared v0.0.0)
-@recetario/api:test: 
-@recetario/api:test: stdout | src/middleware/auth.test.ts
-@recetario/api:test: @recetario/api starting (shared v0.0.0)
-@recetario/api:test: 
-@recetario/api:test:  ✓ src/routes/households.test.ts (11 tests) 43ms
-@recetario/api:test:  ✓ src/middleware/auth.test.ts (8 tests) 45ms
 @recetario/api:test: stdout | src/routes/taxonomy.test.ts
 @recetario/api:test: @recetario/api starting (shared v0.0.0)
 @recetario/api:test: 
-@recetario/api:test:  ✓ src/routes/taxonomy.test.ts (11 tests) 26ms
+@recetario/api:test:  ✓ src/middleware/auth-db.test.ts (5 tests) 30ms
+@recetario/api:test:  ✓ src/routes/taxonomy.test.ts (11 tests) 14ms
+@recetario/api:test: stdout | src/routes/config.test.ts
+@recetario/api:test: @recetario/api starting (shared v0.0.0)
+@recetario/api:test: 
+@recetario/api:test:  ✓ src/routes/config.test.ts (15 tests) 17ms
 @recetario/api:test: stdout | src/routes/recipes.test.ts
 @recetario/api:test: @recetario/api starting (shared v0.0.0)
 @recetario/api:test: 
-@recetario/api:test:  ✓ src/routes/recipes.test.ts (12 tests) 25ms
-@recetario/api:test: stdout | src/routes/cook-sessions.test.ts
+@recetario/api:test:  ✓ src/routes/recipes.test.ts (12 tests) 15ms
+@recetario/api:test: stdout | src/middleware/auth.test.ts
 @recetario/api:test: @recetario/api starting (shared v0.0.0)
 @recetario/api:test: 
-@recetario/api:test:  ✓ src/routes/cook-sessions.test.ts (8 tests) 24ms
+@recetario/api:test:  ✓ src/middleware/auth.test.ts (8 tests) 20ms
+@recetario/api:test: stdout | src/routes/dietary-nutrition.test.ts
+@recetario/api:test: @recetario/api starting (shared v0.0.0)
+@recetario/api:test: 
 @recetario/api:test: stdout | src/routes/profile.test.ts
 @recetario/api:test: @recetario/api starting (shared v0.0.0)
 @recetario/api:test: 
-@recetario/api:test:  ✓ src/routes/profile.test.ts (8 tests) 29ms
-@recetario/api:test: stdout | src/scripts/generate-key.test.ts
-@recetario/api:test: API Key: 4b04512c671d22c1834f4fc5499b07a4303f1333ac0a4da13866adb5dba4c113
-@recetario/api:test: Key Hash (store in DB): 39eb213d48c12b61e6f8fb6b965bb69a8a0a6e1d6ecd87b661e318a49c668fae
+@recetario/api:test:  ✓ src/routes/profile.test.ts (8 tests) 12ms
+@recetario/api:test:  ✓ src/routes/dietary-nutrition.test.ts (6 tests) 22ms
+@recetario/api:test: stdout | src/routes/menu.test.ts
+@recetario/api:test: @recetario/api starting (shared v0.0.0)
 @recetario/api:test: 
-@recetario/api:test:  ✓ src/scripts/generate-key.test.ts (7 tests) 6ms
+@recetario/api:test:  ✓ src/routes/menu.test.ts (12 tests) 26ms
+@recetario/api:test: stdout | src/routes/households.test.ts
+@recetario/api:test: @recetario/api starting (shared v0.0.0)
+@recetario/api:test: 
+@recetario/api:test:  ✓ src/routes/households.test.ts (11 tests) 25ms
+@recetario/api:test: stdout | src/routes/cook-sessions.test.ts
+@recetario/api:test: @recetario/api starting (shared v0.0.0)
+@recetario/api:test: 
+@recetario/api:test:  ✓ src/routes/cook-sessions.test.ts (8 tests) 21ms
+@recetario/api:test: stdout | src/scripts/generate-key.test.ts
+@recetario/api:test: API Key: 78454676e1065a14949b6bceb493b56745348157712624c8542eeb9178f9419a
+@recetario/api:test: Key Hash (store in DB): 8296eea7bc9d23b091fc47670d2d8c3b0655ef25bfca63d09774cf8be8f99746
+@recetario/api:test: 
+@recetario/api:test:  ✓ src/scripts/generate-key.test.ts (7 tests) 7ms
+@recetario/api:test:  ✓ src/db/index.test.ts (3 tests) 2ms
 @recetario/api:test: stdout | src/health.test.ts
 @recetario/api:test: @recetario/api starting (shared v0.0.0)
 @recetario/api:test: 
-@recetario/api:test:  ✓ src/health.test.ts (1 test) 14ms
+@recetario/api:test:  ✓ src/health.test.ts (1 test) 6ms
+@recetario/api:test:  ✓ src/db/schema.test.ts (4 tests) 5ms
 @recetario/api:test: stdout | src/scripts/seed.test.ts > seedRecipes > calls upsert once per DEMO_RECIPE
 @recetario/api:test: Seeding 3 demo recipes for owner "test-owner"...
 @recetario/api:test: 
-@recetario/shared:test: 
-@recetario/shared:test: > @recetario/shared@0.0.0 test /Users/crove/dev/recetario/packages/shared
-@recetario/shared:test: > vitest run
-@recetario/shared:test: 
-@recetario/shared:test: 
-@recetario/shared:test:  RUN  v3.2.6 /Users/crove/dev/recetario/packages/shared
-@recetario/shared:test: 
-@recetario/shared:test:  ✓ src/units.test.ts (12 tests) 2ms
-@recetario/shared:test:  ✓ src/shopping.test.ts (16 tests) 39ms
-@recetario/shared:test:  ✓ src/density.test.ts (12 tests) 6ms
 @recetario/api:test: stdout | src/scripts/seed.test.ts > seedRecipes > calls upsert once per DEMO_RECIPE
 @recetario/api:test: Created: T (id)
 @recetario/api:test: 
 @recetario/api:test: stdout | src/scripts/seed.test.ts > seedRecipes > calls upsert once per DEMO_RECIPE
 @recetario/api:test: Created: T (id)
 @recetario/api:test: 
-@recetario/shared:test:  ✓ src/scaling.test.ts (6 tests) 9ms
-@recetario/shared:test:  ✓ src/menu.test.ts (19 tests) 19ms
-@recetario/shared:test:  ✓ src/schema.test.ts (28 tests) 11ms
-@recetario/shared:test:  ✓ src/fixtures.test.ts (3 tests) 4ms
-@recetario/shared:test:  ✓ src/index.test.ts (1 test) 1ms
-@recetario/shared:test: 
-@recetario/shared:test:  Test Files  8 passed (8)
-@recetario/shared:test:       Tests  97 passed (97)
-@recetario/shared:test:    Start at  14:00:32
-@recetario/shared:test:    Duration  2.46s (transform 544ms, setup 0ms, collect 2.08s, tests 91ms, environment 2ms, prepare 2.81s)
-@recetario/shared:test: 
 @recetario/api:test: stdout | src/scripts/seed.test.ts > seedRecipes > calls upsert once per DEMO_RECIPE
 @recetario/api:test: Created: T (id)
 @recetario/api:test: Seed complete.
@@ -260,56 +299,26 @@ recetario-app:test: cache miss, executing d3b44f46899e885d
 @recetario/api:test: Created: Smoothie de banana y avena (id)
 @recetario/api:test: Seed complete.
 @recetario/api:test: 
-@recetario/api:test:  ✓ src/scripts/seed.test.ts (3 tests) 8ms
-@recetario/api:test:  ✓ src/db/schema.test.ts (4 tests) 3ms
-@recetario/api:test:  ✓ src/db/index.test.ts (3 tests) 4ms
-@recetario/api:test:  ✓ src/auth/service.test.ts (9 tests) 3814ms
-@recetario/api:test:    ✓ hashPassword / verifyPassword > hashes a password and verifies it correctly  1325ms
-@recetario/api:test:    ✓ hashPassword / verifyPassword > rejects wrong password  1303ms
-@recetario/api:test:    ✓ hashPassword / verifyPassword > produces different hashes for same input (salt)  1171ms
-@recetario/api:test:  ✓ src/routes/auth.test.ts (12 tests) 3658ms
-@recetario/api:test:    ✓ POST /auth/register > returns 201 with user and JWT token on success  835ms
-@recetario/api:test:    ✓ POST /auth/register > returns 201 without displayName (uses null fallback)  617ms
-@recetario/api:test:    ✓ POST /auth/login > returns 200 with token when credentials match  1260ms
-@recetario/api:test:    ✓ POST /auth/login > returns 401 when password is wrong  907ms
+@recetario/api:test:  ✓ src/scripts/seed.test.ts (3 tests) 3ms
+@recetario/api:test:  ✓ src/auth/service.test.ts (9 tests) 2762ms
+@recetario/api:test:    ✓ hashPassword / verifyPassword > hashes a password and verifies it correctly  858ms
+@recetario/api:test:    ✓ hashPassword / verifyPassword > rejects wrong password  945ms
+@recetario/api:test:    ✓ hashPassword / verifyPassword > produces different hashes for same input (salt)  943ms
+@recetario/api:test:  ✓ src/routes/auth.test.ts (12 tests) 2562ms
+@recetario/api:test:    ✓ POST /auth/register > returns 201 with user and JWT token on success  464ms
+@recetario/api:test:    ✓ POST /auth/register > returns 201 without displayName (uses null fallback)  503ms
+@recetario/api:test:    ✓ POST /auth/login > returns 200 with token when credentials match  936ms
+@recetario/api:test:    ✓ POST /auth/login > returns 401 when password is wrong  650ms
 @recetario/api:test: 
-@recetario/api:test:  Test Files  20 passed (20)
-@recetario/api:test:       Tests  151 passed (151)
-@recetario/api:test:    Start at  14:12:35
-@recetario/api:test:    Duration  7.36s (transform 525ms, setup 0ms, collect 12.85s, tests 9.25s, environment 3ms, prepare 1.43s)
+@recetario/api:test:  Test Files  22 passed (22)
+@recetario/api:test:       Tests  172 passed (172)
+@recetario/api:test:    Start at  21:30:12
+@recetario/api:test:    Duration  7.15s (transform 475ms, setup 0ms, collect 9.62s, tests 6.53s, environment 2ms, prepare 1.15s)
 @recetario/api:test: 
-recetario-app:test: 
-recetario-app:test: > recetario-app@0.0.0 test /Users/crove/dev/recetario/apps/app
-recetario-app:test: > vitest run
-recetario-app:test: 
-recetario-app:test: 
-recetario-app:test:  RUN  v3.2.6 /Users/crove/dev/recetario/apps/app
-recetario-app:test: 
-recetario-app:test:  ✓ src/__tests__/menu-logic.test.ts (14 tests) 5ms
-recetario-app:test:  ✓ src/__tests__/cook-effects.test.ts (6 tests) 6ms
-recetario-app:test:  ✓ src/__tests__/week-math.test.ts (17 tests) 41ms
-recetario-app:test:  ✓ src/api/client.test.ts (10 tests) 107ms
-recetario-app:test:  ✓ src/__tests__/ingredient-checklist.test.ts (10 tests) 3ms
-recetario-app:test:  ✓ src/__tests__/recipe-form.test.ts (24 tests) 13ms
-recetario-app:test:  ✓ src/screens/RecipeCRUD.test.ts (7 tests) 13ms
-recetario-app:test:  ✓ src/__tests__/query-provider.test.ts (3 tests) 3ms
-recetario-app:test:  ✓ src/__tests__/use-step-timer.test.ts (23 tests) 11ms
-recetario-app:test:  ✓ src/__tests__/display-ingredient.test.ts (13 tests) 4ms
-recetario-app:test:  ✓ src/screens/HomeScreen.test.ts (6 tests) 5ms
-recetario-app:test:  ✓ src/__tests__/cook-mode-nav.test.ts (7 tests) 3ms
-recetario-app:test:  ✓ src/screens/RecipeDetail.test.ts (11 tests) 4ms
-recetario-app:test:  ✓ src/__tests__/use-step-timer-hook.test.ts (7 tests) 20ms
-recetario-app:test:  ✓ src/__tests__/ingredient-checklist-toggle.test.tsx (5 tests) 17ms
-recetario-app:test: 
-recetario-app:test:  Test Files  15 passed (15)
-recetario-app:test:       Tests  163 passed (163)
-recetario-app:test:    Start at  17:51:47
-recetario-app:test:    Duration  1.56s (transform 509ms, setup 0ms, collect 1.43s, tests 255ms, environment 1.07s, prepare 1.18s)
-recetario-app:test: 
 
  Tasks:    5 successful, 5 total
-Cached:    4 cached, 5 total
-  Time:    2.269s 
+Cached:    1 cached, 5 total
+  Time:    8.302s 
 
 
 === Build ===
@@ -319,18 +328,18 @@ Cached:    4 cached, 5 total
    • Running build in 4 packages
    • Remote caching disabled
 
-@recetario/shared:build: cache hit, replaying logs d99dbac9ec4858a6
+@recetario/shared:build: cache hit, replaying logs 3514675a71134a27
 @recetario/shared:build: 
 @recetario/shared:build: > @recetario/shared@0.0.0 build /Users/crove/dev/recetario/packages/shared
 @recetario/shared:build: > tsc -p tsconfig.json
 @recetario/shared:build: 
-recetario-app:build: cache miss, executing d7e5e8657c1cb112
-@recetario/mcp:build: cache hit, replaying logs 9caea4ce0363683c
+recetario-app:build: cache miss, executing e06f807f966c5a37
+@recetario/mcp:build: cache miss, executing e6d0a4c23ef86324
+@recetario/api:build: cache miss, executing b4bf6788854e0460
 @recetario/mcp:build: 
 @recetario/mcp:build: > @recetario/mcp@0.0.0 build /Users/crove/dev/recetario/packages/mcp
 @recetario/mcp:build: > tsc -p tsconfig.json
 @recetario/mcp:build: 
-@recetario/api:build: cache hit, replaying logs bf25a677c6c660e2
 @recetario/api:build: 
 @recetario/api:build: > @recetario/api@0.0.0 build /Users/crove/dev/recetario/packages/api
 @recetario/api:build: > tsc -p tsconfig.json
@@ -342,7 +351,7 @@ recetario-app:build:
 recetario-app:build: Expo Autolinking module resolution enabled
 recetario-app:build: Starting Metro Bundler
 recetario-app:build: 
-recetario-app:build: Web Bundled 1327ms node_modules/.pnpm/expo-router@56.2.11_bbxtaaft5dk4rlujiz4t5u62uy/node_modules/expo-router/entry.js (950 modules)
+recetario-app:build: Web Bundled 843ms node_modules/.pnpm/expo-router@56.2.11_bbxtaaft5dk4rlujiz4t5u62uy/node_modules/expo-router/entry.js (952 modules)
 recetario-app:build: 
 recetario-app:build: › Assets (18):
 recetario-app:build: ../../node_modules/.pnpm/expo-router@56.2.11_bbxtaaft5dk4rlujiz4t5u62uy/node_modules/expo-router/assets/arrow_down.017bc6ba3fc25503e5eb5e53826d48a8.png (9.5KB)
@@ -359,7 +368,7 @@ recetario-app:build: ../../node_modules/.pnpm/expo-router@56.2.11_bbxtaaft5dk4rl
 recetario-app:build: ../../node_modules/.pnpm/expo-router@56.2.11_bbxtaaft5dk4rlujiz4t5u62uy/node_modules/expo-router/assets/unmatched.20e71bdf79e3a97bf55fd9e164041578.png (4.8KB)
 recetario-app:build: 
 recetario-app:build: › web bundles (1):
-recetario-app:build: _expo/static/js/web/entry-45e339fd23b8530b28c67508b313c67a.js (1.7MB)
+recetario-app:build: _expo/static/js/web/entry-4d7c28a2d53b5fc0cc381ef46421d50c.js (1.7MB)
 recetario-app:build: 
 recetario-app:build: › Files (2):
 recetario-app:build: index.html (1.2KB)
@@ -368,6 +377,6 @@ recetario-app:build:
 recetario-app:build: Exported: dist
 
  Tasks:    4 successful, 4 total
-Cached:    3 cached, 4 total
-  Time:    2.723s 
+Cached:    1 cached, 4 total
+  Time:    4.098s 
 

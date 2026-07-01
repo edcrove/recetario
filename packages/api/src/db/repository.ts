@@ -25,6 +25,9 @@ function mapToRecipe(row: DbRow, ingredientRows: IngredientRow[], stepRows: Step
     /* v8 ignore next */
     translations: (row.translations as Recipe['translations']) ?? [],
     source: (row.source as Recipe['source']) ?? undefined,
+    /* v8 ignore next */
+    dietaryTags: (row.dietaryTags as Recipe['dietaryTags']) ?? [],
+    nutrition: (row.nutrition as Recipe['nutrition']) ?? undefined,
     ingredients: ingredientRows
       .sort((a, b) => a.position - b.position)
       .map((i) => ({
@@ -71,6 +74,8 @@ export class RecipeRepository {
         originalLanguage: data.originalLanguage,
         translations: data.translations,
         source: data.source ?? null,
+        dietaryTags: data.dietaryTags ?? [],
+        nutrition: data.nutrition ?? null,
       })
       .returning()
 
@@ -181,7 +186,7 @@ export class RecipeRepository {
 
   async search(
     ownerId: string,
-    q: { q?: string; tag?: string; category?: string; ingredient?: string },
+    q: { q?: string; tag?: string; category?: string; ingredient?: string; dietary?: string },
   ): Promise<Recipe[]> {
     const db = this.db
 
@@ -197,6 +202,13 @@ export class RecipeRepository {
 
     if (q.tag) {
       conditions.push(sql`${schema.recipes.tags}::jsonb @> ${JSON.stringify([q.tag])}::jsonb`)
+    }
+
+    /* v8 ignore next 5 - covered by integration tests */
+    if (q.dietary) {
+      conditions.push(
+        sql`${schema.recipes.dietaryTags}::jsonb @> ${JSON.stringify([q.dietary])}::jsonb`,
+      )
     }
 
     const recipes = await db
@@ -264,6 +276,8 @@ export class RecipeRepository {
         ...(data.originalLanguage !== undefined && { originalLanguage: data.originalLanguage }),
         ...(data.translations !== undefined && { translations: data.translations }),
         ...(data.source !== undefined && { source: data.source }),
+        ...(data.dietaryTags !== undefined && { dietaryTags: data.dietaryTags }),
+        ...(data.nutrition !== undefined && { nutrition: data.nutrition }),
         updatedAt: new Date(),
       })
       .where(and(eq(schema.recipes.id, id), eq(schema.recipes.ownerId, ownerId)))

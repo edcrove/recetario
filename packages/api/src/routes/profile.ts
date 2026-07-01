@@ -22,12 +22,22 @@ const userResponseSchema = z.object({
   createdAt: z.string(),
 })
 
+const nutritionTargetsSchema = z
+  .object({
+    daily_calories: z.number().int().min(0),
+    daily_protein_g: z.number().min(0),
+    daily_carbs_g: z.number().min(0),
+    daily_fat_g: z.number().min(0),
+  })
+  .nullable()
+
 const profileSchema = z.object({
   preferredServings: z.number().int().min(1).max(20).nullable(),
   dietaryRestrictions: z.array(z.string()),
   allergens: z.array(z.string()),
   goals: z.array(z.string()),
   timezone: z.string().nullable(),
+  nutritionTargets: nutritionTargetsSchema,
 })
 
 // PATCH /auth/me
@@ -103,6 +113,13 @@ profileRoute.openapi(getProfileRoute as any, async (c: any) => {
     allergens: (profile.allergens as string[]) ?? [],
     goals: (profile.goals as string[]) ?? [],
     timezone: profile.timezone,
+    nutritionTargets:
+      (profile.nutritionTargets as {
+        daily_calories: number
+        daily_protein_g: number
+        daily_carbs_g: number
+        daily_fat_g: number
+      } | null) ?? null,
   })
 })
 
@@ -130,6 +147,14 @@ const patchProfileRoute = defineRoute({
             allergens: z.array(z.string().min(1).max(50)).optional(),
             goals: z.array(z.string().min(1).max(100)).optional(),
             timezone: z.string().optional(),
+            nutritionTargets: z
+              .object({
+                daily_calories: z.number().int().min(0),
+                daily_protein_g: z.number().min(0),
+                daily_carbs_g: z.number().min(0),
+                daily_fat_g: z.number().min(0),
+              })
+              .optional(),
           }),
         },
       },
@@ -166,5 +191,12 @@ profileRoute.openapi(patchProfileRoute, async (c) => {
     allergens: (profile?.allergens as string[]) ?? [],
     goals: (profile?.goals as string[]) ?? [],
     timezone: profile?.timezone ?? null,
+    nutritionTargets:
+      (profile?.nutritionTargets as {
+        daily_calories: number
+        daily_protein_g: number
+        daily_carbs_g: number
+        daily_fat_g: number
+      } | null) ?? null,
   })
 })

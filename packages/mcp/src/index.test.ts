@@ -28,6 +28,7 @@ const EXPECTED_TOOLS = [
   'renameTaxonomyItem',
   'mergeTags',
   'getTaxonomyUsage',
+  'getMacros',
 ]
 
 const mockFetch = vi.fn()
@@ -68,7 +69,7 @@ describe('registerAllTools (main bootstrap)', () => {
 
     await registerAllTools(server, apiClient)
 
-    expect(spy).toHaveBeenCalledTimes(26)
+    expect(spy).toHaveBeenCalledTimes(27)
   })
 })
 

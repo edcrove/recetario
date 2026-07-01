@@ -37,6 +37,10 @@ export const recipes = pgTable(
     translations: jsonb('translations').notNull().default([]),
     // source stored as jsonb for MVP simplicity
     source: jsonb('source'),
+    // dietary tags: vegano, vegetariano, sin-gluten, sin-lactosa, keto, paleo
+    dietaryTags: jsonb('dietary_tags').default([]),
+    // nutrition per serving: { calories, protein_g, carbs_g, fat_g, fiber_g? }
+    nutrition: jsonb('nutrition'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
@@ -136,6 +140,8 @@ export const userProfiles = pgTable('user_profiles', {
   allergens: jsonb('allergens').notNull().default([]),
   goals: jsonb('goals').notNull().default([]),
   timezone: text('timezone').default('UTC'),
+  // nutrition targets per day: { daily_calories, daily_protein_g, daily_carbs_g, daily_fat_g }
+  nutritionTargets: jsonb('nutrition_targets'),
 })
 
 export const households = pgTable('households', {

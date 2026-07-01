@@ -63,6 +63,7 @@ const searchRecipesRoute = defineRoute({
       tag: z.string().optional(),
       category: z.string().optional(),
       ingredient: z.string().optional(),
+      dietary: z.string().optional(),
     }),
   },
   responses: {
@@ -75,8 +76,8 @@ const searchRecipesRoute = defineRoute({
 
 recipesRoute.openapi(searchRecipesRoute, async (c) => {
   const ownerId = c.get('ownerId')
-  const { q, tag, category, ingredient } = c.req.valid('query')
-  const recipes = await recipeRepository.search(ownerId, { q, tag, category, ingredient })
+  const { q, tag, category, ingredient, dietary } = c.req.valid('query')
+  const recipes = await recipeRepository.search(ownerId, { q, tag, category, ingredient, dietary })
   return c.json(recipes, 200)
 })
 

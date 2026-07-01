@@ -58,7 +58,16 @@ export default function NewRecipeScreen() {
   })
 
   function handleSubmit() {
-    const payload = buildPayload(title, servings, category, tags, notes, ingredients, steps)
+    const payload = buildPayload(
+      title,
+      servings,
+      category,
+      tags,
+      notes,
+      ingredients,
+      steps,
+      foodTypeIds,
+    )
     const { valid, errors: fieldErrors } = validatePayload(payload)
     if (!valid) {
       setErrors(fieldErrors)

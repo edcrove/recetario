@@ -29,6 +29,13 @@
       "when": 1782793953346,
       "tag": "0003_fresh_captain_cross",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1782865063568,
+      "tag": "0004_dapper_sinister_six",
+      "breakpoints": true
     }
   ]
 }
