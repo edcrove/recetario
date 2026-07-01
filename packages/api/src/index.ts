@@ -1,5 +1,6 @@
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { swaggerUI } from '@hono/swagger-ui'
+import { cors } from 'hono/cors'
 import { VERSION } from '@recetario/shared'
 import { healthRoute } from './routes/health.js'
 import { recipesRoute } from './routes/recipes.js'
@@ -15,6 +16,15 @@ import { assertJwtSecretConfigured } from './auth/service.js'
 assertJwtSecretConfigured()
 
 export const app = new OpenAPIHono()
+
+app.use(
+  '*',
+  cors({
+    origin: ['http://localhost:8081', 'http://localhost:3000', 'http://localhost:19006'],
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization'],
+  }),
+)
 
 app.openAPIRegistry.registerComponent('securitySchemes', 'ApiKeyAuth', {
   type: 'apiKey',
@@ -47,5 +57,14 @@ app.doc('/openapi.json', {
 app.get('/docs', swaggerUI({ url: '/openapi.json' }))
 
 console.log(`@recetario/api starting (shared v${VERSION})`)
+
+// Start HTTP server when run directly (not in test environment)
+if (process.env['NODE_ENV'] !== 'test') {
+  const { serve } = await import('@hono/node-server')
+  const port = Number(process.env['PORT'] ?? 3000)
+  serve({ fetch: app.fetch, port })
+  console.log(`🚀 API running at http://localhost:${port}`)
+  console.log(`📖 Docs at http://localhost:${port}/docs`)
+}
 
 export default app
