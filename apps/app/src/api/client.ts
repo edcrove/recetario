@@ -48,7 +48,13 @@ export const api = {
       ).toString()
       return request<Recipe[]>(`/v1/recipes${qs ? `?${qs}` : ''}`)
     },
-    search: (params: { q?: string; tag?: string; category?: string; ingredient?: string }) => {
+    search: (params: {
+      q?: string
+      tag?: string
+      category?: string
+      ingredient?: string
+      dietary?: string
+    }) => {
       const qs = new URLSearchParams(
         Object.entries(params).filter(([, v]) => v != null) as [string, string][],
       ).toString()
@@ -69,6 +75,23 @@ export const api = {
       request<void>(`/v1/menu/${date}/${encodeURIComponent(slot)}`, { method: 'DELETE' }),
     shoppingList: (weekStart: string) =>
       request<ShoppingListItem[]>(`/v1/menu/shopping-list?weekStart=${weekStart}`),
+    nutrition: (weekStart: string) =>
+      request<{
+        weekStart: string
+        days: Array<{
+          date: string
+          calories: number
+          protein_g: number
+          carbs_g: number
+          fat_g: number
+        }>
+        targets: {
+          daily_calories: number
+          daily_protein_g: number
+          daily_carbs_g: number
+          daily_fat_g: number
+        } | null
+      }>(`/v1/menu/nutrition?weekStart=${weekStart}`),
   },
   auth: {
     register: (data: { email: string; password: string; displayName?: string }) =>
@@ -97,6 +120,12 @@ export const api = {
         allergens: string[]
         goals: string[]
         timezone: string | null
+        nutritionTargets: {
+          daily_calories: number
+          daily_protein_g: number
+          daily_carbs_g: number
+          daily_fat_g: number
+        } | null
       }>('/auth/profile'),
     updateProfile: (data: {
       preferredServings?: number
@@ -104,11 +133,23 @@ export const api = {
       allergens?: string[]
       goals?: string[]
       timezone?: string
+      nutritionTargets?: {
+        daily_calories: number
+        daily_protein_g: number
+        daily_carbs_g: number
+        daily_fat_g: number
+      }
     }) =>
       request<{
         preferredServings: number | null
         dietaryRestrictions: string[]
         allergens: string[]
+        nutritionTargets: {
+          daily_calories: number
+          daily_protein_g: number
+          daily_carbs_g: number
+          daily_fat_g: number
+        } | null
       }>('/auth/profile', { method: 'PATCH', body: JSON.stringify(data) }),
   },
   config: {

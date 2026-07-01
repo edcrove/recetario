@@ -70,6 +70,29 @@ export default function ProfileScreen() {
     updateProfile.mutate({ preferredServings: next })
   }
 
+  function updateTarget(
+    field: 'daily_calories' | 'daily_protein_g' | 'daily_carbs_g' | 'daily_fat_g',
+    delta: number,
+  ) {
+    const t = (profile?.nutritionTargets as Record<string, number> | null) ?? {
+      daily_calories: 2000,
+      daily_protein_g: 50,
+      daily_carbs_g: 250,
+      daily_fat_g: 70,
+    }
+    const current = t[field] ?? 0
+    const next = Math.max(0, current + delta)
+    updateProfile.mutate({
+      nutritionTargets: {
+        daily_calories: t['daily_calories'] ?? 2000,
+        daily_protein_g: t['daily_protein_g'] ?? 50,
+        daily_carbs_g: t['daily_carbs_g'] ?? 250,
+        daily_fat_g: t['daily_fat_g'] ?? 70,
+        [field]: next,
+      },
+    } as never)
+  }
+
   async function handleSignOut() {
     await signOut()
     router.replace('/auth/login')
@@ -166,6 +189,35 @@ export default function ProfileScreen() {
         <Text style={s.chevron}>›</Text>
       </TouchableOpacity>
 
+      {/* Nutrition targets */}
+      <Text style={s.sectionTitle}>Objetivos nutricionales diarios</Text>
+      {(
+        [
+          { field: 'daily_calories' as const, label: 'Calorías', unit: 'kcal', step: 100 },
+          { field: 'daily_protein_g' as const, label: 'Proteína', unit: 'g', step: 5 },
+          { field: 'daily_carbs_g' as const, label: 'Carbohidratos', unit: 'g', step: 10 },
+          { field: 'daily_fat_g' as const, label: 'Grasa', unit: 'g', step: 5 },
+        ] as const
+      ).map(({ field, label, unit, step }) => {
+        const t = profile?.nutritionTargets as Record<string, number> | null
+        const val = t?.[field] ?? 0
+        return (
+          <View key={field} style={s.targetRow}>
+            <Text style={s.targetLabel}>{label}</Text>
+            <TouchableOpacity style={s.servingsBtn} onPress={() => updateTarget(field, -step)}>
+              <Text style={s.servingsBtnText}>−</Text>
+            </TouchableOpacity>
+            <Text style={s.targetValue}>
+              {val}
+              <Text style={s.targetUnit}> {unit}</Text>
+            </Text>
+            <TouchableOpacity style={s.servingsBtn} onPress={() => updateTarget(field, step)}>
+              <Text style={s.servingsBtnText}>+</Text>
+            </TouchableOpacity>
+          </View>
+        )
+      })}
+
       {/* Household */}
       <TouchableOpacity style={s.row} onPress={() => router.push('/household')}>
         <Text style={s.rowText}>🏠 Household</Text>
@@ -244,6 +296,16 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   servingsBtnText: { fontSize: 20, color: '#374151' },
+  targetRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, gap: 8 },
+  targetLabel: { flex: 1, fontSize: 14, color: '#374151' },
+  targetValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    minWidth: 60,
+    textAlign: 'center',
+  },
+  targetUnit: { fontSize: 12, fontWeight: '400', color: '#9ca3af' },
   servingsValue: {
     fontSize: 24,
     fontWeight: '700',

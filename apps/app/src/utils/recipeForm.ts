@@ -29,6 +29,7 @@ export function buildPayload(
   notes: string,
   ingredients: IngredientRow[],
   steps: StepRow[],
+  dietaryTags?: string[],
 ) {
   return {
     title: title.trim(),
@@ -39,6 +40,7 @@ export function buildPayload(
       .map((t) => t.trim())
       .filter(Boolean),
     notes: notes.trim() || undefined,
+    dietaryTags: dietaryTags && dietaryTags.length > 0 ? dietaryTags : undefined,
     ingredients: ingredients
       .filter((i) => i.name.trim())
       .map((i) => ({

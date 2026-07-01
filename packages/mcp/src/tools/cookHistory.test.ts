@@ -73,3 +73,32 @@ describe('getMostCooked', () => {
     expect(mockRequest).toHaveBeenCalledWith('/v1/cook-sessions/stats?since=2026-01-01')
   })
 })
+
+import { registerMacrosTools } from './cookHistory.js'
+
+describe('getMacros', () => {
+  it('calls GET /v1/recipes/:id and scales nutrition', async () => {
+    const server = createMcpServer()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const spy = vi.spyOn(server as any, 'tool')
+    registerMacrosTools(server, mockApi as never)
+    mockRequest.mockResolvedValueOnce({
+      title: 'Pasta',
+      servings: 2,
+      nutrition: { calories: 400, protein_g: 20, carbs_g: 60, fat_g: 10 },
+    })
+    const result = await getHandler(spy, 'getMacros')({ recipeId: 'r1', servings: 4 })
+    expect(JSON.stringify(result)).toContain('800') // 400 * (4/2)
+    expect(mockRequest).toHaveBeenCalledWith('/v1/recipes/r1')
+  })
+
+  it('returns no-data message when recipe has no nutrition', async () => {
+    const server = createMcpServer()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const spy = vi.spyOn(server as any, 'tool')
+    registerMacrosTools(server, mockApi as never)
+    mockRequest.mockResolvedValueOnce({ title: 'Pasta', servings: 2, nutrition: null })
+    const result = await getHandler(spy, 'getMacros')({ recipeId: 'r1' })
+    expect(JSON.stringify(result)).toContain('no nutrition data')
+  })
+})
