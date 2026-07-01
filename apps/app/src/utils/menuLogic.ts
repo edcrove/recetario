@@ -13,7 +13,9 @@ export function parseServings(input: string, fallback: number): number {
   return isNaN(parsed) || parsed <= 0 ? fallback : parsed
 }
 
+import { unitLabel } from './displayIngredient.js'
+
 export function formatShoppingQty(item: ShoppingListItem): string {
   if (item.quantity == null) return 'al gusto'
-  return item.unit ? `${item.quantity} ${item.unit}` : String(item.quantity)
+  return item.unit ? `${item.quantity} ${unitLabel(item.unit)}` : String(item.quantity)
 }
