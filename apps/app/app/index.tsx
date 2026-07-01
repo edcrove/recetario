@@ -41,16 +41,19 @@ export default function HomeScreen() {
   const {
     data: recipes = [],
     isLoading,
+    isFetching,
     error,
   } = useQuery({
-    queryKey: ['recipes', query],
+    queryKey: ['recipes', query, activeType],
     queryFn: () =>
       getQueryFnKey(query) === 'search'
-        ? api.recipes.search({ q: query })
+        ? api.recipes.search({ q: query, ...(activeType ? { tag: activeType } : {}) })
         : api.recipes.list({ limit: 50 }),
+    placeholderData: (prev) => prev,
   })
 
-  if (isLoading)
+  // Only show full-screen loader on first load, not on subsequent searches
+  if (isLoading && recipes.length === 0)
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" />
@@ -67,13 +70,17 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Recetario</Text>
-      <TextInput
-        style={styles.search}
-        placeholder="Buscar recetas..."
-        value={query}
-        onChangeText={setQuery}
-        clearButtonMode="while-editing"
-      />
+      <View style={styles.searchRow}>
+        <TextInput
+          style={styles.search}
+          placeholder="Buscar recetas..."
+          value={query}
+          onChangeText={setQuery}
+          clearButtonMode="while-editing"
+          autoCorrect={false}
+        />
+        {isFetching && <ActivityIndicator size="small" style={styles.searchSpinner} />}
+      </View>
       {/* Food type quick filters */}
       {foodTypes.length > 0 && (
         <ScrollView
@@ -160,16 +167,25 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: '#fff' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 12 },
+  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 8 },
+  searchRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   search: {
+    flex: 1,
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
     padding: 10,
-    marginBottom: 8,
     fontSize: 16,
+    backgroundColor: '#fafafa',
   },
-  actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginBottom: 12 },
+  searchSpinner: { marginLeft: 8 },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+    marginTop: 8,
+    marginBottom: 8,
+  },
   addButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -184,14 +200,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   menuButtonText: { color: '#fff', fontWeight: '600' },
-  filterScroll: { marginBottom: 8 },
+  filterScroll: { marginBottom: 4 },
   filterRow: { gap: 6, paddingHorizontal: 2 },
   filterChip: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    height: 30,
+    justifyContent: 'center',
+    borderRadius: 15,
     backgroundColor: '#f3f4f6',
-    alignSelf: 'flex-start',
     borderWidth: 1,
     borderColor: '#e5e7eb',
   },
