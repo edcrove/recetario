@@ -166,6 +166,12 @@ jobs:
       - name: Generate shared coverage
         run: pnpm --filter @recetario/shared test:coverage
 
+      - name: Generate MCP coverage
+        run: pnpm --filter @recetario/mcp test:coverage
+
+      - name: Generate app utils coverage
+        run: pnpm --filter recetario-app test:coverage
+
       - name: Run screen component tests in coverage job
         run: pnpm --filter recetario-app test:screens
 

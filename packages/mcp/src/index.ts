@@ -56,6 +56,7 @@ export async function registerAllTools(
   registerConfiguratorTools(server, apiClient)
 }
 
+/* v8 ignore next 12 */
 async function main() {
   const server = createMcpServer()
   const apiClient = createApiClient()
