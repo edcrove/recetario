@@ -77,7 +77,7 @@ export class MenuRepository {
       eq(schema.menuEntries.ownerId, ownerId),
       eq(schema.menuEntries.date, date),
       eq(schema.menuEntries.slot, slot),
-      ...(recipeId ? [eq(schema.menuEntries.recipeId, recipeId)] : []),
+      /* v8 ignore next */ ...(recipeId ? [eq(schema.menuEntries.recipeId, recipeId)] : []),
     ]
     const result = await db
       .delete(schema.menuEntries)

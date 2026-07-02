@@ -135,7 +135,7 @@ describe('GET /v1/collections', () => {
 })
 
 describe('POST /v1/collections', () => {
-  it('creates a new collection', async () => {
+  it('creates a new collection with emoji', async () => {
     mockInsert.mockReturnValue([
       { id: UUID, name: 'Verano', emoji: '🌞', description: null, createdAt: new Date() },
     ])
@@ -149,6 +149,21 @@ describe('POST /v1/collections', () => {
     expect(body.name).toBe('Verano')
     expect(body.emoji).toBe('🌞')
     expect(body.recipeCount).toBe(0)
+  })
+
+  it('creates a collection without emoji (emoji is null)', async () => {
+    mockInsert.mockReturnValue([
+      { id: UUID, name: 'Sin emoji', emoji: null, description: null, createdAt: new Date() },
+    ])
+    const res = await app.request('/v1/collections', {
+      method: 'POST',
+      headers: AUTH,
+      body: JSON.stringify({ name: 'Sin emoji' }),
+    })
+    expect(res.status).toBe(201)
+    const body = await res.json()
+    expect(body.emoji).toBeNull()
+    expect(body.description).toBeNull()
   })
 })
 

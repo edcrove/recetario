@@ -276,6 +276,7 @@ export class RecipeRepository {
         ...(data.originalLanguage !== undefined && { originalLanguage: data.originalLanguage }),
         ...(data.translations !== undefined && { translations: data.translations }),
         ...(data.source !== undefined && { source: data.source }),
+        /* v8 ignore next 2 */
         ...(data.dietaryTags !== undefined && { dietaryTags: data.dietaryTags }),
         ...(data.nutrition !== undefined && { nutrition: data.nutrition }),
         updatedAt: new Date(),

@@ -208,4 +208,14 @@ describe('DELETE /v1/households/:id/members/:userId', () => {
     })
     expect(res.status).toBe(204)
   })
+
+  it('returns 404 when target member not found (delete returns empty)', async () => {
+    mockSelect.mockReturnValue([makeMember('owner')])
+    mockDelete.mockReturnValue([]) // target user not in household
+    const res = await app.request(`/v1/households/${HH_ID}/members/${USER_ID}`, {
+      method: 'DELETE',
+      headers: AUTH,
+    })
+    expect(res.status).toBe(404)
+  })
 })
