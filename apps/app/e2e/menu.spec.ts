@@ -95,75 +95,50 @@ test.describe('Menu: add recipe to slot', () => {
 })
 
 test.describe('Menu: edit servings', () => {
-  // FIXME: RN onPress doesn't fire from dispatchEvent; needs Playwright touch API or mobile emulation
-  test.fixme('tapping recipe chip opens edit modal', async ({ page }) => {
+  async function ensureRecipeInMenu(page: import('@playwright/test').Page) {
+    // Add a recipe if there's no chip yet — uses testID for reliable pick
+    const chip = page.locator('[data-testid^="menu-entry-"]').first()
+    if ((await chip.count()) === 0) {
+      await page.locator('[data-testid^="menu-add-"]').first().click()
+      await page.waitForLoadState('networkidle', { timeout: 10000 })
+      const firstPickItem = page.locator('[data-testid^="pick-recipe-"]').first()
+      await expect(firstPickItem).toBeVisible({ timeout: 10000 })
+      await firstPickItem.click()
+      await page.waitForLoadState('networkidle', { timeout: 10000 })
+    }
+  }
+
+  test('tapping recipe chip opens edit modal', async ({ page }) => {
     await page.getByText('Menú Semanal').click()
-    await expect(page.getByText('+ Agregar').first()).toBeVisible({ timeout: 8000 })
+    await expect(page.locator('[data-testid^="menu-add-"]').first()).toBeVisible({ timeout: 8000 })
+    await ensureRecipeInMenu(page)
 
-    // Add a recipe via evaluate if no chip exists
-    let chip = page.getByText(/\d+ porc\./).first()
-    if ((await chip.count()) === 0) {
-      await page.getByText('+ Agregar').first().click()
-      await page.waitForLoadState('networkidle', { timeout: 10000 })
-      await page.evaluate((pattern) => {
-        const el = Array.from(document.querySelectorAll('[dir="auto"]')).find((el) =>
-          new RegExp(pattern).test(el.textContent ?? ''),
-        )
-        if (el) el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
-      }, 'Milanesa de pollo|Empanadas de carne|Guiso de lentejas')
-      await page.waitForLoadState('networkidle', { timeout: 10000 })
-      chip = page.getByText(/\d+ porc\./).first()
-    }
+    // Click the chip using testID — triggers React's onPress via native pointer event
+    const chip = page.locator('[data-testid^="menu-entry-"]').first()
+    await expect(chip).toBeVisible({ timeout: 8000 })
+    await chip.click()
 
-    if ((await chip.count()) === 0) {
-      test.skip()
-      return
-    }
-
-    // Click the chip to open the edit modal using evaluate
-    await page.evaluate(() => {
-      const chips = Array.from(document.querySelectorAll('[dir="auto"]')).filter((el) =>
-        /\d+ porc\./.test(el.textContent ?? ''),
-      )
-      if (chips[0]) {
-        const parent = chips[0].parentElement?.parentElement
-        if (parent)
-          parent.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
-      }
-    })
-    await expect(page.getByText('Porciones')).toBeVisible({ timeout: 8000 })
-    await expect(page.getByText('Guardar')).toBeVisible()
-    await expect(page.getByText('Eliminar del menú')).toBeVisible()
+    // Modal opens — identified by the save/delete testIDs
+    await expect(page.getByTestId('menu-modal-save')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByTestId('menu-modal-delete')).toBeVisible()
   })
 
-  // FIXME: depends on chip modal which can't be opened via dispatchEvent
-  test.fixme('can update servings in modal', async ({ page }) => {
+  test('can update servings in modal', async ({ page }) => {
     await page.getByText('Menú Semanal').click()
-    await expect(page.getByText('+ Agregar').first()).toBeVisible({ timeout: 8000 })
+    await expect(page.locator('[data-testid^="menu-add-"]').first()).toBeVisible({ timeout: 8000 })
+    await ensureRecipeInMenu(page)
 
-    const chip = page.getByText(/\d+ porc\./).first()
-    if ((await chip.count()) === 0) {
-      test.skip()
-      return
-    }
-
-    // Open modal via evaluate
-    await page.evaluate(() => {
-      const chips = Array.from(document.querySelectorAll('[dir="auto"]')).filter((el) =>
-        /\d+ porc\./.test(el.textContent ?? ''),
-      )
-      if (chips[0]) {
-        const parent = chips[0].parentElement?.parentElement
-        if (parent)
-          parent.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
-      }
-    })
-    await expect(page.getByText('Guardar')).toBeVisible({ timeout: 8000 })
+    const chip = page.locator('[data-testid^="menu-entry-"]').first()
+    await expect(chip).toBeVisible({ timeout: 8000 })
+    await chip.click()
+    await expect(page.getByTestId('menu-modal-save')).toBeVisible({ timeout: 8000 })
 
     // Increment servings and save
     await page.getByText('+').last().click()
-    await page.getByText('Guardar').last().click()
-    await expect(page.getByText('Eliminar del menú')).not.toBeVisible({ timeout: 5000 })
+    await page.waitForTimeout(300)
+    await page.getByTestId('menu-modal-save').click()
+    // Modal closes after save
+    await expect(page.getByTestId('menu-modal-save')).not.toBeVisible({ timeout: 10000 })
   })
 })
 

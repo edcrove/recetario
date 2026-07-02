@@ -1,9 +1,15 @@
 import type { MenuEntry, ShoppingListItem } from '@recetario/shared'
 
-export function buildEntryMap(entries: MenuEntry[]): Map<string, MenuEntry> {
-  const map = new Map<string, MenuEntry>()
+export function buildEntryMap(entries: MenuEntry[]): Map<string, MenuEntry[]> {
+  const map = new Map<string, MenuEntry[]>()
   for (const entry of entries) {
-    map.set(`${entry.date}::${entry.slot}`, entry)
+    const key = `${entry.date}::${entry.slot}`
+    const existing = map.get(key)
+    if (existing) {
+      existing.push(entry)
+    } else {
+      map.set(key, [entry])
+    }
   }
   return map
 }

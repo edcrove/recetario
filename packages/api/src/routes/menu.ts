@@ -18,7 +18,7 @@ menuRoute.use('/menu/*', authMiddleware)
 
 const errorSchema = z.object({ error: z.string() })
 
-// POST /v1/menu — upsert entry
+// POST /v1/menu — add recipe to slot (multiple allowed per slot)
 const postMenuRoute = defineRoute({
   method: 'post',
   path: '/menu',
@@ -32,7 +32,7 @@ const postMenuRoute = defineRoute({
   responses: {
     200: {
       content: { 'application/json': { schema: MenuEntrySchema } },
-      description: 'Menu entry upserted',
+      description: 'Menu entry added',
     },
     400: {
       content: { 'application/json': { schema: errorSchema } },
@@ -48,15 +48,16 @@ menuRoute.openapi(postMenuRoute, async (c) => {
   return c.json(entry, 200)
 })
 
-// DELETE /v1/menu/:date/:slot — remove entry
-const deleteMenuRoute = defineRoute({
+// DELETE /v1/menu/:date/:slot/:recipeId — remove specific recipe from slot
+const deleteMenuEntryRoute = defineRoute({
   method: 'delete',
-  path: '/menu/{date}/{slot}',
+  path: '/menu/{date}/{slot}/{recipeId}',
   security: [{ ApiKeyAuth: [] }],
   request: {
     params: z.object({
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       slot: MenuSlotSchema,
+      recipeId: z.string().uuid(),
     }),
   },
   responses: {
@@ -68,12 +69,77 @@ const deleteMenuRoute = defineRoute({
   },
 })
 
-menuRoute.openapi(deleteMenuRoute, async (c) => {
+menuRoute.openapi(deleteMenuEntryRoute, async (c) => {
+  const ownerId = c.get('ownerId')
+  const { date, slot, recipeId } = c.req.valid('param')
+  const deleted = await menuRepository.remove(ownerId, date, slot, recipeId)
+  if (!deleted) return c.json({ error: 'Menu entry not found' }, 404)
+  return new Response(null, { status: 204 })
+})
+
+// DELETE /v1/menu/:date/:slot — remove all recipes from slot (backward compat)
+const deleteMenuSlotRoute = defineRoute({
+  method: 'delete',
+  path: '/menu/{date}/{slot}',
+  security: [{ ApiKeyAuth: [] }],
+  request: {
+    params: z.object({
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      slot: MenuSlotSchema,
+    }),
+  },
+  responses: {
+    204: { description: 'Slot cleared' },
+    404: {
+      content: { 'application/json': { schema: errorSchema } },
+      description: 'No entries found',
+    },
+  },
+})
+
+menuRoute.openapi(deleteMenuSlotRoute, async (c) => {
   const ownerId = c.get('ownerId')
   const { date, slot } = c.req.valid('param')
   const deleted = await menuRepository.remove(ownerId, date, slot)
   if (!deleted) return c.json({ error: 'Menu entry not found' }, 404)
   return new Response(null, { status: 204 })
+})
+
+// PATCH /v1/menu/:date/:slot/:recipeId — update servings for a specific recipe
+const patchMenuEntryRoute = defineRoute({
+  method: 'patch',
+  path: '/menu/{date}/{slot}/{recipeId}',
+  security: [{ ApiKeyAuth: [] }],
+  request: {
+    params: z.object({
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      slot: MenuSlotSchema,
+      recipeId: z.string().uuid(),
+    }),
+    body: {
+      content: { 'application/json': { schema: z.object({ servings: z.number().int().min(1) }) } },
+      required: true,
+    },
+  },
+  responses: {
+    200: {
+      content: { 'application/json': { schema: MenuEntrySchema } },
+      description: 'Entry updated',
+    },
+    404: {
+      content: { 'application/json': { schema: errorSchema } },
+      description: 'Entry not found',
+    },
+  },
+})
+
+menuRoute.openapi(patchMenuEntryRoute, async (c) => {
+  const ownerId = c.get('ownerId')
+  const { date, slot, recipeId } = c.req.valid('param')
+  const { servings } = c.req.valid('json')
+  const entry = await menuRepository.updateServings(ownerId, date, slot, recipeId, servings)
+  if (!entry) return c.json({ error: 'Menu entry not found' }, 404)
+  return c.json(entry, 200)
 })
 
 // GET /v1/menu — get week entries

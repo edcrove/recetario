@@ -12,7 +12,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { api } from '../../src/api/client'
 import type { Recipe } from '@recetario/shared'
-import { parseServings } from '../../src/utils/menuLogic'
 
 export default function PickRecipeScreen() {
   const router = useRouter()
@@ -23,7 +22,7 @@ export default function PickRecipeScreen() {
     weekStart: string
   }>()
   const [query, setQuery] = useState('')
-  const [servings, setServings] = useState('2')
+  const [servings, setServings] = useState(2)
 
   const { data: recipes = [], isLoading } = useQuery({
     queryKey: ['recipes', query],
@@ -37,7 +36,7 @@ export default function PickRecipeScreen() {
         date: date ?? '',
         slot: slot ?? '',
         recipeId: recipe.id ?? '',
-        servings: parseServings(servings, recipe.servings),
+        servings,
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['menu', weekStart] })
@@ -53,13 +52,16 @@ export default function PickRecipeScreen() {
         </Text>
         <View style={styles.servingsRow}>
           <Text style={styles.servingsLabel}>Porciones:</Text>
-          <TextInput
-            style={styles.servingsInput}
-            value={servings}
-            onChangeText={setServings}
-            keyboardType="numeric"
-            selectTextOnFocus
-          />
+          <TouchableOpacity
+            style={styles.servingsBtn}
+            onPress={() => setServings((v) => Math.max(1, v - 1))}
+          >
+            <Text style={styles.servingsBtnText}>−</Text>
+          </TouchableOpacity>
+          <Text style={styles.servingsValue}>{servings}</Text>
+          <TouchableOpacity style={styles.servingsBtn} onPress={() => setServings((v) => v + 1)}>
+            <Text style={styles.servingsBtnText}>+</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -81,14 +83,11 @@ export default function PickRecipeScreen() {
           keyExtractor={(item: Recipe) => item.id ?? item.title}
           renderItem={({ item }: { item: Recipe }) => (
             <TouchableOpacity
-              testID={`pick-recipe-${item.id}`}
               style={styles.card}
               onPress={() => addMutation.mutate(item)}
               disabled={addMutation.isPending}
             >
-              <Text testID={`pick-recipe-title-${item.id}`} style={styles.cardTitle}>
-                {item.title}
-              </Text>
+              <Text style={styles.cardTitle}>{item.title}</Text>
               <Text style={styles.cardMeta}>
                 {item.category} · {item.servings} porc. base
                 {item.totalTimeMin ? ` · ${item.totalTimeMin} min` : ''}
@@ -111,15 +110,22 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { padding: 16, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
   subtitle: { fontSize: 16, fontWeight: '600', marginBottom: 8 },
-  servingsRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  servingsLabel: { fontSize: 14, color: '#6b7280' },
-  servingsInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 6,
-    padding: 6,
-    width: 56,
-    fontSize: 15,
+  servingsRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  servingsLabel: { fontSize: 14, color: '#6b7280', flex: 1 },
+  servingsBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#f3f4f6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  servingsBtnText: { fontSize: 20, color: '#374151', lineHeight: 22 },
+  servingsValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    minWidth: 28,
     textAlign: 'center',
   },
   search: {
