@@ -155,8 +155,14 @@ export default function HomeScreen() {
         data={recipes}
         keyExtractor={(item: Recipe) => item.id ?? item.title}
         renderItem={({ item }: { item: Recipe }) => (
-          <TouchableOpacity style={styles.card} onPress={() => router.push(`/recipe/${item.id}`)}>
-            <Text style={styles.cardTitle}>{item.title}</Text>
+          <TouchableOpacity
+            testID={`recipe-card-${item.id}`}
+            style={styles.card}
+            onPress={() => router.push(`/recipe/${item.id}`)}
+          >
+            <Text testID={`recipe-title-${item.id}`} style={styles.cardTitle}>
+              {item.title}
+            </Text>
             <Text style={styles.cardMeta}>
               {item.category} · {item.servings} porciones
               {item.totalTimeMin ? ` · ${item.totalTimeMin} min` : ''}

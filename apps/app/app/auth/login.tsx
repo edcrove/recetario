@@ -74,6 +74,7 @@ export default function LoginScreen() {
         {error ? <Text style={s.error}>{error}</Text> : null}
 
         <TouchableOpacity
+          testID="auth-login-submit"
           style={[s.btn, loading && s.btnDisabled]}
           onPress={handleLogin}
           disabled={loading}

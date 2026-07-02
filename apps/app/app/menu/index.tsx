@@ -112,13 +112,18 @@ export default function MenuWeekScreen() {
                 <View style={s.slotContent}>
                   {slotEntries.map((entry) => (
                     <View key={entry.recipeId} style={s.entryChip}>
-                      <TouchableOpacity style={s.entryChipInner} onPress={() => openEdit(entry)}>
+                      <TouchableOpacity
+                        testID={`menu-entry-${day}-${slot}-${entry.recipeId}`}
+                        style={s.entryChipInner}
+                        onPress={() => openEdit(entry)}
+                      >
                         <Text style={s.entryName} numberOfLines={1}>
                           {entry.recipeName ?? 'Receta'}
                         </Text>
                         <Text style={s.entryServings}>{entry.servings} porc.</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
+                        testID={`menu-remove-${day}-${slot}-${entry.recipeId}`}
                         style={s.removeChipBtn}
                         onPress={() =>
                           removeMutation.mutate({ date: day, slot, recipeId: entry.recipeId })
@@ -129,6 +134,7 @@ export default function MenuWeekScreen() {
                     </View>
                   ))}
                   <TouchableOpacity
+                    testID={`menu-add-${day}-${slot}`}
                     style={s.addSlotBtn}
                     onPress={() =>
                       router.push({
@@ -166,6 +172,7 @@ export default function MenuWeekScreen() {
             </View>
             <View style={s.modalActions}>
               <TouchableOpacity
+                testID="menu-modal-save"
                 style={s.modalSaveBtn}
                 disabled={updateServingsMutation.isPending}
                 onPress={() => {
@@ -183,6 +190,7 @@ export default function MenuWeekScreen() {
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
+                testID="menu-modal-delete"
                 style={s.modalDeleteBtn}
                 onPress={() => {
                   if (!editing) return

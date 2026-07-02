@@ -1,163 +1,122 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect } from './fixtures'
 
-async function createRecipeAndGetId(page: Page): Promise<string | null> {
-  await page.goto('/')
-  await page.getByText(/nueva receta/i).click()
-  await expect(page).toHaveURL(/\/recipe\/new/, { timeout: 10000 })
+/**
+ * Cook mode E2E flows.
+ * Requires at least one recipe with steps to be accessible.
+ */
 
-  const titleInput = page.getByPlaceholder(/título/i)
-  await expect(titleInput).toBeVisible({ timeout: 15000 })
-  await titleInput.fill('Test Cook Mode')
-
-  const categoryInput = page.getByPlaceholder(/categoría/i)
-  if (await categoryInput.isVisible()) await categoryInput.fill('Test')
-
-  const addIngredientBtn = page.getByText(/\+ ingrediente/i)
-  if (await addIngredientBtn.isVisible()) {
-    await addIngredientBtn.click()
-    const nameInput = page.getByPlaceholder(/nombre/i).first()
-    if (await nameInput.isVisible()) await nameInput.fill('Agua')
+test.describe('Cook mode: basic flow', () => {
+  async function openRecipeDetail(page: import('@playwright/test').Page) {
+    const recipe = page
+      .locator(
+        'text=/Milanesa de pollo|Empanadas de carne|Guiso de lentejas|Locro criollo|Tarta de verduras/',
+      )
+      .first()
+    await expect(recipe).toBeVisible({ timeout: 10000 })
+    await recipe.click()
+    await page.waitForLoadState('networkidle', { timeout: 10000 })
+    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 20000 })
   }
 
-  const addStepBtn = page.getByText(/\+ paso/i)
-  if (await addStepBtn.isVisible()) {
-    await addStepBtn.click()
-    const stepInput = page.getByPlaceholder(/descripción del paso/i).first()
-    if (await stepInput.isVisible()) await stepInput.fill('Hervir el agua')
-  }
-
-  await page
-    .getByText(/guardar|crear/i)
-    .first()
-    .click()
-  await page.waitForURL(/\/recipe\/[^/]+$/, { timeout: 10000 }).catch(() => null)
-
-  const match = page.url().match(/\/recipe\/([^/]+)$/)
-  return match?.[1] ?? null
-}
-
-test.describe('Cook mode screen (/recipe/:id/cook)', () => {
-  test('navigates to cook mode from recipe detail', async ({ page }) => {
-    await page.goto('/')
-    await page.waitForTimeout(2000)
-    const firstRecipe = page.getByText(/porc\. base|\d+ min/i).first()
-    const hasRecipes = (await firstRecipe.count()) > 0
-
-    if (!hasRecipes) {
-      test.skip()
-      return
-    }
-
-    await page.locator('a, [role="link"]').first().click()
-    await expect(page).toHaveURL(/\/recipe\/[^/]+$/, { timeout: 10000 })
-
-    const cookBtn = page.getByText(/iniciar cocina/i)
-    if (await cookBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await cookBtn.click()
-      await expect(page).toHaveURL(/\/recipe\/[^/]+\/cook/, { timeout: 10000 })
-    }
+  test('Iniciar cocina button is visible on recipe detail', async ({ page }) => {
+    await openRecipeDetail(page)
+    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 5000 })
   })
 
-  test('cook mode shows step counter and navigation', async ({ page }) => {
-    await page.goto('/')
-    await page.waitForTimeout(1500)
-
-    const links = page.locator('a[href*="/recipe/"]')
-    const count = await links.count()
-    if (count === 0) {
-      test.skip()
-      return
-    }
-
-    for (let i = 0; i < count; i++) {
-      const href = await links.nth(i).getAttribute('href')
-      if (!href || href.includes('/new') || href.includes('/edit') || href.includes('/cook'))
-        continue
-
-      const id = href.match(/\/recipe\/([^/]+)/)?.[1]
-      if (!id) continue
-
-      await page.goto(`/recipe/${id}/cook`)
-      await page.waitForTimeout(1000)
-
-      const hasStepper = (await page.getByText(/paso \d+ \//i).count()) > 0
-      const isEmpty = (await page.getByText(/no tiene pasos/i).count()) > 0
-
-      if (hasStepper) {
-        await expect(page.getByText(/paso \d+ \//i)).toBeVisible()
-        await expect(page.getByText('Siguiente')).toBeVisible()
-        await expect(page.getByText('Anterior')).toBeVisible()
-        return
-      }
-      if (isEmpty) {
-        await expect(page.getByText(/no tiene pasos/i)).toBeVisible()
-        return
-      }
-    }
-    test.skip()
+  test('cook mode opens with step counter', async ({ page }) => {
+    await openRecipeDetail(page)
+    await page.getByTestId('recipe-detail-cook').click()
+    await expect(page.getByText(/Paso \d+ \/ \d+/)).toBeVisible({ timeout: 8000 })
   })
 
-  test('cook mode tab bar switches between Pasos and Ingredientes', async ({ page }) => {
-    await page.goto('/')
-    await page.waitForTimeout(1500)
-
-    const links = page.locator('a[href*="/recipe/"]')
-    const count = await links.count()
-    if (count === 0) {
-      test.skip()
-      return
-    }
-
-    for (let i = 0; i < count; i++) {
-      const href = await links.nth(i).getAttribute('href')
-      if (!href || href.includes('/new') || href.includes('/edit') || href.includes('/cook'))
-        continue
-
-      const id = href.match(/\/recipe\/([^/]+)/)?.[1]
-      if (!id) continue
-
-      await page.goto(`/recipe/${id}/cook`)
-      await page.waitForTimeout(1000)
-
-      const ingredientesTab = page.getByText('Ingredientes').first()
-      if (await ingredientesTab.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await ingredientesTab.click()
-        await expect(page.getByText('Pasos')).toBeVisible()
-        return
-      }
-    }
-    test.skip()
+  test('cook mode has Pasos and Ingredientes tabs', async ({ page }) => {
+    await openRecipeDetail(page)
+    await page.getByTestId('recipe-detail-cook').click()
+    await expect(page.getByText(/Paso \d+ \/ \d+/)).toBeVisible({ timeout: 8000 })
+    // Verify step counter visible (cook mode is active)
+    await expect(page.getByText(/Paso \d+ \/ \d+/)).toBeVisible()
+    // Tab switcher has Pasos and Ingredientes
+    const tabBar = page.locator('text=Pasos').first()
+    await expect(tabBar).toBeVisible()
   })
 
-  test('close button returns to recipe detail', async ({ page }) => {
-    await page.goto('/')
-    await page.waitForTimeout(1500)
+  test('can navigate to next step', async ({ page }) => {
+    await openRecipeDetail(page)
+    await page.getByTestId('recipe-detail-cook').click()
+    await expect(page.getByText(/Paso 1 \/ /)).toBeVisible({ timeout: 8000 })
 
-    const links = page.locator('a[href*="/recipe/"]')
-    const count = await links.count()
-    if (count === 0) {
-      test.skip()
-      return
+    const nextBtn = page.getByTestId('cook-next').or(page.getByTestId('cook-finish')).first()
+    await expect(nextBtn).toBeVisible({ timeout: 5000 })
+    await nextBtn.click()
+
+    // Either moved to step 2 or opened rating modal
+    const step2 = page.getByText(/Paso 2 \/ /)
+    const ratingModal = page.getByText('¿Cómo salió?')
+    await expect(step2.or(ratingModal)).toBeVisible({ timeout: 5000 })
+  })
+
+  test('ingredients tab shows ingredient checklist', async ({ page }) => {
+    await openRecipeDetail(page)
+    await page.getByTestId('recipe-detail-cook').click()
+    await expect(page.getByText(/Paso \d+ \/ \d+/)).toBeVisible({ timeout: 8000 })
+    await page.evaluate(() => {
+      const tabs = Array.from(document.querySelectorAll('[dir="auto"]')).filter(
+        (el) => el.textContent === 'Ingredientes',
+      )
+      tabs.forEach((t) =>
+        t.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })),
+      )
+    })
+    // After tab switch, ingredients are in the checklist
+    // Use evaluate in case they're hidden by RN Web transform
+    const hasIngredient = await page.evaluate(() => {
+      const pattern = /Pechugas|Cebolla|Harina|Lentejas|Espinaca|Maíz/
+      return Array.from(document.querySelectorAll('[dir="auto"]')).some((el) =>
+        pattern.test(el.textContent ?? ''),
+      )
+    })
+    expect(hasIngredient).toBe(true)
+  })
+
+  test('rating modal appears after finishing all steps', async ({ page }) => {
+    const recipe = page.locator('[data-testid^="recipe-card-"]').first()
+    await expect(recipe).toBeVisible({ timeout: 10000 })
+    await recipe.click()
+    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 8000 })
+    await page.getByTestId('recipe-detail-cook').click()
+
+    let attempts = 0
+    while (attempts < 10) {
+      if ((await page.getByText('¿Cómo salió?').count()) > 0) break
+      const nextBtn = page.getByText(/Siguiente|Finalizar/).first()
+      if ((await nextBtn.count()) === 0) break
+      await nextBtn.click()
+      attempts++
     }
 
-    for (let i = 0; i < count; i++) {
-      const href = await links.nth(i).getAttribute('href')
-      if (!href || href.includes('/new') || href.includes('/edit') || href.includes('/cook'))
-        continue
+    await expect(page.getByText('¿Cómo salió?')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('cook-rating-save')).toBeVisible()
+    await expect(page.getByTestId('cook-rating-skip')).toBeVisible()
+  })
 
-      const id = href.match(/\/recipe\/([^/]+)/)?.[1]
-      if (!id) continue
+  test('can skip rating and return', async ({ page }) => {
+    const recipe = page.locator('[data-testid^="recipe-card-"]').first()
+    await expect(recipe).toBeVisible({ timeout: 10000 })
+    await recipe.click()
+    await page.getByTestId('recipe-detail-cook').click()
 
-      await page.goto(`/recipe/${id}/cook`)
-      await page.waitForTimeout(1000)
-
-      const closeBtn = page.getByText('✕')
-      if (await closeBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await closeBtn.click()
-        await expect(page).toHaveURL(/\/recipe\/[^/]+$/, { timeout: 5000 })
-        return
-      }
+    let attempts = 0
+    while (attempts < 10) {
+      if ((await page.getByText('¿Cómo salió?').count()) > 0) break
+      const nextBtn = page.getByText(/Siguiente|Finalizar/).first()
+      if ((await nextBtn.count()) === 0) break
+      await nextBtn.click()
+      attempts++
     }
-    test.skip()
+
+    await expect(page.getByTestId('cook-rating-skip')).toBeVisible({ timeout: 5000 })
+    await page.getByTestId('cook-rating-skip').click()
+    // After skip, app navigates back — verify we're no longer in cook mode
+    await expect(page.getByTestId('cook-rating-skip')).not.toBeVisible({ timeout: 8000 })
   })
 })

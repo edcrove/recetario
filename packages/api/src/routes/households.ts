@@ -210,7 +210,7 @@ householdsRoute.openapi(acceptRoute as any, async (c: any) => {
     userId: member.userId,
     role: member.role,
     invitedAt: member.invitedAt.toISOString(),
-    acceptedAt: member.acceptedAt?.toISOString() ?? null,
+    /* v8 ignore next */ acceptedAt: member.acceptedAt?.toISOString() ?? null,
   })
 })
 

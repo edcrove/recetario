@@ -226,6 +226,7 @@ export default function ProfileScreen() {
 
       {/* Sign out */}
       <TouchableOpacity
+        testID="profile-signout"
         style={s.signOutBtn}
         onPress={() =>
           Alert.alert('Cerrar sesión', '¿Estás seguro?', [

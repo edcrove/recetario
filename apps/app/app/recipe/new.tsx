@@ -238,6 +238,7 @@ export default function NewRecipeScreen() {
       {errors.general ? <Text style={st.errorText}>{errors.general}</Text> : null}
 
       <TouchableOpacity
+        testID="recipe-form-save"
         style={[st.saveBtn, mutation.isPending && st.saveBtnDisabled]}
         onPress={handleSubmit}
         disabled={mutation.isPending}
