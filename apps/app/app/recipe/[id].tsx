@@ -98,6 +98,7 @@ export default function RecipeDetailScreen() {
         {(['recipe', 'history'] as const).map((t) => (
           <TouchableOpacity
             key={t}
+            testID={`recipe-tab-${t}`}
             style={[s.tabBtn, detailTab === t && s.tabBtnActive]}
             onPress={() => setDetailTab(t)}
           >
@@ -193,6 +194,7 @@ export default function RecipeDetailScreen() {
               <View style={s.sectionHeader}>
                 <Text style={s.sectionTitle}>Preparación</Text>
                 <TouchableOpacity
+                  testID="recipe-detail-cook"
                   style={s.cookBtn}
                   onPress={() => router.push(`/recipe/${id}/cook`)}
                 >

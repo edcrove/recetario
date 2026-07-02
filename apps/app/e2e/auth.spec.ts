@@ -22,7 +22,7 @@ test.describe('Auth: login via form', () => {
     await page.goto('/auth/login')
     await page.getByPlaceholder('Email').fill('wrong@example.com')
     await page.getByPlaceholder('Contraseña').fill('wrongpass')
-    await page.getByText('Ingresar').click()
+    await page.getByTestId('auth-login-submit').click()
     await expect(page.getByText(/Email o contraseña incorrectos|Error al conectar/)).toBeVisible({
       timeout: 8000,
     })
@@ -32,7 +32,7 @@ test.describe('Auth: login via form', () => {
     await page.goto('/auth/login')
     await page.getByPlaceholder('Email').fill(E2E_EMAIL)
     await page.getByPlaceholder('Contraseña').fill(E2E_PASSWORD)
-    await page.getByText('Ingresar').click()
+    await page.getByTestId('auth-login-submit').click()
 
     // Should land on home with recipe list
     await expect(page.getByText('Recetario').first()).toBeVisible({ timeout: 15000 })
@@ -59,8 +59,7 @@ test.describe('Auth: register', () => {
   base('shows validation errors for empty form', async ({ page }) => {
     await page.goto('/auth/register')
     // Click the submit button (not the page heading which also says "Crear cuenta")
-    // RN Web renders TouchableOpacity as div, not button — use last() to get submit (not heading)
-    await page.getByText('Crear cuenta').last().click()
+    await page.getByTestId('auth-register-submit').click()
     await expect(page.getByText(/El email y la contraseña son obligatorios/)).toBeVisible()
   })
 
@@ -69,8 +68,7 @@ test.describe('Auth: register', () => {
     await page.getByPlaceholder('vos@ejemplo.com').fill(uniqueEmail)
     await page.getByPlaceholder('Mínimo 8 caracteres').fill('password1')
     await page.getByPlaceholder('Repetí la contraseña').fill('password2')
-    // RN Web renders TouchableOpacity as div, not button — use last() to get submit (not heading)
-    await page.getByText('Crear cuenta').last().click()
+    await page.getByTestId('auth-register-submit').click()
     await expect(page.getByText(/Las contraseñas no coinciden/)).toBeVisible()
   })
 
@@ -80,8 +78,7 @@ test.describe('Auth: register', () => {
     await page.getByPlaceholder('vos@ejemplo.com').fill(uniqueEmail)
     await page.getByPlaceholder('Mínimo 8 caracteres').fill('test12345')
     await page.getByPlaceholder('Repetí la contraseña').fill('test12345')
-    // RN Web renders TouchableOpacity as div, not button — use last() to get submit (not heading)
-    await page.getByText('Crear cuenta').last().click()
+    await page.getByTestId('auth-register-submit').click()
     // Either registered and redirected, or email already taken
     await expect(
       page.getByText('+ Nueva Receta').or(page.getByText(/Este email ya está registrado/)),

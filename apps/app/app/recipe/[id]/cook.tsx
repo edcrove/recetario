@@ -121,6 +121,7 @@ export default function CookModeScreen() {
         {(['steps', 'ingredients'] as const).map((t) => (
           <TouchableOpacity
             key={t}
+            testID={`cook-tab-${t}`}
             style={[s.tabBtn, tab === t && s.tabBtnActive]}
             onPress={() => setTab(t)}
           >
@@ -159,6 +160,7 @@ export default function CookModeScreen() {
 
       <View style={s.nav}>
         <TouchableOpacity
+          testID="cook-prev"
           style={[s.navBtn, isFirst && s.navBtnDisabled]}
           onPress={() => goTo(stepIndex - 1)}
           disabled={isFirst}
@@ -166,6 +168,7 @@ export default function CookModeScreen() {
           <Text style={[s.navBtnText, isFirst && s.navBtnTextDisabled]}>Anterior</Text>
         </TouchableOpacity>
         <TouchableOpacity
+          testID={isLast ? 'cook-finish' : 'cook-next'}
           style={[s.navBtn, s.navBtnPrimary]}
           onPress={() => (isLast ? setShowRating(true) : goTo(stepIndex + 1))}
         >
@@ -197,6 +200,7 @@ export default function CookModeScreen() {
             />
 
             <TouchableOpacity
+              testID="cook-rating-save"
               style={[s.modalBtn, savingSession && s.modalBtnDisabled]}
               disabled={savingSession}
               onPress={async () => {
@@ -219,6 +223,7 @@ export default function CookModeScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
+              testID="cook-rating-skip"
               style={s.skipBtn}
               onPress={() => {
                 setShowRating(false)

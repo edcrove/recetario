@@ -90,7 +90,7 @@ test.describe('Recipes: detail view', () => {
     await page.waitForLoadState('networkidle', { timeout: 10000 })
 
     // After navigation, wait for cook button which is the most reliable indicator
-    await expect(page.getByText('Iniciar cocina').first()).toBeVisible({ timeout: 20000 })
+    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 20000 })
   })
 
   test('servings stepper is visible in detail', async ({ page }) => {
@@ -103,7 +103,7 @@ test.describe('Recipes: detail view', () => {
     await firstRecipe.click()
     await page.waitForLoadState('networkidle', { timeout: 10000 })
 
-    await expect(page.getByText('Iniciar cocina').first()).toBeVisible({ timeout: 20000 })
+    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 20000 })
     await expect(page.getByText(/Porciones:/i).first()).toBeVisible()
   })
 })
