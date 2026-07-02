@@ -134,3 +134,80 @@ describe('createRecipe tool', () => {
     expect(Array.isArray(parsed.suggestions)).toBe(true)
   })
 })
+
+it('includes source when sourceUrl is provided', async () => {
+  const mockRecipe = { id: 'src1', ...validInput }
+  const mockFetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: () => Promise.resolve(mockRecipe),
+  })
+  vi.stubGlobal('fetch', mockFetch)
+
+  const server = createMcpServer()
+  const api = createApiClient()
+  registerCreateRecipe(server, api)
+
+  const handler = getToolHandler(server, 'createRecipe')
+  await handler({ ...validInput, sourceUrl: 'https://ejemplo.com/receta', sourceType: 'url' }, {})
+
+  const body = JSON.parse((mockFetch.mock.calls[0]?.[1] as { body: string }).body)
+  expect(body.source).toEqual({
+    type: 'url',
+    url: 'https://ejemplo.com/receta',
+    externalId: undefined,
+  })
+})
+
+it('defaults source to mcp when no sourceUrl or sourceType', async () => {
+  const mockRecipe = { id: 'src2', ...validInput }
+  const mockFetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: () => Promise.resolve(mockRecipe),
+  })
+  vi.stubGlobal('fetch', mockFetch)
+
+  const server = createMcpServer()
+  const api = createApiClient()
+  registerCreateRecipe(server, api)
+
+  const handler = getToolHandler(server, 'createRecipe')
+  await handler({ ...validInput }, {})
+
+  const body = JSON.parse((mockFetch.mock.calls[0]?.[1] as { body: string }).body)
+  expect(body.source).toEqual({ type: 'mcp' })
+})
+
+it('uses mcp as sourceType fallback when only sourceUrl is provided', async () => {
+  const mockRecipe = { id: 'src3', ...validInput }
+  const mockFetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: () => Promise.resolve(mockRecipe),
+  })
+  vi.stubGlobal('fetch', mockFetch)
+
+  const server = createMcpServer()
+  const api = createApiClient()
+  registerCreateRecipe(server, api)
+
+  const handler = getToolHandler(server, 'createRecipe')
+  await handler({ ...validInput, sourceUrl: 'https://ejemplo.com' }, {})
+
+  const body = JSON.parse((mockFetch.mock.calls[0]?.[1] as { body: string }).body)
+  expect(body.source.type).toBe('mcp')
+})
+
+it('handles non-Error thrown (string error)', async () => {
+  const mockFetch = vi.fn().mockRejectedValue('string error')
+  vi.stubGlobal('fetch', mockFetch)
+
+  const server = createMcpServer()
+  const api = createApiClient()
+  registerCreateRecipe(server, api)
+
+  const handler = getToolHandler(server, 'createRecipe')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result = (await handler({ ...validInput }, {})) as any
+  expect(result.isError).toBe(true)
+  const parsed = JSON.parse(result.content[0].text)
+  expect(parsed.error).toBe('Failed to create recipe')
+})

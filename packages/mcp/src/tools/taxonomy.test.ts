@@ -77,3 +77,48 @@ describe('addRecipeRelation', () => {
     expect(body.createdBy).toBe('agent')
   })
 })
+
+describe('listCollections', () => {
+  it('calls GET /v1/collections', async () => {
+    const server = createMcpServer()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const spy = vi.spyOn(server as any, 'tool')
+    registerTaxonomyTools(server, mockApi as never)
+    mockRequest.mockResolvedValueOnce([{ id: 'c1', name: 'Favoritas' }])
+    const result = await getHandler(spy, 'listCollections')({})
+    expect(JSON.stringify(result)).toContain('Favoritas')
+    expect(mockRequest).toHaveBeenCalledWith('/v1/collections')
+  })
+})
+
+describe('addToCollection', () => {
+  it('calls POST /v1/collections/:id/recipes', async () => {
+    const server = createMcpServer()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const spy = vi.spyOn(server as any, 'tool')
+    registerTaxonomyTools(server, mockApi as never)
+    const collectionId = '00000000-0000-0000-0000-000000000001'
+    const recipeId = '00000000-0000-0000-0000-000000000002'
+    mockRequest.mockResolvedValueOnce({ collectionId, recipeId })
+    const result = await getHandler(spy, 'addToCollection')({ collectionId, recipeId })
+    expect(JSON.stringify(result)).toContain(collectionId)
+    expect(mockRequest).toHaveBeenCalledWith(
+      `/v1/collections/${collectionId}/recipes`,
+      expect.objectContaining({ method: 'POST' }),
+    )
+  })
+})
+
+describe('getRelatedRecipes', () => {
+  it('calls GET /v1/recipes/:id/relations', async () => {
+    const server = createMcpServer()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const spy = vi.spyOn(server as any, 'tool')
+    registerTaxonomyTools(server, mockApi as never)
+    const recipeId = '00000000-0000-0000-0000-000000000001'
+    mockRequest.mockResolvedValueOnce([])
+    const result = await getHandler(spy, 'getRelatedRecipes')({ recipeId })
+    expect(result).toBeDefined()
+    expect(mockRequest).toHaveBeenCalledWith(`/v1/recipes/${recipeId}/relations`)
+  })
+})

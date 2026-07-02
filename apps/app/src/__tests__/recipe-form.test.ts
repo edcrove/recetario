@@ -105,6 +105,32 @@ describe('buildPayload', () => {
     const result = buildPayload('Torta', '4', 'Postre', '', '', validIngredients, validSteps)
     expect(result.ingredients[0]?.presentation).toBeUndefined()
   })
+
+  it('includes dietaryTags when non-empty', () => {
+    const result = buildPayload('Torta', '4', 'Postre', '', '', validIngredients, validSteps, [
+      'vegano',
+    ])
+    expect(result.dietaryTags).toEqual(['vegano'])
+  })
+
+  it('omits dietaryTags when empty array', () => {
+    const result = buildPayload('Torta', '4', 'Postre', '', '', validIngredients, validSteps, [])
+    expect(result.dietaryTags).toBeUndefined()
+  })
+
+  it('omits dietaryTags when undefined', () => {
+    const result = buildPayload(
+      'Torta',
+      '4',
+      'Postre',
+      '',
+      '',
+      validIngredients,
+      validSteps,
+      undefined,
+    )
+    expect(result.dietaryTags).toBeUndefined()
+  })
 })
 
 describe('validatePayload', () => {
@@ -144,6 +170,25 @@ describe('validatePayload', () => {
     const { valid, errors } = validatePayload(payload)
     expect(valid).toBe(false)
     expect(errors.category ?? errors.general).toBeDefined()
+  })
+
+  it('sets errors.general for validation errors on unrecognized paths', () => {
+    const payload = buildPayload(
+      'Receta',
+      '4',
+      'Cena',
+      '',
+      '',
+      [{ name: 'Harina', quantity: '200', unit: 'g', presentation: '' }],
+      [],
+    )
+    // Force a Zod issue on an unknown path by corrupting the payload type
+    const corrupted = { ...payload, steps: 'not-an-array' }
+    const { valid, errors } = validatePayload(
+      corrupted as unknown as Parameters<typeof validatePayload>[0],
+    )
+    expect(valid).toBe(false)
+    expect(errors.general).toBeDefined()
   })
 })
 

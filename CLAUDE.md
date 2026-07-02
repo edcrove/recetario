@@ -80,11 +80,31 @@ The Expo app reads data from the API like any other REST client. It never calls 
 
 ## Testing rules (CRITICAL)
 
-### Coverage thresholds (`packages/api/vitest.config.ts`)
+### Every story must complete the full testing pyramid
 
-- **statements: 100%, lines: 100%, branches: 98%, functions: 80%**
-- These are enforced in CI. Never reduce them. If a new file breaks coverage → write tests.
-- Scripts (`src/scripts/**`) and `src/index.ts`, `src/types.ts`, `src/db/schema/**` are excluded.
+Each new feature must include tests at every applicable layer before the PR can merge:
+
+| Layer                 | Tool                    | What to cover                                 | Threshold                              |
+| --------------------- | ----------------------- | --------------------------------------------- | -------------------------------------- |
+| **Unit — logic**      | vitest (node)           | New utils, domain functions, MCP tools        | 100% statements/lines/branches         |
+| **Unit — API routes** | vitest (node)           | Every new route: 200, 400, 401, 404           | 100% statements/lines, 98% branches    |
+| **Integration**       | vitest + testcontainers | DB constraints, multi-step flows              | All happy path + key error paths       |
+| **Screen**            | vitest + jsdom          | App screens with non-trivial logic            | Key interactions and state changes     |
+| **E2E**               | Playwright              | Critical user flows involving the new feature | At minimum 1 smoke test per new screen |
+
+**Never ship a story without tests at every layer that applies.** If a layer isn't applicable (e.g., a backend-only story has no E2E), document why in the PR description.
+
+### Coverage thresholds (enforced in CI)
+
+| Package                  | Statements | Lines | Branches | Functions |
+| ------------------------ | ---------- | ----- | -------- | --------- |
+| `packages/api`           | 100%       | 100%  | 98%      | 80%       |
+| `packages/shared`        | 100%       | 100%  | 100%     | 100%      |
+| `packages/mcp`           | 100%       | 100%  | 100%     | 100%      |
+| `apps/app` (utils scope) | 100%       | 100%  | 100%     | 100%      |
+
+Never lower thresholds — write the tests instead. If a new file breaks coverage → write tests for it.
+Scripts (`src/scripts/**`), entrypoints (`src/index.ts`), type files, and DB schema are excluded.
 
 ### Test environments
 
@@ -129,6 +149,9 @@ The Expo app reads data from the API like any other REST client. It never calls 
 - Evidence section: paste actual CI output, screenshots for UI changes, migration output for DB changes.
 - Notion story → "In review" + PR link before requesting review.
 - Use `pnpm pr` to automate this.
+- **PRs require 1 approving review** before merge (branch protection on `main`).
+- **No ESLint warnings**: CI runs `eslint --max-warnings=0`. Fix all warnings before pushing.
+- **Dependabot alerts**: check open Dependabot security alerts before merging. Address or acknowledge each one. Patch/minor updates are auto-merged when CI passes.
 
 ## Notion
 

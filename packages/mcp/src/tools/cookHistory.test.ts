@@ -102,3 +102,34 @@ describe('getMacros', () => {
     expect(JSON.stringify(result)).toContain('no nutrition data')
   })
 })
+
+describe('getMacros — fiber_g branch', () => {
+  it('includes fiber_g when present in nutrition', async () => {
+    const server = createMcpServer()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const spy = vi.spyOn(server as any, 'tool')
+    registerMacrosTools(server, mockApi as never)
+    mockRequest.mockResolvedValueOnce({
+      title: 'Ensalada',
+      servings: 2,
+      nutrition: { calories: 200, protein_g: 10, carbs_g: 20, fat_g: 5, fiber_g: 3 },
+    })
+    const result = await getHandler(spy, 'getMacros')({ recipeId: 'r1', servings: 2 })
+    expect(JSON.stringify(result)).toContain('fiber_g')
+  })
+})
+
+it('handles zero recipeServings gracefully (scale defaults to 1)', async () => {
+  const server = createMcpServer()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const spy = vi.spyOn(server as any, 'tool')
+  registerMacrosTools(server, mockApi as never)
+  mockRequest.mockResolvedValueOnce({
+    title: 'Pasta',
+    servings: 0,
+    nutrition: { calories: 400, protein_g: 20, carbs_g: 60, fat_g: 10 },
+  })
+  const result = await getHandler(spy, 'getMacros')({ recipeId: 'r1', servings: 2 })
+  // scale = 1 when recipeServings = 0
+  expect(JSON.stringify(result)).toContain('400')
+})
