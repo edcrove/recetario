@@ -41,5 +41,19 @@ services:
     depends_on:
       - api
 
+  # Instrumented build for E2E coverage measurement (babel-plugin-istanbul)
+  # Usage: docker compose --profile coverage up -d app-coverage
+  app-coverage:
+    profiles: ['coverage']
+    build:
+      context: .
+      dockerfile: apps/app/Dockerfile.coverage
+      args:
+        EXPO_PUBLIC_API_URL: ${EXPO_PUBLIC_API_URL:-http://localhost:3000}
+    ports:
+      - '8090:80'
+    depends_on:
+      - api
+
 volumes:
   pgdata:

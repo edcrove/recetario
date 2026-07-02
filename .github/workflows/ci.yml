@@ -308,21 +308,51 @@ jobs:
         env:
           DATABASE_URL: postgres://recetario:recetario@localhost:5432/recetario
 
-      - name: Build Expo web app
+      - name: Build Expo web app (standard)
         run: pnpm --filter recetario-app build
         env:
           EXPO_PUBLIC_API_URL: http://localhost:3000
 
+      - name: Build Expo web app (instrumented for E2E coverage)
+        run: BABEL_ENV=coverage pnpm --filter recetario-app exec expo export --platform web --output-dir dist-coverage
+        env:
+          EXPO_PUBLIC_API_URL: http://localhost:3000
+
+      - name: Serve instrumented app for E2E coverage
+        run: |
+          npx serve dist-coverage --listen 8090 &
+          sleep 3
+          curl -sf http://localhost:8090 > /dev/null
+        working-directory: apps/app
+
       - name: Install Playwright browsers
         run: pnpm --filter recetario-app exec playwright install chromium --with-deps
 
-      - name: Run E2E smoke tests
+      - name: Run E2E smoke tests (standard build)
         run: pnpm --filter recetario-app exec playwright test e2e/smoke.spec.ts
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:8080
           EXPO_PUBLIC_API_URL: http://localhost:3000
           E2E_EMAIL: e2e@recetario.app
           E2E_PASSWORD: e2etest1234
+
+      - name: Run E2E tests with coverage (instrumented build)
+        run: pnpm --filter recetario-app exec playwright test e2e/smoke.spec.ts e2e/auth.spec.ts e2e/recipes.spec.ts e2e/menu.spec.ts e2e/cook-mode.spec.ts
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:8090
+          EXPO_PUBLIC_API_URL: http://localhost:3000
+          E2E_EMAIL: e2e@recetario.app
+          E2E_PASSWORD: e2etest1234
+          E2E_COVERAGE: 'true'
+
+      - name: Generate E2E coverage report
+        if: always()
+        run: |
+          cd apps/app
+          npx nyc merge .e2e-coverage .nyc_output/out.json
+          node e2e/remap-coverage.js
+          npx nyc report --reporter=text --reporter=lcov --reporter=json-summary
+        continue-on-error: true
 
       - name: Upload Playwright report
         if: always()
@@ -331,6 +361,14 @@ jobs:
           name: playwright-report
           path: apps/app/playwright-report/
           retention-days: 7
+
+      - name: Upload E2E coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-coverage-report
+          path: apps/app/coverage-e2e/
+          retention-days: 14
 
   ci:
     name: CI Gate
