@@ -7,17 +7,17 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
-  Alert,
 } from 'react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../src/api/client'
 import { useAuth } from '../../src/providers/AuthProvider'
+import { confirmAsync, notify } from '../../src/utils/platformAlert'
 
 const ROLE_LABELS: Record<string, string> = {
-  owner: 'Owner',
+  owner: 'Dueño',
   admin: 'Admin',
-  member: 'Member',
-  viewer: 'Viewer',
+  member: 'Miembro',
+  viewer: 'Espectador',
 }
 
 const ROLE_COLORS: Record<string, string> = {
@@ -64,7 +64,7 @@ export default function HouseholdScreen() {
       setInviteUserId('')
       setInvitingFor(null)
     },
-    onError: () => Alert.alert('Error', 'Could not invite user. Check the user ID.'),
+    onError: () => notify('Error', 'No se pudo invitar al usuario. Verificá el ID.'),
   })
 
   const removeMember = useMutation({
@@ -86,13 +86,14 @@ export default function HouseholdScreen() {
       {/* Create household */}
       {households.length === 0 && (
         <View style={s.emptyCard}>
-          <Text style={s.emptyTitle}>Create your household</Text>
+          <Text style={s.emptyTitle}>Creá tu hogar</Text>
           <Text style={s.emptyBody}>
-            A household lets you share recipes and meal plans with family or roommates.
+            Un hogar te permite compartir recetas y planes de comida con tu familia o compañeros de
+            casa.
           </Text>
           <TextInput
             style={s.input}
-            placeholder="e.g. The García Family"
+            placeholder="ej. Familia García"
             value={newHouseholdName}
             onChangeText={setNewHouseholdName}
           />
@@ -101,7 +102,7 @@ export default function HouseholdScreen() {
             disabled={!newHouseholdName.trim() || createHousehold.isPending}
             onPress={() => createHousehold.mutate(newHouseholdName.trim())}
           >
-            <Text style={s.btnText}>Create household</Text>
+            <Text style={s.btnText}>Crear hogar</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -112,7 +113,7 @@ export default function HouseholdScreen() {
           <Text style={s.householdName}>🏠 {hh.name}</Text>
 
           {/* Members */}
-          <Text style={s.sectionLabel}>Members</Text>
+          <Text style={s.sectionLabel}>Miembros</Text>
           {(hh.members ?? []).map((m) => (
             <View key={m.userId} style={s.memberRow}>
               <View style={s.memberInfo}>
@@ -122,21 +123,17 @@ export default function HouseholdScreen() {
                 <Text style={s.memberUserId} numberOfLines={1}>
                   {m.userId.slice(0, 8)}…
                 </Text>
-                {!m.acceptedAt && <Text style={s.pending}>Pending</Text>}
+                {!m.acceptedAt && <Text style={s.pending}>Pendiente</Text>}
               </View>
               {m.role !== 'owner' && hh.ownerId === hh.ownerId && (
                 <TouchableOpacity
-                  onPress={() =>
-                    Alert.alert('Remove member', 'Remove this member from the household?', [
-                      { text: 'Cancel', style: 'cancel' },
-                      {
-                        text: 'Remove',
-                        style: 'destructive',
-                        onPress: () =>
-                          removeMember.mutate({ householdId: hh.id, userId: m.userId }),
-                      },
-                    ])
-                  }
+                  onPress={async () => {
+                    const confirmed = await confirmAsync(
+                      'Quitar miembro',
+                      '¿Quitar a este miembro del hogar?',
+                    )
+                    if (confirmed) removeMember.mutate({ householdId: hh.id, userId: m.userId })
+                  }}
                 >
                   <Text style={s.removeText}>✕</Text>
                 </TouchableOpacity>
@@ -147,10 +144,10 @@ export default function HouseholdScreen() {
           {/* Invite */}
           {invitingFor === hh.id ? (
             <View style={s.inviteBox}>
-              <Text style={s.inviteLabel}>User ID to invite</Text>
+              <Text style={s.inviteLabel}>ID de usuario a invitar</Text>
               <TextInput
                 style={s.input}
-                placeholder="Paste user UUID"
+                placeholder="Pegá el UUID del usuario"
                 value={inviteUserId}
                 onChangeText={setInviteUserId}
                 autoCapitalize="none"
@@ -180,16 +177,16 @@ export default function HouseholdScreen() {
                     })
                   }
                 >
-                  <Text style={s.btnText}>Send invite</Text>
+                  <Text style={s.btnText}>Enviar invitación</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => setInvitingFor(null)}>
-                  <Text style={s.cancelText}>Cancel</Text>
+                  <Text style={s.cancelText}>Cancelar</Text>
                 </TouchableOpacity>
               </View>
             </View>
           ) : (
             <TouchableOpacity style={s.inviteBtn} onPress={() => setInvitingFor(hh.id)}>
-              <Text style={s.inviteBtnText}>+ Invite member</Text>
+              <Text style={s.inviteBtnText}>+ Invitar miembro</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -200,7 +197,7 @@ export default function HouseholdScreen() {
         <View style={s.addCard}>
           <TextInput
             style={s.input}
-            placeholder="New household name…"
+            placeholder="Nombre del nuevo hogar…"
             value={newHouseholdName}
             onChangeText={setNewHouseholdName}
           />
@@ -209,7 +206,7 @@ export default function HouseholdScreen() {
             disabled={!newHouseholdName.trim() || createHousehold.isPending}
             onPress={() => createHousehold.mutate(newHouseholdName.trim())}
           >
-            <Text style={s.btnText}>Create another household</Text>
+            <Text style={s.btnText}>Crear otro hogar</Text>
           </TouchableOpacity>
         </View>
       )}

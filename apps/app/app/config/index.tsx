@@ -7,12 +7,12 @@ import {
   TextInput,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   Modal,
   ScrollView,
 } from 'react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../src/api/client'
+import { notify } from '../../src/utils/platformAlert'
 
 type TabType = 'categories' | 'food-types' | 'tags'
 type TaxonomyItem = {
@@ -59,7 +59,7 @@ export default function ConfiguratorScreen() {
       setDeleteTarget(null)
       setReassignId('')
     },
-    onError: () => Alert.alert('Error', 'Could not delete item.'),
+    onError: () => notify('Error', 'No se pudo eliminar el elemento.'),
   })
 
   const mergeTags = useMutation({

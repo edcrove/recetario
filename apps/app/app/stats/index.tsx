@@ -33,13 +33,13 @@ export default function StatsScreen() {
       {/* Total sessions */}
       <View style={s.totalCard}>
         <Text style={s.totalNum}>{stats?.totalSessions ?? 0}</Text>
-        <Text style={s.totalLabel}>total sessions cooked</Text>
+        <Text style={s.totalLabel}>sesiones de cocina en total</Text>
       </View>
 
       {/* Top recipes */}
-      <Text style={s.sectionTitle}>Most cooked recipes</Text>
+      <Text style={s.sectionTitle}>Recetas más cocinadas</Text>
       {(stats?.topRecipes ?? []).length === 0 ? (
-        <Text style={s.empty}>Start cooking to see your top recipes here!</Text>
+        <Text style={s.empty}>¡Empezá a cocinar para ver tus recetas más usadas acá!</Text>
       ) : (
         stats?.topRecipes.map((r, i) => (
           <TouchableOpacity
@@ -53,7 +53,7 @@ export default function StatsScreen() {
                 {r.recipeId.slice(0, 8)}…
               </Text>
               <Text style={s.topLastCooked}>
-                Last:{' '}
+                Última vez:{' '}
                 {new Date(r.lastCookedAt).toLocaleDateString('es-AR', {
                   day: 'numeric',
                   month: 'short',
@@ -68,9 +68,9 @@ export default function StatsScreen() {
       )}
 
       {/* Frequency chart */}
-      <Text style={s.sectionTitle}>Weekly frequency</Text>
+      <Text style={s.sectionTitle}>Frecuencia semanal</Text>
       {(stats?.frequencyByWeek ?? []).length === 0 ? (
-        <Text style={s.empty}>No cooking sessions recorded yet.</Text>
+        <Text style={s.empty}>Todavía no hay sesiones de cocina registradas.</Text>
       ) : (
         <View style={s.chart}>
           {stats?.frequencyByWeek.map((w) => (

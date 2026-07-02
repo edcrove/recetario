@@ -129,7 +129,7 @@ test.describe('Household screen', () => {
   test('navigates and shows create or existing household', async ({ page }) => {
     await page.getByTestId('home-profile-button').click()
     await page.getByText('Mi hogar').click()
-    await expect(page.getByText(/Create your household|🏠/).first()).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText(/Creá tu hogar|🏠/).first()).toBeVisible({ timeout: 8000 })
   })
 })
 
@@ -137,7 +137,9 @@ test.describe('Stats screen', () => {
   test('navigates and shows session count', async ({ page }) => {
     await page.getByTestId('home-profile-button').click()
     await page.getByText('Estadísticas de cocina').click()
-    await expect(page.getByText(/total sessions cooked|Most cooked recipes/).first()).toBeVisible({
+    await expect(
+      page.getByText(/sesiones de cocina en total|Recetas más cocinadas/).first(),
+    ).toBeVisible({
       timeout: 8000,
     })
   })
