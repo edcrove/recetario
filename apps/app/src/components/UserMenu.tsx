@@ -66,7 +66,12 @@ export function UserMenu({ visible, onClose }: Props) {
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={s.backdrop} activeOpacity={1} onPress={onClose} />
+      <TouchableOpacity
+        testID="usermenu-backdrop"
+        style={s.backdrop}
+        activeOpacity={1}
+        onPress={onClose}
+      />
       <View style={s.sheet}>
         {/* Handle */}
         <View style={s.handle} />
@@ -92,9 +97,10 @@ export function UserMenu({ visible, onClose }: Props) {
 
         {/* Menu items */}
         <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
-          {MENU_ITEMS.map((item) => (
+          {MENU_ITEMS.map((item, i) => (
             <TouchableOpacity
               key={item.route + item.label}
+              testID={`usermenu-item-${i}`}
               style={s.item}
               onPress={() => navigate(item.route)}
             >
@@ -111,7 +117,11 @@ export function UserMenu({ visible, onClose }: Props) {
           <View style={s.divider} />
 
           {/* Sign out */}
-          <TouchableOpacity style={[s.item, s.signOutItem]} onPress={handleSignOut}>
+          <TouchableOpacity
+            testID="usermenu-signout"
+            style={[s.item, s.signOutItem]}
+            onPress={handleSignOut}
+          >
             <Text style={s.itemIcon}>🚪</Text>
             <Text style={s.signOutLabel}>Cerrar sesión</Text>
           </TouchableOpacity>

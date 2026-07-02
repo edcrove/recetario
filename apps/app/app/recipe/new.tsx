@@ -59,16 +59,11 @@ export default function NewRecipeScreen() {
   })
 
   function handleSubmit() {
-    const payload = buildPayload(
-      title,
-      servings,
-      category,
-      tags,
-      notes,
-      ingredients,
-      steps,
-      foodTypeIds,
-    )
+    // NOTE: foodTypeIds is collected by FoodTypePicker but has no backend
+    // association endpoint yet (recipe_food_types is never inserted into by
+    // the recipes API — see audit finding). Do not pass it as buildPayload's
+    // dietaryTags argument, it would fail DietaryTagSchema validation.
+    const payload = buildPayload(title, servings, category, tags, notes, ingredients, steps)
     const { valid, errors: fieldErrors } = validatePayload(payload)
     if (!valid) {
       setErrors(fieldErrors)

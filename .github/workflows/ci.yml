@@ -337,7 +337,7 @@ jobs:
           E2E_PASSWORD: e2etest1234
 
       - name: Run E2E tests with coverage (instrumented build)
-        run: pnpm --filter recetario-app exec playwright test e2e/smoke.spec.ts e2e/auth.spec.ts e2e/recipes.spec.ts e2e/menu.spec.ts e2e/cook-mode.spec.ts
+        run: pnpm --filter recetario-app exec playwright test e2e/smoke.spec.ts e2e/auth.spec.ts e2e/recipes.spec.ts e2e/menu.spec.ts e2e/cook-mode.spec.ts e2e/profile-menu.spec.ts
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:8090
           EXPO_PUBLIC_API_URL: http://localhost:3000

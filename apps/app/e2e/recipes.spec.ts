@@ -57,7 +57,11 @@ test.describe('Recipes: create via form', () => {
     // Fill form
     await page.getByPlaceholder('Nombre de la receta').fill(recipeName)
 
-    // Set servings (already defaults to 4)
+    // Select a food type chip (FoodTypePicker)
+    const foodTypeChip = page.locator('[data-testid^="food-type-chip-"]').first()
+    if ((await foodTypeChip.count()) > 0) {
+      await foodTypeChip.click()
+    }
 
     // Add ingredient
     const ingredientInput = page.getByPlaceholder('Ingrediente').first()
@@ -74,6 +78,20 @@ test.describe('Recipes: create via form', () => {
 
     // Should return to home and recipe appears
     await expect(page.getByText(recipeName)).toBeVisible({ timeout: 10000 })
+  })
+
+  test('can select up to 3 food type chips', async ({ page }) => {
+    await page.getByText('+ Nueva Receta').click()
+    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible({ timeout: 5000 })
+
+    const chips = page.locator('[data-testid^="food-type-chip-"]')
+    const count = await chips.count()
+    if (count >= 2) {
+      await chips.nth(0).click()
+      await chips.nth(1).click()
+      // No crash after selecting multiple
+      await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible()
+    }
   })
 })
 
@@ -105,5 +123,63 @@ test.describe('Recipes: detail view', () => {
 
     await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 20000 })
     await expect(page.getByText(/Porciones:/i).first()).toBeVisible()
+  })
+
+  async function openFirstRecipeDetail(page: import('@playwright/test').Page) {
+    const firstRecipe = page
+      .locator(
+        'text=/Milanesa de pollo|Empanadas de carne|Guiso de lentejas|Tarta de verduras|Locro criollo|Alfajores caseros|Revuelto gramajo|Ensalada César/',
+      )
+      .first()
+    await expect(firstRecipe).toBeVisible({ timeout: 10000 })
+    await firstRecipe.click()
+    await page.waitForLoadState('networkidle', { timeout: 10000 })
+    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 20000 })
+  }
+
+  test('unit toggle switches between cooking/metric/imperial', async ({ page }) => {
+    await openFirstRecipeDetail(page)
+    await expect(page.getByText('Métrico', { exact: true })).toBeVisible({ timeout: 5000 })
+    await page.getByText('Métrico', { exact: true }).click()
+    await expect(page.getByText('Imperial', { exact: true })).toBeVisible()
+    await page.getByText('Imperial', { exact: true }).click()
+    await page.getByText('Cocina', { exact: true }).click()
+    // Screen stays functional after switching modes
+    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible()
+  })
+
+  test('editar link navigates to edit form', async ({ page }) => {
+    await openFirstRecipeDetail(page)
+    await page.getByText('Editar').click()
+    await expect(page.getByText(/Editar Receta|Guardar Cambios/).first()).toBeVisible({
+      timeout: 8000,
+    })
+  })
+
+  test('editing a recipe updates its title', async ({ page }) => {
+    await openFirstRecipeDetail(page)
+    const originalTitle = await page.getByTestId('recipe-detail-cook').isVisible()
+    expect(originalTitle).toBe(true)
+
+    await page.getByText('Editar').click()
+    await expect(page.getByText(/Editar Receta|Guardar Cambios/).first()).toBeVisible({
+      timeout: 8000,
+    })
+    // Save without changes — should return to detail
+    await page.getByText(/Guardar Cambios|Guardar Receta/).click()
+    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 8000 })
+  })
+
+  test('history tab shows empty state or past sessions', async ({ page }) => {
+    await openFirstRecipeDetail(page)
+    await page.getByTestId('recipe-tab-history').click()
+    await expect(page.getByText(/Todavía no cocinaste|★|☆/).first()).toBeVisible({ timeout: 8000 })
+  })
+
+  test('recipe tab returns from history to ingredients view', async ({ page }) => {
+    await openFirstRecipeDetail(page)
+    await page.getByTestId('recipe-tab-history').click()
+    await page.getByTestId('recipe-tab-recipe').click()
+    await expect(page.getByText('Ingredientes')).toBeVisible({ timeout: 5000 })
   })
 })

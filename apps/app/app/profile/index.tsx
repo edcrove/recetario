@@ -8,6 +8,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -228,12 +229,17 @@ export default function ProfileScreen() {
       <TouchableOpacity
         testID="profile-signout"
         style={s.signOutBtn}
-        onPress={() =>
+        onPress={() => {
+          // Alert.alert is a no-op on react-native-web — use window.confirm there instead
+          if (Platform.OS === 'web') {
+            if (window.confirm('¿Estás seguro que querés cerrar sesión?')) void handleSignOut()
+            return
+          }
           Alert.alert('Cerrar sesión', '¿Estás seguro?', [
             { text: 'Cancelar', style: 'cancel' },
             { text: 'Cerrar sesión', style: 'destructive', onPress: handleSignOut },
           ])
-        }
+        }}
       >
         <Text style={s.signOutText}>Cerrar sesión</Text>
       </TouchableOpacity>

@@ -137,12 +137,17 @@ export default function HomeScreen() {
             <Text style={styles.menuButtonText}>🛒 Compras</Text>
           </TouchableOpacity>
           <TouchableOpacity
+            testID="home-collections-button"
             style={styles.collectionsButton}
             onPress={() => router.push('/collections')}
           >
             <Text style={styles.collectionsButtonText}>📋</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.profileButton} onPress={() => setMenuOpen(true)}>
+          <TouchableOpacity
+            testID="home-profile-button"
+            style={styles.profileButton}
+            onPress={() => setMenuOpen(true)}
+          >
             <Text style={styles.profileButtonText}>👤</Text>
           </TouchableOpacity>
         </View>

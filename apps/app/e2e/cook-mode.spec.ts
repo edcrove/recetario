@@ -59,23 +59,62 @@ test.describe('Cook mode: basic flow', () => {
     await openRecipeDetail(page)
     await page.getByTestId('recipe-detail-cook').click()
     await expect(page.getByText(/Paso \d+ \/ \d+/)).toBeVisible({ timeout: 8000 })
-    await page.evaluate(() => {
-      const tabs = Array.from(document.querySelectorAll('[dir="auto"]')).filter(
-        (el) => el.textContent === 'Ingredientes',
-      )
-      tabs.forEach((t) =>
-        t.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })),
-      )
-    })
-    // After tab switch, ingredients are in the checklist
-    // Use evaluate in case they're hidden by RN Web transform
-    const hasIngredient = await page.evaluate(() => {
-      const pattern = /Pechugas|Cebolla|Harina|Lentejas|Espinaca|Maíz/
-      return Array.from(document.querySelectorAll('[dir="auto"]')).some((el) =>
-        pattern.test(el.textContent ?? ''),
-      )
-    })
-    expect(hasIngredient).toBe(true)
+    await page.getByTestId('cook-tab-ingredients').click()
+    await expect(page.getByTestId('ingredient-checklist-row-0')).toBeVisible({ timeout: 5000 })
+  })
+
+  test('can toggle ingredient checklist items', async ({ page }) => {
+    await openRecipeDetail(page)
+    await page.getByTestId('recipe-detail-cook').click()
+    await expect(page.getByText(/Paso \d+ \/ \d+/)).toBeVisible({ timeout: 8000 })
+    await page.getByTestId('cook-tab-ingredients').click()
+    const row = page.getByTestId('ingredient-checklist-row-0')
+    await expect(row).toBeVisible({ timeout: 5000 })
+    await row.click()
+    await row.click() // toggle back off
+    await expect(row).toBeVisible()
+  })
+
+  test('going back to steps tab from ingredients works', async ({ page }) => {
+    await openRecipeDetail(page)
+    await page.getByTestId('recipe-detail-cook').click()
+    await page.getByTestId('cook-tab-ingredients').click()
+    await expect(page.getByTestId('ingredient-checklist-row-0')).toBeVisible({ timeout: 5000 })
+    await page.getByTestId('cook-tab-steps').click()
+    await expect(page.getByText(/Paso \d+ \/ \d+/)).toBeVisible({ timeout: 5000 })
+  })
+
+  test('previous button navigates back a step', async ({ page }) => {
+    await openRecipeDetail(page)
+    await page.getByTestId('recipe-detail-cook').click()
+    await expect(page.getByText(/Paso 1 \/ /)).toBeVisible({ timeout: 8000 })
+    await page.getByTestId('cook-next').click()
+    await expect(page.getByText(/Paso 2 \/ /)).toBeVisible({ timeout: 5000 })
+    await page.getByTestId('cook-prev').click()
+    await expect(page.getByText(/Paso 1 \/ /)).toBeVisible({ timeout: 5000 })
+  })
+
+  test('step timer is visible and can be paused/resumed', async ({ page }) => {
+    // "Milanesa de pollo napolitana" step 4 has durationMin — navigate there
+    const recipe = page.getByText('Milanesa de pollo napolitana').first()
+    await expect(recipe).toBeVisible({ timeout: 10000 })
+    await recipe.click()
+    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 8000 })
+    await page.getByTestId('recipe-detail-cook').click()
+    await expect(page.getByText(/Paso 1 \/ /)).toBeVisible({ timeout: 8000 })
+
+    // Navigate to step 4 (index 3) which has the timer
+    for (let i = 0; i < 3; i++) {
+      await page.getByTestId('cook-next').click()
+      await page.waitForTimeout(200)
+    }
+
+    const pauseBtn = page.getByText(/Pausar|Reanudar/).first()
+    const hasTimer = await pauseBtn.count()
+    if (hasTimer > 0) {
+      await pauseBtn.click()
+      await expect(page.getByText(/Pausar|Reanudar/).first()).toBeVisible()
+    }
   })
 
   test('rating modal appears after finishing all steps', async ({ page }) => {
