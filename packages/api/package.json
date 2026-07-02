@@ -13,6 +13,7 @@
     "pretest": "pnpm --filter @recetario/shared build",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:integration-coverage": "vitest run --config vitest.integration.config.ts --coverage",
     "typecheck": "tsc --noEmit",
     "generate-key": "tsx src/scripts/generate-key.ts",
     "seed": "tsx src/scripts/seed.ts"
