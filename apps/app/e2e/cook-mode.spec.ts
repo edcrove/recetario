@@ -79,13 +79,8 @@ test.describe('Cook mode: basic flow', () => {
   })
 
   test('rating modal appears after finishing all steps', async ({ page }) => {
-    const recipe = page.locator('text=/Revuelto gramajo/').first()
-    const hasRecipe = await recipe.count()
-    if (hasRecipe === 0) {
-      test.skip()
-      return
-    }
-
+    const recipe = page.locator('[data-testid^="recipe-card-"]').first()
+    await expect(recipe).toBeVisible({ timeout: 10000 })
     await recipe.click()
     await expect(page.getByText('Iniciar cocina')).toBeVisible({ timeout: 8000 })
     await page.getByText('Iniciar cocina').click()
@@ -105,13 +100,8 @@ test.describe('Cook mode: basic flow', () => {
   })
 
   test('can skip rating and return', async ({ page }) => {
-    const recipe = page.locator('text=/Revuelto gramajo/').first()
-    const hasRecipe = await recipe.count()
-    if (hasRecipe === 0) {
-      test.skip()
-      return
-    }
-
+    const recipe = page.locator('[data-testid^="recipe-card-"]').first()
+    await expect(recipe).toBeVisible({ timeout: 10000 })
     await recipe.click()
     await page.getByText('Iniciar cocina').click()
 

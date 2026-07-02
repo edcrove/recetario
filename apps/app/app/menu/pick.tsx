@@ -81,11 +81,14 @@ export default function PickRecipeScreen() {
           keyExtractor={(item: Recipe) => item.id ?? item.title}
           renderItem={({ item }: { item: Recipe }) => (
             <TouchableOpacity
+              testID={`pick-recipe-${item.id}`}
               style={styles.card}
               onPress={() => addMutation.mutate(item)}
               disabled={addMutation.isPending}
             >
-              <Text style={styles.cardTitle}>{item.title}</Text>
+              <Text testID={`pick-recipe-title-${item.id}`} style={styles.cardTitle}>
+                {item.title}
+              </Text>
               <Text style={styles.cardMeta}>
                 {item.category} · {item.servings} porc. base
                 {item.totalTimeMin ? ` · ${item.totalTimeMin} min` : ''}

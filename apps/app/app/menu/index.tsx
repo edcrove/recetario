@@ -88,6 +88,7 @@ export default function MenuWeekScreen() {
                 {entry ? (
                   <View style={styles.entryRow}>
                     <TouchableOpacity
+                      testID={`menu-entry-${day}-${slot}`}
                       style={styles.entryBtn}
                       onPress={() =>
                         router.push({
@@ -102,6 +103,7 @@ export default function MenuWeekScreen() {
                       <Text style={styles.entryServings}>{entry.servings} porc.</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
+                      testID={`menu-remove-${day}-${slot}`}
                       style={styles.removeBtn}
                       onPress={() => removeMutation.mutate({ date: day, slot })}
                     >
@@ -110,6 +112,7 @@ export default function MenuWeekScreen() {
                   </View>
                 ) : (
                   <TouchableOpacity
+                    testID={`menu-add-${day}-${slot}`}
                     style={styles.addSlotBtn}
                     onPress={() =>
                       router.push({

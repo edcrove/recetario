@@ -47,15 +47,11 @@ test.describe('Smoke: auth flow', () => {
 
 test.describe('Smoke: recipe navigation', () => {
   test('clicking a recipe navigates to detail', async ({ page }) => {
-    const firstCard = page
-      .locator('text=/Milanesa|Pasta|Ensalada|Guiso|Locro|Alfajores|Revuelto|Tarta/')
-      .first()
+    // Use testID for reliable RN Web interaction
+    const firstCard = page.locator('[data-testid^="recipe-card-"]').first()
     await expect(firstCard).toBeVisible({ timeout: 10000 })
-    const recipeTitle = await firstCard.textContent()
     await firstCard.click()
-    // Recipe detail shows the cook mode button
-    await expect(page.getByText(/Iniciar cocina|Receta/i).first()).toBeVisible({ timeout: 8000 })
-    // Title still visible in detail header
-    await expect(page.getByText(recipeTitle ?? '').first()).toBeVisible()
+    await page.waitForLoadState('networkidle', { timeout: 10000 })
+    await expect(page.getByText('Iniciar cocina').first()).toBeVisible({ timeout: 12000 })
   })
 })

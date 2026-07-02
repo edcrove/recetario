@@ -9,7 +9,7 @@ test.describe('Menu: navigation', () => {
   test('Menú Semanal button opens menu screen', async ({ page }) => {
     await page.getByText('Menú Semanal').click()
     await expect(page.getByText(/Anterior|Siguiente/i).first()).toBeVisible({ timeout: 8000 })
-    await expect(page.getByText('🛒 Lista de compras')).toBeVisible()
+    await expect(page.getByText('Lista de compras')).toBeVisible()
   })
 
   test('week navigation shows previous and next buttons', async ({ page }) => {
@@ -171,8 +171,8 @@ test.describe('Menu: shopping list', () => {
   test('shopping list button from menu shows list', async ({ page }) => {
     await page.getByText('Menú Semanal').click()
     await page.waitForLoadState('networkidle', { timeout: 10000 })
-    await expect(page.getByText('🛒 Lista de compras')).toBeVisible({ timeout: 10000 })
-    await page.getByText('🛒 Lista de compras').click()
+    await expect(page.getByText('Lista de compras')).toBeVisible({ timeout: 10000 })
+    await page.getByText('Lista de compras').click()
     await page.waitForLoadState('networkidle', { timeout: 15000 })
     await expect(page.getByText('Lista de Compras').first()).toBeAttached({ timeout: 10000 })
   })
