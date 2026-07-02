@@ -71,8 +71,18 @@ export const api = {
     getWeek: (weekStart: string) => request<MenuEntry[]>(`/v1/menu?weekStart=${weekStart}`),
     add: (data: { date: string; slot: string; recipeId: string; servings: number }) =>
       request<MenuEntry>('/v1/menu', { method: 'POST', body: JSON.stringify(data) }),
-    remove: (date: string, slot: string) =>
-      request<void>(`/v1/menu/${date}/${encodeURIComponent(slot)}`, { method: 'DELETE' }),
+    remove: (date: string, slot: string, recipeId?: string) =>
+      request<void>(
+        recipeId
+          ? `/v1/menu/${date}/${encodeURIComponent(slot)}/${recipeId}`
+          : `/v1/menu/${date}/${encodeURIComponent(slot)}`,
+        { method: 'DELETE' },
+      ),
+    updateServings: (date: string, slot: string, recipeId: string, servings: number) =>
+      request<MenuEntry>(`/v1/menu/${date}/${encodeURIComponent(slot)}/${recipeId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ servings }),
+      }),
     shoppingList: (weekStart: string) =>
       request<ShoppingListItem[]>(`/v1/menu/shopping-list?weekStart=${weekStart}`),
     nutrition: (weekStart: string) =>

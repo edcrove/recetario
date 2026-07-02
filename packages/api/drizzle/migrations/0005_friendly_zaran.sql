@@ -1,0 +1,2 @@
+DROP INDEX "menu_entries_owner_date_slot_idx";--> statement-breakpoint
+CREATE UNIQUE INDEX "menu_entries_owner_date_slot_recipe_idx" ON "menu_entries" USING btree ("owner_id","date","slot","recipe_id");

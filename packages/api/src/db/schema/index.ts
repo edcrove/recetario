@@ -113,7 +113,12 @@ export const menuEntries = pgTable(
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
   (t) => [
-    uniqueIndex('menu_entries_owner_date_slot_idx').on(t.ownerId, t.date, t.slot),
+    uniqueIndex('menu_entries_owner_date_slot_recipe_idx').on(
+      t.ownerId,
+      t.date,
+      t.slot,
+      t.recipeId,
+    ),
     index('menu_entries_owner_idx').on(t.ownerId),
   ],
 )

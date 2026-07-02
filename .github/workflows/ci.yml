@@ -68,6 +68,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
+      - name: Build shared package
+        run: pnpm --filter @recetario/shared build
+
       - name: Run unit & integration tests
         id: tests
         run: |
@@ -157,6 +160,9 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        run: pnpm --filter @recetario/shared build
 
       - name: Generate API coverage
         run: pnpm --filter @recetario/api test:coverage

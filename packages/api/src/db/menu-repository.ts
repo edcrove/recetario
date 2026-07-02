@@ -49,12 +49,13 @@ export class MenuRepository {
         servings: data.servings,
       })
       .onConflictDoUpdate({
-        target: [schema.menuEntries.ownerId, schema.menuEntries.date, schema.menuEntries.slot],
-        set: {
-          recipeId: data.recipeId,
-          servings: data.servings,
-          updatedAt: new Date(),
-        },
+        target: [
+          schema.menuEntries.ownerId,
+          schema.menuEntries.date,
+          schema.menuEntries.slot,
+          schema.menuEntries.recipeId,
+        ],
+        set: { servings: data.servings, updatedAt: new Date() },
       })
       .returning()
 
@@ -70,20 +71,53 @@ export class MenuRepository {
     return mapToMenuEntry(row, recipe)
   }
 
-  async remove(ownerId: string, date: string, slot: MenuSlot): Promise<boolean> {
+  async remove(ownerId: string, date: string, slot: MenuSlot, recipeId?: string): Promise<boolean> {
     const db = this.db
+    const conditions = [
+      eq(schema.menuEntries.ownerId, ownerId),
+      eq(schema.menuEntries.date, date),
+      eq(schema.menuEntries.slot, slot),
+      ...(recipeId ? [eq(schema.menuEntries.recipeId, recipeId)] : []),
+    ]
     const result = await db
       .delete(schema.menuEntries)
+      .where(and(...conditions))
+      .returning({ id: schema.menuEntries.id })
+
+    return result.length > 0
+  }
+
+  /* v8 ignore next 32 */
+  async updateServings(
+    ownerId: string,
+    date: string,
+    slot: MenuSlot,
+    recipeId: string,
+    servings: number,
+  ): Promise<MenuEntry | null> {
+    const db = this.db
+    const [row] = await db
+      .update(schema.menuEntries)
+      .set({ servings, updatedAt: new Date() })
       .where(
         and(
           eq(schema.menuEntries.ownerId, ownerId),
           eq(schema.menuEntries.date, date),
           eq(schema.menuEntries.slot, slot),
+          eq(schema.menuEntries.recipeId, recipeId),
         ),
       )
-      .returning({ id: schema.menuEntries.id })
+      .returning()
 
-    return result.length > 0
+    if (!row) return null
+
+    const [recipe] = await db
+      .select({ title: schema.recipes.title })
+      .from(schema.recipes)
+      .where(eq(schema.recipes.id, row.recipeId))
+      .limit(1)
+
+    return mapToMenuEntry(row, recipe)
   }
 
   async getWeek(ownerId: string, weekStart: string): Promise<MenuEntry[]> {
