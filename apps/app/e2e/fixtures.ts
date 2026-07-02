@@ -25,6 +25,8 @@ export const test = base.extend({
     // Navigate to trigger the auth check with the token set
     await page.goto('/')
     await page.waitForURL((url) => !url.pathname.startsWith('/auth'), { timeout: 10000 })
+    // Wait for home screen to be fully loaded (recipe list or empty state)
+    await page.waitForLoadState('networkidle', { timeout: 15000 })
 
     await use(page)
   },
