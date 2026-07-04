@@ -293,10 +293,10 @@ export const api = {
           }>
         }>
       >('/v1/households/mine'),
-    invite: (householdId: string, userId: string, role: string) =>
+    invite: (householdId: string, email: string, role: string) =>
       request<{ userId: string; role: string }>(`/v1/households/${householdId}/invite`, {
         method: 'POST',
-        body: JSON.stringify({ userId, role }),
+        body: JSON.stringify({ email, role }),
       }),
     accept: (householdId: string) =>
       request<{ userId: string; role: string }>(`/v1/households/${householdId}/accept`, {

@@ -150,3 +150,22 @@ describe('api.menu.shoppingList', () => {
     expect(result).toEqual([])
   })
 })
+
+describe('api.households.invite', () => {
+  // Regression test for the 2026-07-03 audit finding: inviting used to send a
+  // raw userId (which required knowing someone's UUID). Now it sends email.
+  it('calls POST /v1/households/:id/invite with email in the body', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 201,
+      json: async () => ({ userId: 'u1', role: 'member' }),
+    })
+
+    await api.households.invite('hh1', 'amigo@example.com', 'member')
+    const [url, options] = mockFetch.mock.calls[0] as [string, RequestInit]
+    expect(url).toContain('/v1/households/hh1/invite')
+    expect(options.method).toBe('POST')
+    const body = JSON.parse(options.body as string)
+    expect(body).toEqual({ email: 'amigo@example.com', role: 'member' })
+  })
+})

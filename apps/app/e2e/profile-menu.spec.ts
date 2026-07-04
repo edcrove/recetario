@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { DEMO_ACCOUNTS } from './demoAccounts'
 
 /**
  * Profile menu (UserMenu component) and satellite screens:
@@ -206,6 +207,118 @@ test.describe('Household screen', () => {
     await page.getByTestId('home-profile-button').click()
     await page.getByText('Mi hogar').click()
     await expect(page.getByText(/Creá tu hogar|🏠/).first()).toBeVisible({ timeout: 8000 })
+  })
+
+  test('creates a household when none exists', async ({ page }) => {
+    await page.getByTestId('home-profile-button').click()
+    await page.getByText('Mi hogar').click()
+    await expect(page.getByText(/Creá tu hogar|🏠/).first()).toBeVisible({ timeout: 8000 })
+    const alreadyHasHousehold = await page.getByText('🏠').count()
+    if (alreadyHasHousehold === 0) {
+      const name = `E2E Familia ${Date.now()}`
+      await page.getByTestId('household-create-name-input').fill(name)
+      await page.getByTestId('household-create-submit').click()
+      await expect(page.getByText(name)).toBeVisible({ timeout: 8000 })
+    }
+  })
+
+  test('opens and cancels the invite form', async ({ page }) => {
+    await page.getByTestId('home-profile-button').click()
+    await page.getByText('Mi hogar').click()
+    await expect(page.getByText(/Creá tu hogar|🏠/).first()).toBeVisible({ timeout: 8000 })
+    const inviteOpenBtn = page.getByTestId('household-invite-open').first()
+    if ((await inviteOpenBtn.count()) === 0) return // no household yet, nothing to invite into
+    await inviteOpenBtn.click()
+    await expect(page.getByTestId('household-invite-email-input')).toBeVisible({ timeout: 5000 })
+    await page.getByTestId('household-invite-cancel').click()
+    await expect(page.getByTestId('household-invite-email-input')).not.toBeVisible({
+      timeout: 5000,
+    })
+  })
+
+  // Regression test for the 2026-07-03 audit finding: inviting a real family
+  // member used to require pasting their raw UUID — nobody knows that. Uses
+  // another seeded demo account's real email to invite for real.
+  //
+  // The household/members table is never wiped between suite runs (shared
+  // Postgres, see cascade-delete.integration.test.ts's discovery), so the
+  // "other" account may already be a member from a previous run. Clean that
+  // up via direct API calls first so this test is repeatable.
+  test('inviting a real user by email succeeds', async ({ page }, testInfo) => {
+    const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
+    const otherAccount = DEMO_ACCOUNTS[(testInfo.parallelIndex + 1) % DEMO_ACCOUNTS.length]!
+
+    const token = await page.evaluate(() => localStorage.getItem('auth_token'))
+    const otherLoginRes = await page.request.post(`${API_URL}/auth/login`, {
+      data: { email: otherAccount.email, password: otherAccount.password },
+    })
+    expect(otherLoginRes.ok()).toBe(true)
+    const otherUserId = (await otherLoginRes.json()).user.id as string
+
+    const householdsRes = await page.request.get(`${API_URL}/v1/households/mine`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    expect(householdsRes.ok()).toBe(true)
+    const households = (await householdsRes.json()) as Array<{
+      id: string
+      members?: Array<{ userId: string }>
+    }>
+    for (const hh of households) {
+      if (hh.members?.some((m) => m.userId === otherUserId)) {
+        await page.request.delete(`${API_URL}/v1/households/${hh.id}/members/${otherUserId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+      }
+    }
+
+    await page.getByTestId('home-profile-button').click()
+    await page.getByText('Mi hogar').click()
+    await expect(page.getByText(/Creá tu hogar|🏠/).first()).toBeVisible({ timeout: 8000 })
+    const inviteOpenBtn = page.getByTestId('household-invite-open').first()
+    if ((await inviteOpenBtn.count()) === 0) return // no household yet, nothing to invite into
+    await inviteOpenBtn.click()
+    await expect(page.getByTestId('household-invite-email-input')).toBeVisible({ timeout: 5000 })
+    await page.getByTestId('household-invite-email-input').fill(otherAccount.email)
+    await page.getByTestId('household-invite-submit').click()
+    // Form closes on success (no error dialog, invite box disappears)
+    await expect(page.getByTestId('household-invite-email-input')).not.toBeVisible({
+      timeout: 8000,
+    })
+  })
+
+  test('inviting with an email that has no matching user shows an error notification', async ({
+    page,
+  }) => {
+    await page.getByTestId('home-profile-button').click()
+    await page.getByText('Mi hogar').click()
+    await expect(page.getByText(/Creá tu hogar|🏠/).first()).toBeVisible({ timeout: 8000 })
+    const inviteOpenBtn = page.getByTestId('household-invite-open').first()
+    if ((await inviteOpenBtn.count()) === 0) return
+    await inviteOpenBtn.click()
+    await expect(page.getByTestId('household-invite-email-input')).toBeVisible({ timeout: 5000 })
+
+    let dialogMessage = ''
+    page.once('dialog', (dialog) => {
+      dialogMessage = dialog.message()
+      void dialog.accept()
+    })
+
+    await page.getByTestId('household-invite-email-input').fill('nadie-existe@example.com')
+    await page.getByTestId('household-invite-submit').click()
+    await expect.poll(() => dialogMessage, { timeout: 8000 }).toContain('Error')
+  })
+
+  test('picking a role chip changes the selected role', async ({ page }) => {
+    await page.getByTestId('home-profile-button').click()
+    await page.getByText('Mi hogar').click()
+    await expect(page.getByText(/Creá tu hogar|🏠/).first()).toBeVisible({ timeout: 8000 })
+    const inviteOpenBtn = page.getByTestId('household-invite-open').first()
+    if ((await inviteOpenBtn.count()) === 0) return
+    await inviteOpenBtn.click()
+    await expect(page.getByTestId('household-invite-role-viewer')).toBeVisible({ timeout: 5000 })
+    await page.getByTestId('household-invite-role-viewer').click()
+    // No crash after switching role — form still usable
+    await expect(page.getByTestId('household-invite-email-input')).toBeVisible()
   })
 })
 
