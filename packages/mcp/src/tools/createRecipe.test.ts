@@ -196,6 +196,39 @@ it('uses mcp as sourceType fallback when only sourceUrl is provided', async () =
   expect(body.source.type).toBe('mcp')
 })
 
+// Regression test for the 2026-07-03 audit finding: createRecipe never exposed
+// nutrition/dietaryTags/foodTypeIds, so no recipe from the real agent write path
+// could ever carry allergy-relevant data.
+it('passes through nutrition, dietaryTags and foodTypeIds to the API payload', async () => {
+  const mockRecipe = { id: 'nut1', ...validInput }
+  const mockFetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: () => Promise.resolve(mockRecipe),
+  })
+  vi.stubGlobal('fetch', mockFetch)
+
+  const server = createMcpServer()
+  const api = createApiClient()
+  registerCreateRecipe(server, api)
+
+  const foodTypeId = '550e8400-e29b-41d4-a716-446655440000'
+  const handler = getToolHandler(server, 'createRecipe')
+  await handler(
+    {
+      ...validInput,
+      dietaryTags: ['sin-gluten'],
+      nutrition: { calories: 480, protein_g: 42, carbs_g: 28, fat_g: 20 },
+      foodTypeIds: [foodTypeId],
+    },
+    {},
+  )
+
+  const body = JSON.parse((mockFetch.mock.calls[0]?.[1] as { body: string }).body)
+  expect(body.dietaryTags).toEqual(['sin-gluten'])
+  expect(body.nutrition).toEqual({ calories: 480, protein_g: 42, carbs_g: 28, fat_g: 20 })
+  expect(body.foodTypeIds).toEqual([foodTypeId])
+})
+
 it('handles non-Error thrown (string error)', async () => {
   const mockFetch = vi.fn().mockRejectedValue('string error')
   vi.stubGlobal('fetch', mockFetch)

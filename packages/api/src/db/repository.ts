@@ -1,4 +1,4 @@
-import { eq, and, ilike, or, sql } from 'drizzle-orm'
+import { eq, and, ilike, or, sql, inArray } from 'drizzle-orm'
 import type { CreateRecipe, UpdateRecipe, Recipe } from '@recetario/shared'
 import { getDb, schema } from './index.js'
 
@@ -6,7 +6,12 @@ type DbRow = typeof schema.recipes.$inferSelect
 type IngredientRow = typeof schema.ingredients.$inferSelect
 type StepRow = typeof schema.steps.$inferSelect
 
-function mapToRecipe(row: DbRow, ingredientRows: IngredientRow[], stepRows: StepRow[]): Recipe {
+function mapToRecipe(
+  row: DbRow,
+  ingredientRows: IngredientRow[],
+  stepRows: StepRow[],
+  foodTypeIds: string[],
+): Recipe {
   return {
     id: row.id,
     title: row.title,
@@ -28,6 +33,7 @@ function mapToRecipe(row: DbRow, ingredientRows: IngredientRow[], stepRows: Step
     /* v8 ignore next */
     dietaryTags: (row.dietaryTags as Recipe['dietaryTags']) ?? [],
     nutrition: (row.nutrition as Recipe['nutrition']) ?? undefined,
+    foodTypeIds,
     ingredients: ingredientRows
       .sort((a, b) => a.position - b.position)
       .map((i) => ({
@@ -84,8 +90,49 @@ export class RecipeRepository {
 
     const ingredientRows = await this.insertIngredients(recipe.id, data.ingredients)
     const stepRows = await this.insertSteps(recipe.id, data.steps)
+    await this.replaceFoodTypes(recipe.id, data.foodTypeIds)
 
-    return mapToRecipe(recipe, ingredientRows, stepRows)
+    return mapToRecipe(recipe, ingredientRows, stepRows, data.foodTypeIds ?? [])
+  }
+
+  private async replaceFoodTypes(recipeId: string, foodTypeIds: string[] | undefined) {
+    if (foodTypeIds === undefined) return
+    const db = this.db
+    await db.delete(schema.recipeFoodTypes).where(eq(schema.recipeFoodTypes.recipeId, recipeId))
+    if (foodTypeIds.length === 0) return
+    await db
+      .insert(schema.recipeFoodTypes)
+      .values(foodTypeIds.map((foodTypeId) => ({ recipeId, foodTypeId })))
+      .onConflictDoNothing()
+  }
+
+  private async getFoodTypeIds(recipeId: string): Promise<string[]> {
+    const db = this.db
+    const rows = await db
+      .select({ foodTypeId: schema.recipeFoodTypes.foodTypeId })
+      .from(schema.recipeFoodTypes)
+      .where(eq(schema.recipeFoodTypes.recipeId, recipeId))
+    return rows.map((r) => r.foodTypeId)
+  }
+
+  private async getFoodTypeIdsByRecipe(recipeIds: string[]): Promise<Map<string, string[]>> {
+    const map = new Map<string, string[]>()
+    /* v8 ignore next */
+    if (recipeIds.length === 0) return map
+    const db = this.db
+    const rows = await db
+      .select({
+        recipeId: schema.recipeFoodTypes.recipeId,
+        foodTypeId: schema.recipeFoodTypes.foodTypeId,
+      })
+      .from(schema.recipeFoodTypes)
+      .where(inArray(schema.recipeFoodTypes.recipeId, recipeIds))
+    for (const row of rows) {
+      const existing = map.get(row.recipeId) ?? []
+      existing.push(row.foodTypeId)
+      map.set(row.recipeId, existing)
+    }
+    return map
   }
 
   private async insertIngredients(recipeId: string, ingredients: CreateRecipe['ingredients']) {
@@ -143,8 +190,9 @@ export class RecipeRepository {
       .where(eq(schema.ingredients.recipeId, id))
 
     const stepRows = await db.select().from(schema.steps).where(eq(schema.steps.recipeId, id))
+    const foodTypeIds = await this.getFoodTypeIds(id)
 
-    return mapToRecipe(recipe, ingredientRows, stepRows)
+    return mapToRecipe(recipe, ingredientRows, stepRows, foodTypeIds)
   }
 
   async list(ownerId: string, opts: { limit: number; offset: number }): Promise<Recipe[]> {
@@ -175,11 +223,14 @@ export class RecipeRepository {
         sql`${schema.steps.recipeId} = ANY(${sql.raw(`ARRAY[${ids.map((id) => `'${id}'`).join(',')}]::uuid[]`)})`,
       )
 
+    const foodTypesByRecipe = await this.getFoodTypeIdsByRecipe(ids)
+
     return recipes.map((recipe) =>
       mapToRecipe(
         recipe,
         ingredientRows.filter((i) => i.recipeId === recipe.id),
         stepRows.filter((s) => s.recipeId === recipe.id),
+        foodTypesByRecipe.get(recipe.id) ?? [],
       ),
     )
   }
@@ -235,11 +286,14 @@ export class RecipeRepository {
         sql`${schema.steps.recipeId} = ANY(${sql.raw(`ARRAY[${ids.map((id) => `'${id}'`).join(',')}]::uuid[]`)})`,
       )
 
+    const foodTypesByRecipe = await this.getFoodTypeIdsByRecipe(ids)
+
     let results = recipes.map((recipe) =>
       mapToRecipe(
         recipe,
         ingredientRows.filter((i) => i.recipeId === recipe.id),
         stepRows.filter((s) => s.recipeId === recipe.id),
+        foodTypesByRecipe.get(recipe.id) ?? [],
       ),
     )
 
@@ -297,6 +351,8 @@ export class RecipeRepository {
       await db.delete(schema.steps).where(eq(schema.steps.recipeId, id))
       await this.insertSteps(id, data.steps)
     }
+
+    await this.replaceFoodTypes(id, data.foodTypeIds)
 
     return this.findById(id, ownerId)
   }

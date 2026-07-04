@@ -80,6 +80,43 @@ test.describe('Recipes: create via form', () => {
     await expect(page.getByText(recipeName)).toBeVisible({ timeout: 10000 })
   })
 
+  // Regression test for the 2026-07-03 audit finding: foodTypeIds selected in
+  // the picker used to never reach the backend at all (recipe_food_types was
+  // never inserted into). Verify it's now genuinely persisted, not just that
+  // the UI doesn't crash when a chip is tapped.
+  test('selected food type is actually persisted on the created recipe', async ({ page }) => {
+    const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
+    const token = await page.evaluate(() => localStorage.getItem('auth_token'))
+    const recipeName = `E2E Con Tipo ${Date.now()}`
+
+    await page.getByText('+ Nueva Receta').click()
+    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible({ timeout: 5000 })
+    await page.getByPlaceholder('Nombre de la receta').fill(recipeName)
+
+    const foodTypeChip = page.locator('[data-testid^="food-type-chip-"]').first()
+    await expect(foodTypeChip).toBeVisible({ timeout: 8000 })
+    const testId = await foodTypeChip.getAttribute('data-testid')
+    const expectedFoodTypeId = testId!.replace('food-type-chip-', '')
+    await foodTypeChip.click()
+
+    await page.getByPlaceholder('Ingrediente').first().fill('Harina')
+    await page.getByPlaceholder('Cant.').first().fill('200')
+    await page.getByText('+ Agregar paso').click()
+    await page.getByPlaceholder(/Paso 1/i).fill('Mezclar ingredientes')
+    await page.getByText('Guardar Receta').click()
+    await expect(page.getByText(recipeName)).toBeVisible({ timeout: 10000 })
+
+    const listRes = await page.request.get(`${API_URL}/v1/recipes?limit=100`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const recipes = (await listRes.json()) as Array<{
+      title: string
+      foodTypeIds: string[]
+    }>
+    const created = recipes.find((r) => r.title === recipeName)
+    expect(created?.foodTypeIds).toEqual([expectedFoodTypeId])
+  })
+
   test('can select up to 3 food type chips', async ({ page }) => {
     await page.getByText('+ Nueva Receta').click()
     await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible({ timeout: 5000 })

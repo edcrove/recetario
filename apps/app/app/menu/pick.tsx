@@ -11,6 +11,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { api } from '../../src/api/client'
+import { AllergenBadge } from '../../src/components/AllergenBadge'
 import type { Recipe } from '@recetario/shared'
 
 export default function PickRecipeScreen() {
@@ -47,7 +48,7 @@ export default function PickRecipeScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.subtitle}>
+        <Text testID="pick-header-slot-date" style={styles.subtitle}>
           {slot} · {date}
         </Text>
         <View style={styles.servingsRow}>
@@ -83,11 +84,15 @@ export default function PickRecipeScreen() {
           keyExtractor={(item: Recipe) => item.id ?? item.title}
           renderItem={({ item }: { item: Recipe }) => (
             <TouchableOpacity
+              testID={`pick-recipe-${item.id}`}
               style={styles.card}
               onPress={() => addMutation.mutate(item)}
               disabled={addMutation.isPending}
             >
-              <Text style={styles.cardTitle}>{item.title}</Text>
+              <View style={styles.cardHeader}>
+                <Text style={styles.cardTitle}>{item.title}</Text>
+                <AllergenBadge recipe={item} />
+              </View>
               <Text style={styles.cardMeta}>
                 {item.category} · {item.servings} porc. base
                 {item.totalTimeMin ? ` · ${item.totalTimeMin} min` : ''}
@@ -143,7 +148,13 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
     marginBottom: 8,
   },
-  cardTitle: { fontSize: 17, fontWeight: '600' },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  cardTitle: { fontSize: 17, fontWeight: '600', flex: 1 },
   cardMeta: { color: '#666', marginTop: 4, fontSize: 13 },
   empty: { textAlign: 'center', color: '#999', marginTop: 40 },
   errorText: { color: '#ef4444', textAlign: 'center', padding: 12 },
