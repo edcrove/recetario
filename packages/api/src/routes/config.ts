@@ -1,5 +1,5 @@
 import { createRoute as defineRoute, OpenAPIHono, z } from '@hono/zod-openapi'
-import { eq, sql, and, ne } from 'drizzle-orm'
+import { eq, sql, and, ne, or, isNull } from 'drizzle-orm'
 import { getDb, schema } from '../db/index.js'
 import { authMiddleware } from '../middleware/auth.js'
 
@@ -37,6 +37,7 @@ configRoute.openapi(
     },
   }),
   async (c) => {
+    const ownerId = c.get('ownerId')
     const db = getDb()
 
     const mealCategories = await db
@@ -52,6 +53,7 @@ configRoute.openapi(
         schema.recipes,
         sql`lower(${schema.recipes.category}) = ${schema.mealCategories.slug}`,
       )
+      .where(or(eq(schema.mealCategories.ownerId, ownerId), isNull(schema.mealCategories.ownerId)))
       .groupBy(schema.mealCategories.id)
       .orderBy(schema.mealCategories.name)
 
@@ -65,6 +67,7 @@ configRoute.openapi(
       })
       .from(schema.foodTypes)
       .leftJoin(schema.recipeFoodTypes, eq(schema.recipeFoodTypes.foodTypeId, schema.foodTypes.id))
+      .where(or(eq(schema.foodTypes.ownerId, ownerId), isNull(schema.foodTypes.ownerId)))
       .groupBy(schema.foodTypes.id)
       .orderBy(schema.foodTypes.name)
 
@@ -77,6 +80,7 @@ configRoute.openapi(
       })
       .from(schema.tags)
       .leftJoin(schema.recipeTags, eq(schema.recipeTags.tagId, schema.tags.id))
+      .where(eq(schema.tags.ownerId, ownerId))
       .groupBy(schema.tags.id)
       .orderBy(schema.tags.name)
 
@@ -134,6 +138,7 @@ configRoute.openapi(
   }),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async (c: any) => {
+    const ownerId = c.get('ownerId')
     const { type, id } = c.req.valid('param')
     const { name } = c.req.valid('json')
     const db = getDb()
@@ -146,7 +151,7 @@ configRoute.openapi(
       const [row] = await db
         .update(schema.mealCategories)
         .set({ name, slug })
-        .where(eq(schema.mealCategories.id, id))
+        .where(and(eq(schema.mealCategories.id, id), eq(schema.mealCategories.ownerId, ownerId)))
         .returning()
       if (!row) return c.json({ error: 'Not found' } as never, 404)
       return c.json({ id: row.id, name: row.name })
@@ -155,7 +160,7 @@ configRoute.openapi(
       const [row] = await db
         .update(schema.foodTypes)
         .set({ name, slug })
-        .where(eq(schema.foodTypes.id, id))
+        .where(and(eq(schema.foodTypes.id, id), eq(schema.foodTypes.ownerId, ownerId)))
         .returning()
       if (!row) return c.json({ error: 'Not found' } as never, 404)
       return c.json({ id: row.id, name: row.name })
@@ -164,7 +169,7 @@ configRoute.openapi(
     const [row] = await db
       .update(schema.tags)
       .set({ name, slug })
-      .where(eq(schema.tags.id, id))
+      .where(and(eq(schema.tags.id, id), eq(schema.tags.ownerId, ownerId)))
       .returning()
     if (!row) return c.json({ error: 'Not found' } as never, 404)
     return c.json({ id: row.id, name: row.name })
@@ -191,11 +196,25 @@ configRoute.openapi(
     },
   }),
   async (c) => {
+    const ownerId = c.get('ownerId')
     const { type, id } = c.req.valid('param')
     const { reassignTo } = c.req.valid('query')
     const db = getDb()
 
     if (type === 'food-types') {
+      const [owned] = await db
+        .select({ id: schema.foodTypes.id })
+        .from(schema.foodTypes)
+        .where(
+          and(
+            eq(schema.foodTypes.id, id),
+            eq(schema.foodTypes.ownerId, ownerId),
+            ne(sql`${schema.foodTypes.isSystem}`, 1),
+          ),
+        )
+        .limit(1)
+      if (!owned) return c.json({ error: 'Not found or system type' } as never, 400)
+
       const usageCount = await db
         .select({ count: sql<number>`cast(count(*) as int)` })
         .from(schema.recipeFoodTypes)
@@ -210,12 +229,15 @@ configRoute.openapi(
           await db.delete(schema.recipeFoodTypes).where(eq(schema.recipeFoodTypes.foodTypeId, id))
         }
       }
-      const deleted = await db
-        .delete(schema.foodTypes)
-        .where(and(eq(schema.foodTypes.id, id), ne(sql`${schema.foodTypes.isSystem}`, 1)))
-        .returning()
-      if (deleted.length === 0) return c.json({ error: 'Not found or system type' } as never, 400)
+      await db.delete(schema.foodTypes).where(eq(schema.foodTypes.id, id))
     } else if (type === 'tags') {
+      const [owned] = await db
+        .select({ id: schema.tags.id })
+        .from(schema.tags)
+        .where(and(eq(schema.tags.id, id), eq(schema.tags.ownerId, ownerId)))
+        .limit(1)
+      if (!owned) return c.json({ error: 'Not found' } as never, 404)
+
       if (reassignTo) {
         await db
           .update(schema.recipeTags)
@@ -252,11 +274,26 @@ configRoute.openapi(
         content: { 'application/json': { schema: z.object({ merged: z.number() }) } },
         description: 'Merged',
       },
+      404: { content: { 'application/json': { schema: errorSchema } }, description: 'Not found' },
     },
   }),
-  async (c) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async (c: any) => {
+    const ownerId = c.get('ownerId')
     const { sourceId, targetId } = c.req.valid('json')
     const db = getDb()
+
+    const owned = await db
+      .select({ id: schema.tags.id })
+      .from(schema.tags)
+      .where(
+        and(
+          eq(schema.tags.ownerId, ownerId),
+          or(eq(schema.tags.id, sourceId), eq(schema.tags.id, targetId)),
+        ),
+      )
+    if (owned.length < 2) return c.json({ error: 'Tag not found' } as never, 404)
+
     // Reassign all recipe_tags from source to target (ignore duplicates)
     const rows = await db
       .select()

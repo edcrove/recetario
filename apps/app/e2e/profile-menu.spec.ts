@@ -117,11 +117,87 @@ test.describe('Config (taxonomy) screen', () => {
   test('navigates and shows tabs', async ({ page }) => {
     await page.getByTestId('home-profile-button').click()
     await page.getByText('Configuración de taxonomía').click()
-    await expect(
-      page.getByText('Categorías').or(page.getByText('Tipos de comida')).first(),
-    ).toBeVisible({
+    await expect(page.getByTestId('config-tab-categories')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByTestId('config-tab-food-types')).toBeVisible()
+    await expect(page.getByTestId('config-tab-tags')).toBeVisible()
+  })
+
+  test('switching to food-types tab shows food type items', async ({ page }) => {
+    await page.getByTestId('home-profile-button').click()
+    await page.getByText('Configuración de taxonomía').click()
+    await expect(page.getByTestId('config-tab-food-types')).toBeVisible({ timeout: 8000 })
+    await page.getByTestId('config-tab-food-types').click()
+    await expect(page.locator('[data-testid^="config-item-"]').first()).toBeVisible({
       timeout: 8000,
     })
+  })
+
+  test('switching to tags tab works and back to categories', async ({ page }) => {
+    await page.getByTestId('home-profile-button').click()
+    await page.getByText('Configuración de taxonomía').click()
+    await expect(page.getByTestId('config-tab-tags')).toBeVisible({ timeout: 8000 })
+    await page.getByTestId('config-tab-tags').click()
+    await page.waitForTimeout(300)
+    await page.getByTestId('config-tab-categories').click()
+    await expect(page.locator('[data-testid^="config-item-"]').first()).toBeVisible({
+      timeout: 8000,
+    })
+  })
+
+  // Meal categories have no creation endpoint — only system-seeded ones exist,
+  // and those can't be renamed by design (2026-07-03 audit fix: renaming now
+  // requires ownership, and system items have no owner). Food types DO have a
+  // real creation endpoint (POST /v1/food-types), so create one via the API
+  // first to guarantee there's something the caller actually owns to rename.
+  test('renames an own food type and sees the new name', async ({ page }) => {
+    const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
+    const token = await page.evaluate(() => localStorage.getItem('auth_token'))
+    const createRes = await page.request.post(`${API_URL}/v1/food-types`, {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      data: { name: `E2E Tipo ${Date.now()}` },
+    })
+    expect(createRes.ok()).toBe(true)
+    const created = await createRes.json()
+
+    await page.getByTestId('home-profile-button').click()
+    await page.getByText('Configuración de taxonomía').click()
+    await expect(page.getByTestId('config-tab-food-types')).toBeVisible({ timeout: 8000 })
+    await page.getByTestId('config-tab-food-types').click()
+    const item = page.getByTestId(`config-item-${created.id}`)
+    await expect(item).toBeVisible({ timeout: 8000 })
+    await item.getByTestId(`config-edit-${created.id}`).click()
+    await expect(page.getByTestId('config-rename-save')).toBeVisible({ timeout: 5000 })
+    const newName = `E2E Editado ${Date.now()}`
+    const input = page.locator('input').last()
+    await input.fill(newName)
+    await page.getByTestId('config-rename-save').click()
+    await expect(page.getByText(newName)).toBeVisible({ timeout: 8000 })
+  })
+
+  test('cancel on rename modal discards the change', async ({ page }) => {
+    await page.getByTestId('home-profile-button').click()
+    await page.getByText('Configuración de taxonomía').click()
+    await expect(page.getByTestId('config-tab-categories')).toBeVisible({ timeout: 8000 })
+    const firstItem = page.locator('[data-testid^="config-item-"]').first()
+    await firstItem.locator('[data-testid^="config-edit-"]').click()
+    await expect(page.getByTestId('config-rename-cancel')).toBeVisible({ timeout: 5000 })
+    await page.getByTestId('config-rename-cancel').click()
+    await expect(page.getByTestId('config-rename-cancel')).not.toBeVisible({ timeout: 5000 })
+  })
+
+  test('deleting an item offers cancel, which closes the modal', async ({ page }) => {
+    await page.getByTestId('home-profile-button').click()
+    await page.getByText('Configuración de taxonomía').click()
+    await expect(page.getByTestId('config-tab-food-types')).toBeVisible({ timeout: 8000 })
+    await page.getByTestId('config-tab-food-types').click()
+    const deleteBtn = page.locator('[data-testid^="config-delete-"]').first()
+    // Deletable/warning action only renders for non-system items or items already
+    // linked to a recipe — the seeded system food types may have neither right now.
+    if ((await deleteBtn.count()) === 0) return
+    await deleteBtn.click()
+    await expect(page.getByTestId('config-delete-cancel')).toBeVisible({ timeout: 5000 })
+    await page.getByTestId('config-delete-cancel').click()
+    await expect(page.getByTestId('config-delete-cancel')).not.toBeVisible({ timeout: 5000 })
   })
 })
 
