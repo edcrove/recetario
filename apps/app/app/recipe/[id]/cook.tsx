@@ -10,28 +10,46 @@ import {
   TextInput,
 } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../src/api/client'
 import { useStepTimer, formatTime } from '../../../src/hooks/useStepTimer'
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake'
 import { IngredientChecklist } from '../../../src/components/IngredientChecklist'
 import { onStepTimerComplete, startSpeech, stopSpeech } from '../../../src/utils/cookEffects'
 import { cookModeNav } from '../../../src/utils/cookModeNav'
+import { notify } from '../../../src/utils/platformAlert'
 
 export default function CookModeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [stepIndex, setStepIndex] = useState(0)
   const [tab, setTab] = useState<'steps' | 'ingredients'>('steps')
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [showRating, setShowRating] = useState(false)
   const [rating, setRating] = useState<number | null>(null)
   const [ratingNote, setRatingNote] = useState('')
-  const [savingSession, setSavingSession] = useState(false)
 
   const { data: recipe, isLoading } = useQuery({
     queryKey: ['recipe', id],
     queryFn: () => api.recipes.get(id),
+  })
+
+  const logSessionMutation = useMutation({
+    mutationFn: () =>
+      api.cookSessions.log({
+        recipeId: id,
+        rating: rating ?? undefined,
+        notes: ratingNote.trim() || undefined,
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['cook-sessions', id] })
+      void queryClient.invalidateQueries({ queryKey: ['cook-stats'] })
+      void queryClient.invalidateQueries({ queryKey: ['cook-stats-suggestions'] })
+      setShowRating(false)
+      router.back()
+    },
+    onError: () => notify('Error', 'No se pudo guardar la sesión de cocina.'),
   })
 
   useEffect(() => {
@@ -201,24 +219,12 @@ export default function CookModeScreen() {
 
             <TouchableOpacity
               testID="cook-rating-save"
-              style={[s.modalBtn, savingSession && s.modalBtnDisabled]}
-              disabled={savingSession}
-              onPress={async () => {
-                setSavingSession(true)
-                try {
-                  await api.cookSessions.log({
-                    recipeId: id,
-                    rating: rating ?? undefined,
-                    notes: ratingNote.trim() || undefined,
-                  })
-                } catch {}
-                setSavingSession(false)
-                setShowRating(false)
-                router.back()
-              }}
+              style={[s.modalBtn, logSessionMutation.isPending && s.modalBtnDisabled]}
+              disabled={logSessionMutation.isPending}
+              onPress={() => logSessionMutation.mutate()}
             >
               <Text style={s.modalBtnText}>
-                {savingSession ? 'Guardando…' : 'Guardar y terminar'}
+                {logSessionMutation.isPending ? 'Guardando…' : 'Guardar y terminar'}
               </Text>
             </TouchableOpacity>
 

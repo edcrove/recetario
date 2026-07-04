@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   View,
   Text,
@@ -21,7 +21,7 @@ import { getWeekStart } from '../src/utils/weekMath'
 export default function HomeScreen() {
   const [query, setQuery] = useState('')
   const router = useRouter()
-  const { token, isLoading: authLoading } = useAuth()
+  const { token } = useAuth()
   const [activeType, setActiveType] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -30,13 +30,6 @@ export default function HomeScreen() {
     queryFn: () => api.taxonomy.foodTypes(),
     enabled: !!token,
   })
-
-  // Auth guard: redirect to login if not authenticated
-  useEffect(() => {
-    if (!authLoading && !token) {
-      router.replace('/auth/login')
-    }
-  }, [token, authLoading, router])
 
   const {
     data: recipes = [],

@@ -222,9 +222,8 @@ test.describe('Stats screen', () => {
 })
 
 test.describe('Sign out', () => {
-  // UserMenu's "Cerrar sesión" calls handleSignOut directly (no Alert.alert wrapper),
-  // so it works on web. NOTE: profile screen's sign-out button uses Alert.alert()
-  // which is a no-op in react-native-web — see BUG note in Notion audit findings.
+  // UserMenu's "Cerrar sesión" calls handleSignOut directly. Profile screen's sign-out
+  // now goes through platformAlert.confirmAsync (fixed the Alert.alert web no-op).
   test('signs out via UserMenu and redirects to login', async ({ page }) => {
     await page.getByTestId('home-profile-button').click()
     await expect(page.getByTestId('usermenu-signout')).toBeVisible({ timeout: 5000 })

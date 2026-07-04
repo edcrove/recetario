@@ -14,6 +14,7 @@ import { api } from '../../src/api/client'
 import type { MenuEntry, MenuSlot } from '@recetario/shared'
 import { getWeekStart, addDays, formatDate } from '../../src/utils/weekMath'
 import { buildEntryMap } from '../../src/utils/menuLogic'
+import { notify } from '../../src/utils/platformAlert'
 
 const SLOTS: MenuSlot[] = ['Desayuno', 'Almuerzo', 'Merienda', 'Cena', 'Snacks/Otros']
 
@@ -37,6 +38,7 @@ export default function MenuWeekScreen() {
     mutationFn: ({ date, slot, recipeId }: { date: string; slot: string; recipeId: string }) =>
       api.menu.remove(date, slot, recipeId),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['menu', weekStart] }),
+    onError: () => notify('Error', 'No se pudo quitar la receta del menú.'),
   })
 
   const updateServingsMutation = useMutation({
@@ -55,6 +57,7 @@ export default function MenuWeekScreen() {
       void queryClient.invalidateQueries({ queryKey: ['menu', weekStart] })
       setEditing(null)
     },
+    onError: () => notify('Error', 'No se pudieron actualizar las porciones.'),
   })
 
   const entryMap = buildEntryMap(entries)

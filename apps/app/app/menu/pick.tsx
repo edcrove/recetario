@@ -11,6 +11,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { api } from '../../src/api/client'
+import { notify } from '../../src/utils/platformAlert'
 import { AllergenBadge } from '../../src/components/AllergenBadge'
 import type { Recipe } from '@recetario/shared'
 
@@ -43,6 +44,7 @@ export default function PickRecipeScreen() {
       void queryClient.invalidateQueries({ queryKey: ['menu', weekStart] })
       router.back()
     },
+    onError: () => notify('Error', 'No se pudo agregar la receta al menú.'),
   })
 
   return (
