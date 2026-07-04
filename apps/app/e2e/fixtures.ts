@@ -1,10 +1,9 @@
 import { test as base, expect } from '@playwright/test'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
+import { DEMO_ACCOUNTS } from './demoAccounts'
 
 const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
-const DEMO_EMAIL = process.env['E2E_EMAIL'] ?? 'demo@recetario.app'
-const DEMO_PASSWORD = process.env['E2E_PASSWORD'] ?? 'demo1234'
 const COLLECT_COVERAGE = process.env['E2E_COVERAGE'] === 'true'
 // Istanbul coverage goes to .e2e-coverage/ for nyc merge
 const COVERAGE_DIR = path.join(process.cwd(), '.e2e-coverage')
@@ -32,8 +31,17 @@ async function saveCoverage(page: import('@playwright/test').Page, title: string
  */
 export const test = base.extend({
   page: async ({ page }, use, testInfo) => {
+    const account = DEMO_ACCOUNTS[testInfo.parallelIndex]
+    if (!account) {
+      throw new Error(
+        `No demo account configured for worker index ${testInfo.parallelIndex}. ` +
+          `demoAccounts.ts only has ${DEMO_ACCOUNTS.length} accounts — add one there and seed it ` +
+          `(pnpm --filter @recetario/api seed:e2e-accounts) before running with more workers.`,
+      )
+    }
+
     const res = await page.request.post(`${API_URL}/auth/login`, {
-      data: { email: DEMO_EMAIL, password: DEMO_PASSWORD },
+      data: { email: account.email, password: account.password },
     })
     const { token } = (await res.json()) as { token: string }
 

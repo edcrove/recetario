@@ -100,11 +100,11 @@ test.describe('Menu: edit servings', () => {
     const chip = page.locator('[data-testid^="menu-entry-"]').first()
     if ((await chip.count()) === 0) {
       await page.locator('[data-testid^="menu-add-"]').first().click()
-      await page.waitForLoadState('networkidle', { timeout: 10000 })
+      await page.waitForLoadState('networkidle', { timeout: 15000 })
       const firstPickItem = page.locator('[data-testid^="pick-recipe-"]').first()
-      await expect(firstPickItem).toBeVisible({ timeout: 10000 })
+      await expect(firstPickItem).toBeVisible({ timeout: 15000 })
       await firstPickItem.click()
-      await page.waitForLoadState('networkidle', { timeout: 10000 })
+      await page.waitForLoadState('networkidle', { timeout: 15000 })
     }
   }
 

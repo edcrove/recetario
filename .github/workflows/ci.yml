@@ -297,16 +297,14 @@ jobs:
           JWT_SECRET: ci-e2e-secret-not-for-production
           NODE_ENV: production
           PORT: 3000
+          # 4 parallel E2E demo accounts share this window against /v1/recipes.
+          RATE_LIMIT_MAX_REQUESTS: '1000'
 
-      - name: Seed demo user and recipes
-        run: |
-          TOKEN=$(curl -s -X POST http://localhost:3000/auth/register \
-            -H "Content-Type: application/json" \
-            -d '{"email":"e2e@recetario.app","password":"e2etest1234","displayName":"E2E User"}' | \
-            node -e "process.stdin.resume();let b='';process.stdin.on('data',d=>b+=d);process.stdin.on('end',()=>console.log(JSON.parse(b).token))")
-          echo "E2E_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+      - name: Seed E2E demo accounts (one per Playwright worker)
+        run: pnpm --filter @recetario/api seed:e2e-accounts
         env:
           DATABASE_URL: postgres://recetario:recetario@localhost:5432/recetario
+          API_URL: http://localhost:3000
 
       - name: Build Expo web app (standard)
         run: pnpm --filter recetario-app build
@@ -333,16 +331,12 @@ jobs:
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:8080
           EXPO_PUBLIC_API_URL: http://localhost:3000
-          E2E_EMAIL: e2e@recetario.app
-          E2E_PASSWORD: e2etest1234
 
       - name: Run E2E tests with coverage (instrumented build)
-        run: pnpm --filter recetario-app exec playwright test e2e/smoke.spec.ts e2e/auth.spec.ts e2e/recipes.spec.ts e2e/menu.spec.ts e2e/cook-mode.spec.ts e2e/profile-menu.spec.ts
+        run: pnpm --filter recetario-app exec playwright test e2e/smoke.spec.ts e2e/auth.spec.ts e2e/recipes.spec.ts e2e/menu.spec.ts e2e/weekly-menu.spec.ts e2e/cook-mode.spec.ts e2e/profile-menu.spec.ts
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:8090
           EXPO_PUBLIC_API_URL: http://localhost:3000
-          E2E_EMAIL: e2e@recetario.app
-          E2E_PASSWORD: e2etest1234
           E2E_COVERAGE: 'true'
 
       - name: Generate E2E coverage report

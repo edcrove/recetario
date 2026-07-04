@@ -16,7 +16,8 @@
     "test:integration-coverage": "vitest run --config vitest.integration.config.ts --coverage",
     "typecheck": "tsc --noEmit",
     "generate-key": "tsx src/scripts/generate-key.ts",
-    "seed": "tsx src/scripts/seed.ts"
+    "seed": "tsx src/scripts/seed.ts",
+    "seed:e2e-accounts": "tsx src/scripts/seed-e2e-accounts.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.0",

@@ -1,8 +1,9 @@
 import { testUnauth as test, expect } from './fixtures'
+import { DEMO_ACCOUNTS } from './demoAccounts'
 
 const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
-const E2E_EMAIL = process.env['E2E_EMAIL'] ?? 'demo@recetario.app'
-const E2E_PASSWORD = process.env['E2E_PASSWORD'] ?? 'demo1234'
+const E2E_EMAIL = DEMO_ACCOUNTS[0]!.email
+const E2E_PASSWORD = DEMO_ACCOUNTS[0]!.password
 
 /**
  * Auth E2E flows — unauthenticated screens (login, register, forgot).
