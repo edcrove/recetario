@@ -212,4 +212,4 @@ pnpm --filter @recetario/api exec tsx src/scripts/generate-key.ts
 
 ## Full project audit: "Auditar"
 
-Typing **"Auditar"** (as its own message, case-insensitive) triggers `.claude/skills/auditar/SKILL.md` — a 9-agent parallel audit of the whole project (QA, Backend, Frontend, UX/UI, Nutrition, parent/family user persona, read-only user persona, Product Management, Data Science). Heavy operation (10-20 min, 9 parallel agents) — only run when the user explicitly asks. See the skill file for the full persona scopes, output format, and Notion consolidation steps.
+Typing **"Auditar"** (as its own message, case-insensitive) triggers `.claude/skills/auditar/SKILL.md` — an 11-agent parallel audit of the whole project (QA, Backend, Frontend, UX/UI, Nutrition, parent/family user persona, read-only user persona, Product Management, Data Science, Clean Code/Architecture, QA Automation Architecture). Heavy operation (10-20 min, 11 parallel agents) — only run when the user explicitly asks. See the skill file for the full persona scopes, output format, and Notion consolidation steps.
