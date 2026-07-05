@@ -96,7 +96,11 @@ export type RecipeRelation = z.infer<typeof RecipeRelationSchema>
 // ── Cook sessions ────────────────────────────────────────────────────────────
 export const CookSessionSchema = z.object({
   id: z.string().uuid(),
-  recipeId: z.string().uuid(),
+  // Nullable: deleting a recipe sets this to null instead of destroying the
+  // session (see 2026-07-03 audit finding). recipeTitle is a snapshot from
+  // when the session was logged, so history stays readable either way.
+  recipeId: z.string().uuid().nullable(),
+  recipeTitle: z.string().nullable().optional(),
   ownerId: z.string(),
   cookedAt: z.string().datetime(),
   rating: z.number().int().min(1).max(5).nullable(),

@@ -10,7 +10,8 @@ const errorSchema = z.object({ error: z.string() })
 
 const sessionSchema = z.object({
   id: z.string().uuid(),
-  recipeId: z.string().uuid(),
+  recipeId: z.string().uuid().nullable(),
+  recipeTitle: z.string().nullable().optional(),
   ownerId: z.string(),
   cookedAt: z.string(),
   rating: z.number().int().min(1).max(5).nullable(),
@@ -22,7 +23,7 @@ const statsSchema = z.object({
   totalSessions: z.number().int(),
   topRecipes: z.array(
     z.object({
-      recipeId: z.string().uuid(),
+      recipeId: z.string().uuid().nullable(),
       count: z.number().int(),
       lastCookedAt: z.string(),
     }),
@@ -69,6 +70,7 @@ cookSessionsRoute.openapi(createRoute, async (c) => {
     {
       id: session.id,
       recipeId: session.recipeId,
+      recipeTitle: session.recipeTitle,
       ownerId: session.ownerId,
       cookedAt: session.cookedAt.toISOString(),
       rating: session.rating,
@@ -110,6 +112,7 @@ cookSessionsRoute.openapi(listByRecipeRoute, async (c) => {
     sessions.map((s) => ({
       id: s.id,
       recipeId: s.recipeId,
+      recipeTitle: s.recipeTitle,
       ownerId: s.ownerId,
       cookedAt: s.cookedAt.toISOString(),
       rating: s.rating,
@@ -188,6 +191,7 @@ cookSessionsRoute.openapi(listRoute as any, async (c: any) => {
     sessions.map((s) => ({
       id: s.id,
       recipeId: s.recipeId,
+      recipeTitle: s.recipeTitle,
       ownerId: s.ownerId,
       cookedAt: s.cookedAt.toISOString(),
       rating: s.rating,
