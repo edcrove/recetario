@@ -25,7 +25,7 @@ describe.skipIf(skip).sequential('Taxonomy config cross-tenant authorization', (
     await resetDb()
     const db = getDb()
     const { createHash } = await import('node:crypto')
-    const hash = createHash('sha256').update(OTHER_API_KEY).digest('hex')
+    const hash = createHash('sha256').update(OTHER_API_KEY).digest('hex') // lgtm[js/weak-cryptographic-algorithm]
     await db
       .insert(schema.apiKeys)
       .values({ keyHash: hash, ownerId: OTHER_OWNER_ID, label: 'owner-b' })
