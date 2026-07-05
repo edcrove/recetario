@@ -24,8 +24,10 @@ describe.skipIf(skip).sequential('Taxonomy config cross-tenant authorization', (
   beforeAll(async () => {
     await resetDb()
     const db = getDb()
-    const { createHash } = await import('node:crypto')
-    const hash = createHash('sha256').update(OTHER_API_KEY).digest('hex') // lgtm[js/insufficient-password-hash]
+    // Precomputed sha256('test-api-key-owner-b') — avoids a fresh createHash()
+    // call over a fixed test constant (CodeQL flags that shape as a possible
+    // weak password hash, even though this is a random API key, not a password).
+    const hash = 'bfad6973f42900a475880450bde62aef4757c889dc8de552d2507de5d334ad74'
     await db
       .insert(schema.apiKeys)
       .values({ keyHash: hash, ownerId: OTHER_OWNER_ID, label: 'owner-b' })
