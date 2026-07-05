@@ -319,11 +319,16 @@ jobs:
         env:
           EXPO_PUBLIC_API_URL: http://localhost:3000
 
+      - name: Serve standard app build
+        run: |
+          npx serve dist --listen 8080 &
+          timeout 30 bash -c 'until curl -sf http://localhost:8080 > /dev/null; do sleep 1; done'
+        working-directory: apps/app
+
       - name: Serve instrumented app for E2E coverage
         run: |
           npx serve dist-coverage --listen 8090 &
-          sleep 3
-          curl -sf http://localhost:8090 > /dev/null
+          timeout 30 bash -c 'until curl -sf http://localhost:8090 > /dev/null; do sleep 1; done'
         working-directory: apps/app
 
       - name: Install Playwright browsers
