@@ -282,6 +282,9 @@ jobs:
       - name: Build shared
         run: pnpm --filter @recetario/shared build
 
+      - name: Build api
+        run: pnpm --filter @recetario/api build
+
       - name: Apply DB migrations
         run: pnpm --filter @recetario/api exec drizzle-kit migrate
         env:
