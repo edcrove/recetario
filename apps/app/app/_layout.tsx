@@ -47,6 +47,7 @@ export default function RootLayout() {
               <Stack.Screen name="household/index" options={{ title: 'Household' }} />
               <Stack.Screen name="stats/index" options={{ title: 'Cooking Stats' }} />
               <Stack.Screen name="collections/index" options={{ title: 'Collections' }} />
+              <Stack.Screen name="collections/[id]" options={{ title: 'Colección' }} />
               <Stack.Screen name="config/index" options={{ title: 'Configuración' }} />
             </Stack>
           </AuthGuard>

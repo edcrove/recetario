@@ -72,6 +72,7 @@ vi.mock('../db/cook-sessions-repository.js', () => ({
 
 import { app } from '../index.js'
 import { requests as rateLimitStore } from '../middleware/rateLimit.js'
+import { recipeRepository } from '../db/repository.js'
 
 const AUTH = { Authorization: 'Bearer test-key', 'Content-Type': 'application/json' }
 const UUID = '550e8400-e29b-41d4-a716-446655440000'
@@ -212,6 +213,46 @@ describe('POST /v1/recipes/:id/relations', () => {
       body: JSON.stringify({ toId: UUID2, relationType: 'enemy' }),
     })
     expect(res.status).toBe(400)
+  })
+})
+
+describe('GET /v1/collections/:id/recipes', () => {
+  it('returns the recipes in a collection', async () => {
+    mockSelect
+      .mockReturnValueOnce([{ id: UUID, name: 'Favoritas', ownerId: 'dev' }]) // ownership check
+      .mockReturnValueOnce([{ recipeId: UUID2 }]) // recipe-collection links
+    vi.mocked(recipeRepository.findById).mockResolvedValueOnce({
+      id: UUID2,
+      title: 'Tarta',
+    } as never)
+    const res = await app.request(`/v1/collections/${UUID}/recipes`, {
+      headers: { Authorization: 'Bearer test-key' },
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body).toHaveLength(1)
+    expect(body[0].title).toBe('Tarta')
+  })
+
+  it('skips recipes that no longer exist (deleted since being added)', async () => {
+    mockSelect
+      .mockReturnValueOnce([{ id: UUID, name: 'Favoritas', ownerId: 'dev' }])
+      .mockReturnValueOnce([{ recipeId: UUID2 }])
+    vi.mocked(recipeRepository.findById).mockResolvedValueOnce(null)
+    const res = await app.request(`/v1/collections/${UUID}/recipes`, {
+      headers: { Authorization: 'Bearer test-key' },
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body).toEqual([])
+  })
+
+  it('returns 404 when collection not found', async () => {
+    mockSelect.mockReturnValueOnce([])
+    const res = await app.request(`/v1/collections/${UUID}/recipes`, {
+      headers: { Authorization: 'Bearer test-key' },
+    })
+    expect(res.status).toBe(404)
   })
 })
 

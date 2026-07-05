@@ -112,6 +112,55 @@ test.describe('Collections screen', () => {
     await page.getByText('Colecciones').click()
     await expect(page.getByPlaceholder('Nueva colección…')).toBeVisible({ timeout: 8000 })
   })
+
+  // Regression test for the 2026-07-03 audit finding: tapping a collection
+  // used to navigate to a dead-end/blank route — collections/[id] didn't exist.
+  test('tapping a collection shows its recipes instead of a dead end', async ({ page }) => {
+    const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
+    const token = await page.evaluate(() => localStorage.getItem('auth_token'))
+
+    const colRes = await page.request.post(`${API_URL}/v1/collections`, {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      data: { name: `E2E Detalle ${Date.now()}`, emoji: '🍰' },
+    })
+    expect(colRes.ok()).toBe(true)
+    const collection = await colRes.json()
+
+    const recipeRes = await page.request.post(`${API_URL}/v1/recipes`, {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      data: {
+        title: `E2E Receta Colección ${Date.now()}`,
+        servings: 4,
+        category: 'Cena',
+        ingredients: [{ name: 'sal', quantity: 1, unit: 'g' }],
+        steps: [{ text: 'Paso único' }],
+      },
+    })
+    expect(recipeRes.ok()).toBe(true)
+    const recipe = await recipeRes.json()
+
+    await page.request.post(`${API_URL}/v1/collections/${collection.id}/recipes`, {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      data: { recipeId: recipe.id },
+    })
+
+    await page.getByTestId('home-collections-button').click()
+    await expect(page.getByPlaceholder('Nueva colección…')).toBeVisible({ timeout: 8000 })
+    await page.getByText(collection.name).click()
+
+    await expect(page.getByTestId('collection-detail-title')).toContainText(collection.name, {
+      timeout: 8000,
+    })
+    await expect(page.getByTestId(`collection-recipe-${recipe.id}`)).toBeVisible({
+      timeout: 8000,
+    })
+
+    page.once('dialog', (dialog) => void dialog.accept())
+    await page.getByTestId(`collection-remove-${recipe.id}`).click()
+    await expect(page.getByTestId(`collection-recipe-${recipe.id}`)).not.toBeVisible({
+      timeout: 8000,
+    })
+  })
 })
 
 test.describe('Config (taxonomy) screen', () => {

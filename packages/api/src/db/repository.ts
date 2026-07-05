@@ -1,4 +1,4 @@
-import { eq, and, ilike, or, sql, inArray } from 'drizzle-orm'
+import { eq, and, ilike, or, sql, inArray, desc } from 'drizzle-orm'
 import type { CreateRecipe, UpdateRecipe, Recipe } from '@recetario/shared'
 import { getDb, schema } from './index.js'
 
@@ -202,6 +202,7 @@ export class RecipeRepository {
       .select()
       .from(schema.recipes)
       .where(eq(schema.recipes.ownerId, ownerId))
+      .orderBy(desc(schema.recipes.createdAt))
       .limit(opts.limit)
       .offset(opts.offset)
 

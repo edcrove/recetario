@@ -224,6 +224,8 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(data),
       }),
+    collectionRecipes: (collectionId: string) =>
+      request<Recipe[]>(`/v1/collections/${collectionId}/recipes`),
     addToCollection: (collectionId: string, recipeId: string) =>
       request<{ collectionId: string; recipeId: string }>(
         `/v1/collections/${collectionId}/recipes`,
