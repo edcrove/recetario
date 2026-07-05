@@ -290,6 +290,11 @@ jobs:
         env:
           DATABASE_URL: postgres://recetario:recetario@localhost:5432/recetario
 
+      - name: Seed default taxonomy (meal categories, food types)
+        run: pnpm --filter @recetario/api seed
+        env:
+          DATABASE_URL: postgres://recetario:recetario@localhost:5432/recetario
+
       - name: Start API in background
         run: |
           nohup pnpm --filter @recetario/api start &
