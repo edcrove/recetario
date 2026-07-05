@@ -13,6 +13,11 @@ export default defineConfig({
     globalSetup: ['src/__tests__/integration/globalSetup.ts'],
     testTimeout: 60000,
     hookTimeout: 180000,
+    // Every integration file shares one real Postgres instance that's never
+    // wiped between files (only resetDb()'s cached-client reset). Running
+    // files in parallel lets them race on shared/colliding fixture data —
+    // each file's own `.sequential()` only orders tests within that file.
+    fileParallelism: false,
     env: {
       SKIP_INTEGRATION: 'false',
     },
