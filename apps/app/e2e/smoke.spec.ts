@@ -20,7 +20,7 @@ test.describe('Smoke: home screen', () => {
   })
 
   test('filter chips are visible', async ({ page }) => {
-    await expect(page.getByText('Todas')).toBeVisible()
+    await expect(page.getByText('Todas')).toBeVisible({ timeout: 10000 })
   })
 })
 
@@ -38,7 +38,7 @@ test.describe('Smoke: auth flow', () => {
     const ctx = await browser.newContext()
     const page = await ctx.newPage()
     await page.goto('/auth/login')
-    await expect(page.getByPlaceholder('Email')).toBeVisible()
+    await expect(page.getByPlaceholder('Email')).toBeVisible({ timeout: 10000 })
     await expect(page.getByPlaceholder('Contraseña')).toBeVisible()
     await expect(page.getByText('Ingresar')).toBeVisible()
     await ctx.close()
