@@ -326,13 +326,13 @@ jobs:
 
       - name: Serve standard app build
         run: |
-          npx serve dist --listen 8080 &
+          npx serve -s dist --listen 8080 &
           timeout 30 bash -c 'until curl -sf http://localhost:8080 > /dev/null; do sleep 1; done'
         working-directory: apps/app
 
       - name: Serve instrumented app for E2E coverage
         run: |
-          npx serve dist-coverage --listen 8090 &
+          npx serve -s dist-coverage --listen 8090 &
           timeout 30 bash -c 'until curl -sf http://localhost:8090 > /dev/null; do sleep 1; done'
         working-directory: apps/app
 
