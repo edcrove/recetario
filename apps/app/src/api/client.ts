@@ -271,7 +271,7 @@ export const api = {
     stats: (since?: string) =>
       request<{
         totalSessions: number
-        topRecipes: Array<{ recipeId: string; count: number; lastCookedAt: string }>
+        topRecipes: Array<{ recipeId: string | null; count: number; lastCookedAt: string }>
         frequencyByWeek: Array<{ week: string; count: number }>
       }>(`/v1/cook-sessions/stats${since ? `?since=${since}` : ''}`),
   },
