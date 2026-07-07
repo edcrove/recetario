@@ -46,6 +46,25 @@ const CreateRecipeInput = z.object({
   sourceType: z.enum(['url', 'photo', 'manual', 'mcp']).optional().default('mcp'),
   externalId: z.string().optional().describe('External ID for deduplication'),
   originalLanguage: z.string().optional().default('es'),
+  dietaryTags: z
+    .array(z.enum(['vegano', 'vegetariano', 'sin-gluten', 'sin-lactosa', 'keto', 'paleo']))
+    .optional()
+    .describe('Dietary restrictions this recipe satisfies'),
+  nutrition: z
+    .object({
+      calories: z.number().min(0).describe('Calories per serving'),
+      protein_g: z.number().min(0).describe('Protein grams per serving'),
+      carbs_g: z.number().min(0).describe('Carbohydrate grams per serving'),
+      fat_g: z.number().min(0).describe('Fat grams per serving'),
+      fiber_g: z.number().min(0).optional().describe('Fiber grams per serving'),
+    })
+    .optional()
+    .describe('Nutrition facts per serving (not per whole recipe)'),
+  foodTypeIds: z
+    .array(z.string().uuid())
+    .max(3)
+    .optional()
+    .describe('Up to 3 food type IDs from getFoodTypes (e.g. guiso, sopa, carne)'),
 })
 
 export function registerCreateRecipe(server: McpServer, api: ReturnType<typeof createApiClient>) {

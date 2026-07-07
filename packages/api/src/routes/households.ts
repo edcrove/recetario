@@ -126,10 +126,15 @@ const inviteRoute = defineRoute({
     body: {
       content: {
         'application/json': {
-          schema: z.object({
-            userId: z.string().uuid(),
-            role: z.enum(['admin', 'member', 'viewer']).default('member'),
-          }),
+          schema: z
+            .object({
+              userId: z.string().uuid().optional(),
+              email: z.string().email().optional(),
+              role: z.enum(['admin', 'member', 'viewer']).default('member'),
+            })
+            .refine((data) => data.userId ?? data.email, {
+              message: 'Either userId or email is required',
+            }),
         },
       },
       required: true,
@@ -142,10 +147,11 @@ const inviteRoute = defineRoute({
   },
 })
 
-householdsRoute.openapi(inviteRoute, async (c) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+householdsRoute.openapi(inviteRoute as any, async (c: any) => {
   const ownerId = c.get('ownerId')
   const { id } = c.req.valid('param')
-  const { userId, role } = c.req.valid('json')
+  const { userId, email, role } = c.req.valid('json')
   const db = getDb()
 
   const [myMembership] = await db
@@ -159,9 +165,20 @@ householdsRoute.openapi(inviteRoute, async (c) => {
   if (!myMembership) return c.json({ error: 'Household not found' } as never, 404)
   if (!['owner', 'admin'].includes(myMembership.role)) return c.json({ error: 'Forbidden' }, 403)
 
+  let invitedUserId = userId
+  if (!invitedUserId && email) {
+    const [user] = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.email, email))
+      .limit(1)
+    if (!user) return c.json({ error: 'No user found with that email' } as never, 404)
+    invitedUserId = user.id
+  }
+
   const [member] = await db
     .insert(schema.householdMembers)
-    .values({ householdId: id, userId, role })
+    .values({ householdId: id, userId: invitedUserId, role })
     .onConflictDoNothing()
     .returning()
 

@@ -23,6 +23,25 @@ export function registerMutationTools(server: McpServer, api: ReturnType<typeof 
         )
         .optional(),
       steps: z.array(z.object({ text: z.string() })).optional(),
+      dietaryTags: z
+        .array(z.enum(['vegano', 'vegetariano', 'sin-gluten', 'sin-lactosa', 'keto', 'paleo']))
+        .optional()
+        .describe('Dietary restrictions this recipe satisfies'),
+      nutrition: z
+        .object({
+          calories: z.number().min(0).describe('Calories per serving'),
+          protein_g: z.number().min(0).describe('Protein grams per serving'),
+          carbs_g: z.number().min(0).describe('Carbohydrate grams per serving'),
+          fat_g: z.number().min(0).describe('Fat grams per serving'),
+          fiber_g: z.number().min(0).optional().describe('Fiber grams per serving'),
+        })
+        .optional()
+        .describe('Nutrition facts per serving (not per whole recipe)'),
+      foodTypeIds: z
+        .array(z.string().uuid())
+        .max(3)
+        .optional()
+        .describe('Up to 3 food type IDs from getFoodTypes (e.g. guiso, sopa, carne)'),
     },
     async ({ id, ...updates }) => {
       const recipe = await api.request(`/v1/recipes/${id}`, {

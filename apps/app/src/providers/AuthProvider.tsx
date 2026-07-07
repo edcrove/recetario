@@ -1,10 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { authStorage as storage } from '../utils/authStorage'
+import { api } from '../api/client'
 
 const TOKEN_KEY = 'auth_token'
 
 interface AuthState {
   token: string | null
+  userId: string | null
   isLoading: boolean
   signIn: (token: string) => Promise<void>
   signOut: () => Promise<void>
@@ -12,6 +14,7 @@ interface AuthState {
 
 const AuthContext = createContext<AuthState>({
   token: null,
+  userId: null,
   isLoading: true,
   signIn: async () => {},
   signOut: async () => {},
@@ -19,6 +22,7 @@ const AuthContext = createContext<AuthState>({
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -28,6 +32,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .catch(() => setToken(null))
       .finally(() => setIsLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (!token) {
+      setUserId(null)
+      return
+    }
+    api.auth
+      .me()
+      .then((me) => setUserId(me.id))
+      .catch(() => setUserId(null))
+  }, [token])
 
   const signIn = useCallback(async (newToken: string) => {
     await storage.set(TOKEN_KEY, newToken)
@@ -39,11 +54,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(null)
   }, [])
 
-  return (
-    <AuthContext.Provider value={{ token, isLoading, signIn, signOut }}>
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo(
+    () => ({ token, userId, isLoading, signIn, signOut }),
+    [token, userId, isLoading, signIn, signOut],
   )
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {

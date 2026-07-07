@@ -29,7 +29,11 @@ vi.mock('../db/index.js', () => ({
     }),
     delete: () => ({ where: () => ({ returning: () => Promise.resolve(mockDelete()) }) }),
   })),
-  schema: { households: {}, householdMembers: { householdId: 'hh', userId: 'uid', role: 'role' } },
+  schema: {
+    households: {},
+    householdMembers: { householdId: 'hh', userId: 'uid', role: 'role' },
+    users: { email: 'email' },
+  },
 }))
 vi.mock('../db/repository.js', () => ({
   recipeRepository: {
@@ -157,6 +161,54 @@ describe('POST /v1/households/:id/invite', () => {
       body: JSON.stringify({ userId: USER_ID, role: 'member' }),
     })
     expect(res.status).toBe(409)
+  })
+
+  // Regression tests for the 2026-07-03 audit finding: inviting required
+  // knowing another user's raw UUID, which no real person has.
+  it('invites by email, resolving it to a userId server-side', async () => {
+    mockSelect
+      .mockReturnValueOnce([makeMember('owner')]) // membership check
+      .mockReturnValueOnce([{ id: USER_ID, email: 'amigo@example.com' }]) // email lookup
+    mockInsert.mockReturnValue([
+      {
+        householdId: HH_ID,
+        userId: USER_ID,
+        role: 'member',
+        invitedAt: new Date(),
+        acceptedAt: null,
+      },
+    ])
+    const res = await app.request(`/v1/households/${HH_ID}/invite`, {
+      method: 'POST',
+      headers: AUTH,
+      body: JSON.stringify({ email: 'amigo@example.com', role: 'member' }),
+    })
+    expect(res.status).toBe(201)
+    const body = await res.json()
+    expect(body.userId).toBe(USER_ID)
+  })
+
+  it('returns 404 when no user exists with the given email', async () => {
+    mockSelect
+      .mockReturnValueOnce([makeMember('owner')]) // membership check
+      .mockReturnValueOnce([]) // email lookup finds nobody
+    const res = await app.request(`/v1/households/${HH_ID}/invite`, {
+      method: 'POST',
+      headers: AUTH,
+      body: JSON.stringify({ email: 'nadie@example.com', role: 'member' }),
+    })
+    expect(res.status).toBe(404)
+    const body = await res.json()
+    expect(body.error).toBe('No user found with that email')
+  })
+
+  it('returns 400 when neither userId nor email is provided', async () => {
+    const res = await app.request(`/v1/households/${HH_ID}/invite`, {
+      method: 'POST',
+      headers: AUTH,
+      body: JSON.stringify({ role: 'member' }),
+    })
+    expect(res.status).toBe(400)
   })
 })
 

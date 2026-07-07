@@ -224,6 +224,8 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(data),
       }),
+    collectionRecipes: (collectionId: string) =>
+      request<Recipe[]>(`/v1/collections/${collectionId}/recipes`),
     addToCollection: (collectionId: string, recipeId: string) =>
       request<{ collectionId: string; recipeId: string }>(
         `/v1/collections/${collectionId}/recipes`,
@@ -269,7 +271,7 @@ export const api = {
     stats: (since?: string) =>
       request<{
         totalSessions: number
-        topRecipes: Array<{ recipeId: string; count: number; lastCookedAt: string }>
+        topRecipes: Array<{ recipeId: string | null; count: number; lastCookedAt: string }>
         frequencyByWeek: Array<{ week: string; count: number }>
       }>(`/v1/cook-sessions/stats${since ? `?since=${since}` : ''}`),
   },
@@ -293,10 +295,10 @@ export const api = {
           }>
         }>
       >('/v1/households/mine'),
-    invite: (householdId: string, userId: string, role: string) =>
+    invite: (householdId: string, email: string, role: string) =>
       request<{ userId: string; role: string }>(`/v1/households/${householdId}/invite`, {
         method: 'POST',
-        body: JSON.stringify({ userId, role }),
+        body: JSON.stringify({ email, role }),
       }),
     accept: (householdId: string) =>
       request<{ userId: string; role: string }>(`/v1/households/${householdId}/accept`, {

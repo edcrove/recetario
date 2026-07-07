@@ -17,6 +17,17 @@ test.describe('Auth: login via form', () => {
     await expect(page.getByText('Ingresá a tu cuenta')).toBeVisible()
   })
 
+  // Regression test for the 2026-07-03 audit finding: the auth guard used to
+  // live only in index.tsx, so deep-linking straight to a protected screen
+  // while unauthenticated skipped the redirect entirely. Now it's centralized
+  // in _layout.tsx and applies to every route outside /auth/*.
+  test('deep-linking to a protected screen while unauthenticated redirects to login', async ({
+    page,
+  }) => {
+    await page.goto('/household')
+    await expect(page).toHaveURL(/auth\/login/, { timeout: 10000 })
+  })
+
   test('shows error for wrong credentials', async ({ page }) => {
     await page.goto('/auth/login')
     await page.getByPlaceholder('Email').fill('wrong@example.com')

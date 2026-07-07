@@ -105,9 +105,12 @@ export const menuEntries = pgTable(
     ownerId: text('owner_id').notNull(),
     date: text('date').notNull(), // ISO date YYYY-MM-DD
     slot: menuSlot('slot').notNull(),
-    recipeId: uuid('recipe_id')
-      .notNull()
-      .references(() => recipes.id, { onDelete: 'cascade' }),
+    // Nullable + set null (not cascade): deleting a recipe must not erase the
+    // week's meal-plan history — see the 2026-07-03 audit finding. recipeTitle
+    // is a snapshot captured at insert time so the entry stays meaningful
+    // even after the recipe itself is gone.
+    recipeId: uuid('recipe_id').references(() => recipes.id, { onDelete: 'set null' }),
+    recipeTitle: text('recipe_title'),
     servings: integer('servings').notNull().default(1),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
@@ -299,9 +302,12 @@ export const cookSessions = pgTable(
   'cook_sessions',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    recipeId: uuid('recipe_id')
-      .notNull()
-      .references(() => recipes.id, { onDelete: 'cascade' }),
+    // Nullable + set null (not cascade): deleting a recipe must not erase
+    // cooking history — see the 2026-07-03 audit finding. recipeTitle is a
+    // snapshot captured at insert time so history stays meaningful even
+    // after the recipe itself is gone.
+    recipeId: uuid('recipe_id').references(() => recipes.id, { onDelete: 'set null' }),
+    recipeTitle: text('recipe_title'),
     ownerId: text('owner_id').notNull(),
     cookedAt: timestamp('cooked_at').notNull().defaultNow(),
     rating: integer('rating'), // 1–5, nullable

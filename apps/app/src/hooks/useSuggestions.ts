@@ -8,7 +8,10 @@ export function useSuggestions(enabled = true) {
     enabled,
   })
 
-  const topIds = (stats?.topRecipes ?? []).slice(0, 3).map((r) => r.recipeId)
+  const topIds = (stats?.topRecipes ?? [])
+    .map((r) => r.recipeId)
+    .filter((id): id is string => id !== null)
+    .slice(0, 3)
 
   const { data: allRelations = [] } = useQuery({
     queryKey: ['suggestions-relations', topIds.join(',')],

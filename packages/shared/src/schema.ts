@@ -117,6 +117,7 @@ export const RecipeSchema = z.object({
   source: SourceSchema.optional(),
   dietaryTags: z.array(DietaryTagSchema).optional(),
   nutrition: NutritionSchema.optional(),
+  foodTypeIds: z.array(z.string().uuid()).max(3).optional(),
   createdAt: z.string().datetime().optional(),
   updatedAt: z.string().datetime().optional(),
 })

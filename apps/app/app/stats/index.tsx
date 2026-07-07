@@ -41,30 +41,42 @@ export default function StatsScreen() {
       {(stats?.topRecipes ?? []).length === 0 ? (
         <Text style={s.empty}>¡Empezá a cocinar para ver tus recetas más usadas acá!</Text>
       ) : (
-        stats?.topRecipes.map((r, i) => (
-          <TouchableOpacity
-            key={r.recipeId}
-            style={s.topRow}
-            onPress={() => router.push(`/recipe/${r.recipeId}`)}
-          >
-            <Text style={s.topRank}>#{i + 1}</Text>
-            <View style={s.topInfo}>
-              <Text style={s.topRecipeId} numberOfLines={1}>
-                {r.recipeId.slice(0, 8)}…
-              </Text>
-              <Text style={s.topLastCooked}>
-                Última vez:{' '}
-                {new Date(r.lastCookedAt).toLocaleDateString('es-AR', {
-                  day: 'numeric',
-                  month: 'short',
-                })}
-              </Text>
+        stats?.topRecipes.map((r, i) => {
+          const recipeId = r.recipeId
+          const content = (
+            <>
+              <Text style={s.topRank}>#{i + 1}</Text>
+              <View style={s.topInfo}>
+                <Text style={s.topRecipeId} numberOfLines={1}>
+                  {recipeId ? `${recipeId.slice(0, 8)}…` : 'Receta eliminada'}
+                </Text>
+                <Text style={s.topLastCooked}>
+                  Última vez:{' '}
+                  {new Date(r.lastCookedAt).toLocaleDateString('es-AR', {
+                    day: 'numeric',
+                    month: 'short',
+                  })}
+                </Text>
+              </View>
+              <View style={s.topCountBadge}>
+                <Text style={s.topCount}>{r.count}×</Text>
+              </View>
+            </>
+          )
+          return recipeId ? (
+            <TouchableOpacity
+              key={recipeId}
+              style={s.topRow}
+              onPress={() => router.push(`/recipe/${recipeId}`)}
+            >
+              {content}
+            </TouchableOpacity>
+          ) : (
+            <View key={`deleted-${i}`} style={s.topRow}>
+              {content}
             </View>
-            <View style={s.topCountBadge}>
-              <Text style={s.topCount}>{r.count}×</Text>
-            </View>
-          </TouchableOpacity>
-        ))
+          )
+        })
       )}
 
       {/* Frequency chart */}

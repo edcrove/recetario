@@ -12,6 +12,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../../src/api/client'
 import { displayIngredient } from '../../src/utils/displayIngredient'
 import type { DisplayMode } from '../../src/utils/displayIngredient'
+import { roundNutrition } from '../../src/utils/nutritionDisplay'
 import { AllergenWarning } from '../../src/components/AllergenWarning'
 import { NutritionBar } from '../../src/components/NutritionBar'
 
@@ -174,18 +175,7 @@ export default function RecipeDetailScreen() {
 
           {/* Nutrition */}
           {recipe.nutrition && (
-            <NutritionBar
-              label="Nutrición por porción"
-              calories={Math.round((recipe.nutrition.calories ?? 0) * (current / base))}
-              protein_g={Math.round((recipe.nutrition.protein_g ?? 0) * (current / base) * 10) / 10}
-              carbs_g={Math.round((recipe.nutrition.carbs_g ?? 0) * (current / base) * 10) / 10}
-              fat_g={Math.round((recipe.nutrition.fat_g ?? 0) * (current / base) * 10) / 10}
-              fiber_g={
-                recipe.nutrition.fiber_g != null
-                  ? Math.round(recipe.nutrition.fiber_g * (current / base) * 10) / 10
-                  : undefined
-              }
-            />
+            <NutritionBar label="Nutrición por porción" {...roundNutrition(recipe.nutrition)} />
           )}
 
           {/* Steps */}

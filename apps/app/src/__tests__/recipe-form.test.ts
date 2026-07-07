@@ -131,6 +131,43 @@ describe('buildPayload', () => {
     )
     expect(result.dietaryTags).toBeUndefined()
   })
+
+  // Regression tests for the 2026-07-03 audit finding: foodTypeIds used to be
+  // collected by the UI but silently never sent anywhere.
+  it('includes foodTypeIds when non-empty', () => {
+    const result = buildPayload(
+      'Torta',
+      '4',
+      'Postre',
+      '',
+      '',
+      validIngredients,
+      validSteps,
+      undefined,
+      ['ft-1', 'ft-2'],
+    )
+    expect(result.foodTypeIds).toEqual(['ft-1', 'ft-2'])
+  })
+
+  it('omits foodTypeIds when empty array', () => {
+    const result = buildPayload(
+      'Torta',
+      '4',
+      'Postre',
+      '',
+      '',
+      validIngredients,
+      validSteps,
+      undefined,
+      [],
+    )
+    expect(result.foodTypeIds).toBeUndefined()
+  })
+
+  it('omits foodTypeIds when undefined', () => {
+    const result = buildPayload('Torta', '4', 'Postre', '', '', validIngredients, validSteps)
+    expect(result.foodTypeIds).toBeUndefined()
+  })
 })
 
 describe('validatePayload', () => {

@@ -118,6 +118,23 @@ test.describe('Pick recipe screen (/menu/pick)', () => {
       expect(current).not.toBe(initial)
     }).toPass({ timeout: 5000 })
   })
+
+  // Regression test for the 2026-07-03 audit finding (parent/family persona):
+  // the allergen warning only showed up on the recipe detail page, three taps
+  // deep from where planning actually happens. Now the picker shows a badge.
+  test('shows an allergen badge on recipes that conflict with the profile', async ({ page }) => {
+    const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
+    const token = await page.evaluate(() => localStorage.getItem('auth_token'))
+    await page.request.patch(`${API_URL}/auth/profile`, {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      data: { allergens: ['queso'] },
+    })
+
+    await page.goto('/menu/pick?date=2025-01-06&slot=Almuerzo&weekStart=2025-01-06')
+    await expect(page.getByPlaceholder('Buscar receta...')).toBeVisible({ timeout: 15000 })
+    await page.getByPlaceholder('Buscar receta...').fill('Tarta')
+    await expect(page.getByTestId('allergen-badge').first()).toBeVisible({ timeout: 10000 })
+  })
 })
 
 test.describe('Shopping list screen (/menu/shopping-list)', () => {
