@@ -43,6 +43,7 @@ export function FoodTypePicker({ selected, onChange, maxSelect = 3 }: Props) {
         return (
           <TouchableOpacity
             key={t.id}
+            testID={`food-type-chip-${t.id}`}
             style={[s.chip, active && s.chipActive]}
             onPress={() => toggle(t.id)}
           >

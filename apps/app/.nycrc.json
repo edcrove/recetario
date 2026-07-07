@@ -1,0 +1,14 @@
+{
+  "reporter": ["text", "lcov", "html", "json-summary"],
+  "report-dir": "coverage-e2e",
+  "include": ["app/**/*.tsx", "src/**/*.ts", "src/**/*.tsx"],
+  "exclude": [
+    "e2e/**",
+    "**/*.test.*",
+    "src/__mocks__/**",
+    "src/__tests__/**",
+    "src/__screen-tests__/**"
+  ],
+  "all": true,
+  "check-coverage": false
+}

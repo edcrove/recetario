@@ -10,11 +10,14 @@
     "dev": "tsx watch --env-file=.env src/index.ts",
     "start": "node dist/index.js",
     "lint": "eslint src",
+    "pretest": "pnpm --filter @recetario/shared build",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:integration-coverage": "vitest run --config vitest.integration.config.ts --coverage",
     "typecheck": "tsc --noEmit",
     "generate-key": "tsx src/scripts/generate-key.ts",
-    "seed": "tsx src/scripts/seed.ts"
+    "seed": "tsx src/scripts/seed.ts",
+    "seed:e2e-accounts": "tsx src/scripts/seed-e2e-accounts.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.0",

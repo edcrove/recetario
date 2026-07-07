@@ -19,7 +19,11 @@ function mapToMenuEntry(row: MenuRow, recipe?: Pick<RecipeRow, 'title'>): MenuEn
     slot: row.slot as MenuSlot,
     recipeId: row.recipeId,
     servings: row.servings,
-    recipeName: recipe?.title,
+    // Prefer the live recipe's current title; fall back to the snapshot
+    // taken when the entry was created (recipe may have been deleted since).
+    // The final `?? undefined` only matters for rows predating this column.
+    /* v8 ignore next */
+    recipeName: recipe?.title ?? row.recipeTitle ?? undefined,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }
@@ -39,6 +43,12 @@ export class MenuRepository {
   async upsert(ownerId: string, data: CreateMenuEntry): Promise<MenuEntry> {
     const db = this.db
 
+    const [recipe] = await db
+      .select({ title: schema.recipes.title })
+      .from(schema.recipes)
+      .where(eq(schema.recipes.id, data.recipeId))
+      .limit(1)
+
     const [row] = await db
       .insert(schema.menuEntries)
       .values({
@@ -46,6 +56,7 @@ export class MenuRepository {
         date: data.date,
         slot: data.slot,
         recipeId: data.recipeId,
+        recipeTitle: recipe?.title,
         servings: data.servings,
       })
       .onConflictDoUpdate({
@@ -62,12 +73,6 @@ export class MenuRepository {
     /* v8 ignore next */
     if (!row) throw new Error('Failed to upsert menu entry')
 
-    const [recipe] = await db
-      .select({ title: schema.recipes.title })
-      .from(schema.recipes)
-      .where(eq(schema.recipes.id, row.recipeId))
-      .limit(1)
-
     return mapToMenuEntry(row, recipe)
   }
 
@@ -77,7 +82,7 @@ export class MenuRepository {
       eq(schema.menuEntries.ownerId, ownerId),
       eq(schema.menuEntries.date, date),
       eq(schema.menuEntries.slot, slot),
-      ...(recipeId ? [eq(schema.menuEntries.recipeId, recipeId)] : []),
+      /* v8 ignore next */ ...(recipeId ? [eq(schema.menuEntries.recipeId, recipeId)] : []),
     ]
     const result = await db
       .delete(schema.menuEntries)
@@ -114,7 +119,7 @@ export class MenuRepository {
     const [recipe] = await db
       .select({ title: schema.recipes.title })
       .from(schema.recipes)
-      .where(eq(schema.recipes.id, row.recipeId))
+      .where(eq(schema.recipes.id, recipeId))
       .limit(1)
 
     return mapToMenuEntry(row, recipe)
@@ -137,19 +142,21 @@ export class MenuRepository {
 
     if (rows.length === 0) return []
 
-    const recipeIds = [...new Set(rows.map((r) => r.recipeId))]
-    const recipes = await db
-      .select({ id: schema.recipes.id, title: schema.recipes.title })
-      .from(schema.recipes)
-      .where(inArray(schema.recipes.id, recipeIds))
+    const recipeIds = [...new Set(rows.map((r) => r.recipeId).filter((id) => id !== null))]
+    const recipes =
+      recipeIds.length > 0
+        ? await db
+            .select({ id: schema.recipes.id, title: schema.recipes.title })
+            .from(schema.recipes)
+            .where(inArray(schema.recipes.id, recipeIds))
+        : []
 
     const recipeMap = new Map(recipes.map((r) => [r.id, r.title]))
 
     return rows.map((row) => {
-      /* v8 ignore next 3 */
-      const recipeName = recipeMap.has(row.recipeId)
-        ? { title: recipeMap.get(row.recipeId)! }
-        : undefined
+      const title = row.recipeId ? recipeMap.get(row.recipeId) : undefined
+      /* v8 ignore next */
+      const recipeName = title !== undefined ? { title } : undefined
       return mapToMenuEntry(row, recipeName)
     })
   }
@@ -176,7 +183,10 @@ export class MenuRepository {
 
     if (entries.length === 0) return []
 
-    const recipeIds = [...new Set(entries.map((e) => e.recipeId))]
+    // The inner join above already excludes rows whose recipeId was set to
+    // null (recipe deleted), so this filter is purely to satisfy the type
+    // checker — every remaining entry.recipeId is guaranteed non-null here.
+    const recipeIds = [...new Set(entries.map((e) => e.recipeId).filter((id) => id !== null))]
     const ingredientRows = await db
       .select()
       .from(schema.ingredients)

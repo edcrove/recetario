@@ -1,9 +1,10 @@
-import { Alert, Vibration } from 'react-native'
+import { Vibration } from 'react-native'
 import * as Speech from 'expo-speech'
+import { notify } from './platformAlert'
 
 export function onStepTimerComplete(): void {
   Vibration.vibrate([0, 400, 200, 400])
-  Alert.alert('¡Tiempo!', 'El tiempo de este paso ha terminado.')
+  notify('¡Tiempo!', 'El tiempo de este paso ha terminado.')
 }
 
 export function startSpeech(

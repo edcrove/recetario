@@ -7,17 +7,17 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
-  Alert,
 } from 'react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../src/api/client'
 import { useAuth } from '../../src/providers/AuthProvider'
+import { confirmAsync, notify } from '../../src/utils/platformAlert'
 
 const ROLE_LABELS: Record<string, string> = {
-  owner: 'Owner',
+  owner: 'Dueño',
   admin: 'Admin',
-  member: 'Member',
-  viewer: 'Viewer',
+  member: 'Miembro',
+  viewer: 'Espectador',
 }
 
 const ROLE_COLORS: Record<string, string> = {
@@ -29,9 +29,9 @@ const ROLE_COLORS: Record<string, string> = {
 
 export default function HouseholdScreen() {
   const queryClient = useQueryClient()
-  const { token } = useAuth()
+  const { token, userId } = useAuth()
   const [newHouseholdName, setNewHouseholdName] = useState('')
-  const [inviteUserId, setInviteUserId] = useState('')
+  const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState<'admin' | 'member' | 'viewer'>('member')
   const [invitingFor, setInvitingFor] = useState<string | null>(null)
 
@@ -52,19 +52,19 @@ export default function HouseholdScreen() {
   const inviteMember = useMutation({
     mutationFn: ({
       householdId,
-      userId,
+      email,
       role,
     }: {
       householdId: string
-      userId: string
+      email: string
       role: string
-    }) => api.households.invite(householdId, userId, role),
+    }) => api.households.invite(householdId, email, role),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['households'] })
-      setInviteUserId('')
+      setInviteEmail('')
       setInvitingFor(null)
     },
-    onError: () => Alert.alert('Error', 'Could not invite user. Check the user ID.'),
+    onError: () => notify('Error', 'No se encontró ningún usuario con ese email.'),
   })
 
   const removeMember = useMutation({
@@ -86,121 +86,139 @@ export default function HouseholdScreen() {
       {/* Create household */}
       {households.length === 0 && (
         <View style={s.emptyCard}>
-          <Text style={s.emptyTitle}>Create your household</Text>
+          <Text style={s.emptyTitle}>Creá tu hogar</Text>
           <Text style={s.emptyBody}>
-            A household lets you share recipes and meal plans with family or roommates.
+            Un hogar te permite compartir recetas y planes de comida con tu familia o compañeros de
+            casa.
           </Text>
           <TextInput
+            testID="household-create-name-input"
             style={s.input}
-            placeholder="e.g. The García Family"
+            placeholder="ej. Familia García"
             value={newHouseholdName}
             onChangeText={setNewHouseholdName}
           />
           <TouchableOpacity
+            testID="household-create-submit"
             style={[s.btn, !newHouseholdName.trim() && s.btnDisabled]}
             disabled={!newHouseholdName.trim() || createHousehold.isPending}
             onPress={() => createHousehold.mutate(newHouseholdName.trim())}
           >
-            <Text style={s.btnText}>Create household</Text>
+            <Text style={s.btnText}>Crear hogar</Text>
           </TouchableOpacity>
         </View>
       )}
 
       {/* Households list */}
-      {households.map((hh) => (
-        <View key={hh.id} style={s.card}>
-          <Text style={s.householdName}>🏠 {hh.name}</Text>
+      {households.map((hh) => {
+        const myRole = hh.members?.find((m) => m.userId === userId)?.role
+        const canManageMembers = myRole === 'owner' || myRole === 'admin'
+        return (
+          <View key={hh.id} style={s.card}>
+            <Text style={s.householdName}>🏠 {hh.name}</Text>
 
-          {/* Members */}
-          <Text style={s.sectionLabel}>Members</Text>
-          {(hh.members ?? []).map((m) => (
-            <View key={m.userId} style={s.memberRow}>
-              <View style={s.memberInfo}>
-                <View style={[s.roleBadge, { backgroundColor: ROLE_COLORS[m.role] ?? '#6b7280' }]}>
-                  <Text style={s.roleBadgeText}>{ROLE_LABELS[m.role] ?? m.role}</Text>
-                </View>
-                <Text style={s.memberUserId} numberOfLines={1}>
-                  {m.userId.slice(0, 8)}…
-                </Text>
-                {!m.acceptedAt && <Text style={s.pending}>Pending</Text>}
-              </View>
-              {m.role !== 'owner' && hh.ownerId === hh.ownerId && (
-                <TouchableOpacity
-                  onPress={() =>
-                    Alert.alert('Remove member', 'Remove this member from the household?', [
-                      { text: 'Cancel', style: 'cancel' },
-                      {
-                        text: 'Remove',
-                        style: 'destructive',
-                        onPress: () =>
-                          removeMember.mutate({ householdId: hh.id, userId: m.userId }),
-                      },
-                    ])
-                  }
-                >
-                  <Text style={s.removeText}>✕</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          ))}
-
-          {/* Invite */}
-          {invitingFor === hh.id ? (
-            <View style={s.inviteBox}>
-              <Text style={s.inviteLabel}>User ID to invite</Text>
-              <TextInput
-                style={s.input}
-                placeholder="Paste user UUID"
-                value={inviteUserId}
-                onChangeText={setInviteUserId}
-                autoCapitalize="none"
-              />
-              <View style={s.roleRow}>
-                {(['admin', 'member', 'viewer'] as const).map((r) => (
-                  <TouchableOpacity
-                    key={r}
-                    style={[s.roleChip, inviteRole === r && s.roleChipActive]}
-                    onPress={() => setInviteRole(r)}
+            {/* Members */}
+            <Text style={s.sectionLabel}>Miembros</Text>
+            {(hh.members ?? []).map((m) => (
+              <View key={m.userId} style={s.memberRow}>
+                <View style={s.memberInfo}>
+                  <View
+                    style={[s.roleBadge, { backgroundColor: ROLE_COLORS[m.role] ?? '#6b7280' }]}
                   >
-                    <Text style={[s.roleChipText, inviteRole === r && s.roleChipTextActive]}>
-                      {ROLE_LABELS[r]}
-                    </Text>
+                    <Text style={s.roleBadgeText}>{ROLE_LABELS[m.role] ?? m.role}</Text>
+                  </View>
+                  <Text style={s.memberUserId} numberOfLines={1}>
+                    {m.userId.slice(0, 8)}…
+                  </Text>
+                  {!m.acceptedAt && <Text style={s.pending}>Pendiente</Text>}
+                </View>
+                {m.role !== 'owner' && canManageMembers && (
+                  <TouchableOpacity
+                    testID={`household-remove-member-${m.userId}`}
+                    onPress={async () => {
+                      const confirmed = await confirmAsync(
+                        'Quitar miembro',
+                        '¿Quitar a este miembro del hogar?',
+                      )
+                      if (confirmed) removeMember.mutate({ householdId: hh.id, userId: m.userId })
+                    }}
+                  >
+                    <Text style={s.removeText}>✕</Text>
                   </TouchableOpacity>
-                ))}
+                )}
               </View>
-              <View style={s.inviteActions}>
+            ))}
+
+            {/* Invite */}
+            {canManageMembers &&
+              (invitingFor === hh.id ? (
+                <View style={s.inviteBox}>
+                  <Text style={s.inviteLabel}>Email a invitar</Text>
+                  <TextInput
+                    testID="household-invite-email-input"
+                    style={s.input}
+                    placeholder="familiar@ejemplo.com"
+                    value={inviteEmail}
+                    onChangeText={setInviteEmail}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                  />
+                  <View style={s.roleRow}>
+                    {(['admin', 'member', 'viewer'] as const).map((r) => (
+                      <TouchableOpacity
+                        key={r}
+                        testID={`household-invite-role-${r}`}
+                        style={[s.roleChip, inviteRole === r && s.roleChipActive]}
+                        onPress={() => setInviteRole(r)}
+                      >
+                        <Text style={[s.roleChipText, inviteRole === r && s.roleChipTextActive]}>
+                          {ROLE_LABELS[r]}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <View style={s.inviteActions}>
+                    <TouchableOpacity
+                      testID="household-invite-submit"
+                      style={[s.btn, s.btnSm, !inviteEmail.trim() && s.btnDisabled]}
+                      disabled={!inviteEmail.trim() || inviteMember.isPending}
+                      onPress={() =>
+                        inviteMember.mutate({
+                          householdId: hh.id,
+                          email: inviteEmail.trim(),
+                          role: inviteRole,
+                        })
+                      }
+                    >
+                      <Text style={s.btnText}>Enviar invitación</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      testID="household-invite-cancel"
+                      onPress={() => setInvitingFor(null)}
+                    >
+                      <Text style={s.cancelText}>Cancelar</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
                 <TouchableOpacity
-                  style={[s.btn, s.btnSm, !inviteUserId.trim() && s.btnDisabled]}
-                  disabled={!inviteUserId.trim() || inviteMember.isPending}
-                  onPress={() =>
-                    inviteMember.mutate({
-                      householdId: hh.id,
-                      userId: inviteUserId.trim(),
-                      role: inviteRole,
-                    })
-                  }
+                  testID="household-invite-open"
+                  style={s.inviteBtn}
+                  onPress={() => setInvitingFor(hh.id)}
                 >
-                  <Text style={s.btnText}>Send invite</Text>
+                  <Text style={s.inviteBtnText}>+ Invitar miembro</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => setInvitingFor(null)}>
-                  <Text style={s.cancelText}>Cancel</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ) : (
-            <TouchableOpacity style={s.inviteBtn} onPress={() => setInvitingFor(hh.id)}>
-              <Text style={s.inviteBtnText}>+ Invite member</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      ))}
+              ))}
+          </View>
+        )
+      })}
 
       {/* Add another household */}
       {households.length > 0 && (
         <View style={s.addCard}>
           <TextInput
             style={s.input}
-            placeholder="New household name…"
+            placeholder="Nombre del nuevo hogar…"
             value={newHouseholdName}
             onChangeText={setNewHouseholdName}
           />
@@ -209,7 +227,7 @@ export default function HouseholdScreen() {
             disabled={!newHouseholdName.trim() || createHousehold.isPending}
             onPress={() => createHousehold.mutate(newHouseholdName.trim())}
           >
-            <Text style={s.btnText}>Create another household</Text>
+            <Text style={s.btnText}>Crear otro hogar</Text>
           </TouchableOpacity>
         </View>
       )}

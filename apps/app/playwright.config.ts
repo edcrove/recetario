@@ -1,9 +1,13 @@
 import { defineConfig, devices } from '@playwright/test'
+import { DEMO_ACCOUNTS } from './e2e/demoAccounts'
 
 export default defineConfig({
   testDir: './e2e',
   timeout: 30000,
   retries: process.env['CI'] ? 1 : 0,
+  // One worker per seeded demo account (see e2e/demoAccounts.ts) — never raise
+  // this independently of the account list, or workers will share a session.
+  workers: DEMO_ACCOUNTS.length,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: process.env['PLAYWRIGHT_BASE_URL'] ?? 'http://localhost:8080',

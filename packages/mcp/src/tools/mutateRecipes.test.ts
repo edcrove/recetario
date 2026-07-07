@@ -68,6 +68,38 @@ describe('mutation tools', () => {
       const parsed = JSON.parse(result.content[0]!.text)
       expect(parsed).toEqual(updatedRecipe)
     })
+
+    // Regression test for the 2026-07-03 audit finding: updateRecipe never
+    // exposed nutrition/dietaryTags/foodTypeIds either.
+    it('passes through nutrition, dietaryTags and foodTypeIds to the API payload', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ id: TEST_ID }),
+      })
+      vi.stubGlobal('fetch', mockFetch)
+
+      const server = createMcpServer()
+      const api = createApiClient()
+      registerMutationTools(server, api)
+
+      const foodTypeId = '550e8400-e29b-41d4-a716-446655440000'
+      const handler = getToolHandler(server, 'updateRecipe')
+      await handler(
+        {
+          id: TEST_ID,
+          dietaryTags: ['keto'],
+          nutrition: { calories: 300, protein_g: 20, carbs_g: 10, fat_g: 15 },
+          foodTypeIds: [foodTypeId],
+        },
+        {},
+      )
+
+      const [, opts] = mockFetch.mock.calls[0] as [string, RequestInit]
+      const body = JSON.parse(opts.body as string)
+      expect(body.dietaryTags).toEqual(['keto'])
+      expect(body.nutrition).toEqual({ calories: 300, protein_g: 20, carbs_g: 10, fat_g: 15 })
+      expect(body.foodTypeIds).toEqual([foodTypeId])
+    })
   })
 
   describe('deleteRecipe', () => {

@@ -7,12 +7,12 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
-  Alert,
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../src/api/client'
 import { useAuth } from '../../src/providers/AuthProvider'
+import { confirmAsync } from '../../src/utils/platformAlert'
 
 const DIETARY_OPTIONS = [
   'vegano',
@@ -226,13 +226,12 @@ export default function ProfileScreen() {
 
       {/* Sign out */}
       <TouchableOpacity
+        testID="profile-signout"
         style={s.signOutBtn}
-        onPress={() =>
-          Alert.alert('Cerrar sesión', '¿Estás seguro?', [
-            { text: 'Cancelar', style: 'cancel' },
-            { text: 'Cerrar sesión', style: 'destructive', onPress: handleSignOut },
-          ])
-        }
+        onPress={async () => {
+          const confirmed = await confirmAsync('Cerrar sesión', '¿Estás seguro?')
+          if (confirmed) await handleSignOut()
+        }}
       >
         <Text style={s.signOutText}>Cerrar sesión</Text>
       </TouchableOpacity>

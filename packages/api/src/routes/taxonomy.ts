@@ -1,7 +1,9 @@
 import { createRoute as defineRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { eq, and, sql } from 'drizzle-orm'
+import { RecipeSchema } from '@recetario/shared'
 import { getDb, schema } from '../db/index.js'
 import { authMiddleware } from '../middleware/auth.js'
+import { recipeRepository } from '../db/repository.js'
 
 export const taxonomyRoute = new OpenAPIHono()
 taxonomyRoute.use('*', authMiddleware)
@@ -207,6 +209,44 @@ taxonomyRoute.openapi(
     return c.json({ collectionId: id, recipeId }, 201)
   },
 )
+
+// GET /v1/collections/:id/recipes
+const collectionRecipesRoute = defineRoute({
+  method: 'get',
+  path: '/collections/:id/recipes',
+  security: [{ ApiKeyAuth: [] }],
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: {
+    200: {
+      content: { 'application/json': { schema: z.array(RecipeSchema) } },
+      description: 'OK',
+    },
+    404: { content: { 'application/json': { schema: errorSchema } }, description: 'Not found' },
+  },
+})
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+taxonomyRoute.openapi(collectionRecipesRoute as any, async (c: any) => {
+  const ownerId = c.get('ownerId')
+  const { id } = c.req.valid('param')
+  const db = getDb()
+  const [col] = await db
+    .select()
+    .from(schema.collections)
+    .where(and(eq(schema.collections.id, id), eq(schema.collections.ownerId, ownerId)))
+    .limit(1)
+  if (!col) return c.json({ error: 'Collection not found' } as never, 404)
+
+  const links = await db
+    .select({ recipeId: schema.recipeCollections.recipeId })
+    .from(schema.recipeCollections)
+    .where(eq(schema.recipeCollections.collectionId, id))
+
+  const recipes = await Promise.all(
+    links.map((link) => recipeRepository.findById(link.recipeId, ownerId)),
+  )
+  return c.json(recipes.filter((r): r is NonNullable<typeof r> => r !== null))
+})
 
 // DELETE /v1/collections/:id/recipes/:recipeId
 taxonomyRoute.openapi(

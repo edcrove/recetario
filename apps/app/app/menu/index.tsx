@@ -14,6 +14,7 @@ import { api } from '../../src/api/client'
 import type { MenuEntry, MenuSlot } from '@recetario/shared'
 import { getWeekStart, addDays, formatDate } from '../../src/utils/weekMath'
 import { buildEntryMap } from '../../src/utils/menuLogic'
+import { notify } from '../../src/utils/platformAlert'
 
 const SLOTS: MenuSlot[] = ['Desayuno', 'Almuerzo', 'Merienda', 'Cena', 'Snacks/Otros']
 
@@ -37,6 +38,7 @@ export default function MenuWeekScreen() {
     mutationFn: ({ date, slot, recipeId }: { date: string; slot: string; recipeId: string }) =>
       api.menu.remove(date, slot, recipeId),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['menu', weekStart] }),
+    onError: () => notify('Error', 'No se pudo quitar la receta del menú.'),
   })
 
   const updateServingsMutation = useMutation({
@@ -55,6 +57,7 @@ export default function MenuWeekScreen() {
       void queryClient.invalidateQueries({ queryKey: ['menu', weekStart] })
       setEditing(null)
     },
+    onError: () => notify('Error', 'No se pudieron actualizar las porciones.'),
   })
 
   const entryMap = buildEntryMap(entries)
@@ -86,7 +89,9 @@ export default function MenuWeekScreen() {
         <TouchableOpacity onPress={() => setWeekStart(addDays(weekStart, -7))} style={s.navBtn}>
           <Text style={s.navBtnText}>‹ Anterior</Text>
         </TouchableOpacity>
-        <Text style={s.weekLabel}>{formatDate(weekStart)}</Text>
+        <Text testID="menu-week-label" style={s.weekLabel}>
+          {formatDate(weekStart)}
+        </Text>
         <TouchableOpacity onPress={() => setWeekStart(addDays(weekStart, 7))} style={s.navBtn}>
           <Text style={s.navBtnText}>Siguiente ›</Text>
         </TouchableOpacity>
@@ -110,25 +115,41 @@ export default function MenuWeekScreen() {
               <View key={slot} style={s.slotRow}>
                 <Text style={s.slotLabel}>{slot}</Text>
                 <View style={s.slotContent}>
-                  {slotEntries.map((entry) => (
-                    <View key={entry.recipeId} style={s.entryChip}>
-                      <TouchableOpacity style={s.entryChipInner} onPress={() => openEdit(entry)}>
+                  {slotEntries.map((entry, i) =>
+                    entry.recipeId ? (
+                      <View key={entry.recipeId} style={s.entryChip}>
+                        <TouchableOpacity
+                          testID={`menu-entry-${day}-${slot}-${entry.recipeId}`}
+                          style={s.entryChipInner}
+                          onPress={() => openEdit(entry)}
+                        >
+                          <Text style={s.entryName} numberOfLines={1}>
+                            {entry.recipeName ?? 'Receta'}
+                          </Text>
+                          <Text style={s.entryServings}>{entry.servings} porc.</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          testID={`menu-remove-${day}-${slot}-${entry.recipeId}`}
+                          style={s.removeChipBtn}
+                          onPress={() =>
+                            removeMutation.mutate({ date: day, slot, recipeId: entry.recipeId! })
+                          }
+                        >
+                          <Text style={s.removeChipText}>✕</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      // Recipe was deleted since this entry was planned — show the
+                      // title snapshot read-only instead of losing the entry.
+                      <View key={`orphan-${i}`} style={[s.entryChip, s.entryChipOrphan]}>
                         <Text style={s.entryName} numberOfLines={1}>
-                          {entry.recipeName ?? 'Receta'}
+                          {entry.recipeName ?? 'Receta eliminada'} (eliminada)
                         </Text>
-                        <Text style={s.entryServings}>{entry.servings} porc.</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={s.removeChipBtn}
-                        onPress={() =>
-                          removeMutation.mutate({ date: day, slot, recipeId: entry.recipeId })
-                        }
-                      >
-                        <Text style={s.removeChipText}>✕</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ))}
+                      </View>
+                    ),
+                  )}
                   <TouchableOpacity
+                    testID={`menu-add-${day}-${slot}`}
                     style={s.addSlotBtn}
                     onPress={() =>
                       router.push({
@@ -166,10 +187,11 @@ export default function MenuWeekScreen() {
             </View>
             <View style={s.modalActions}>
               <TouchableOpacity
+                testID="menu-modal-save"
                 style={s.modalSaveBtn}
                 disabled={updateServingsMutation.isPending}
                 onPress={() => {
-                  if (!editing) return
+                  if (!editing?.recipeId) return
                   updateServingsMutation.mutate({
                     date: editing.date,
                     slot: editing.slot,
@@ -183,9 +205,10 @@ export default function MenuWeekScreen() {
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
+                testID="menu-modal-delete"
                 style={s.modalDeleteBtn}
                 onPress={() => {
-                  if (!editing) return
+                  if (!editing?.recipeId) return
                   removeMutation.mutate({
                     date: editing.date,
                     slot: editing.slot,
@@ -265,6 +288,12 @@ const s = StyleSheet.create({
     paddingLeft: 10,
     paddingVertical: 6,
     gap: 4,
+  },
+  entryChipOrphan: {
+    backgroundColor: '#f3f4f6',
+    borderColor: '#e5e7eb',
+    paddingVertical: 8,
+    paddingRight: 10,
   },
   entryChipInner: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
   entryName: { flex: 1, fontSize: 13, fontWeight: '600', color: '#1e40af' },

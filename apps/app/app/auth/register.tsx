@@ -111,6 +111,7 @@ export default function RegisterScreen() {
         {error ? <Text style={s.error}>{error}</Text> : null}
 
         <TouchableOpacity
+          testID="auth-register-submit"
           style={[s.btn, loading && s.btnDisabled]}
           onPress={handleRegister}
           disabled={loading}

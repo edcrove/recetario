@@ -2,7 +2,9 @@ import { createMiddleware } from 'hono/factory'
 
 export const requests = new Map<string, number[]>()
 const WINDOW_MS = 60_000
-const MAX_REQUESTS = 100
+// Overridable for E2E/CI, where several parallel workers legitimately share
+// this window per account (login + queries across many spec files).
+const MAX_REQUESTS = Number(process.env['RATE_LIMIT_MAX_REQUESTS'] ?? 100)
 
 export const rateLimitMiddleware = createMiddleware(async (c, next) => {
   const ownerId = c.get('ownerId')

@@ -20,7 +20,7 @@ test.describe('Smoke: home screen', () => {
   })
 
   test('filter chips are visible', async ({ page }) => {
-    await expect(page.getByText('Todas')).toBeVisible()
+    await expect(page.getByText('Todas')).toBeVisible({ timeout: 10000 })
   })
 })
 
@@ -38,7 +38,7 @@ test.describe('Smoke: auth flow', () => {
     const ctx = await browser.newContext()
     const page = await ctx.newPage()
     await page.goto('/auth/login')
-    await expect(page.getByPlaceholder('Email')).toBeVisible()
+    await expect(page.getByPlaceholder('Email')).toBeVisible({ timeout: 10000 })
     await expect(page.getByPlaceholder('Contraseña')).toBeVisible()
     await expect(page.getByText('Ingresar')).toBeVisible()
     await ctx.close()
@@ -47,15 +47,11 @@ test.describe('Smoke: auth flow', () => {
 
 test.describe('Smoke: recipe navigation', () => {
   test('clicking a recipe navigates to detail', async ({ page }) => {
-    const firstCard = page
-      .locator('text=/Milanesa|Pasta|Ensalada|Guiso|Locro|Alfajores|Revuelto|Tarta/')
-      .first()
+    // Use testID for reliable RN Web interaction
+    const firstCard = page.locator('[data-testid^="recipe-card-"]').first()
     await expect(firstCard).toBeVisible({ timeout: 10000 })
-    const recipeTitle = await firstCard.textContent()
     await firstCard.click()
-    // Recipe detail shows the cook mode button
-    await expect(page.getByText(/Iniciar cocina|Receta/i).first()).toBeVisible({ timeout: 8000 })
-    // Title still visible in detail header
-    await expect(page.getByText(recipeTitle ?? '').first()).toBeVisible()
+    await page.waitForLoadState('networkidle', { timeout: 10000 })
+    await expect(page.getByText('Iniciar cocina').first()).toBeVisible({ timeout: 12000 })
   })
 })

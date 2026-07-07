@@ -208,3 +208,8 @@ pnpm --filter @recetario/api exec tsx src/scripts/generate-key.ts
 - **Component testing**: use `vitest.screen.config.ts` (jsdom + `src/__mocks__/react-native.tsx`). Do not use jest-expo (version conflicts with Vite 7).
 - **Screen logic**: extract to pure utils in `src/utils/` before testing. Do not test JSX directly unless necessary.
 - **MCP server tools**: registered via `registerAllTools()` — add new tools there.
+- **React Native Web gotchas**: `Alert.alert()` is a documented no-op on web (`static alert() {}` in react-native-web). Use `src/utils/platformAlert.ts` (`confirmAsync`/`notify`) instead of `Alert.alert` directly for any confirm dialog or error notification that must work on web. Audit other RN-only APIs (`Vibration`, `Share`, `Clipboard`, `Linking`) for the same class of silent-no-op bug before relying on them in web-facing flows.
+
+## Full project audit: "Auditar"
+
+Typing **"Auditar"** (as its own message, case-insensitive) triggers `.claude/skills/auditar/SKILL.md` — an 11-agent parallel audit of the whole project (QA, Backend, Frontend, UX/UI, Nutrition, parent/family user persona, read-only user persona, Product Management, Data Science, Clean Code/Architecture, QA Automation Architecture). Heavy operation (10-20 min, 11 parallel agents) — only run when the user explicitly asks. See the skill file for the full persona scopes, output format, and Notion consolidation steps.

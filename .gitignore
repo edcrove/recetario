@@ -7,3 +7,12 @@ coverage
 .env*
 !.env.example
 *.tsbuildinfo
+
+# E2E coverage artifacts
+apps/app/.e2e-coverage/
+apps/app/.nyc_output/
+apps/app/coverage-e2e/
+apps/app/dist-coverage/
+apps/app/playwright-report/
+apps/app/test-results/
+packages/api/coverage-integration/

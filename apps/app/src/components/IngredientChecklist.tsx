@@ -25,7 +25,13 @@ export function IngredientChecklist({ ingredients, baseServings, targetServings 
       {ingredients.map((ing, i) => {
         const done = checked.has(i)
         return (
-          <TouchableOpacity key={i} style={s.row} onPress={() => toggle(i)} activeOpacity={0.7}>
+          <TouchableOpacity
+            key={i}
+            testID={`ingredient-checklist-row-${i}`}
+            style={s.row}
+            onPress={() => toggle(i)}
+            activeOpacity={0.7}
+          >
             <View style={[s.checkbox, done && s.checkboxChecked]}>
               {done && <Text style={s.checkmark}>✓</Text>}
             </View>

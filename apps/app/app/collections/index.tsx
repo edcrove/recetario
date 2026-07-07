@@ -11,6 +11,7 @@ import {
 import { useRouter } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../src/api/client'
+import { notify } from '../../src/utils/platformAlert'
 
 export default function CollectionsScreen() {
   const router = useRouter()
@@ -31,6 +32,7 @@ export default function CollectionsScreen() {
       setNewName('')
       setNewEmoji('')
     },
+    onError: () => notify('Error', 'No se pudo crear la colección.'),
   })
 
   if (isLoading)

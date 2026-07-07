@@ -7,12 +7,12 @@ import {
   TextInput,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   Modal,
   ScrollView,
 } from 'react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../src/api/client'
+import { notify } from '../../src/utils/platformAlert'
 
 type TabType = 'categories' | 'food-types' | 'tags'
 type TaxonomyItem = {
@@ -59,7 +59,7 @@ export default function ConfiguratorScreen() {
       setDeleteTarget(null)
       setReassignId('')
     },
-    onError: () => Alert.alert('Error', 'Could not delete item.'),
+    onError: () => notify('Error', 'No se pudo eliminar el elemento.'),
   })
 
   const mergeTags = useMutation({
@@ -98,6 +98,7 @@ export default function ConfiguratorScreen() {
         {(Object.keys(TAB_LABELS) as TabType[]).map((t) => (
           <TouchableOpacity
             key={t}
+            testID={`config-tab-${t}`}
             style={[s.tabBtn, tab === t && s.tabBtnActive]}
             onPress={() => setTab(t)}
           >
@@ -113,7 +114,7 @@ export default function ConfiguratorScreen() {
         contentContainerStyle={s.list}
         ListEmptyComponent={<Text style={s.empty}>No hay elementos en esta sección.</Text>}
         renderItem={({ item }) => (
-          <View style={s.itemRow}>
+          <View style={s.itemRow} testID={`config-item-${item.id}`}>
             <View style={s.itemInfo}>
               <Text style={s.itemName}>{item.name}</Text>
               <View style={s.itemMeta}>
@@ -125,6 +126,7 @@ export default function ConfiguratorScreen() {
             </View>
             <View style={s.itemActions}>
               <TouchableOpacity
+                testID={`config-edit-${item.id}`}
                 style={s.actionBtn}
                 onPress={() => {
                   setEditingItem(item)
@@ -134,12 +136,20 @@ export default function ConfiguratorScreen() {
                 <Text style={s.actionBtnText}>✏️</Text>
               </TouchableOpacity>
               {item.isDeletable && (
-                <TouchableOpacity style={s.actionBtnDanger} onPress={() => setDeleteTarget(item)}>
+                <TouchableOpacity
+                  testID={`config-delete-${item.id}`}
+                  style={s.actionBtnDanger}
+                  onPress={() => setDeleteTarget(item)}
+                >
                   <Text style={s.actionBtnText}>🗑️</Text>
                 </TouchableOpacity>
               )}
               {!item.isDeletable && item.usageCount > 0 && (
-                <TouchableOpacity style={s.actionBtnWarning} onPress={() => setDeleteTarget(item)}>
+                <TouchableOpacity
+                  testID={`config-delete-${item.id}`}
+                  style={s.actionBtnWarning}
+                  onPress={() => setDeleteTarget(item)}
+                >
                   <Text style={s.actionBtnText}>⚠️</Text>
                 </TouchableOpacity>
               )}
@@ -162,6 +172,7 @@ export default function ConfiguratorScreen() {
             />
             <View style={s.modalActions}>
               <TouchableOpacity
+                testID="config-rename-save"
                 style={[s.modalBtn, !editName.trim() && s.modalBtnDisabled]}
                 disabled={!editName.trim() || rename.isPending}
                 onPress={() =>
@@ -170,7 +181,11 @@ export default function ConfiguratorScreen() {
               >
                 <Text style={s.modalBtnText}>Guardar</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={s.cancelBtn} onPress={() => setEditingItem(null)}>
+              <TouchableOpacity
+                testID="config-rename-cancel"
+                style={s.cancelBtn}
+                onPress={() => setEditingItem(null)}
+              >
                 <Text style={s.cancelBtnText}>Cancelar</Text>
               </TouchableOpacity>
             </View>
@@ -202,6 +217,7 @@ export default function ConfiguratorScreen() {
             )}
             <View style={s.modalActions}>
               <TouchableOpacity
+                testID="config-delete-confirm"
                 style={s.modalBtnDanger}
                 disabled={deleteItem.isPending || mergeTags.isPending}
                 onPress={() => {
@@ -221,6 +237,7 @@ export default function ConfiguratorScreen() {
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
+                testID="config-delete-cancel"
                 style={s.cancelBtn}
                 onPress={() => {
                   setDeleteTarget(null)

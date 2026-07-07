@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('react-native', () => ({
   Vibration: { vibrate: vi.fn() },
   Alert: { alert: vi.fn() },
+  Platform: { OS: 'ios' },
 }))
 
 vi.mock('expo-speech', () => ({

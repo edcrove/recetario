@@ -2,19 +2,11 @@ import { View, Text, StyleSheet } from 'react-native'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
 import type { Recipe } from '@recetario/shared'
+import { checkAllergens, DIETARY_LABELS } from '../utils/allergenCheck'
 
 interface Props {
   recipe: Recipe
   ownerId?: string
-}
-
-const DIETARY_LABELS: Record<string, string> = {
-  vegano: 'Vegano',
-  vegetariano: 'Vegetariano',
-  'sin-gluten': 'Sin gluten',
-  'sin-lactosa': 'Sin lactosa',
-  keto: 'Keto',
-  paleo: 'Paleo',
 }
 
 export function AllergenWarning({ recipe }: Props) {
@@ -25,18 +17,7 @@ export function AllergenWarning({ recipe }: Props) {
 
   if (!profile) return null
 
-  const userAllergens = profile.allergens ?? []
-  const userDietary = (profile.dietaryRestrictions ?? []) as string[]
-  const recipeTags = (recipe.dietaryTags ?? []) as string[]
-
-  // Check allergens: any ingredient name contains an allergen
-  const ingredientNames = recipe.ingredients.map((i) => i.name.toLowerCase())
-  const matchedAllergens = userAllergens.filter((allergen) =>
-    ingredientNames.some((name) => name.includes(allergen.toLowerCase())),
-  )
-
-  // Check dietary: user restriction not met by recipe
-  const unmetDietary = userDietary.filter((d) => !recipeTags.includes(d))
+  const { matchedAllergens, unmetDietary } = checkAllergens(recipe, profile)
 
   if (matchedAllergens.length === 0 && unmetDietary.length === 0) return null
 

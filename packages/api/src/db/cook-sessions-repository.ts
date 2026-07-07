@@ -3,7 +3,8 @@ import { getDb, schema } from './index.js'
 
 export interface CookSessionRow {
   id: string
-  recipeId: string
+  recipeId: string | null
+  recipeTitle: string | null
   ownerId: string
   cookedAt: Date
   rating: number | null
@@ -12,7 +13,7 @@ export interface CookSessionRow {
 }
 
 export interface CookStats {
-  topRecipes: Array<{ recipeId: string; count: number; lastCookedAt: Date }>
+  topRecipes: Array<{ recipeId: string | null; count: number; lastCookedAt: Date }>
   frequencyByWeek: Array<{ week: string; count: number }>
   totalSessions: number
 }
@@ -25,9 +26,24 @@ export const cookSessionsRepository = {
     notes?: string | null,
   ): Promise<CookSessionRow> {
     const db = getDb()
+    // Snapshot the recipe's current title — see 2026-07-03 audit finding:
+    // deleting the recipe now sets recipeId to null instead of destroying
+    // this row, and the snapshot keeps history readable either way.
+    const [recipe] = await db
+      .select({ title: schema.recipes.title })
+      .from(schema.recipes)
+      .where(eq(schema.recipes.id, recipeId))
+      .limit(1)
+
     const [session] = await db
       .insert(schema.cookSessions)
-      .values({ ownerId, recipeId, rating: rating ?? null, notes: notes ?? null })
+      .values({
+        ownerId,
+        recipeId,
+        recipeTitle: recipe?.title,
+        rating: rating ?? null,
+        notes: notes ?? null,
+      })
       .returning()
     return session!
   },

@@ -12,6 +12,7 @@ import {
   type StepRow,
   type FieldErrors,
 } from '../../../src/utils/recipeForm'
+import { FoodTypePicker } from '../../../src/components/FoodTypePicker'
 
 const CATEGORIES: Category[] = ['Desayuno', 'Almuerzo', 'Cena', 'Postre', 'Snack', 'Bebida', 'Otro']
 
@@ -30,6 +31,7 @@ export default function EditRecipeScreen() {
   const [category, setCategory] = useState<Category>('Cena')
   const [tags, setTags] = useState('')
   const [notes, setNotes] = useState('')
+  const [foodTypeIds, setFoodTypeIds] = useState<string[]>([])
   const [ingredients, setIngredients] = useState<IngredientRow[]>([
     { name: '', quantity: '', unit: '', presentation: '' },
   ])
@@ -46,6 +48,7 @@ export default function EditRecipeScreen() {
     setNotes(form.notes)
     setIngredients(form.ingredients)
     setSteps(form.steps)
+    setFoodTypeIds(recipe.foodTypeIds ?? [])
   }, [recipe])
 
   const mutation = useMutation({
@@ -61,7 +64,17 @@ export default function EditRecipeScreen() {
   })
 
   function handleSubmit() {
-    const payload = buildPayload(title, servings, category, tags, notes, ingredients, steps)
+    const payload = buildPayload(
+      title,
+      servings,
+      category,
+      tags,
+      notes,
+      ingredients,
+      steps,
+      undefined,
+      foodTypeIds,
+    )
     const { valid, errors: fieldErrors } = validatePayload(payload)
     if (!valid) {
       setErrors(fieldErrors)
@@ -133,6 +146,10 @@ export default function EditRecipeScreen() {
           </TouchableOpacity>
         ))}
       </View>
+
+      {/* Food types */}
+      <Text style={st.label}>Tipo de comida (hasta 3)</Text>
+      <FoodTypePicker selected={foodTypeIds} onChange={setFoodTypeIds} />
 
       {/* Tags */}
       <Text style={st.label}>Etiquetas (separadas por coma)</Text>

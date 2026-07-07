@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   View,
   Text,
@@ -21,7 +21,7 @@ import { getWeekStart } from '../src/utils/weekMath'
 export default function HomeScreen() {
   const [query, setQuery] = useState('')
   const router = useRouter()
-  const { token, isLoading: authLoading } = useAuth()
+  const { token } = useAuth()
   const [activeType, setActiveType] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -30,13 +30,6 @@ export default function HomeScreen() {
     queryFn: () => api.taxonomy.foodTypes(),
     enabled: !!token,
   })
-
-  // Auth guard: redirect to login if not authenticated
-  useEffect(() => {
-    if (!authLoading && !token) {
-      router.replace('/auth/login')
-    }
-  }, [token, authLoading, router])
 
   const {
     data: recipes = [],
@@ -137,12 +130,17 @@ export default function HomeScreen() {
             <Text style={styles.menuButtonText}>🛒 Compras</Text>
           </TouchableOpacity>
           <TouchableOpacity
+            testID="home-collections-button"
             style={styles.collectionsButton}
             onPress={() => router.push('/collections')}
           >
             <Text style={styles.collectionsButtonText}>📋</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.profileButton} onPress={() => setMenuOpen(true)}>
+          <TouchableOpacity
+            testID="home-profile-button"
+            style={styles.profileButton}
+            onPress={() => setMenuOpen(true)}
+          >
             <Text style={styles.profileButtonText}>👤</Text>
           </TouchableOpacity>
         </View>
@@ -155,8 +153,14 @@ export default function HomeScreen() {
         data={recipes}
         keyExtractor={(item: Recipe) => item.id ?? item.title}
         renderItem={({ item }: { item: Recipe }) => (
-          <TouchableOpacity style={styles.card} onPress={() => router.push(`/recipe/${item.id}`)}>
-            <Text style={styles.cardTitle}>{item.title}</Text>
+          <TouchableOpacity
+            testID={`recipe-card-${item.id}`}
+            style={styles.card}
+            onPress={() => router.push(`/recipe/${item.id}`)}
+          >
+            <Text testID={`recipe-title-${item.id}`} style={styles.cardTitle}>
+              {item.title}
+            </Text>
             <Text style={styles.cardMeta}>
               {item.category} · {item.servings} porciones
               {item.totalTimeMin ? ` · ${item.totalTimeMin} min` : ''}

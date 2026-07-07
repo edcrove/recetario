@@ -43,6 +43,13 @@
       "when": 1782914319093,
       "tag": "0005_friendly_zaran",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1783180044621,
+      "tag": "0006_adorable_veda",
+      "breakpoints": true
     }
   ]
 }

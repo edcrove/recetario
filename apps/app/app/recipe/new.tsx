@@ -67,6 +67,7 @@ export default function NewRecipeScreen() {
       notes,
       ingredients,
       steps,
+      undefined,
       foodTypeIds,
     )
     const { valid, errors: fieldErrors } = validatePayload(payload)
@@ -238,6 +239,7 @@ export default function NewRecipeScreen() {
       {errors.general ? <Text style={st.errorText}>{errors.general}</Text> : null}
 
       <TouchableOpacity
+        testID="recipe-form-save"
         style={[st.saveBtn, mutation.isPending && st.saveBtnDisabled]}
         onPress={handleSubmit}
         disabled={mutation.isPending}

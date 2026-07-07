@@ -248,3 +248,80 @@ describe.skipIf(skip).sequential('Recipe integration tests', () => {
     expect(getRes.status).toBe(404)
   })
 })
+
+// Regression suite for the 2026-07-03 audit finding: foodTypeIds were collected
+// by the app's FoodTypePicker UI but never actually persisted anywhere —
+// recipe_food_types existed in the schema but nothing ever inserted into it.
+describe.skipIf(skip).sequential('Recipe foodTypeIds', () => {
+  let foodTypeA: string
+  let foodTypeB: string
+  let recipeId: string
+
+  beforeAll(async () => {
+    const res = await app.request('/v1/food-types', { headers: { Authorization: authHeader } })
+    const foodTypes = (await res.json()) as Array<{ id: string; slug: string }>
+    foodTypeA = foodTypes.find((f) => f.slug === 'guiso')!.id
+    foodTypeB = foodTypes.find((f) => f.slug === 'sopa')!.id
+  })
+
+  it('POST /v1/recipes with foodTypeIds persists and returns them', async () => {
+    const res = await app.request('/v1/recipes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+      body: JSON.stringify({ ...baseRecipe, title: 'Con tipos', foodTypeIds: [foodTypeA] }),
+    })
+    expect(res.status).toBe(201)
+    const body = await res.json()
+    recipeId = body.id
+    expect(body.foodTypeIds).toEqual([foodTypeA])
+  })
+
+  it('GET /v1/recipes/:id returns the persisted foodTypeIds', async () => {
+    const res = await app.request(`/v1/recipes/${recipeId}`, {
+      headers: { Authorization: authHeader },
+    })
+    const body = await res.json()
+    expect(body.foodTypeIds).toEqual([foodTypeA])
+  })
+
+  it('GET /v1/recipes includes foodTypeIds for listed recipes', async () => {
+    const res = await app.request('/v1/recipes?limit=100', {
+      headers: { Authorization: authHeader },
+    })
+    const body = (await res.json()) as Array<{ id: string; foodTypeIds: string[] }>
+    const found = body.find((r) => r.id === recipeId)
+    expect(found?.foodTypeIds).toEqual([foodTypeA])
+  })
+
+  it('PUT /v1/recipes/:id replaces foodTypeIds', async () => {
+    const res = await app.request(`/v1/recipes/${recipeId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+      body: JSON.stringify({ ...baseRecipe, title: 'Con tipos', foodTypeIds: [foodTypeB] }),
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.foodTypeIds).toEqual([foodTypeB])
+  })
+
+  it('PUT /v1/recipes/:id with an empty foodTypeIds array clears them', async () => {
+    const res = await app.request(`/v1/recipes/${recipeId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+      body: JSON.stringify({ ...baseRecipe, title: 'Con tipos', foodTypeIds: [] }),
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.foodTypeIds).toEqual([])
+  })
+
+  it('POST /v1/recipes without foodTypeIds defaults to an empty array', async () => {
+    const res = await app.request('/v1/recipes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+      body: JSON.stringify({ ...baseRecipe, title: 'Sin tipos' }),
+    })
+    const body = await res.json()
+    expect(body.foodTypeIds).toEqual([])
+  })
+})
