@@ -88,9 +88,14 @@ describe('StatsScreen', () => {
     mockStats.mockResolvedValue({
       totalSessions: 3,
       topRecipes: [],
-      frequencyByWeek: [{ week: '2026-01-01', count: 3 }],
+      // Mid-month date so a +/- one day shift from timezone conversion
+      // (new Date('2026-06-15') is parsed as UTC midnight) never crosses
+      // into a different month — a date near month-end previously made
+      // this assertion timezone-dependent (passed locally at UTC-3, failed
+      // in CI's UTC runner).
+      frequencyByWeek: [{ week: '2026-06-15', count: 3 }],
     })
     wrap(<StatsScreen />)
-    expect(await screen.findByText(/dic/)).toBeInTheDocument()
+    expect(await screen.findByText(/jun/)).toBeInTheDocument()
   })
 })
