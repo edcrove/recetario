@@ -247,6 +247,37 @@ configRoute.openapi(
         await db.delete(schema.recipeTags).where(eq(schema.recipeTags.tagId, id))
       }
       await db.delete(schema.tags).where(eq(schema.tags.id, id))
+    } else if (type === 'categories') {
+      const [owned] = await db
+        .select({ id: schema.mealCategories.id, slug: schema.mealCategories.slug })
+        .from(schema.mealCategories)
+        .where(
+          and(
+            eq(schema.mealCategories.id, id),
+            eq(schema.mealCategories.ownerId, ownerId),
+            ne(sql`${schema.mealCategories.isSystem}`, 1),
+          ),
+        )
+        .limit(1)
+      if (!owned) return c.json({ error: 'Not found or system category' } as never, 400)
+
+      // Categories link to recipes via a case-insensitive slug/text match
+      // (recipes.category), not a foreign key — reassignment means updating
+      // matching recipes' category text, not a join-table row.
+      if (reassignTo) {
+        const [target] = await db
+          .select({ name: schema.mealCategories.name })
+          .from(schema.mealCategories)
+          .where(eq(schema.mealCategories.id, reassignTo))
+          .limit(1)
+        if (target) {
+          await db
+            .update(schema.recipes)
+            .set({ category: target.name })
+            .where(sql`lower(${schema.recipes.category}) = ${owned.slug}`)
+        }
+      }
+      await db.delete(schema.mealCategories).where(eq(schema.mealCategories.id, id))
     }
 
     return c.body(null, 204)

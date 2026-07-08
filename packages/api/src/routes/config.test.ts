@@ -295,6 +295,48 @@ describe('DELETE /v1/config/:type/:id', () => {
     })
     expect(res.status).toBe(404)
   })
+
+  it('deletes an owned category (no reassignTo)', async () => {
+    mockSelect.mockReturnValueOnce([{ id: UUID, slug: 'mi-categoria' }])
+    mockDelete.mockReturnValue([])
+    const res = await app.request(`/v1/config/categories/${UUID}`, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer test-key' },
+    })
+    expect(res.status).toBe(204)
+  })
+
+  it('reassigns matching recipes to the target category before deleting', async () => {
+    mockSelect
+      .mockReturnValueOnce([{ id: UUID, slug: 'mi-categoria' }])
+      .mockReturnValueOnce([{ name: 'Otra Categoria' }])
+    mockUpdate.mockReturnValue([])
+    mockDelete.mockReturnValue([])
+    const res = await app.request(`/v1/config/categories/${UUID}?reassignTo=${UUID2}`, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer test-key' },
+    })
+    expect(res.status).toBe(204)
+  })
+
+  it('skips reassignment and still deletes when reassignTo target does not exist', async () => {
+    mockSelect.mockReturnValueOnce([{ id: UUID, slug: 'mi-categoria' }]).mockReturnValueOnce([])
+    mockDelete.mockReturnValue([])
+    const res = await app.request(`/v1/config/categories/${UUID}?reassignTo=${UUID2}`, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer test-key' },
+    })
+    expect(res.status).toBe(204)
+  })
+
+  it('returns 400 when trying to delete a system category (not owned)', async () => {
+    mockSelect.mockReturnValueOnce([])
+    const res = await app.request(`/v1/config/categories/${UUID}`, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer test-key' },
+    })
+    expect(res.status).toBe(400)
+  })
 })
 
 describe('POST /v1/config/tags/merge', () => {

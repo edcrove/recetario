@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest'
+import { eq } from 'drizzle-orm'
 
 const skip = process.env['SKIP_INTEGRATION'] === 'true'
 import app from '../../index.js'
@@ -165,5 +166,38 @@ describe.skipIf(skip).sequential('Taxonomy config cross-tenant authorization', (
       headers: { Authorization: authHeader },
     })
     expect(res.status).toBe(204)
+  })
+
+  it("cannot delete another user's meal category (400)", async () => {
+    const res = await app.request(`/v1/config/categories/${ownCategoryId}`, {
+      method: 'DELETE',
+      headers: { Authorization: otherAuthHeader },
+    })
+    expect(res.status).toBe(400)
+  })
+
+  // Regression test for the 2026-07-07 review finding: the DELETE handler had
+  // no branch for type === 'categories' at all — it silently returned 204
+  // without deleting anything. Verify the row is genuinely gone afterward,
+  // not just that the response looks successful.
+  it('actually deletes an owned meal category (204, row is gone)', async () => {
+    const db = getDb()
+    const [category] = await db
+      .insert(schema.mealCategories)
+      .values({ name: 'Categoria Borrable', slug: 'categoria-borrable', ownerId: TEST_OWNER_ID })
+      .returning()
+
+    const res = await app.request(`/v1/config/categories/${category!.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: authHeader },
+    })
+    expect(res.status).toBe(204)
+
+    const [stillThere] = await db
+      .select()
+      .from(schema.mealCategories)
+      .where(eq(schema.mealCategories.id, category!.id))
+      .limit(1)
+    expect(stillThere).toBeUndefined()
   })
 })
