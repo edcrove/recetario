@@ -2,8 +2,8 @@ import { describe, it, expect, beforeAll } from 'vitest'
 
 const skip = process.env['SKIP_INTEGRATION'] === 'true'
 import app from '../../index.js'
-import { resetDb, getDb, schema } from '../../db/index.js'
-import { TEST_API_KEY } from './globalSetup.js'
+import { getDb, schema } from '../../db/index.js'
+import { TEST_API_KEY, resetTestDb } from './globalSetup.js'
 
 const authHeader = `Bearer ${TEST_API_KEY}`
 const OTHER_OWNER_ID = 'test-owner-b'
@@ -29,7 +29,7 @@ describe.skipIf(skip).sequential('Taxonomy/relations cross-tenant authorization'
   let otherRecipeId: string
 
   beforeAll(async () => {
-    await resetDb()
+    await resetTestDb()
     const db = getDb()
     // Precomputed sha256('test-api-key-owner-b') — same constant/hash used by
     // config.integration.test.ts, avoids a fresh createHash() call over a fixed

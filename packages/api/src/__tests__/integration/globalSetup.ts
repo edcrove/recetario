@@ -1,10 +1,43 @@
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+import { sql } from 'drizzle-orm'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export const TEST_API_KEY = 'test-api-key-integration-suite'
 export const TEST_OWNER_ID = 'test-owner'
+
+// Precomputed sha256(TEST_API_KEY) — avoids a live createHash() call over a
+// fixed test constant (CodeQL flags that shape as a possible weak password
+// hash, even though this is a random API key, not a password). Shared by
+// seedTestDb and resetTestDb so there's exactly one call site to worry about.
+const TEST_API_KEY_HASH = '6cc5a81f89f2865d8f9db888e7e1b03dfc21f71d7a87920b500637c1e91641ca'
+
+// Shared with resetTestDb() below so the one-time initial seed and the
+// per-file reseed can never drift apart.
+const MEAL_CATEGORY_SEEDS = [
+  { name: 'Desayuno', slug: 'desayuno', isSystem: 1 },
+  { name: 'Almuerzo', slug: 'almuerzo', isSystem: 1 },
+  { name: 'Cena', slug: 'cena', isSystem: 1 },
+  { name: 'Postre', slug: 'postre', isSystem: 1 },
+  { name: 'Snack', slug: 'snack', isSystem: 1 },
+  { name: 'Bebida', slug: 'bebida', isSystem: 1 },
+  { name: 'Otro', slug: 'otro', isSystem: 1 },
+]
+
+const FOOD_TYPE_SEEDS = [
+  { name: 'Guiso', slug: 'guiso', isSystem: 1 },
+  { name: 'Sopa', slug: 'sopa', isSystem: 1 },
+  { name: 'Carne', slug: 'carne', isSystem: 1 },
+  { name: 'Minuta', slug: 'minuta', isSystem: 1 },
+  { name: 'Ensalada', slug: 'ensalada', isSystem: 1 },
+  { name: 'Pasta', slug: 'pasta', isSystem: 1 },
+  { name: 'Postre', slug: 'postre-tipo', isSystem: 1 },
+  { name: 'Bebida', slug: 'bebida-tipo', isSystem: 1 },
+  { name: 'Saludable', slug: 'saludable', isSystem: 1 },
+  { name: 'Panificado', slug: 'panificado', isSystem: 1 },
+  { name: 'Tarta / Empanada', slug: 'tarta', isSystem: 1 },
+]
 
 let stopContainer: (() => Promise<void>) | null = null
 
@@ -48,7 +81,6 @@ async function seedTestDb(url: string) {
   const { drizzle } = await import('drizzle-orm/postgres-js')
   const { migrate } = await import('drizzle-orm/postgres-js/migrator')
   const postgres = (await import('postgres')).default
-  const { createHash } = await import('node:crypto')
   const { schema } = await import('../../db/index.js')
 
   const client = postgres(url, { max: 1 })
@@ -57,43 +89,53 @@ async function seedTestDb(url: string) {
     migrationsFolder: path.join(__dirname, '../../../drizzle/migrations'),
   })
 
-  const keyHash = createHash('sha256').update(TEST_API_KEY).digest('hex')
   await db
     .insert(schema.apiKeys)
-    .values({ keyHash, ownerId: TEST_OWNER_ID, label: 'test' })
+    .values({ keyHash: TEST_API_KEY_HASH, ownerId: TEST_OWNER_ID, label: 'test' })
     .onConflictDoNothing()
 
-  // Seed system meal categories
-  const mealCategorySeeds = [
-    { name: 'Desayuno', slug: 'desayuno', isSystem: 1 },
-    { name: 'Almuerzo', slug: 'almuerzo', isSystem: 1 },
-    { name: 'Cena', slug: 'cena', isSystem: 1 },
-    { name: 'Postre', slug: 'postre', isSystem: 1 },
-    { name: 'Snack', slug: 'snack', isSystem: 1 },
-    { name: 'Bebida', slug: 'bebida', isSystem: 1 },
-    { name: 'Otro', slug: 'otro', isSystem: 1 },
-  ]
-  for (const cat of mealCategorySeeds) {
+  for (const cat of MEAL_CATEGORY_SEEDS) {
     await db.insert(schema.mealCategories).values(cat).onConflictDoNothing()
   }
-
-  // Seed system food types
-  const foodTypeSeeds = [
-    { name: 'Guiso', slug: 'guiso', isSystem: 1 },
-    { name: 'Sopa', slug: 'sopa', isSystem: 1 },
-    { name: 'Carne', slug: 'carne', isSystem: 1 },
-    { name: 'Minuta', slug: 'minuta', isSystem: 1 },
-    { name: 'Ensalada', slug: 'ensalada', isSystem: 1 },
-    { name: 'Pasta', slug: 'pasta', isSystem: 1 },
-    { name: 'Postre', slug: 'postre-tipo', isSystem: 1 },
-    { name: 'Bebida', slug: 'bebida-tipo', isSystem: 1 },
-    { name: 'Saludable', slug: 'saludable', isSystem: 1 },
-    { name: 'Panificado', slug: 'panificado', isSystem: 1 },
-    { name: 'Tarta / Empanada', slug: 'tarta', isSystem: 1 },
-  ]
-  for (const ft of foodTypeSeeds) {
+  for (const ft of FOOD_TYPE_SEEDS) {
     await db.insert(schema.foodTypes).values(ft).onConflictDoNothing()
   }
 
   await client.end()
+}
+
+/**
+ * Truncates every table in the public schema (RESTART IDENTITY CASCADE) and
+ * reseeds the fixed baseline (system meal categories/food types + the shared
+ * TEST_API_KEY), then re-checks out this suite's global 'test-owner-b' key if
+ * a caller has already inserted it.
+ *
+ * Call this from each integration test file's beforeAll — NOT db/index.ts's
+ * resetDb(), which only nulls the cached drizzle client and never touches
+ * actual Postgres data. Every integration file previously called resetDb()
+ * believing it gave a clean slate; in reality every file's inserts
+ * accumulated in the same never-truncated database for the whole suite run,
+ * which is what caused real cross-file collisions (e.g. two files creating
+ * a food type with the same name+owner hit a unique constraint violation).
+ */
+export async function resetTestDb() {
+  const { getDb, schema } = await import('../../db/index.js')
+  const db = getDb()
+
+  const tables = (await db.execute(
+    sql`SELECT tablename FROM pg_tables WHERE schemaname = 'public'`,
+  )) as unknown as { tablename: string }[]
+  const names = tables.map((t) => `"${t.tablename}"`).join(', ')
+  await db.execute(sql.raw(`TRUNCATE TABLE ${names} RESTART IDENTITY CASCADE`))
+
+  await db
+    .insert(schema.apiKeys)
+    .values({ keyHash: TEST_API_KEY_HASH, ownerId: TEST_OWNER_ID, label: 'test' })
+
+  for (const cat of MEAL_CATEGORY_SEEDS) {
+    await db.insert(schema.mealCategories).values(cat)
+  }
+  for (const ft of FOOD_TYPE_SEEDS) {
+    await db.insert(schema.foodTypes).values(ft)
+  }
 }

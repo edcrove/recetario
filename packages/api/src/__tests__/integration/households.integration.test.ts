@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
 
 const skip = process.env['SKIP_INTEGRATION'] === 'true'
 import app from '../../index.js'
-import { resetDb } from '../../db/index.js'
+import { resetTestDb } from './globalSetup.js'
 
 // Regression suite for the 2026-07-03 audit finding: inviting a household
 // member required pasting their raw UUID — verified live against the API
@@ -15,7 +15,7 @@ describe.skipIf(skip).sequential('Household invite by email', () => {
   let householdId: string
 
   beforeAll(async () => {
-    await resetDb()
+    await resetTestDb()
 
     const ownerEmail = `owner-${Date.now()}@example.com`
     const ownerRes = await app.request('/auth/register', {
