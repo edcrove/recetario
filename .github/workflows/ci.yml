@@ -389,7 +389,7 @@ jobs:
     steps:
       - name: Check all jobs passed
         run: |
-          results=("${{ needs.lint.result }}" "${{ needs.typecheck.result }}" "${{ needs.test.result }}" "${{ needs.build.result }}" "${{ needs.coverage.result }}")
+          results=("${{ needs.lint.result }}" "${{ needs.typecheck.result }}" "${{ needs.test.result }}" "${{ needs.build.result }}" "${{ needs.coverage.result }}" "${{ needs.e2e.result }}")
           for r in "${results[@]}"; do
             if [ "$r" != "success" ]; then
               echo "Job failed with result: $r"
