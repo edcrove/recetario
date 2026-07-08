@@ -2,8 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
 
 const skip = process.env['SKIP_INTEGRATION'] === 'true'
 import app from '../../index.js'
-import { resetDb } from '../../db/index.js'
-import { TEST_API_KEY } from './globalSetup.js'
+import { TEST_API_KEY, resetTestDb } from './globalSetup.js'
 
 const auth = `Bearer ${TEST_API_KEY}`
 
@@ -23,7 +22,7 @@ describe.skipIf(skip).sequential('GET /v1/collections/:id/recipes', () => {
   let recipeId: string
 
   beforeAll(async () => {
-    await resetDb()
+    await resetTestDb()
 
     const collectionRes = await app.request('/v1/collections', {
       method: 'POST',

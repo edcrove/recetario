@@ -3,8 +3,8 @@ import { eq } from 'drizzle-orm'
 
 const skip = process.env['SKIP_INTEGRATION'] === 'true'
 import app from '../../index.js'
-import { resetDb, getDb, schema } from '../../db/index.js'
-import { TEST_API_KEY, TEST_OWNER_ID } from './globalSetup.js'
+import { getDb, schema } from '../../db/index.js'
+import { TEST_API_KEY, TEST_OWNER_ID, resetTestDb } from './globalSetup.js'
 
 const authHeader = `Bearer ${TEST_API_KEY}`
 const OTHER_OWNER_ID = 'test-owner-b'
@@ -23,7 +23,7 @@ describe.skipIf(skip).sequential('Taxonomy config cross-tenant authorization', (
   let ownCategoryId: string
 
   beforeAll(async () => {
-    await resetDb()
+    await resetTestDb()
     const db = getDb()
     // Precomputed sha256('test-api-key-owner-b') — avoids a fresh createHash()
     // call over a fixed test constant (CodeQL flags that shape as a possible

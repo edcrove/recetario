@@ -3,8 +3,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
 const skip = process.env['SKIP_INTEGRATION'] === 'true'
 import { RecipeSchema } from '@recetario/shared'
 import app from '../../index.js'
-import { resetDb } from '../../db/index.js'
-import { TEST_API_KEY } from './globalSetup.js'
+import { TEST_API_KEY, resetTestDb } from './globalSetup.js'
 
 const authHeader = `Bearer ${TEST_API_KEY}`
 
@@ -22,8 +21,8 @@ const testRecipe = {
 describe.skipIf(skip).sequential('Contract tests vs OpenAPI/Zod schema', () => {
   let recipeId: string
 
-  beforeAll(() => {
-    resetDb()
+  beforeAll(async () => {
+    await resetTestDb()
   })
 
   it('POST /v1/recipes response conforms to RecipeSchema', async () => {
