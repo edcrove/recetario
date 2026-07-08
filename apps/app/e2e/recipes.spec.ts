@@ -207,6 +207,50 @@ test.describe('Recipes: detail view', () => {
     await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 8000 })
   })
 
+  test('can add and remove an ingredient row in the edit form', async ({ page }) => {
+    await openFirstRecipeDetail(page)
+    await page.getByText('Editar').click()
+    await expect(page.getByText(/Editar Receta|Guardar Cambios/).first()).toBeVisible({
+      timeout: 8000,
+    })
+
+    const nameInputs = page.getByPlaceholder('Ingrediente')
+    const initialCount = await nameInputs.count()
+
+    await page.getByText('+ Agregar ingrediente').click()
+    await expect(nameInputs).toHaveCount(initialCount + 1)
+    await nameInputs.last().fill('Perejil E2E')
+
+    const newRow = nameInputs.last().locator('xpath=..')
+    await newRow.getByText('✕').click()
+    await expect(nameInputs).toHaveCount(initialCount)
+
+    await page.getByText(/Guardar Cambios|Guardar Receta/).click()
+    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 8000 })
+  })
+
+  test('can add and remove a step row in the edit form', async ({ page }) => {
+    await openFirstRecipeDetail(page)
+    await page.getByText('Editar').click()
+    await expect(page.getByText(/Editar Receta|Guardar Cambios/).first()).toBeVisible({
+      timeout: 8000,
+    })
+
+    const stepInputs = page.getByPlaceholder(/Paso \d+/)
+    const initialCount = await stepInputs.count()
+
+    await page.getByText('+ Agregar paso').click()
+    await expect(stepInputs).toHaveCount(initialCount + 1)
+    await stepInputs.last().fill('Servir bien caliente.')
+
+    const newRow = stepInputs.last().locator('xpath=..')
+    await newRow.getByText('✕').click()
+    await expect(stepInputs).toHaveCount(initialCount)
+
+    await page.getByText(/Guardar Cambios|Guardar Receta/).click()
+    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 8000 })
+  })
+
   test('history tab shows empty state or past sessions', async ({ page }) => {
     await openFirstRecipeDetail(page)
     await page.getByTestId('recipe-tab-history').click()
