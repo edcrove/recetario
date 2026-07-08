@@ -75,16 +75,19 @@ describe('registerAllTools (main bootstrap)', () => {
 
 describe('createApiClient.request', () => {
   it('throws with status and body on non-ok response', async () => {
+    // 400, not 422: the real API (Hono + @hono/zod-openapi) always returns
+    // 400 for validation errors, never 422 — this must match the real
+    // contract, not an arbitrary non-2xx example.
     mockFetch.mockResolvedValueOnce({
       ok: false,
-      status: 422,
+      status: 400,
       json: async () => ({ error: 'Validation failed' }),
     })
 
     const client = createApiClient()
     const err = await client.request('/v1/recipes').catch((e: Error) => e)
     expect(err).toBeInstanceOf(Error)
-    expect(err.message).toContain('API error 422')
+    expect(err.message).toContain('API error 400')
     expect(err.message).toContain('Validation failed')
   })
 

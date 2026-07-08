@@ -112,9 +112,10 @@ describe('createRecipe tool', () => {
   })
 
   it('returns isError: true with suggestions on API error', async () => {
+    // 400, not 422: the real API always returns 400 for validation errors.
     const mockFetch = vi.fn().mockResolvedValue({
       ok: false,
-      status: 422,
+      status: 400,
       json: () => Promise.resolve({ error: 'Validation error' }),
     })
     vi.stubGlobal('fetch', mockFetch)
