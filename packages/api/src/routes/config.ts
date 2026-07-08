@@ -9,7 +9,7 @@ configRoute.use('*', authMiddleware)
 const errorSchema = z.object({ error: z.string() })
 
 const taxonomyItemSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   name: z.string(),
   slug: z.string(),
   usageCount: z.number().int(),
@@ -121,7 +121,7 @@ configRoute.openapi(
     request: {
       params: z.object({
         type: z.enum(['categories', 'food-types', 'tags']),
-        id: z.string().uuid(),
+        id: z.uuid(),
       }),
       body: {
         content: { 'application/json': { schema: z.object({ name: z.string().min(1).max(100) }) } },
@@ -185,9 +185,9 @@ configRoute.openapi(
     request: {
       params: z.object({
         type: z.enum(['categories', 'food-types', 'tags']),
-        id: z.string().uuid(),
+        id: z.uuid(),
       }),
-      query: z.object({ reassignTo: z.string().uuid().optional() }),
+      query: z.object({ reassignTo: z.uuid().optional() }),
     },
     responses: {
       204: { description: 'Deleted' },
@@ -263,7 +263,7 @@ configRoute.openapi(
       body: {
         content: {
           'application/json': {
-            schema: z.object({ sourceId: z.string().uuid(), targetId: z.string().uuid() }),
+            schema: z.object({ sourceId: z.uuid(), targetId: z.uuid() }),
           },
         },
         required: true,

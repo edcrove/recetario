@@ -11,7 +11,7 @@ taxonomyRoute.use('*', authMiddleware)
 const errorSchema = z.object({ error: z.string() })
 
 const foodTypeSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   name: z.string(),
   slug: z.string(),
   isSystem: z.boolean(),
@@ -72,7 +72,7 @@ taxonomyRoute.openapi(
 )
 
 const collectionSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   name: z.string(),
   emoji: z.string().nullable(),
   description: z.string().nullable(),
@@ -173,9 +173,9 @@ taxonomyRoute.openapi(
     path: '/collections/:id/recipes',
     security: [{ ApiKeyAuth: [] }],
     request: {
-      params: z.object({ id: z.string().uuid() }),
+      params: z.object({ id: z.uuid() }),
       body: {
-        content: { 'application/json': { schema: z.object({ recipeId: z.string().uuid() }) } },
+        content: { 'application/json': { schema: z.object({ recipeId: z.uuid() }) } },
         required: true,
       },
     },
@@ -215,7 +215,7 @@ const collectionRecipesRoute = defineRoute({
   method: 'get',
   path: '/collections/:id/recipes',
   security: [{ ApiKeyAuth: [] }],
-  request: { params: z.object({ id: z.string().uuid() }) },
+  request: { params: z.object({ id: z.uuid() }) },
   responses: {
     200: {
       content: { 'application/json': { schema: z.array(RecipeSchema) } },
@@ -254,7 +254,7 @@ taxonomyRoute.openapi(
     method: 'delete',
     path: '/collections/:id/recipes/:recipeId',
     security: [{ ApiKeyAuth: [] }],
-    request: { params: z.object({ id: z.string().uuid(), recipeId: z.string().uuid() }) },
+    request: { params: z.object({ id: z.uuid(), recipeId: z.uuid() }) },
     responses: {
       204: { description: 'Removed' },
       404: { content: { 'application/json': { schema: errorSchema } }, description: 'Not found' },
@@ -283,8 +283,8 @@ taxonomyRoute.openapi(
 )
 
 const relationSchema = z.object({
-  fromId: z.string().uuid(),
-  toId: z.string().uuid(),
+  fromId: z.uuid(),
+  toId: z.uuid(),
   relationType: z.enum(['similar', 'variation', 'inspiration']),
   createdBy: z.string(),
 })
@@ -296,12 +296,12 @@ taxonomyRoute.openapi(
     path: '/recipes/:id/relations',
     security: [{ ApiKeyAuth: [] }],
     request: {
-      params: z.object({ id: z.string().uuid() }),
+      params: z.object({ id: z.uuid() }),
       body: {
         content: {
           'application/json': {
             schema: z.object({
-              toId: z.string().uuid(),
+              toId: z.uuid(),
               relationType: z.enum(['similar', 'variation', 'inspiration']),
               createdBy: z.enum(['user', 'agent']).default('user'),
             }),
@@ -332,7 +332,7 @@ taxonomyRoute.openapi(
     method: 'get',
     path: '/recipes/:id/relations',
     security: [{ ApiKeyAuth: [] }],
-    request: { params: z.object({ id: z.string().uuid() }) },
+    request: { params: z.object({ id: z.uuid() }) },
     responses: {
       200: {
         content: { 'application/json': { schema: z.array(relationSchema) } },

@@ -7,7 +7,7 @@ export function registerMutationTools(server: McpServer, api: ReturnType<typeof 
     'updateRecipe',
     'Partially update an existing recipe. Only provided fields are changed.',
     {
-      id: z.string().uuid().describe('Recipe UUID to update'),
+      id: z.uuid().describe('Recipe UUID to update'),
       title: z.string().optional(),
       servings: z.number().int().positive().optional(),
       notes: z.string().optional(),
@@ -38,7 +38,7 @@ export function registerMutationTools(server: McpServer, api: ReturnType<typeof 
         .optional()
         .describe('Nutrition facts per serving (not per whole recipe)'),
       foodTypeIds: z
-        .array(z.string().uuid())
+        .array(z.uuid())
         .max(3)
         .optional()
         .describe('Up to 3 food type IDs from getFoodTypes (e.g. guiso, sopa, carne)'),
@@ -57,7 +57,7 @@ export function registerMutationTools(server: McpServer, api: ReturnType<typeof 
   server.tool(
     'deleteRecipe',
     'Delete a recipe by ID. This action is irreversible.',
-    { id: z.string().uuid().describe('Recipe UUID to delete') },
+    { id: z.uuid().describe('Recipe UUID to delete') },
     async ({ id }) => {
       await api.request(`/v1/recipes/${id}`, { method: 'DELETE' })
       return {

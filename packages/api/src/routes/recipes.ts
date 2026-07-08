@@ -113,7 +113,7 @@ const getRecipeByIdRoute = defineRoute({
   path: '/recipes/{id}',
   security: [{ ApiKeyAuth: [] }],
   request: {
-    params: z.object({ id: z.string().uuid() }),
+    params: z.object({ id: z.uuid() }),
   },
   responses: {
     200: {
@@ -141,7 +141,7 @@ const putRecipeRoute = defineRoute({
   path: '/recipes/{id}',
   security: [{ ApiKeyAuth: [] }],
   request: {
-    params: z.object({ id: z.string().uuid() }),
+    params: z.object({ id: z.uuid() }),
     body: {
       content: { 'application/json': { schema: UpdateRecipeSchema } },
       required: true,
@@ -174,7 +174,7 @@ const deleteRecipeRoute = defineRoute({
   path: '/recipes/{id}',
   security: [{ ApiKeyAuth: [] }],
   request: {
-    params: z.object({ id: z.string().uuid() }),
+    params: z.object({ id: z.uuid() }),
   },
   responses: {
     204: {

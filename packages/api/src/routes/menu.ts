@@ -57,7 +57,7 @@ const deleteMenuEntryRoute = defineRoute({
     params: z.object({
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       slot: MenuSlotSchema,
-      recipeId: z.string().uuid(),
+      recipeId: z.uuid(),
     }),
   },
   responses: {
@@ -114,7 +114,7 @@ const patchMenuEntryRoute = defineRoute({
     params: z.object({
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       slot: MenuSlotSchema,
-      recipeId: z.string().uuid(),
+      recipeId: z.uuid(),
     }),
     body: {
       content: { 'application/json': { schema: z.object({ servings: z.number().int().min(1) }) } },

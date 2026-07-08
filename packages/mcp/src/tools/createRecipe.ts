@@ -42,7 +42,7 @@ const CreateRecipeInput = z.object({
     .optional()
     .default([])
     .describe('Cooking steps in order'),
-  sourceUrl: z.string().url().optional().describe('Original URL if scraped from web'),
+  sourceUrl: z.url().optional().describe('Original URL if scraped from web'),
   sourceType: z.enum(['url', 'photo', 'manual', 'mcp']).optional().default('mcp'),
   externalId: z.string().optional().describe('External ID for deduplication'),
   originalLanguage: z.string().optional().default('es'),
@@ -61,7 +61,7 @@ const CreateRecipeInput = z.object({
     .optional()
     .describe('Nutrition facts per serving (not per whole recipe)'),
   foodTypeIds: z
-    .array(z.string().uuid())
+    .array(z.uuid())
     .max(3)
     .optional()
     .describe('Up to 3 food type IDs from getFoodTypes (e.g. guiso, sopa, carne)'),

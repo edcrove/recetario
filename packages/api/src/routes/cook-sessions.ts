@@ -9,8 +9,8 @@ cookSessionsRoute.use('*', authMiddleware)
 const errorSchema = z.object({ error: z.string() })
 
 const sessionSchema = z.object({
-  id: z.string().uuid(),
-  recipeId: z.string().uuid().nullable(),
+  id: z.uuid(),
+  recipeId: z.uuid().nullable(),
   recipeTitle: z.string().nullable().optional(),
   ownerId: z.string(),
   cookedAt: z.string(),
@@ -23,7 +23,7 @@ const statsSchema = z.object({
   totalSessions: z.number().int(),
   topRecipes: z.array(
     z.object({
-      recipeId: z.string().uuid().nullable(),
+      recipeId: z.uuid().nullable(),
       count: z.number().int(),
       lastCookedAt: z.string(),
     }),
@@ -46,7 +46,7 @@ const createRoute = defineRoute({
       content: {
         'application/json': {
           schema: z.object({
-            recipeId: z.string().uuid(),
+            recipeId: z.uuid(),
             rating: z.number().int().min(1).max(5).nullable().optional(),
             notes: z.string().max(1000).optional(),
           }),
@@ -87,7 +87,7 @@ const listByRecipeRoute = defineRoute({
   path: '/recipes/:id',
   security: [{ ApiKeyAuth: [] }],
   request: {
-    params: z.object({ id: z.string().uuid() }),
+    params: z.object({ id: z.uuid() }),
     query: z.object({
       limit: z.coerce.number().int().min(1).max(100).default(20).optional(),
       offset: z.coerce.number().int().min(0).default(0).optional(),
@@ -165,7 +165,7 @@ const listRoute = defineRoute({
   security: [{ ApiKeyAuth: [] }],
   request: {
     query: z.object({
-      recipeId: z.string().uuid().optional(),
+      recipeId: z.uuid().optional(),
       limit: z.coerce.number().int().min(1).max(100).default(20).optional(),
       offset: z.coerce.number().int().min(0).default(0).optional(),
     }),
