@@ -161,9 +161,19 @@ test.describe('Menu: shopping list', () => {
   test('shopping list shows items or empty state', async ({ page }) => {
     await page.getByText('🛒 Compras').click()
     await expect(page.getByText('Lista de Compras').first()).toBeVisible({ timeout: 8000 })
-    // Either has measurable items or shows the empty state
-    const hasItems = await page.getByText(/\d+ (g|kg|ml|l|cdta|cda|taza|u)/).count()
-    const hasEmpty = await page.getByText(/No hay ingredientes/i).count()
-    expect(hasItems + hasEmpty).toBeGreaterThan(0)
+    // Either has measurable items or shows the empty state. FlatList's
+    // ListEmptyComponent can render a frame or two after the header on web
+    // (VirtualizedList's own layout pass), so poll instead of taking a
+    // single point-in-time snapshot right after the header appears.
+    await expect
+      .poll(
+        async () => {
+          const hasItems = await page.getByText(/\d+ (g|kg|ml|l|cdta|cda|taza|u)/).count()
+          const hasEmpty = await page.getByText(/No hay ingredientes/i).count()
+          return hasItems + hasEmpty
+        },
+        { timeout: 8000 },
+      )
+      .toBeGreaterThan(0)
   })
 })
