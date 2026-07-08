@@ -15,7 +15,7 @@ export function registerMenuTools(server: McpServer, api: ReturnType<typeof crea
         .regex(/^\d{4}-\d{2}-\d{2}$/)
         .describe('Date in YYYY-MM-DD format'),
       slot: MenuSlot.describe('Meal slot: Desayuno, Almuerzo, Merienda, Cena, or Snacks/Otros'),
-      recipeId: z.string().uuid().describe('Recipe UUID to assign to this slot'),
+      recipeId: z.uuid().describe('Recipe UUID to assign to this slot'),
       servings: z.number().int().positive().optional().default(1).describe('Number of servings'),
     },
     async ({ date, slot, recipeId, servings }) => {

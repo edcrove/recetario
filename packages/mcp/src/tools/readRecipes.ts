@@ -7,7 +7,7 @@ export function registerReadTools(server: McpServer, api: ReturnType<typeof crea
   server.tool(
     'getRecipe',
     'Get a single recipe by its ID.',
-    { id: z.string().uuid().describe('Recipe UUID') },
+    { id: z.uuid().describe('Recipe UUID') },
     async ({ id }) => {
       const recipe = await api.request(`/v1/recipes/${id}`)
       return {

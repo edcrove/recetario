@@ -10,16 +10,16 @@ householdsRoute.use('*', authMiddleware)
 const errorSchema = z.object({ error: z.string() })
 
 const memberSchema = z.object({
-  userId: z.string().uuid(),
+  userId: z.uuid(),
   role: z.enum(['owner', 'admin', 'member', 'viewer']),
   invitedAt: z.string(),
   acceptedAt: z.string().nullable(),
 })
 
 const householdSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   name: z.string(),
-  ownerId: z.string().uuid(),
+  ownerId: z.uuid(),
   createdAt: z.string(),
   members: z.array(memberSchema).optional(),
 })
@@ -122,14 +122,14 @@ const inviteRoute = defineRoute({
   path: '/:id/invite',
   security: [{ ApiKeyAuth: [] }],
   request: {
-    params: z.object({ id: z.string().uuid() }),
+    params: z.object({ id: z.uuid() }),
     body: {
       content: {
         'application/json': {
           schema: z
             .object({
-              userId: z.string().uuid().optional(),
-              email: z.string().email().optional(),
+              userId: z.uuid().optional(),
+              email: z.email().optional(),
               role: z.enum(['admin', 'member', 'viewer']).default('member'),
             })
             .refine((data) => data.userId ?? data.email, {
@@ -200,7 +200,7 @@ const acceptRoute = defineRoute({
   method: 'post',
   path: '/:id/accept',
   security: [{ ApiKeyAuth: [] }],
-  request: { params: z.object({ id: z.string().uuid() }) },
+  request: { params: z.object({ id: z.uuid() }) },
   responses: {
     200: { content: { 'application/json': { schema: memberSchema } }, description: 'Accepted' },
     404: { content: { 'application/json': { schema: errorSchema } }, description: 'Not found' },
@@ -236,7 +236,7 @@ const removeMemberRoute = defineRoute({
   method: 'delete',
   path: '/:id/members/:userId',
   security: [{ ApiKeyAuth: [] }],
-  request: { params: z.object({ id: z.string().uuid(), userId: z.string().uuid() }) },
+  request: { params: z.object({ id: z.uuid(), userId: z.uuid() }) },
   responses: {
     204: { description: 'Removed' },
     403: { content: { 'application/json': { schema: errorSchema } }, description: 'Forbidden' },

@@ -11,12 +11,12 @@ const errorSchema = z.object({ error: z.string() })
 
 const userPatchSchema = z.object({
   displayName: z.string().min(1).max(100).optional(),
-  avatarUrl: z.string().url().optional(),
+  avatarUrl: z.url().optional(),
 })
 
 const userResponseSchema = z.object({
-  id: z.string().uuid(),
-  email: z.string().email(),
+  id: z.uuid(),
+  email: z.email(),
   displayName: z.string().nullable(),
   avatarUrl: z.string().nullable(),
   createdAt: z.string(),

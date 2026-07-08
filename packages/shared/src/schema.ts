@@ -65,7 +65,7 @@ export type Category = z.infer<typeof CategorySchema>
 // Source
 export const SourceSchema = z.object({
   type: z.enum(['url', 'photo', 'manual', 'mcp']),
-  url: z.string().url().optional(),
+  url: z.url().optional(),
   author: z.string().optional(),
   externalId: z.string().optional(),
 })
@@ -99,7 +99,7 @@ export const TranslationSchema = z.object({
 
 // Recipe (full)
 export const RecipeSchema = z.object({
-  id: z.string().uuid().optional(), // optional on create
+  id: z.uuid().optional(), // optional on create
   title: z.string().min(1),
   servings: z.number().int().positive(),
   category: CategorySchema,
@@ -107,7 +107,7 @@ export const RecipeSchema = z.object({
   prepTimeMin: z.number().int().positive().optional(),
   cookTimeMin: z.number().int().positive().optional(),
   totalTimeMin: z.number().int().positive().optional(),
-  images: z.array(z.string().url()).default([]),
+  images: z.array(z.url()).default([]),
   notes: z.string().optional(),
   yield: z.string().optional(), // "12 cookies"
   originalLanguage: z.string().default('es'),
@@ -117,7 +117,7 @@ export const RecipeSchema = z.object({
   source: SourceSchema.optional(),
   dietaryTags: z.array(DietaryTagSchema).optional(),
   nutrition: NutritionSchema.optional(),
-  foodTypeIds: z.array(z.string().uuid()).max(3).optional(),
+  foodTypeIds: z.array(z.uuid()).max(3).optional(),
   createdAt: z.string().datetime().optional(),
   updatedAt: z.string().datetime().optional(),
 })

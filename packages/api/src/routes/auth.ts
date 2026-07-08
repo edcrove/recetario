@@ -6,8 +6,8 @@ import { hashPassword, verifyPassword, signJwt, verifyJwt } from '../auth/servic
 export const authRoute = new OpenAPIHono()
 
 const userResponseSchema = z.object({
-  id: z.string().uuid(),
-  email: z.string().email(),
+  id: z.uuid(),
+  email: z.email(),
   displayName: z.string().nullable(),
   createdAt: z.string(),
 })
@@ -28,7 +28,7 @@ const registerRoute = defineRoute({
       content: {
         'application/json': {
           schema: z.object({
-            email: z.string().email(),
+            email: z.email(),
             password: z.string().min(8),
             displayName: z.string().min(1).max(100).optional(),
           }),
@@ -92,7 +92,7 @@ const loginRoute = defineRoute({
       content: {
         'application/json': {
           schema: z.object({
-            email: z.string().email(),
+            email: z.email(),
             password: z.string(),
           }),
         },

@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 // ── Meal categories (replaces CategorySchema enum) ───────────────────────────
 export const MealCategorySchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   ownerId: z.string().nullable(),
   name: z.string().min(1).max(50),
   slug: z.string().min(1).max(50),
@@ -27,7 +27,7 @@ export const SYSTEM_CATEGORY_SLUGS = [
 
 // ── Food types ───────────────────────────────────────────────────────────────
 export const FoodTypeSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   ownerId: z.string().nullable(),
   name: z.string().min(1).max(50),
   slug: z.string().min(1).max(50),
@@ -54,7 +54,7 @@ export const SYSTEM_FOOD_TYPE_SLUGS = [
 
 // ── Tags ─────────────────────────────────────────────────────────────────────
 export const TagSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   ownerId: z.string(),
   name: z.string().min(1).max(50),
   slug: z.string().min(1).max(50),
@@ -63,7 +63,7 @@ export type Tag = z.infer<typeof TagSchema>
 
 // ── Collections ──────────────────────────────────────────────────────────────
 export const CollectionSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   ownerId: z.string(),
   name: z.string().min(1).max(100),
   emoji: z.string().max(4).optional(),
@@ -86,8 +86,8 @@ export const RelationTypeSchema = z.enum(['similar', 'variation', 'inspiration']
 export type RelationType = z.infer<typeof RelationTypeSchema>
 
 export const RecipeRelationSchema = z.object({
-  fromId: z.string().uuid(),
-  toId: z.string().uuid(),
+  fromId: z.uuid(),
+  toId: z.uuid(),
   relationType: RelationTypeSchema,
   createdBy: z.enum(['user', 'agent']).default('user'),
 })
@@ -95,11 +95,11 @@ export type RecipeRelation = z.infer<typeof RecipeRelationSchema>
 
 // ── Cook sessions ────────────────────────────────────────────────────────────
 export const CookSessionSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   // Nullable: deleting a recipe sets this to null instead of destroying the
   // session (see 2026-07-03 audit finding). recipeTitle is a snapshot from
   // when the session was logged, so history stays readable either way.
-  recipeId: z.string().uuid().nullable(),
+  recipeId: z.uuid().nullable(),
   recipeTitle: z.string().nullable().optional(),
   ownerId: z.string(),
   cookedAt: z.string().datetime(),
@@ -110,7 +110,7 @@ export const CookSessionSchema = z.object({
 export type CookSession = z.infer<typeof CookSessionSchema>
 
 export const CreateCookSessionSchema = z.object({
-  recipeId: z.string().uuid(),
+  recipeId: z.uuid(),
   rating: z.number().int().min(1).max(5).nullable().optional(),
   notes: z.string().max(1000).optional(),
 })
@@ -118,7 +118,7 @@ export type CreateCookSession = z.infer<typeof CreateCookSessionSchema>
 
 // ── Taxonomy usage stats ──────────────────────────────────────────────────────
 export const TaxonomyItemWithUsageSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   name: z.string(),
   slug: z.string(),
   usageCount: z.number().int(),

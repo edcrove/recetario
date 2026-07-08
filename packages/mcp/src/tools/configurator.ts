@@ -20,7 +20,7 @@ export function registerConfiguratorTools(
     'Rename a category, food type or tag',
     {
       type: z.enum(['categories', 'food-types', 'tags']),
-      id: z.string().uuid(),
+      id: z.uuid(),
       newName: z.string().min(1),
     },
     async ({ type, id, newName }) => {
@@ -36,8 +36,8 @@ export function registerConfiguratorTools(
     'mergeTags',
     'Merge a source tag into a target tag (all recipes are reassigned, source is deleted)',
     {
-      sourceId: z.string().uuid().describe('Tag to merge FROM (will be deleted)'),
-      targetId: z.string().uuid().describe('Tag to merge INTO (will be kept)'),
+      sourceId: z.uuid().describe('Tag to merge FROM (will be deleted)'),
+      targetId: z.uuid().describe('Tag to merge INTO (will be kept)'),
     },
     async ({ sourceId, targetId }) => {
       const result = await api.request('/v1/config/tags/merge', {
@@ -53,7 +53,7 @@ export function registerConfiguratorTools(
     'Get which recipes use a specific taxonomy item',
     {
       type: z.enum(['categories', 'food-types', 'tags']),
-      id: z.string().uuid(),
+      id: z.uuid(),
     },
     async ({ type, id }) => {
       const overview = (await api.request('/v1/config/taxonomy')) as {

@@ -7,7 +7,7 @@ export function registerMacrosTools(server: McpServer, api: ReturnType<typeof cr
     'getMacros',
     'Get nutrition macros for a recipe scaled to a given number of servings',
     {
-      recipeId: z.string().uuid().describe('Recipe UUID'),
+      recipeId: z.uuid().describe('Recipe UUID'),
       servings: z
         .number()
         .int()
@@ -66,7 +66,7 @@ export function registerCookHistoryTools(
     'logCookSession',
     'Log that a recipe was cooked, with an optional rating (1-5) and notes',
     {
-      recipeId: z.string().uuid().describe('Recipe UUID'),
+      recipeId: z.uuid().describe('Recipe UUID'),
       rating: z.number().int().min(1).max(5).optional().describe('Rating 1-5'),
       notes: z.string().max(1000).optional().describe('Cooking notes'),
     },
@@ -85,7 +85,7 @@ export function registerCookHistoryTools(
     'getCookHistory',
     'Get the cooking history for a recipe or all recent sessions',
     {
-      recipeId: z.string().uuid().optional().describe('Filter by recipe (optional)'),
+      recipeId: z.uuid().optional().describe('Filter by recipe (optional)'),
       limit: z.number().int().min(1).max(100).default(10).optional().describe('Max results'),
     },
     async (args) => {

@@ -37,7 +37,7 @@ export function registerTaxonomyTools(server: McpServer, api: ReturnType<typeof 
   server.tool(
     'addToCollection',
     'Add a recipe to a collection',
-    { collectionId: z.string().uuid(), recipeId: z.string().uuid() },
+    { collectionId: z.uuid(), recipeId: z.uuid() },
     async ({ collectionId, recipeId }) => {
       const result = await api.request(`/v1/collections/${collectionId}/recipes`, {
         method: 'POST',
@@ -51,8 +51,8 @@ export function registerTaxonomyTools(server: McpServer, api: ReturnType<typeof 
     'addRecipeRelation',
     'Create a relation between two recipes (similar, variation, or inspiration)',
     {
-      fromId: z.string().uuid().describe('Source recipe UUID'),
-      toId: z.string().uuid().describe('Target recipe UUID'),
+      fromId: z.uuid().describe('Source recipe UUID'),
+      toId: z.uuid().describe('Target recipe UUID'),
       relationType: z.enum(['similar', 'variation', 'inspiration']),
     },
     async (args) => {
@@ -71,7 +71,7 @@ export function registerTaxonomyTools(server: McpServer, api: ReturnType<typeof 
   server.tool(
     'getRelatedRecipes',
     'Get recipes related to a given recipe (similar, variations, inspirations)',
-    { recipeId: z.string().uuid() },
+    { recipeId: z.uuid() },
     async ({ recipeId }) => {
       const relations = await api.request(`/v1/recipes/${recipeId}/relations`)
       return { content: [{ type: 'text' as const, text: JSON.stringify(relations, null, 2) }] }
