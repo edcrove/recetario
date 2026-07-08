@@ -244,4 +244,39 @@ describe.skipIf(skip).sequential('Menu integration tests', () => {
     expect(item?.quantity).toBe(400) // 200 * (8/4)
     expect(item?.unit).toBe('g')
   })
+
+  // Regression test for GitHub issue #44: the shopping list must only include
+  // ingredients from entries dated within [weekStart, weekStart+6] inclusive —
+  // entries from the adjacent week (day before weekStart, or day after
+  // weekStart+6) must never leak in.
+  it('getScaledIngredients: excludes entries from the adjacent week (day before/after)', async () => {
+    const createRes = await app.request('/v1/recipes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: auth },
+      body: JSON.stringify({
+        title: 'Adjacent Week Recipe',
+        servings: 1,
+        category: 'Cena',
+        ingredients: [{ name: 'adjacent-week-marker', quantity: 1, unit: 'unit' }],
+        steps: [],
+      }),
+    })
+    const adjacentRecipe = (await createRes.json()) as { id: string }
+
+    // Day before weekStart (2026-07-06) and day after weekStart+6 (2026-07-14)
+    // both fall outside the [2026-07-07, 2026-07-13] window.
+    for (const date of ['2026-07-06', '2026-07-14']) {
+      await app.request('/v1/menu', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: auth },
+        body: JSON.stringify({ date, slot: 'Almuerzo', recipeId: adjacentRecipe.id, servings: 1 }),
+      })
+    }
+
+    const res = await app.request('/v1/menu/shopping-list?weekStart=2026-07-07', {
+      headers: { Authorization: auth },
+    })
+    const list = (await res.json()) as { ingredient: string }[]
+    expect(list.find((i) => i.ingredient === 'adjacent-week-marker')).toBeUndefined()
+  })
 })
