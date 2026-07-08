@@ -320,7 +320,8 @@ jobs:
           EXPO_PUBLIC_API_URL: http://localhost:3000
 
       - name: Build Expo web app (instrumented for E2E coverage)
-        run: BABEL_ENV=coverage pnpm --filter recetario-app exec expo export --platform web --output-dir dist-coverage
+        run: node e2e/build-instrumented.js dist-coverage
+        working-directory: apps/app
         env:
           EXPO_PUBLIC_API_URL: http://localhost:3000
 
@@ -363,7 +364,6 @@ jobs:
           npx nyc merge .e2e-coverage .nyc_output/out.json
           node e2e/remap-coverage.js
           npx nyc report --reporter=text --reporter=lcov --reporter=json-summary
-        continue-on-error: true
 
       - name: Upload Playwright report
         if: always()
