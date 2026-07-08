@@ -1,5 +1,5 @@
 import { createRoute as defineRoute, OpenAPIHono, z } from '@hono/zod-openapi'
-import { eq, and, sql } from 'drizzle-orm'
+import { eq, and, sql, or, isNull } from 'drizzle-orm'
 import { RecipeSchema } from '@recetario/shared'
 import { getDb, schema } from '../db/index.js'
 import { authMiddleware } from '../middleware/auth.js'
@@ -31,8 +31,13 @@ taxonomyRoute.openapi(
     },
   }),
   async (c) => {
+    const ownerId = c.get('ownerId')
     const db = getDb()
-    const rows = await db.select().from(schema.foodTypes).orderBy(schema.foodTypes.name)
+    const rows = await db
+      .select()
+      .from(schema.foodTypes)
+      .where(or(eq(schema.foodTypes.ownerId, ownerId), isNull(schema.foodTypes.ownerId)))
+      .orderBy(schema.foodTypes.name)
     return c.json(
       rows.map((r) => ({ id: r.id, name: r.name, slug: r.slug, isSystem: Boolean(r.isSystem) })),
     )
@@ -312,11 +317,15 @@ taxonomyRoute.openapi(
     },
     responses: {
       201: { content: { 'application/json': { schema: relationSchema } }, description: 'Created' },
+      404: { content: { 'application/json': { schema: errorSchema } }, description: 'Not found' },
     },
   }),
   async (c) => {
+    const ownerId = c.get('ownerId')
     const { id } = c.req.valid('param')
     const { toId, relationType, createdBy = 'user' } = c.req.valid('json')
+    const recipe = await recipeRepository.findById(id, ownerId)
+    if (!recipe) return c.json({ error: 'Recipe not found' } as never, 404)
     const db = getDb()
     await db
       .insert(schema.recipeRelations)
@@ -338,10 +347,14 @@ taxonomyRoute.openapi(
         content: { 'application/json': { schema: z.array(relationSchema) } },
         description: 'OK',
       },
+      404: { content: { 'application/json': { schema: errorSchema } }, description: 'Not found' },
     },
   }),
   async (c) => {
+    const ownerId = c.get('ownerId')
     const { id } = c.req.valid('param')
+    const recipe = await recipeRepository.findById(id, ownerId)
+    if (!recipe) return c.json({ error: 'Recipe not found' } as never, 404)
     const db = getDb()
     const rows = await db
       .select()
@@ -354,6 +367,7 @@ taxonomyRoute.openapi(
         relationType: r.relationType as 'similar' | 'variation' | 'inspiration',
         createdBy: r.createdBy,
       })),
+      200,
     )
   },
 )

@@ -12,6 +12,7 @@ vi.mock('../db/index.js', () => {
       where: () => ({
         limit: () => Promise.resolve(mockSelect()),
         where: () => Promise.resolve(mockSelect()),
+        orderBy: () => Promise.resolve(mockSelect()),
         then: (resolve: (v: unknown) => void) => resolve(mockSelect()), // direct await
       }),
       orderBy: () => Promise.resolve(mockSelect()),
@@ -35,7 +36,7 @@ vi.mock('../db/index.js', () => {
       delete: () => ({ where: () => Promise.resolve([]) }),
     })),
     schema: {
-      foodTypes: { name: 'name', id: 'id' },
+      foodTypes: { name: 'name', id: 'id', ownerId: 'owner_id' },
       collections: { id: 'id', ownerId: 'owner_id', name: 'name' },
       recipeCollections: { collectionId: 'collection_id', recipeId: 'recipe_id' },
       recipeRelations: { fromId: 'from_id' },
@@ -195,6 +196,10 @@ describe('POST /v1/collections/:id/recipes', () => {
 
 describe('POST /v1/recipes/:id/relations', () => {
   it('creates a recipe relation', async () => {
+    vi.mocked(recipeRepository.findById).mockResolvedValueOnce({
+      id: UUID,
+      title: 'Tarta',
+    } as never)
     const res = await app.request(`/v1/recipes/${UUID}/relations`, {
       method: 'POST',
       headers: AUTH,
@@ -213,6 +218,16 @@ describe('POST /v1/recipes/:id/relations', () => {
       body: JSON.stringify({ toId: UUID2, relationType: 'enemy' }),
     })
     expect(res.status).toBe(400)
+  })
+
+  it('returns 404 when the recipe does not exist or is not owned by the caller (IDOR guard)', async () => {
+    vi.mocked(recipeRepository.findById).mockResolvedValueOnce(null)
+    const res = await app.request(`/v1/recipes/${UUID}/relations`, {
+      method: 'POST',
+      headers: AUTH,
+      body: JSON.stringify({ toId: UUID2, relationType: 'similar' }),
+    })
+    expect(res.status).toBe(404)
   })
 })
 
@@ -278,6 +293,10 @@ describe('DELETE /v1/collections/:id/recipes/:recipeId', () => {
 
 describe('GET /v1/recipes/:id/relations', () => {
   it('returns relations for a recipe', async () => {
+    vi.mocked(recipeRepository.findById).mockResolvedValueOnce({
+      id: UUID,
+      title: 'Tarta',
+    } as never)
     mockSelect.mockReturnValue([
       { fromId: UUID, toId: UUID2, relationType: 'variation', createdBy: 'agent' },
     ])
@@ -287,5 +306,13 @@ describe('GET /v1/recipes/:id/relations', () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body[0].relationType).toBe('variation')
+  })
+
+  it('returns 404 when the recipe does not exist or is not owned by the caller (IDOR guard)', async () => {
+    vi.mocked(recipeRepository.findById).mockResolvedValueOnce(null)
+    const res = await app.request(`/v1/recipes/${UUID}/relations`, {
+      headers: { Authorization: 'Bearer test-key' },
+    })
+    expect(res.status).toBe(404)
   })
 })
