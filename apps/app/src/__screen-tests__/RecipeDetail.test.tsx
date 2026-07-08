@@ -22,6 +22,7 @@ vi.mock('../api/client', () => ({
         ],
         steps: [{ text: 'Mezclar todo' }],
         notes: 'Muy rica',
+        nutrition: { calories: 210, protein_g: 11, carbs_g: 17.5, fat_g: 22.7 },
       }),
     },
   },
@@ -116,5 +117,23 @@ describe('RecipeDetailScreen', () => {
   it('shows Editar link', async () => {
     wrap(<RecipeDetailScreen />)
     expect(await screen.findByText('Editar')).toBeInTheDocument()
+  })
+
+  it('shows fixed per-serving nutrition alongside the scaled total for the selected servings', async () => {
+    wrap(<RecipeDetailScreen />)
+    expect(await screen.findByText('Nutrición por porción')).toBeInTheDocument()
+    expect(screen.getByText('Nutrición por cantidad de porciones')).toBeInTheDocument()
+    // base servings = 4: per-porción stays 210, cantidad-de-porciones starts at 210*4=840
+    expect(screen.getByText('210')).toBeInTheDocument()
+    expect(screen.getByText('840')).toBeInTheDocument()
+  })
+
+  it('updates only the cantidad-de-porciones total when servings is incremented, not the per-porción figure', async () => {
+    wrap(<RecipeDetailScreen />)
+    await screen.findByText('Nutrición por porción')
+    fireEvent.click(screen.getByText('+'))
+    // servings now 5: cantidad-de-porciones total becomes 210*5=1050, per-porción unchanged at 210
+    expect(await screen.findByText('1050')).toBeInTheDocument()
+    expect(screen.getByText('210')).toBeInTheDocument()
   })
 })

@@ -12,7 +12,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../../src/api/client'
 import { displayIngredient } from '../../src/utils/displayIngredient'
 import type { DisplayMode } from '../../src/utils/displayIngredient'
-import { roundNutrition } from '../../src/utils/nutritionDisplay'
+import { roundNutrition, scaleNutrition } from '../../src/utils/nutritionDisplay'
 import { AllergenWarning } from '../../src/components/AllergenWarning'
 import { NutritionBar } from '../../src/components/NutritionBar'
 
@@ -175,7 +175,13 @@ export default function RecipeDetailScreen() {
 
           {/* Nutrition */}
           {recipe.nutrition && (
-            <NutritionBar label="Nutrición por porción" {...roundNutrition(recipe.nutrition)} />
+            <>
+              <NutritionBar label="Nutrición por porción" {...roundNutrition(recipe.nutrition)} />
+              <NutritionBar
+                label="Nutrición por cantidad de porciones"
+                {...roundNutrition(scaleNutrition(recipe.nutrition, current))}
+              />
+            </>
           )}
 
           {/* Steps */}
