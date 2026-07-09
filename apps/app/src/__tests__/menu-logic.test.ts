@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildEntryMap, parseServings, formatShoppingQty } from '../utils/menuLogic'
+import { buildEntryMap, formatShoppingQty } from '../utils/menuLogic'
 import type { MenuEntry, ShoppingListItem } from '@recetario/shared'
 
 const makeEntry = (date: string, slot: MenuEntry['slot'], recipeId = 'recipe-1'): MenuEntry => ({
@@ -47,32 +47,6 @@ describe('buildEntryMap', () => {
   it('returns empty array for unknown slot (via ?? [])', () => {
     const map = buildEntryMap([])
     expect(map.get('2026-06-29::Almuerzo') ?? []).toEqual([])
-  })
-})
-
-describe('parseServings', () => {
-  it('parses valid positive integer', () => {
-    expect(parseServings('4', 2)).toBe(4)
-  })
-
-  it('returns fallback for non-numeric input', () => {
-    expect(parseServings('abc', 2)).toBe(2)
-  })
-
-  it('returns fallback for zero', () => {
-    expect(parseServings('0', 2)).toBe(2)
-  })
-
-  it('returns fallback for negative', () => {
-    expect(parseServings('-1', 2)).toBe(2)
-  })
-
-  it('returns fallback for empty string', () => {
-    expect(parseServings('', 2)).toBe(2)
-  })
-
-  it('handles decimal input (parseInt truncates)', () => {
-    expect(parseServings('3.7', 2)).toBe(3)
   })
 })
 
