@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { authStorage as storage } from '../utils/authStorage'
-import { api } from '../api/client'
+import { api, setOnUnauthorized } from '../api/client'
 
 const TOKEN_KEY = 'auth_token'
 
@@ -52,6 +52,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(async () => {
     await storage.del(TOKEN_KEY)
     setToken(null)
+  }, [])
+
+  // Any API 401 means the stored session is expired/invalid: drop it so
+  // AuthGuard redirects to /auth/login. Guarded by hasSession so the
+  // login screen's own wrong-password 401s don't churn state.
+  useEffect(() => {
+    setOnUnauthorized(() => {
+      setToken((current) => {
+        if (current) void storage.del(TOKEN_KEY)
+        return null
+      })
+    })
+    return () => setOnUnauthorized(null)
   }, [])
 
   const value = useMemo(
