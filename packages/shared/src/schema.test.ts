@@ -190,6 +190,30 @@ describe('RecipeSchema', () => {
       }),
     ).toThrow()
   })
+
+  it('accepts visibility private and public', () => {
+    expect(RecipeSchema.parse({ ...validRecipe, visibility: 'private' }).visibility).toBe('private')
+    expect(RecipeSchema.parse({ ...validRecipe, visibility: 'public' }).visibility).toBe('public')
+  })
+
+  it('leaves visibility undefined when omitted (DB defaults it to private)', () => {
+    expect(RecipeSchema.parse(validRecipe).visibility).toBeUndefined()
+  })
+
+  it('rejects invalid visibility values', () => {
+    expect(() => RecipeSchema.parse({ ...validRecipe, visibility: 'household' })).toThrow()
+  })
+
+  it('accepts forkedFromId as uuid or null, rejects malformed ids', () => {
+    expect(
+      RecipeSchema.parse({
+        ...validRecipe,
+        forkedFromId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+      }).forkedFromId,
+    ).toBe('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11')
+    expect(RecipeSchema.parse({ ...validRecipe, forkedFromId: null }).forkedFromId).toBeNull()
+    expect(() => RecipeSchema.parse({ ...validRecipe, forkedFromId: 'not-a-uuid' })).toThrow()
+  })
 })
 
 describe('CreateRecipeSchema', () => {
@@ -205,12 +229,31 @@ describe('CreateRecipeSchema', () => {
     expect('createdAt' in result).toBe(false)
     expect('updatedAt' in result).toBe(false)
   })
+
+  it('strips forkedFromId (server-managed, only the copy endpoint sets it)', () => {
+    const result = CreateRecipeSchema.parse({
+      ...validRecipe,
+      forkedFromId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    })
+    expect('forkedFromId' in result).toBe(false)
+  })
+
+  it('keeps visibility (clients may create public recipes directly)', () => {
+    expect(CreateRecipeSchema.parse({ ...validRecipe, visibility: 'public' }).visibility).toBe(
+      'public',
+    )
+  })
 })
 
 describe('UpdateRecipeSchema', () => {
   it('allows partial updates (all fields optional)', () => {
     const result = UpdateRecipeSchema.parse({ title: 'Updated Title' })
     expect(result.title).toBe('Updated Title')
+  })
+
+  it('accepts a visibility-only update and rejects invalid values', () => {
+    expect(UpdateRecipeSchema.parse({ visibility: 'public' }).visibility).toBe('public')
+    expect(() => UpdateRecipeSchema.parse({ visibility: 'shared' })).toThrow()
   })
 
   it('parses empty object (defaults still applied for defaulted fields)', () => {

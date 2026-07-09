@@ -50,6 +50,13 @@
       "when": 1783180044621,
       "tag": "0006_adorable_veda",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1783561657732,
+      "tag": "0007_awesome_mentallo",
+      "breakpoints": true
     }
   ]
 }

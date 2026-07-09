@@ -62,6 +62,12 @@ export const CategorySchema = z.enum([
 ])
 export type Category = z.infer<typeof CategorySchema>
 
+// Visibility — 'private' is visible to the owner (and, once household sharing
+// lands, their household); 'public' additionally lists the recipe in the
+// public library where anyone can copy it as a fork.
+export const RecipeVisibilitySchema = z.enum(['private', 'public'])
+export type RecipeVisibility = z.infer<typeof RecipeVisibilitySchema>
+
 // Source
 export const SourceSchema = z.object({
   type: z.enum(['url', 'photo', 'manual', 'mcp']),
@@ -118,6 +124,10 @@ export const RecipeSchema = z.object({
   dietaryTags: z.array(DietaryTagSchema).optional(),
   nutrition: NutritionSchema.optional(),
   foodTypeIds: z.array(z.uuid()).max(3).optional(),
+  // optional on input; the DB defaults it to 'private', so API responses always carry it
+  visibility: RecipeVisibilitySchema.optional(),
+  // server-managed: set only by the copy/fork endpoint, never by clients
+  forkedFromId: z.uuid().nullable().optional(),
   createdAt: z.string().datetime().optional(),
   updatedAt: z.string().datetime().optional(),
 })
@@ -126,6 +136,7 @@ export type Recipe = z.infer<typeof RecipeSchema>
 // CreateRecipe — omit server-set fields
 export const CreateRecipeSchema = RecipeSchema.omit({
   id: true,
+  forkedFromId: true,
   createdAt: true,
   updatedAt: true,
 })
