@@ -67,13 +67,13 @@ export default function CookModeScreen() {
       stopSpeech()
       setIsSpeaking(false)
     } else if (current?.text) {
-      startSpeech(
+      const started = startSpeech(
         current.text,
         () => setIsSpeaking(false),
         () => setIsSpeaking(false),
         () => setIsSpeaking(false),
       )
-      setIsSpeaking(true)
+      if (started) setIsSpeaking(true)
     }
   }, [isSpeaking, current?.text])
 

@@ -243,6 +243,11 @@ test.describe('Cook mode: full session flows', () => {
   })
 
   test('speech toggle switches the speaker icon on and off', async ({ page }) => {
+    // Headless linux chromium (CI) has no Web Speech API: startSpeech returns
+    // false and the icon deliberately stays 🔈 — nothing to assert there.
+    const hasSpeech = await page.evaluate(() => 'speechSynthesis' in window)
+    test.skip(!hasSpeech, 'Web Speech API unavailable in this browser build')
+
     const recipe = await createRecipe(page)
     await openCookMode(page, recipe.title)
     // Click via testID and assert via text content: CI's headless linux lacks

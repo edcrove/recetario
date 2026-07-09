@@ -52,6 +52,17 @@ describe('startSpeech', () => {
     )
   })
 
+  it('returns true when speak succeeds', () => {
+    expect(startSpeech('Texto', vi.fn(), vi.fn(), vi.fn())).toBe(true)
+  })
+
+  it('returns false when speak throws (Web Speech API unavailable)', () => {
+    mockSpeak.mockImplementationOnce(() => {
+      throw new Error('speechSynthesis is not defined')
+    })
+    expect(startSpeech('Texto', vi.fn(), vi.fn(), vi.fn())).toBe(false)
+  })
+
   it('passes callbacks to Speech.speak options', () => {
     const onDone = vi.fn()
     const onStopped = vi.fn()
