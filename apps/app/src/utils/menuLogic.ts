@@ -14,10 +14,6 @@ export function buildEntryMap(entries: MenuEntry[]): Map<string, MenuEntry[]> {
   return map
 }
 
-export function parseServings(input: string, fallback: number): number {
-  const parsed = parseInt(input, 10)
-  return isNaN(parsed) || parsed <= 0 ? fallback : parsed
-}
 
 import { unitLabel } from './displayIngredient.js'
 

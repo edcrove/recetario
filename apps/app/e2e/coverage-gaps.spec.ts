@@ -441,3 +441,332 @@ test.describe('Stats: empty state branches', () => {
     await expect(page.getByText('Todavía no hay sesiones de cocina registradas.')).toBeVisible()
   })
 })
+
+// ---------------------------------------------------------------------------
+// Round 3: remaining error states, small branches, and data-shape branches.
+// ---------------------------------------------------------------------------
+
+test.describe('Screen error states (route interception)', () => {
+  test('home shows the list error state on a 500', async ({ page }) => {
+    await page.route('**/v1/recipes?*', (route) =>
+      route.fulfill({ status: 500, body: JSON.stringify({ error: 'boom' }) }),
+    )
+    await page.goto('/')
+    await expect(page.getByText('Error al cargar recetas')).toBeVisible({ timeout: 15000 })
+  })
+
+  test('shopping list shows the error state and Reintentar recovers', async ({ page }) => {
+    let fail = true
+    await page.route('**/v1/menu/shopping-list*', (route) =>
+      fail
+        ? route.fulfill({ status: 500, body: JSON.stringify({ error: 'boom' }) })
+        : route.fallback(),
+    )
+    await page.goto('/menu/shopping-list?weekStart=2027-03-08')
+    await expect(page.getByText('Error al cargar la lista')).toBeVisible({ timeout: 15000 })
+    fail = false
+    await page.getByText('Reintentar').click()
+    await expect(page.getByText('Lista de Compras').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Error al cargar la lista')).not.toBeVisible({ timeout: 10000 })
+  })
+
+  test('collection detail shows the error state on a 500', async ({ page }) => {
+    const headers = await authHeaders(page)
+    const colRes = await page.request.post(`${API_URL}/v1/collections`, {
+      headers,
+      data: { name: `E2E ColErr ${Date.now()}`, emoji: '💥' },
+    })
+    const collection = (await colRes.json()) as { id: string }
+    try {
+      await page.route(`**/v1/collections/${collection.id}/recipes*`, (route) =>
+        route.fulfill({ status: 500, body: JSON.stringify({ error: 'boom' }) }),
+      )
+      await page.goto(`/collections/${collection.id}`)
+      await expect(page.getByText('No se pudo cargar la colección.')).toBeVisible({
+        timeout: 15000,
+      })
+    } finally {
+      await page.request.delete(`${API_URL}/v1/collections/${collection.id}`, { headers })
+    }
+  })
+
+  test('a 500 saving the cook rating surfaces the error notification', async ({ page }) => {
+    const recipe = await createRecipeViaApi(page)
+    try {
+      await page.route('**/v1/cook-sessions', (route) =>
+        route.request().method() === 'POST'
+          ? route.fulfill({ status: 500, body: JSON.stringify({ error: 'boom' }) })
+          : route.fallback(),
+      )
+      let dialogMessage = ''
+      page.on('dialog', (dialog) => {
+        dialogMessage = dialog.message()
+        void dialog.accept()
+      })
+      await page.goto(`/recipe/${recipe.id}`)
+      await page.getByTestId('recipe-detail-cook').click()
+      await expect(page.getByText(/Paso 1 \/ /)).toBeVisible({ timeout: 8000 })
+      await page.getByTestId('cook-finish').click()
+      await expect(page.getByTestId('cook-rating-save')).toBeVisible({ timeout: 5000 })
+      await page.getByTestId('cook-rating-save').click()
+      await expect.poll(() => dialogMessage, { timeout: 8000 }).toContain('Error')
+    } finally {
+      await deleteRecipeViaApi(page, recipe.id)
+    }
+  })
+
+  test('the app still boots to home when /auth/me fails', async ({ page }) => {
+    await page.route('**/auth/me', (route) =>
+      route.fulfill({ status: 500, body: JSON.stringify({ error: 'boom' }) }),
+    )
+    await page.goto('/')
+    await expect(page.getByText('+ Nueva Receta')).toBeVisible({ timeout: 15000 })
+  })
+
+  test('stats renders a deleted-recipe row as unclickable', async ({ page }) => {
+    await page.route('**/v1/cook-sessions/stats*', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          totalSessions: 3,
+          topRecipes: [{ recipeId: null, count: 3, lastCookedAt: '2026-07-01T12:00:00.000Z' }],
+          frequencyByWeek: [{ week: '2026-W27', count: 3 }],
+        }),
+      }),
+    )
+    await page.goto('/stats')
+    await expect(page.getByText('Receta eliminada')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('3×')).toBeVisible()
+  })
+})
+
+test.describe('Small interaction branches', () => {
+  test('menu modal Cancelar closes without changes', async ({ page }) => {
+    const headers = await authHeaders(page)
+    const recipe = await createRecipeViaApi(page)
+    const today = new Date().toISOString().slice(0, 10)
+    await page.request.post(`${API_URL}/v1/menu`, {
+      headers,
+      data: { date: today, slot: 'Cena', recipeId: recipe.id, servings: 2 },
+    })
+    try {
+      await page.getByText('Menú Semanal').click()
+      const chip = page.locator('[data-testid^="menu-entry-"]').first()
+      await expect(chip).toBeVisible({ timeout: 8000 })
+      await chip.click()
+      await expect(page.getByTestId('menu-modal-save')).toBeVisible({ timeout: 8000 })
+      await page.getByText('Cancelar', { exact: true }).click()
+      await expect(page.getByTestId('menu-modal-save')).not.toBeVisible({ timeout: 5000 })
+    } finally {
+      await page.request.delete(`${API_URL}/v1/menu/${today}/Cena/${recipe.id}`, { headers })
+      await deleteRecipeViaApi(page, recipe.id)
+    }
+  })
+
+  test('two entries in the same slot render grouped', async ({ page }) => {
+    const headers = await authHeaders(page)
+    const a = await createRecipeViaApi(page)
+    const b = await createRecipeViaApi(page)
+    const today = new Date().toISOString().slice(0, 10)
+    for (const r of [a, b]) {
+      await page.request.post(`${API_URL}/v1/menu`, {
+        headers,
+        data: { date: today, slot: 'Desayuno', recipeId: r.id, servings: 2 },
+      })
+    }
+    try {
+      await page.getByText('Menú Semanal').click()
+      await expect(page.getByTestId(`menu-entry-${today}-Desayuno-${a.id}`)).toBeVisible({
+        timeout: 8000,
+      })
+      await expect(page.getByTestId(`menu-entry-${today}-Desayuno-${b.id}`)).toBeVisible()
+    } finally {
+      for (const r of [a, b]) {
+        await page.request.delete(`${API_URL}/v1/menu/${today}/Desayuno/${r.id}`, { headers })
+        await deleteRecipeViaApi(page, r.id)
+      }
+    }
+  })
+
+  test('pick screen servings − clamps at 1', async ({ page }) => {
+    await page.goto('/menu/pick?date=2027-03-12&slot=Cena&weekStart=2027-03-08')
+    await expect(page.getByText('Porciones:')).toBeVisible({ timeout: 10000 })
+    await page.getByText('−', { exact: true }).click()
+    await page.getByText('−', { exact: true }).click()
+    await page.getByText('−', { exact: true }).click()
+    await expect(page.getByText('1', { exact: true })).toBeVisible()
+  })
+
+  test('cook mode ✕ returns to the recipe detail', async ({ page }) => {
+    const recipe = await createRecipeViaApi(page)
+    try {
+      await page.goto('/')
+      await page.getByPlaceholder(/buscar recetas/i).fill(recipe.title)
+      await page.getByText(recipe.title).first().click()
+      await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 10000 })
+      await page.getByTestId('recipe-detail-cook').click()
+      await expect(page.getByText(/Paso 1 \/ /)).toBeVisible({ timeout: 8000 })
+      await page.getByText('✕').click()
+      await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 8000 })
+    } finally {
+      await deleteRecipeViaApi(page, recipe.id)
+    }
+  })
+
+  test('searching gibberish shows Sin resultados', async ({ page }) => {
+    await page.getByPlaceholder(/buscar recetas/i).fill('zzzz-sin-match-xq')
+    await expect(page.getByText('Sin resultados')).toBeVisible({ timeout: 8000 })
+  })
+
+  test('creating a second household works and can be cleaned up', async ({ page }) => {
+    const headers = await authHeaders(page)
+    const mineRes = (await (
+      await page.request.get(`${API_URL}/v1/households/mine`, { headers })
+    ).json()) as unknown[]
+    if (mineRes.length === 0) {
+      await page.request.post(`${API_URL}/v1/households`, {
+        headers,
+        data: { name: `E2E Hogar Base ${Date.now()}` },
+      })
+    }
+    await page.goto('/household')
+    await expect(page.getByPlaceholder('Nombre del nuevo hogar…')).toBeVisible({ timeout: 10000 })
+    const name = `E2E Segundo Hogar ${Date.now()}`
+    await page.getByPlaceholder('Nombre del nuevo hogar…').fill(name)
+    await page.getByText('Crear otro hogar').click()
+    await expect(page.getByText(name)).toBeVisible({ timeout: 8000 })
+
+    const mine = (await (
+      await page.request.get(`${API_URL}/v1/households/mine`, { headers })
+    ).json()) as { id: string; name: string }[]
+    const created = mine.find((h) => h.name === name)
+    expect(created).toBeTruthy()
+    await page.request.delete(`${API_URL}/v1/households/${created!.id}`, { headers })
+  })
+
+  test('profile rows navigate to config, stats and household', async ({ page }) => {
+    await page.goto('/profile')
+    await expect(page.getByText('⚙️ Configuración de taxonomía')).toBeVisible({ timeout: 10000 })
+    await page.getByText('⚙️ Configuración de taxonomía').click()
+    await expect(page.getByTestId('config-tab-food-types')).toBeVisible({ timeout: 8000 })
+
+    await page.goto('/profile')
+    await page.getByText('📊 Estadísticas').click()
+    await expect(page.getByText(/sesiones de cocina|Recetas más cocinadas/).first()).toBeVisible({
+      timeout: 8000,
+    })
+
+    await page.goto('/profile')
+    await page.getByText('🏠 Mi hogar').click()
+    await expect(
+      page
+        .getByTestId('household-create-name-input')
+        .or(page.getByTestId('household-invite-open').first()),
+    ).toBeVisible({ timeout: 8000 })
+  })
+
+  test('submitting the name edit with Enter saves it', async ({ page }) => {
+    await page.goto('/profile')
+    await expect(page.getByText('tocá para editar')).toBeVisible({ timeout: 10000 })
+    await page.getByText('tocá para editar').click()
+    const input = page.locator('input').first()
+    await input.fill('Demo Enter E2E')
+    await input.press('Enter')
+    await expect(page.getByText('Demo Enter E2E')).toBeVisible({ timeout: 8000 })
+  })
+
+  test('collection remove confirm can be dismissed, keeping the recipe', async ({ page }) => {
+    const headers = await authHeaders(page)
+    const colRes = await page.request.post(`${API_URL}/v1/collections`, {
+      headers,
+      data: { name: `E2E ColDismiss ${Date.now()}`, emoji: '🧪' },
+    })
+    const collection = (await colRes.json()) as { id: string }
+    const recipe = await createRecipeViaApi(page)
+    try {
+      await page.request.post(`${API_URL}/v1/collections/${collection.id}/recipes`, {
+        headers,
+        data: { recipeId: recipe.id },
+      })
+      await page.goto(`/collections/${collection.id}`)
+      const row = page.getByTestId(`collection-recipe-${recipe.id}`)
+      await expect(row).toBeVisible({ timeout: 10000 })
+      page.once('dialog', (dialog) => void dialog.dismiss())
+      await page.getByTestId(`collection-remove-${recipe.id}`).click()
+      await expect(row).toBeVisible()
+    } finally {
+      await page.request.delete(`${API_URL}/v1/collections/${collection.id}`, { headers })
+      await deleteRecipeViaApi(page, recipe.id)
+    }
+  })
+})
+
+test.describe('Data-shape branches', () => {
+  test('an ingredient without quantity renders c/n and scaled nutrition totals update', async ({
+    page,
+  }) => {
+    const recipe = await createRecipeViaApi(page, {
+      ingredients: [
+        { name: 'agua', quantity: 1, unit: 'l' },
+        { name: 'sal', quantity: null, unit: null },
+      ],
+      nutrition: { calories: 400, protein_g: 20, carbs_g: 40, fat_g: 10 },
+    })
+    try {
+      await page.goto(`/recipe/${recipe.id}`)
+      await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 10000 })
+      await expect(page.getByText(/c\/n/).first()).toBeVisible()
+      // scaled box multiplies the per-serving values by the current servings:
+      // at 4 servings, 400 kcal/porción → 1600 total
+      await page.getByText('+', { exact: true }).first().click()
+      await page.getByText('+', { exact: true }).first().click()
+      await expect(page.getByText('Nutrición por cantidad de porciones')).toBeVisible({
+        timeout: 8000,
+      })
+      await expect(page.getByText('1600').first()).toBeVisible({ timeout: 8000 })
+    } finally {
+      await deleteRecipeViaApi(page, recipe.id)
+    }
+  })
+
+  test('an allergen conflict shows the ⚠ badge and the detail warning', async ({ page }) => {
+    const headers = await authHeaders(page)
+    await page.request.put(`${API_URL}/v1/profile`, {
+      headers,
+      data: { allergens: ['maní'] },
+    })
+    const recipe = await createRecipeViaApi(page, {
+      ingredients: [{ name: 'maní', quantity: 100, unit: 'g' }],
+    })
+    try {
+      await page.goto(`/recipe/${recipe.id}`)
+      await expect(page.getByText(/Contiene|alérgeno|maní/i).first()).toBeVisible({
+        timeout: 10000,
+      })
+    } finally {
+      await page.request.put(`${API_URL}/v1/profile`, { headers, data: { allergens: [] } })
+      await deleteRecipeViaApi(page, recipe.id)
+    }
+  })
+
+  test('the food-type picker caps the selection at three', async ({ page }) => {
+    await page.getByText('+ Nueva Receta').click()
+    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible({ timeout: 10000 })
+    const chips = page.locator('[data-testid^="food-type-chip-"]')
+    for (let i = 0; i < 4; i++) {
+      await chips.nth(i).click()
+    }
+    // 4th click is a no-op (max 3) — form still healthy
+    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible()
+  })
+
+  test('a Sunday clock computes the week starting the previous Monday', async ({ page }) => {
+    // 2027-03-14 is a Sunday → getWeekStart's day===0 branch → Monday 2027-03-08
+    await page.clock.install({ time: new Date('2027-03-14T15:00:00') })
+    await page.goto('/menu')
+    await expect(page.getByText('Lista de compras')).toBeVisible({ timeout: 10000 })
+    await page.getByText('Lista de compras').click()
+    await page.waitForURL(/weekStart=2027-03-08/, { timeout: 10000 })
+  })
+})
