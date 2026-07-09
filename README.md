@@ -5,8 +5,8 @@
 ![Node 22](https://img.shields.io/badge/node-22-brightgreen)
 ![pnpm 9.15](https://img.shields.io/badge/pnpm-9.15-orange)
 ![TypeScript 5.7](https://img.shields.io/badge/typescript-5.7-blue)
-![Expo SDK 53](https://img.shields.io/badge/expo-53-blueviolet)
-![Hono 4.7](https://img.shields.io/badge/hono-4.7-yellow)
+![Expo SDK 56](https://img.shields.io/badge/expo-56-blueviolet)
+![Hono 4.12](https://img.shields.io/badge/hono-4.12-yellow)
 
 An **agent-first** recipe management application. The primary write path flows through MCP tools so that AI agents can create, update, and curate recipes without any inference logic leaking into the mobile/web app. The Expo app is a read-only consumer of the REST API.
 
@@ -31,13 +31,13 @@ See [CLAUDE.md](./CLAUDE.md) for the full developer guide, key commands, and arc
 
 ## Stack
 
-| Layer | Technology |
-|---|---|
-| Monorepo | pnpm workspaces + Turborepo 2 |
-| API | Hono 4.7 on Node 22 |
-| ORM | Drizzle ORM 0.41 + PostgreSQL 17 |
-| Mobile/Web | Expo SDK 53 + Expo Router v4 |
-| Agent interface | Model Context Protocol (MCP) |
-| Language | TypeScript 5.7 (strict) |
-| Tests | Vitest 3 |
-| CI | GitHub Actions |
+| Layer           | Technology                       |
+| --------------- | -------------------------------- |
+| Monorepo        | pnpm workspaces + Turborepo 2    |
+| API             | Hono 4.7 on Node 22              |
+| ORM             | Drizzle ORM 0.41 + PostgreSQL 17 |
+| Mobile/Web      | Expo SDK 53 + Expo Router v4     |
+| Agent interface | Model Context Protocol (MCP)     |
+| Language        | TypeScript 5.7 (strict)          |
+| Tests           | Vitest 3                         |
+| CI              | GitHub Actions                   |

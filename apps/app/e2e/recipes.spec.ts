@@ -193,11 +193,12 @@ test.describe('Recipes: detail view', () => {
     })
   })
 
-  test('editing a recipe updates its title', async ({ page }) => {
+  // Note: this intentionally saves WITHOUT changing anything — it covers the
+  // edit form's load-populate-save round trip. Actually mutating the title
+  // would permanently rename seeded demo recipes that other tests locate by
+  // name (openFirstRecipeDetail's title regex), breaking local reruns.
+  test('saving the edit form without changes returns to detail', async ({ page }) => {
     await openFirstRecipeDetail(page)
-    const originalTitle = await page.getByTestId('recipe-detail-cook').isVisible()
-    expect(originalTitle).toBe(true)
-
     await page.getByText('Editar').click()
     await expect(page.getByText(/Editar Receta|Guardar Cambios/).first()).toBeVisible({
       timeout: 8000,
