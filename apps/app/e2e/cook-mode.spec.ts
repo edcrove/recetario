@@ -245,11 +245,15 @@ test.describe('Cook mode: full session flows', () => {
   test('speech toggle switches the speaker icon on and off', async ({ page }) => {
     const recipe = await createRecipe(page)
     await openCookMode(page, recipe.title)
-    await expect(page.getByText('🔈')).toBeVisible({ timeout: 5000 })
-    await page.getByText('🔈').click()
-    await expect(page.getByText('🔊')).toBeVisible({ timeout: 5000 })
-    await page.getByText('🔊').click()
-    await expect(page.getByText('🔈')).toBeVisible({ timeout: 5000 })
+    // Click via testID and assert via text content: CI's headless linux lacks
+    // a color-emoji font, so the glyph box is zero-width there — text-based
+    // clicks fail actionability and toBeVisible fails the bounding-box check.
+    const speechBtn = page.getByTestId('cook-speech-toggle')
+    await expect(speechBtn).toHaveText('🔈', { timeout: 5000 })
+    await speechBtn.click()
+    await expect(speechBtn).toHaveText('🔊', { timeout: 5000 })
+    await speechBtn.click()
+    await expect(speechBtn).toHaveText('🔈', { timeout: 5000 })
   })
 
   // duration_min is an integer DB column, so the shortest real timer is 60s —

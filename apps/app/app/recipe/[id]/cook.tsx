@@ -125,7 +125,7 @@ export default function CookModeScreen() {
           {tab === 'steps' ? `Paso ${stepIndex + 1} / ${total}` : 'Ingredientes'}
         </Text>
         {tab === 'steps' ? (
-          <TouchableOpacity style={s.closeBtn} onPress={toggleSpeech}>
+          <TouchableOpacity testID="cook-speech-toggle" style={s.closeBtn} onPress={toggleSpeech}>
             <Text style={[s.closeBtnText, isSpeaking && s.speakingIcon]}>
               {isSpeaking ? '🔊' : '🔈'}
             </Text>
