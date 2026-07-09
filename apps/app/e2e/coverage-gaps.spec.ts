@@ -362,8 +362,9 @@ test.describe('New recipe form: row management and error branches', () => {
     await stepInputs.last().locator('xpath=..').getByText('✕').click()
     await expect(stepInputs).toHaveCount(initialSteps)
 
-    // category chip branch
-    await page.getByText('Postre', { exact: true }).first().click()
+    // category chip branch — 'Desayuno' is a category but NOT a food type,
+    // so it can't resolve to a FoodTypePicker chip (which happened on CI)
+    await page.getByText('Desayuno', { exact: true }).click()
     await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible()
   })
 
