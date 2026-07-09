@@ -251,32 +251,49 @@ test.describe('Config (taxonomy) screen', () => {
 })
 
 test.describe('Household screen', () => {
-  test('navigates and shows create or existing household', async ({ page }) => {
+  // Opens /household and guarantees the account has a household, creating one
+  // on first use. Detection is by testID: the create-name input only renders
+  // in the empty state. (The old guard counted the 🏠 emoji, which also
+  // appears in the profile menu's "🏠 Mi hogar" row — on household-less
+  // accounts it false-positived, silently skipping creation AND making every
+  // later test early-return, which is why this screen sat at 40% E2E
+  // coverage while the tests "passed".)
+  async function openHouseholdEnsuringOneExists(page: import('@playwright/test').Page) {
     await page.getByTestId('home-profile-button').click()
     await page.getByText('Mi hogar').click()
-    await expect(page.getByText(/Creá tu hogar|🏠/).first()).toBeVisible({ timeout: 8000 })
-  })
-
-  test('creates a household when none exists', async ({ page }) => {
-    await page.getByTestId('home-profile-button').click()
-    await page.getByText('Mi hogar').click()
-    await expect(page.getByText(/Creá tu hogar|🏠/).first()).toBeVisible({ timeout: 8000 })
-    const alreadyHasHousehold = await page.getByText('🏠').count()
-    if (alreadyHasHousehold === 0) {
+    await expect(
+      page
+        .getByTestId('household-create-name-input')
+        .or(page.getByTestId('household-invite-open').first()),
+    ).toBeVisible({ timeout: 8000 })
+    if ((await page.getByTestId('household-create-name-input').count()) > 0) {
       const name = `E2E Familia ${Date.now()}`
       await page.getByTestId('household-create-name-input').fill(name)
       await page.getByTestId('household-create-submit').click()
       await expect(page.getByText(name)).toBeVisible({ timeout: 8000 })
     }
+    await expect(page.getByTestId('household-invite-open').first()).toBeVisible({ timeout: 8000 })
+  }
+
+  test('navigates and shows create or existing household', async ({ page }) => {
+    await page.getByTestId('home-profile-button').click()
+    await page.getByText('Mi hogar').click()
+    await expect(
+      page
+        .getByTestId('household-create-name-input')
+        .or(page.getByTestId('household-invite-open').first()),
+    ).toBeVisible({ timeout: 8000 })
+  })
+
+  test('creates a household when none exists and shows its members', async ({ page }) => {
+    await openHouseholdEnsuringOneExists(page)
+    // The owner appears in the members list with their role badge
+    await expect(page.getByText('Dueño').first()).toBeVisible({ timeout: 5000 })
   })
 
   test('opens and cancels the invite form', async ({ page }) => {
-    await page.getByTestId('home-profile-button').click()
-    await page.getByText('Mi hogar').click()
-    await expect(page.getByText(/Creá tu hogar|🏠/).first()).toBeVisible({ timeout: 8000 })
-    const inviteOpenBtn = page.getByTestId('household-invite-open').first()
-    if ((await inviteOpenBtn.count()) === 0) return // no household yet, nothing to invite into
-    await inviteOpenBtn.click()
+    await openHouseholdEnsuringOneExists(page)
+    await page.getByTestId('household-invite-open').first().click()
     await expect(page.getByTestId('household-invite-email-input')).toBeVisible({ timeout: 5000 })
     await page.getByTestId('household-invite-cancel').click()
     await expect(page.getByTestId('household-invite-email-input')).not.toBeVisible({
@@ -292,20 +309,19 @@ test.describe('Household screen', () => {
   // accounts into one household would leak each worker's data into the
   // other's assertions and make the suite order-dependent. Worker isolation
   // depends on the demo accounts never sharing a household.
-  test('inviting a real user by email succeeds', async ({ page }, testInfo) => {
+  test('inviting a real user by email succeeds, and the member can be removed', async ({
+    page,
+  }, testInfo) => {
     const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
     const inviteeEmail = `invitado-e2e-${testInfo.parallelIndex}-${Date.now()}@example.com`
     const registerRes = await page.request.post(`${API_URL}/auth/register`, {
       data: { email: inviteeEmail, password: 'password123' },
     })
     expect(registerRes.ok()).toBe(true)
+    const inviteeUserId = ((await registerRes.json()) as { user: { id: string } }).user.id
 
-    await page.getByTestId('home-profile-button').click()
-    await page.getByText('Mi hogar').click()
-    await expect(page.getByText(/Creá tu hogar|🏠/).first()).toBeVisible({ timeout: 8000 })
-    const inviteOpenBtn = page.getByTestId('household-invite-open').first()
-    if ((await inviteOpenBtn.count()) === 0) return // no household yet, nothing to invite into
-    await inviteOpenBtn.click()
+    await openHouseholdEnsuringOneExists(page)
+    await page.getByTestId('household-invite-open').first().click()
     await expect(page.getByTestId('household-invite-email-input')).toBeVisible({ timeout: 5000 })
     await page.getByTestId('household-invite-email-input').fill(inviteeEmail)
     await page.getByTestId('household-invite-submit').click()
@@ -313,17 +329,28 @@ test.describe('Household screen', () => {
     await expect(page.getByTestId('household-invite-email-input')).not.toBeVisible({
       timeout: 8000,
     })
+
+    // The new member shows up in the list; remove them again so the demo
+    // account's household returns to its single-owner state (repeatable runs).
+    const removeBtn = page.getByTestId(`household-remove-member-${inviteeUserId}`)
+    await expect(removeBtn).toBeVisible({ timeout: 8000 })
+
+    // First attempt: dismiss the confirm — member stays
+    page.once('dialog', (dialog) => void dialog.dismiss())
+    await removeBtn.click()
+    await expect(removeBtn).toBeVisible()
+
+    // Second attempt: accept — member disappears
+    page.once('dialog', (dialog) => void dialog.accept())
+    await removeBtn.click()
+    await expect(removeBtn).not.toBeVisible({ timeout: 8000 })
   })
 
   test('inviting with an email that has no matching user shows an error notification', async ({
     page,
   }) => {
-    await page.getByTestId('home-profile-button').click()
-    await page.getByText('Mi hogar').click()
-    await expect(page.getByText(/Creá tu hogar|🏠/).first()).toBeVisible({ timeout: 8000 })
-    const inviteOpenBtn = page.getByTestId('household-invite-open').first()
-    if ((await inviteOpenBtn.count()) === 0) return
-    await inviteOpenBtn.click()
+    await openHouseholdEnsuringOneExists(page)
+    await page.getByTestId('household-invite-open').first().click()
     await expect(page.getByTestId('household-invite-email-input')).toBeVisible({ timeout: 5000 })
 
     let dialogMessage = ''
@@ -338,12 +365,8 @@ test.describe('Household screen', () => {
   })
 
   test('picking a role chip changes the selected role', async ({ page }) => {
-    await page.getByTestId('home-profile-button').click()
-    await page.getByText('Mi hogar').click()
-    await expect(page.getByText(/Creá tu hogar|🏠/).first()).toBeVisible({ timeout: 8000 })
-    const inviteOpenBtn = page.getByTestId('household-invite-open').first()
-    if ((await inviteOpenBtn.count()) === 0) return
-    await inviteOpenBtn.click()
+    await openHouseholdEnsuringOneExists(page)
+    await page.getByTestId('household-invite-open').first().click()
     await expect(page.getByTestId('household-invite-role-viewer')).toBeVisible({ timeout: 5000 })
     await page.getByTestId('household-invite-role-viewer').click()
     // No crash after switching role — form still usable
@@ -371,5 +394,90 @@ test.describe('Sign out', () => {
     await expect(page.getByTestId('usermenu-signout')).toBeVisible({ timeout: 5000 })
     await page.getByTestId('usermenu-signout').click()
     await expect(page).toHaveURL(/auth\/login/, { timeout: 10000 })
+  })
+})
+
+// Coverage for the full /profile screen — previous tests only exercised the
+// UserMenu overlay, leaving name editing, servings, dietary chips, nutrition
+// targets and the confirm-guarded sign-out untested (57% E2E).
+test.describe('Profile screen (/profile)', () => {
+  test('edits the display name inline', async ({ page }) => {
+    await page.goto('/profile')
+    await expect(page.getByText('tocá para editar')).toBeVisible({ timeout: 8000 })
+    await page.getByText('tocá para editar').click()
+    const input = page.locator('input[autofocus], input').first()
+    await input.fill('Demo E2E')
+    await page.getByText('Guardar', { exact: true }).click()
+    await expect(page.getByText('Demo E2E')).toBeVisible({ timeout: 8000 })
+  })
+
+  test('cancel exits name editing without saving', async ({ page }) => {
+    await page.goto('/profile')
+    await expect(page.getByText('tocá para editar')).toBeVisible({ timeout: 8000 })
+    await page.getByText('tocá para editar').click()
+    await page.getByText('Cancelar', { exact: true }).click()
+    await expect(page.getByText('tocá para editar')).toBeVisible()
+  })
+
+  test('preferred servings stepper increments and decrements', async ({ page }) => {
+    await page.goto('/profile')
+    await expect(page.getByText('Porciones por defecto')).toBeVisible({ timeout: 8000 })
+    const row = page.getByText('Porciones por defecto').locator('xpath=following-sibling::*[1]')
+    const value = row.locator('div,span').filter({ hasText: /^\d+$/ }).first()
+    const before = Number(await value.textContent())
+    // The value clamps to [1, 20], and repeated runs can leave it parked at a
+    // boundary — exercise both directions starting away from the stuck edge.
+    if (before > 1) {
+      await row.getByText('−', { exact: true }).click()
+      await expect(value).toHaveText(String(before - 1), { timeout: 8000 })
+      await row.getByText('+', { exact: true }).click()
+      await expect(value).toHaveText(String(before), { timeout: 8000 })
+    } else {
+      await row.getByText('+', { exact: true }).click()
+      await expect(value).toHaveText('2', { timeout: 8000 })
+      await row.getByText('−', { exact: true }).click()
+      await expect(value).toHaveText('1', { timeout: 8000 })
+    }
+  })
+
+  test('toggles a dietary chip on and off', async ({ page }) => {
+    await page.goto('/profile')
+    await expect(page.getByText('Preferencias dietéticas')).toBeVisible({ timeout: 8000 })
+    const chip = page.getByText('paleo', { exact: true })
+    await chip.click()
+    // give the mutation a round trip, then toggle back off
+    await page.waitForTimeout(600)
+    await chip.click()
+    await page.waitForTimeout(600)
+    await expect(chip).toBeVisible()
+  })
+
+  test('nutrition target stepper changes calories and restores', async ({ page }) => {
+    await page.goto('/profile')
+    await expect(page.getByText('Objetivos nutricionales diarios')).toBeVisible({ timeout: 8000 })
+    const row = page.getByText('Calorías', { exact: true }).locator('xpath=..')
+    const valText = await row.locator('text=/\\d+/').first().textContent()
+    const before = Number(valText?.match(/\d+/)?.[0] ?? 0)
+    await row.getByText('+', { exact: true }).click()
+    await expect(row.getByText(String(before + 100))).toBeVisible({ timeout: 8000 })
+    await row.getByText('−', { exact: true }).click()
+    await expect(row.getByText(String(before))).toBeVisible({ timeout: 8000 })
+  })
+
+  test('sign out asks for confirmation; dismissing stays logged in', async ({ page }) => {
+    await page.goto('/profile')
+    await expect(page.getByTestId('profile-signout')).toBeVisible({ timeout: 8000 })
+    page.once('dialog', (dialog) => void dialog.dismiss())
+    await page.getByTestId('profile-signout').click()
+    // still on profile, still authenticated
+    await expect(page.getByTestId('profile-signout')).toBeVisible()
+  })
+
+  test('sign out confirm redirects to login', async ({ page }) => {
+    await page.goto('/profile')
+    await expect(page.getByTestId('profile-signout')).toBeVisible({ timeout: 8000 })
+    page.once('dialog', (dialog) => void dialog.accept())
+    await page.getByTestId('profile-signout').click()
+    await page.waitForURL(/auth/, { timeout: 8000 })
   })
 })
