@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>171/171</span>
+                <span class='fraction'>181/181</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>171/171</span>
+                <span class='fraction'>181/181</span>
             </div>
         
             
@@ -259,7 +259,18 @@
 <a name='L194'></a><a href='#L194'>194</a>
 <a name='L195'></a><a href='#L195'>195</a>
 <a name='L196'></a><a href='#L196'>196</a>
-<a name='L197'></a><a href='#L197'>197</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L197'></a><a href='#L197'>197</a>
+<a name='L198'></a><a href='#L198'>198</a>
+<a name='L199'></a><a href='#L199'>199</a>
+<a name='L200'></a><a href='#L200'>200</a>
+<a name='L201'></a><a href='#L201'>201</a>
+<a name='L202'></a><a href='#L202'>202</a>
+<a name='L203'></a><a href='#L203'>203</a>
+<a name='L204'></a><a href='#L204'>204</a>
+<a name='L205'></a><a href='#L205'>205</a>
+<a name='L206'></a><a href='#L206'>206</a>
+<a name='L207'></a><a href='#L207'>207</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -341,6 +352,13 @@
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
@@ -367,6 +385,7 @@
 <span class="cline-any cline-yes">111x</span>
 <span class="cline-any cline-yes">111x</span>
 <span class="cline-any cline-yes">111x</span>
+<span class="cline-any cline-yes">111x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
@@ -389,6 +408,7 @@
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
@@ -458,6 +478,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { createRoute as defineRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { RecipeSchema, CreateRecipeSchema, UpdateRecipeSchema } from '@recetario/shared'
 import { recipeRepository } from '../db/repository.js'
+import { getVisibleOwnerIds } from '../db/household-visibility.js'
 import { authMiddleware } from '../middleware/auth.js'
 import { rateLimitMiddleware } from '../middleware/rateLimit.js'
 import '../types.js'
@@ -534,7 +555,14 @@ const searchRecipesRoute = defineRoute({
 recipesRoute.openapi(searchRecipesRoute, async (c) =&gt; {
   const ownerId = c.get('ownerId')
   const { q, tag, category, ingredient, dietary } = c.req.valid('query')
-  const recipes = await recipeRepository.search(ownerId, { q, tag, category, ingredient, dietary })
+  const visibleOwners = await getVisibleOwnerIds(ownerId)
+  const recipes = await recipeRepository.search(visibleOwners, {
+    q,
+    tag,
+    category,
+    ingredient,
+    dietary,
+  })
   return c.json(recipes, 200)
 })
 &nbsp;
@@ -560,7 +588,8 @@ const listRecipesRoute = defineRoute({
 recipesRoute.openapi(listRecipesRoute, async (c) =&gt; {
   const ownerId = c.get('ownerId')
   const { limit, offset } = c.req.valid('query')
-  const recipes = await recipeRepository.list(ownerId, { limit, offset })
+  const visibleOwners = await getVisibleOwnerIds(ownerId)
+  const recipes = await recipeRepository.list(visibleOwners, { limit, offset })
   return c.json(recipes, 200)
 })
 &nbsp;
@@ -587,7 +616,8 @@ const getRecipeByIdRoute = defineRoute({
 recipesRoute.openapi(getRecipeByIdRoute, async (c) =&gt; {
   const ownerId = c.get('ownerId')
   const { id } = c.req.valid('param')
-  const recipe = await recipeRepository.findById(id, ownerId)
+  const visibleOwners = await getVisibleOwnerIds(ownerId)
+  const recipe = await recipeRepository.findById(id, visibleOwners)
   if (!recipe) return c.json({ error: 'Recipe not found' }, 404)
   return c.json(recipe, 200)
 })
@@ -658,7 +688,7 @@ recipesRoute.openapi(deleteRecipeRoute, async (c) =&gt; {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-07-09T14:20:44.976Z
+                at 2026-07-09T14:44:51.489Z
             </div>
         <script src="../prettify.js"></script>
         <script>
