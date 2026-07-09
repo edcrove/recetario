@@ -194,7 +194,7 @@ test.describe('Auth: error branches', () => {
     await page.getByPlaceholder('Email').fill(E2E_EMAIL)
     await page.getByPlaceholder('Contraseña').fill('clave-incorrecta')
     await page.getByTestId('auth-login-submit').click()
-    await expect(page.getByText(/API 401|credenciales|incorrecta/i).first()).toBeVisible({
+    await expect(page.getByText(/incorrectos/i).first()).toBeVisible({
       timeout: 8000,
     })
     await expect(page).toHaveURL(/auth\/login/)
@@ -204,7 +204,10 @@ test.describe('Auth: error branches', () => {
     await page.goto('/auth/forgot')
     await expect(page.getByText('Restablecer contraseña')).toBeVisible({ timeout: 8000 })
     await page.getByPlaceholder('vos@ejemplo.com').fill('alguien@example.com')
-    await page.getByText(/Enviar/).first().click()
+    await page
+      .getByText(/Enviar/)
+      .first()
+      .click()
     await expect(page.getByText('Revisá tu email')).toBeVisible({ timeout: 5000 })
     await page.getByText('Volver al inicio').click()
     await expect(page).toHaveURL(/auth\/login/, { timeout: 8000 })

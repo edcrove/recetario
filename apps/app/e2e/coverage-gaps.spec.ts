@@ -462,7 +462,7 @@ test.describe('Screen error states (route interception)', () => {
         ? route.fulfill({ status: 500, body: JSON.stringify({ error: 'boom' }) })
         : route.fallback(),
     )
-    await page.goto('/menu/shopping-list')
+    await page.goto('/menu/shopping-list?weekStart=2027-03-08')
     await expect(page.getByText('Error al cargar la lista')).toBeVisible({ timeout: 15000 })
     fail = false
     await page.getByText('Reintentar').click()
@@ -530,9 +530,7 @@ test.describe('Screen error states (route interception)', () => {
         contentType: 'application/json',
         body: JSON.stringify({
           totalSessions: 3,
-          topRecipes: [
-            { recipeId: null, count: 3, lastCookedAt: '2026-07-01T12:00:00.000Z' },
-          ],
+          topRecipes: [{ recipeId: null, count: 3, lastCookedAt: '2026-07-01T12:00:00.000Z' }],
           frequencyByWeek: [{ week: '2026-W27', count: 3 }],
         }),
       }),
@@ -623,6 +621,15 @@ test.describe('Small interaction branches', () => {
 
   test('creating a second household works and can be cleaned up', async ({ page }) => {
     const headers = await authHeaders(page)
+    const mineRes = (await (
+      await page.request.get(`${API_URL}/v1/households/mine`, { headers })
+    ).json()) as unknown[]
+    if (mineRes.length === 0) {
+      await page.request.post(`${API_URL}/v1/households`, {
+        headers,
+        data: { name: `E2E Hogar Base ${Date.now()}` },
+      })
+    }
     await page.goto('/household')
     await expect(page.getByPlaceholder('Nombre del nuevo hogar…')).toBeVisible({ timeout: 10000 })
     const name = `E2E Segundo Hogar ${Date.now()}`
@@ -710,10 +717,14 @@ test.describe('Data-shape branches', () => {
       await page.goto(`/recipe/${recipe.id}`)
       await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 10000 })
       await expect(page.getByText(/c\/n/).first()).toBeVisible()
-      // scaled nutrition: 2 → 4 servings doubles calories (400 → 800)
+      // scaled box multiplies the per-serving values by the current servings:
+      // at 4 servings, 400 kcal/porción → 1600 total
       await page.getByText('+', { exact: true }).first().click()
       await page.getByText('+', { exact: true }).first().click()
-      await expect(page.getByText('800').first()).toBeVisible({ timeout: 8000 })
+      await expect(page.getByText('Nutrición por cantidad de porciones')).toBeVisible({
+        timeout: 8000,
+      })
+      await expect(page.getByText('1600').first()).toBeVisible({ timeout: 8000 })
     } finally {
       await deleteRecipeViaApi(page, recipe.id)
     }
@@ -751,9 +762,11 @@ test.describe('Data-shape branches', () => {
   })
 
   test('a Sunday clock computes the week starting the previous Monday', async ({ page }) => {
-    // 2027-03-14 is a Sunday → startOfWeek's day===0 branch → Monday 2027-03-08
+    // 2027-03-14 is a Sunday → getWeekStart's day===0 branch → Monday 2027-03-08
     await page.clock.install({ time: new Date('2027-03-14T15:00:00') })
     await page.goto('/menu')
-    await expect(page.getByText(/2027-03-08/).first()).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Lista de compras')).toBeVisible({ timeout: 10000 })
+    await page.getByText('Lista de compras').click()
+    await page.waitForURL(/weekStart=2027-03-08/, { timeout: 10000 })
   })
 })
