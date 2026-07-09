@@ -20,6 +20,11 @@ vi.mock('../db/repository.js', () => ({
   RecipeRepository: vi.fn(),
 }))
 
+vi.mock('../db/household-visibility.js', () => ({
+  getVisibleOwnerIds: vi.fn(async (ownerId: string) => [ownerId]),
+  isViewerAnywhere: vi.fn(async () => false),
+}))
+
 vi.mock('../db/index.js', () => ({
   getDb: vi.fn(() => {
     throw new Error('DB not available in tests')
@@ -29,6 +34,9 @@ vi.mock('../db/index.js', () => ({
 
 import { app } from '../index.js'
 import { menuRepository } from '../db/menu-repository.js'
+import { isViewerAnywhere } from '../db/household-visibility.js'
+
+const mockIsViewer = vi.mocked(isViewerAnywhere)
 
 const mockRepo = menuRepository as unknown as {
   upsert: ReturnType<typeof vi.fn>
@@ -288,5 +296,68 @@ describe('GET /v1/menu/shopping-list', () => {
     })
 
     expect(res.status).toBe(401)
+  })
+})
+
+// Story: household-shared reads + viewer role enforcement (sharing epic story 2).
+// Every menu write route must 403 when the caller is a viewer in any household.
+describe('viewer role enforcement on menu writes', () => {
+  beforeEach(() => {
+    mockIsViewer.mockResolvedValue(true)
+  })
+
+  it('POST /v1/menu returns 403 for viewers', async () => {
+    const res = await app.request('/v1/menu', {
+      method: 'POST',
+      headers: { ...AUTH, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        date: '2026-06-30',
+        slot: 'Almuerzo',
+        recipeId: '550e8400-e29b-41d4-a716-446655440000',
+        servings: 2,
+      }),
+    })
+    expect(res.status).toBe(403)
+    expect(mockRepo.upsert).not.toHaveBeenCalled()
+  })
+
+  it('DELETE /v1/menu/:date/:slot/:recipeId returns 403 for viewers', async () => {
+    const res = await app.request(
+      '/v1/menu/2026-06-30/Almuerzo/550e8400-e29b-41d4-a716-446655440000',
+      { method: 'DELETE', headers: AUTH },
+    )
+    expect(res.status).toBe(403)
+    expect(mockRepo.remove).not.toHaveBeenCalled()
+  })
+
+  it('DELETE /v1/menu/:date/:slot returns 403 for viewers', async () => {
+    const res = await app.request('/v1/menu/2026-06-30/Almuerzo', {
+      method: 'DELETE',
+      headers: AUTH,
+    })
+    expect(res.status).toBe(403)
+    expect(mockRepo.remove).not.toHaveBeenCalled()
+  })
+
+  it('PATCH /v1/menu/:date/:slot/:recipeId returns 403 for viewers', async () => {
+    const res = await app.request(
+      '/v1/menu/2026-06-30/Almuerzo/550e8400-e29b-41d4-a716-446655440000',
+      {
+        method: 'PATCH',
+        headers: { ...AUTH, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ servings: 6 }),
+      },
+    )
+    expect(res.status).toBe(403)
+    expect(mockRepo.updateServings).not.toHaveBeenCalled()
+  })
+
+  it('GET /v1/menu still works for viewers (read-only access)', async () => {
+    mockRepo.getWeek.mockResolvedValue([sampleEntry])
+    const res = await app.request('/v1/menu?weekStart=2026-06-30', {
+      method: 'GET',
+      headers: AUTH,
+    })
+    expect(res.status).toBe(200)
   })
 })

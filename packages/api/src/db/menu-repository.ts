@@ -7,6 +7,7 @@ import type {
   Unit,
 } from '@recetario/shared'
 import { getDb, schema } from './index.js'
+import { getVisibleOwnerIds } from './household-visibility.js'
 
 type MenuRow = typeof schema.menuEntries.$inferSelect
 type RecipeRow = typeof schema.recipes.$inferSelect
@@ -129,12 +130,16 @@ export class MenuRepository {
     const db = this.db
     const weekEndDate = addDays(weekStart, 6)
 
+    // Household-shared read: the week view shows every housemate's entries.
+    // Writes (upsert/remove/updateServings) stay strictly owner-scoped.
+    const visibleOwners = await getVisibleOwnerIds(ownerId)
+
     const rows = await db
       .select()
       .from(schema.menuEntries)
       .where(
         and(
-          eq(schema.menuEntries.ownerId, ownerId),
+          inArray(schema.menuEntries.ownerId, visibleOwners),
           gte(schema.menuEntries.date, weekStart),
           lte(schema.menuEntries.date, weekEndDate),
         ),
@@ -165,6 +170,10 @@ export class MenuRepository {
     const db = this.db
     const weekEndDate = addDays(weekStart, 6)
 
+    // Same household-shared rule as getWeek: the shopping list aggregates the
+    // whole household's planned week, not just the caller's entries.
+    const visibleOwners = await getVisibleOwnerIds(ownerId)
+
     const entries = await db
       .select({
         recipeId: schema.menuEntries.recipeId,
@@ -175,7 +184,7 @@ export class MenuRepository {
       .innerJoin(schema.recipes, eq(schema.menuEntries.recipeId, schema.recipes.id))
       .where(
         and(
-          eq(schema.menuEntries.ownerId, ownerId),
+          inArray(schema.menuEntries.ownerId, visibleOwners),
           gte(schema.menuEntries.date, weekStart),
           lte(schema.menuEntries.date, weekEndDate),
         ),

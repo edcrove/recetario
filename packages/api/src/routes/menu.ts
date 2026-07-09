@@ -6,6 +6,7 @@ import {
   aggregateIngredients,
 } from '@recetario/shared'
 import { menuRepository } from '../db/menu-repository.js'
+import { isViewerAnywhere } from '../db/household-visibility.js'
 import { authMiddleware } from '../middleware/auth.js'
 import { getDb, schema as dbSchema } from '../db/index.js'
 import { eq, and, gte, lte } from 'drizzle-orm'
@@ -38,11 +39,18 @@ const postMenuRoute = defineRoute({
       content: { 'application/json': { schema: errorSchema } },
       description: 'Validation error',
     },
+    403: {
+      content: { 'application/json': { schema: errorSchema } },
+      description: 'Household viewers cannot modify the menu',
+    },
   },
 })
 
 menuRoute.openapi(postMenuRoute, async (c) => {
   const ownerId = c.get('ownerId')
+  // A viewer's entries would surface in their household's shared week view,
+  // so viewers are read-only on the menu (see household-visibility.ts).
+  if (await isViewerAnywhere(ownerId)) return c.json({ error: 'Forbidden' }, 403)
   const body = c.req.valid('json')
   const entry = await menuRepository.upsert(ownerId, body)
   return c.json(entry, 200)
@@ -62,6 +70,10 @@ const deleteMenuEntryRoute = defineRoute({
   },
   responses: {
     204: { description: 'Entry removed' },
+    403: {
+      content: { 'application/json': { schema: errorSchema } },
+      description: 'Household viewers cannot modify the menu',
+    },
     404: {
       content: { 'application/json': { schema: errorSchema } },
       description: 'Entry not found',
@@ -71,6 +83,7 @@ const deleteMenuEntryRoute = defineRoute({
 
 menuRoute.openapi(deleteMenuEntryRoute, async (c) => {
   const ownerId = c.get('ownerId')
+  if (await isViewerAnywhere(ownerId)) return c.json({ error: 'Forbidden' }, 403)
   const { date, slot, recipeId } = c.req.valid('param')
   const deleted = await menuRepository.remove(ownerId, date, slot, recipeId)
   if (!deleted) return c.json({ error: 'Menu entry not found' }, 404)
@@ -90,6 +103,10 @@ const deleteMenuSlotRoute = defineRoute({
   },
   responses: {
     204: { description: 'Slot cleared' },
+    403: {
+      content: { 'application/json': { schema: errorSchema } },
+      description: 'Household viewers cannot modify the menu',
+    },
     404: {
       content: { 'application/json': { schema: errorSchema } },
       description: 'No entries found',
@@ -99,6 +116,7 @@ const deleteMenuSlotRoute = defineRoute({
 
 menuRoute.openapi(deleteMenuSlotRoute, async (c) => {
   const ownerId = c.get('ownerId')
+  if (await isViewerAnywhere(ownerId)) return c.json({ error: 'Forbidden' }, 403)
   const { date, slot } = c.req.valid('param')
   const deleted = await menuRepository.remove(ownerId, date, slot)
   if (!deleted) return c.json({ error: 'Menu entry not found' }, 404)
@@ -126,6 +144,10 @@ const patchMenuEntryRoute = defineRoute({
       content: { 'application/json': { schema: MenuEntrySchema } },
       description: 'Entry updated',
     },
+    403: {
+      content: { 'application/json': { schema: errorSchema } },
+      description: 'Household viewers cannot modify the menu',
+    },
     404: {
       content: { 'application/json': { schema: errorSchema } },
       description: 'Entry not found',
@@ -135,6 +157,7 @@ const patchMenuEntryRoute = defineRoute({
 
 menuRoute.openapi(patchMenuEntryRoute, async (c) => {
   const ownerId = c.get('ownerId')
+  if (await isViewerAnywhere(ownerId)) return c.json({ error: 'Forbidden' }, 403)
   const { date, slot, recipeId } = c.req.valid('param')
   const { servings } = c.req.valid('json')
   const entry = await menuRepository.updateServings(ownerId, date, slot, recipeId, servings)

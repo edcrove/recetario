@@ -1,5 +1,4 @@
 import { test, expect } from './fixtures'
-import { DEMO_ACCOUNTS } from './demoAccounts'
 
 /**
  * Profile menu (UserMenu component) and satellite screens:
@@ -286,39 +285,20 @@ test.describe('Household screen', () => {
   })
 
   // Regression test for the 2026-07-03 audit finding: inviting a real family
-  // member used to require pasting their raw UUID — nobody knows that. Uses
-  // another seeded demo account's real email to invite for real.
+  // member used to require pasting their raw UUID — nobody knows that.
   //
-  // The household/members table is never wiped between suite runs (shared
-  // Postgres, see cascade-delete.integration.test.ts's discovery), so the
-  // "other" account may already be a member from a previous run. Clean that
-  // up via direct API calls first so this test is repeatable.
+  // Invites a FRESHLY REGISTERED user (timestamped email), never another demo
+  // account: recipe/menu reads are household-shared, so linking two demo
+  // accounts into one household would leak each worker's data into the
+  // other's assertions and make the suite order-dependent. Worker isolation
+  // depends on the demo accounts never sharing a household.
   test('inviting a real user by email succeeds', async ({ page }, testInfo) => {
     const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
-    const otherAccount = DEMO_ACCOUNTS[(testInfo.parallelIndex + 1) % DEMO_ACCOUNTS.length]!
-
-    const token = await page.evaluate(() => localStorage.getItem('auth_token'))
-    const otherLoginRes = await page.request.post(`${API_URL}/auth/login`, {
-      data: { email: otherAccount.email, password: otherAccount.password },
+    const inviteeEmail = `invitado-e2e-${testInfo.parallelIndex}-${Date.now()}@example.com`
+    const registerRes = await page.request.post(`${API_URL}/auth/register`, {
+      data: { email: inviteeEmail, password: 'password123' },
     })
-    expect(otherLoginRes.ok()).toBe(true)
-    const otherUserId = (await otherLoginRes.json()).user.id as string
-
-    const householdsRes = await page.request.get(`${API_URL}/v1/households/mine`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    expect(householdsRes.ok()).toBe(true)
-    const households = (await householdsRes.json()) as Array<{
-      id: string
-      members?: Array<{ userId: string }>
-    }>
-    for (const hh of households) {
-      if (hh.members?.some((m) => m.userId === otherUserId)) {
-        await page.request.delete(`${API_URL}/v1/households/${hh.id}/members/${otherUserId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-      }
-    }
+    expect(registerRes.ok()).toBe(true)
 
     await page.getByTestId('home-profile-button').click()
     await page.getByText('Mi hogar').click()
@@ -327,7 +307,7 @@ test.describe('Household screen', () => {
     if ((await inviteOpenBtn.count()) === 0) return // no household yet, nothing to invite into
     await inviteOpenBtn.click()
     await expect(page.getByTestId('household-invite-email-input')).toBeVisible({ timeout: 5000 })
-    await page.getByTestId('household-invite-email-input').fill(otherAccount.email)
+    await page.getByTestId('household-invite-email-input').fill(inviteeEmail)
     await page.getByTestId('household-invite-submit').click()
     // Form closes on success (no error dialog, invite box disappears)
     await expect(page.getByTestId('household-invite-email-input')).not.toBeVisible({
