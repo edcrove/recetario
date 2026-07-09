@@ -38,6 +38,7 @@ export default defineConfig({
         'src/db/cook-sessions-repository.ts',
         'src/db/repository.ts',
         'src/db/menu-repository.ts',
+        'src/db/household-visibility.ts',
       ],
       thresholds: {
         statements: 100,

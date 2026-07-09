@@ -6,6 +6,15 @@ type DbRow = typeof schema.recipes.$inferSelect
 type IngredientRow = typeof schema.ingredients.$inferSelect
 type StepRow = typeof schema.steps.$inferSelect
 
+// Read paths accept one owner (strict, callers like update/delete guards) or a
+// list of owners (household-visible reads: caller + housemates, resolved by
+// getVisibleOwnerIds). Writes always take the single strict form.
+function ownerCondition(owner: string | string[]) {
+  return Array.isArray(owner)
+    ? inArray(schema.recipes.ownerId, owner)
+    : eq(schema.recipes.ownerId, owner)
+}
+
 function mapToRecipe(
   row: DbRow,
   ingredientRows: IngredientRow[],
@@ -177,12 +186,12 @@ export class RecipeRepository {
       .returning()
   }
 
-  async findById(id: string, ownerId: string): Promise<Recipe | null> {
+  async findById(id: string, owner: string | string[]): Promise<Recipe | null> {
     const db = this.db
     const [recipe] = await db
       .select()
       .from(schema.recipes)
-      .where(and(eq(schema.recipes.id, id), eq(schema.recipes.ownerId, ownerId)))
+      .where(and(eq(schema.recipes.id, id), ownerCondition(owner)))
       .limit(1)
 
     if (!recipe) return null
@@ -198,13 +207,13 @@ export class RecipeRepository {
     return mapToRecipe(recipe, ingredientRows, stepRows, foodTypeIds)
   }
 
-  async list(ownerId: string, opts: { limit: number; offset: number }): Promise<Recipe[]> {
+  async list(owner: string | string[], opts: { limit: number; offset: number }): Promise<Recipe[]> {
     const db = this.db
 
     const recipes = await db
       .select()
       .from(schema.recipes)
-      .where(eq(schema.recipes.ownerId, ownerId))
+      .where(ownerCondition(owner))
       .orderBy(desc(schema.recipes.createdAt))
       .limit(opts.limit)
       .offset(opts.offset)
@@ -240,12 +249,12 @@ export class RecipeRepository {
   }
 
   async search(
-    ownerId: string,
+    owner: string | string[],
     q: { q?: string; tag?: string; category?: string; ingredient?: string; dietary?: string },
   ): Promise<Recipe[]> {
     const db = this.db
 
-    const conditions = [eq(schema.recipes.ownerId, ownerId)]
+    const conditions = [ownerCondition(owner)]
 
     if (q.q) {
       conditions.push(ilike(schema.recipes.title, `%${q.q}%`))

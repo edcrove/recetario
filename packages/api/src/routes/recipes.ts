@@ -1,6 +1,7 @@
 import { createRoute as defineRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { RecipeSchema, CreateRecipeSchema, UpdateRecipeSchema } from '@recetario/shared'
 import { recipeRepository } from '../db/repository.js'
+import { getVisibleOwnerIds } from '../db/household-visibility.js'
 import { authMiddleware } from '../middleware/auth.js'
 import { rateLimitMiddleware } from '../middleware/rateLimit.js'
 import '../types.js'
@@ -77,7 +78,14 @@ const searchRecipesRoute = defineRoute({
 recipesRoute.openapi(searchRecipesRoute, async (c) => {
   const ownerId = c.get('ownerId')
   const { q, tag, category, ingredient, dietary } = c.req.valid('query')
-  const recipes = await recipeRepository.search(ownerId, { q, tag, category, ingredient, dietary })
+  const visibleOwners = await getVisibleOwnerIds(ownerId)
+  const recipes = await recipeRepository.search(visibleOwners, {
+    q,
+    tag,
+    category,
+    ingredient,
+    dietary,
+  })
   return c.json(recipes, 200)
 })
 
@@ -103,7 +111,8 @@ const listRecipesRoute = defineRoute({
 recipesRoute.openapi(listRecipesRoute, async (c) => {
   const ownerId = c.get('ownerId')
   const { limit, offset } = c.req.valid('query')
-  const recipes = await recipeRepository.list(ownerId, { limit, offset })
+  const visibleOwners = await getVisibleOwnerIds(ownerId)
+  const recipes = await recipeRepository.list(visibleOwners, { limit, offset })
   return c.json(recipes, 200)
 })
 
@@ -130,7 +139,8 @@ const getRecipeByIdRoute = defineRoute({
 recipesRoute.openapi(getRecipeByIdRoute, async (c) => {
   const ownerId = c.get('ownerId')
   const { id } = c.req.valid('param')
-  const recipe = await recipeRepository.findById(id, ownerId)
+  const visibleOwners = await getVisibleOwnerIds(ownerId)
+  const recipe = await recipeRepository.findById(id, visibleOwners)
   if (!recipe) return c.json({ error: 'Recipe not found' }, 404)
   return c.json(recipe, 200)
 })
