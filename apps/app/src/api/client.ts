@@ -10,6 +10,13 @@ const BASE_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
 const STATIC_API_KEY = process.env['EXPO_PUBLIC_API_KEY'] ?? ''
 
 // Lazily imported to avoid circular dependency with AuthProvider
+let onUnauthorized: (() => void) | null = null
+
+/** Registered by AuthProvider: clears the stored session so AuthGuard redirects to login. */
+export function setOnUnauthorized(handler: (() => void) | null): void {
+  onUnauthorized = handler
+}
+
 async function getAuthToken(): Promise<string> {
   try {
     const { getStoredToken } = await import('../providers/AuthProvider')
@@ -31,6 +38,13 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     },
   })
   if (!res.ok) {
+    // An expired/invalid session must kick the user back to login instead of
+    // stranding them on per-screen error states (the stored JWT lives 7 days;
+    // AuthGuard only checks presence, so without this hook a stale token left
+    // every query 401ing forever). AuthProvider registers the handler; it
+    // no-ops when there is no stored session (e.g. wrong-password 401s on the
+    // login screen itself).
+    if (res.status === 401) onUnauthorized?.()
     const body = await res.json().catch(() => ({}))
     throw new Error(`API ${res.status}: ${JSON.stringify(body)}`)
   }

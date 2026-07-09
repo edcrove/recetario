@@ -165,3 +165,22 @@ test.describe('Auth: register', () => {
     await expect(page.getByText(/Este email ya está registrado/)).toBeVisible({ timeout: 10000 })
   })
 })
+
+// Regression for the 2026-07-09 owner report: an expired/invalid stored JWT
+// left the app stranded on 'Error al cargar recetas' — AuthGuard only checks
+// token presence, so nothing ever redirected. Any API 401 must now clear the
+// session and land the user on the login screen.
+test.describe('Auth: expired session', () => {
+  test('a stale token redirects to login instead of stranding on error screens', async ({
+    page,
+  }) => {
+    await page.goto('/')
+    await page.evaluate(() => localStorage.setItem('auth_token', 'token-vencido-invalido'))
+    await page.goto('/')
+    await expect(page).toHaveURL(/auth\/login/, { timeout: 15000 })
+    await expect(page.getByText('Ingresá a tu cuenta')).toBeVisible({ timeout: 8000 })
+    // and the poisoned token is gone, so the next load goes straight to login
+    const stored = await page.evaluate(() => localStorage.getItem('auth_token'))
+    expect(stored).toBeNull()
+  })
+})
