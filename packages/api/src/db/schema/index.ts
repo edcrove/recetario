@@ -8,6 +8,7 @@ import {
   timestamp,
   index,
   uniqueIndex,
+  type AnyPgColumn,
 } from 'drizzle-orm/pg-core'
 
 export const menuSlot = pgEnum('menu_slot', [
@@ -17,6 +18,8 @@ export const menuSlot = pgEnum('menu_slot', [
   'Cena',
   'Snacks/Otros',
 ])
+
+export const recipeVisibility = pgEnum('recipe_visibility', ['private', 'public'])
 
 export const recipes = pgTable(
   'recipes',
@@ -41,10 +44,22 @@ export const recipes = pgTable(
     dietaryTags: jsonb('dietary_tags').default([]),
     // nutrition per serving: { calories, protein_g, carbs_g, fat_g, fiber_g? }
     nutrition: jsonb('nutrition'),
+    // 'private' = owner (and, later, their household); 'public' = listed in the public library
+    visibility: recipeVisibility('visibility').notNull().default('private'),
+    // provenance for copies made from the public library (fork semantics: edits to
+    // a copy never touch the original). SET NULL keeps forks alive when the
+    // original is deleted.
+    forkedFromId: uuid('forked_from_id').references((): AnyPgColumn => recipes.id, {
+      onDelete: 'set null',
+    }),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
-  (t) => [index('recipes_owner_idx').on(t.ownerId), index('recipes_category_idx').on(t.category)],
+  (t) => [
+    index('recipes_owner_idx').on(t.ownerId),
+    index('recipes_category_idx').on(t.category),
+    index('recipes_visibility_idx').on(t.visibility),
+  ],
 )
 
 export const ingredients = pgTable(

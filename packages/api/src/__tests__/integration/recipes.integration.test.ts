@@ -324,3 +324,123 @@ describe.skipIf(skip).sequential('Recipe foodTypeIds', () => {
     expect(body.foodTypeIds).toEqual([])
   })
 })
+
+// Story: recipe visibility + fork schema (sharing epic, story 1).
+// Covers: DB default 'private', owner publish/unpublish via PUT, non-owner 404,
+// and forked_from_id's ON DELETE SET NULL behavior.
+describe.skipIf(skip).sequential('Recipe visibility and fork provenance', () => {
+  const OTHER_API_KEY = 'test-api-key-owner-b'
+  const otherAuthHeader = `Bearer ${OTHER_API_KEY}`
+  let recipeId: string
+
+  beforeAll(async () => {
+    await resetTestDb()
+    const { getDb, schema } = await import('../../db/index.js')
+    // Same precomputed sha256('test-api-key-owner-b') used by the IDOR suite —
+    // avoids a live createHash() call over a fixed test constant (CodeQL flags
+    // that shape as a possible weak password hash).
+    const hash = 'bfad6973f42900a475880450bde62aef4757c889dc8de552d2507de5d334ad74'
+    await getDb()
+      .insert(schema.apiKeys)
+      .values({ keyHash: hash, ownerId: 'test-owner-b', label: 'owner-b' })
+      .onConflictDoNothing()
+
+    const res = await app.request('/v1/recipes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+      body: JSON.stringify({ ...baseRecipe, title: 'Receta Visibilidad' }),
+    })
+    expect(res.status).toBe(201)
+    recipeId = (await res.json()).id
+  })
+
+  it('a created recipe defaults to visibility private', async () => {
+    const res = await app.request(`/v1/recipes/${recipeId}`, {
+      headers: { Authorization: authHeader },
+    })
+    const body = await res.json()
+    expect(body.visibility).toBe('private')
+    expect(body.forkedFromId).toBeNull()
+  })
+
+  it('the owner can publish via PUT and it persists', async () => {
+    const putRes = await app.request(`/v1/recipes/${recipeId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+      body: JSON.stringify({ visibility: 'public' }),
+    })
+    expect(putRes.status).toBe(200)
+    expect((await putRes.json()).visibility).toBe('public')
+
+    const getRes = await app.request(`/v1/recipes/${recipeId}`, {
+      headers: { Authorization: authHeader },
+    })
+    expect((await getRes.json()).visibility).toBe('public')
+  })
+
+  it("a non-owner's PUT to change visibility returns 404", async () => {
+    const res = await app.request(`/v1/recipes/${recipeId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: otherAuthHeader },
+      body: JSON.stringify({ visibility: 'private' }),
+    })
+    expect(res.status).toBe(404)
+    // and the recipe is untouched
+    const getRes = await app.request(`/v1/recipes/${recipeId}`, {
+      headers: { Authorization: authHeader },
+    })
+    expect((await getRes.json()).visibility).toBe('public')
+  })
+
+  it('a POST can create a public recipe directly', async () => {
+    const res = await app.request('/v1/recipes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+      body: JSON.stringify({ ...baseRecipe, title: 'Nace Pública', visibility: 'public' }),
+    })
+    expect(res.status).toBe(201)
+    expect((await res.json()).visibility).toBe('public')
+  })
+
+  it('clients cannot set forkedFromId on create (schema strips it)', async () => {
+    const res = await app.request('/v1/recipes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+      body: JSON.stringify({ ...baseRecipe, title: 'Sin Fork', forkedFromId: recipeId }),
+    })
+    expect(res.status).toBe(201)
+    expect((await res.json()).forkedFromId).toBeNull()
+  })
+
+  it('deleting the original sets forkedFromId to null on the fork (SET NULL)', async () => {
+    const { getDb, schema } = await import('../../db/index.js')
+    const db = getDb()
+    const { eq } = await import('drizzle-orm')
+
+    // Insert the fork directly at the DB layer: the copy endpoint (story 3)
+    // does not exist yet, and the API deliberately strips forkedFromId.
+    const [fork] = (await db
+      .insert(schema.recipes)
+      .values({
+        ownerId: 'test-owner',
+        title: 'Fork De Receta',
+        servings: 2,
+        category: 'Cena',
+        forkedFromId: recipeId,
+      })
+      .returning()) as { id: string; forkedFromId: string | null }[]
+    expect(fork?.forkedFromId).toBe(recipeId)
+
+    const delRes = await app.request(`/v1/recipes/${recipeId}`, {
+      method: 'DELETE',
+      headers: { Authorization: authHeader },
+    })
+    expect(delRes.status).toBe(204)
+
+    const [after] = await db
+      .select({ forkedFromId: schema.recipes.forkedFromId })
+      .from(schema.recipes)
+      .where(eq(schema.recipes.id, fork!.id))
+    expect(after?.forkedFromId).toBeNull()
+  })
+})

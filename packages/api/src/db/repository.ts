@@ -33,6 +33,8 @@ function mapToRecipe(
     /* v8 ignore next */
     dietaryTags: (row.dietaryTags as Recipe['dietaryTags']) ?? [],
     nutrition: (row.nutrition as Recipe['nutrition']) ?? undefined,
+    visibility: row.visibility,
+    forkedFromId: row.forkedFromId,
     foodTypeIds,
     ingredients: ingredientRows
       .sort((a, b) => a.position - b.position)
@@ -82,6 +84,7 @@ export class RecipeRepository {
         source: data.source ?? null,
         dietaryTags: data.dietaryTags ?? [],
         nutrition: data.nutrition ?? null,
+        ...(data.visibility !== undefined && { visibility: data.visibility }),
       })
       .returning()
 
@@ -334,6 +337,7 @@ export class RecipeRepository {
         /* v8 ignore next 2 */
         ...(data.dietaryTags !== undefined && { dietaryTags: data.dietaryTags }),
         ...(data.nutrition !== undefined && { nutrition: data.nutrition }),
+        ...(data.visibility !== undefined && { visibility: data.visibility }),
         updatedAt: new Date(),
       })
       .where(and(eq(schema.recipes.id, id), eq(schema.recipes.ownerId, ownerId)))
