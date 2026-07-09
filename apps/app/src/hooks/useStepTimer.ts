@@ -21,22 +21,6 @@ export function initTimer(durationMin: number | null): TimerState {
   return { secondsLeft: secs, isRunning: secs > 0, completed: false }
 }
 
-export function tickTimer(state: TimerState): TimerState {
-  if (!state.isRunning || state.completed) return state
-  const next = Math.max(0, state.secondsLeft - 1)
-  if (next <= 0) return { secondsLeft: 0, isRunning: false, completed: true }
-  return { ...state, secondsLeft: next }
-}
-
-export function toggleTimer(state: TimerState): TimerState {
-  if (state.completed) return state
-  return { ...state, isRunning: !state.isRunning }
-}
-
-export function resetTimer(durationMin: number | null): TimerState {
-  return initTimer(durationMin)
-}
-
 export function useStepTimer(durationMin: number | null, onComplete?: () => void) {
   const init = initTimer(durationMin)
   const [secondsLeft, setSecondsLeft] = useState(init.secondsLeft)

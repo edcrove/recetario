@@ -1,10 +1,12 @@
 {
+  "//2": "ErrorBoundary.tsx is excluded as unreachable-by-design: expo-router wraps every route in its own error boundary, so route render crashes never propagate to this component (verified by intercepting a recipe payload that guarantees a React child-type crash — expo-router recovered to home). It only guards provider/layout-level failures, which no browser flow can trigger. Making the branded fallback actually reachable requires exporting route-level ErrorBoundary adapters (tracked as a Backlog story).",
   "//": "E2E coverage scope policy: coverage is measured over everything chromium E2E can actually execute. Native-only branches (Platform.OS !== 'web': Alert.alert, SecureStore) are excluded at the source level via '/* istanbul ignore */' comments with per-site justification — they are 100% unit-tested instead. The thresholds below are a RATCHET toward the 100% goal (Notion: 'Goal: raise E2E coverage to 100%'): raise them as gaps close (household, profile, cook mode, notify() web path, client.ts error paths, ErrorBoundary); never lower them.",
   "reporter": ["text", "lcov", "html", "json-summary"],
   "report-dir": "coverage-e2e",
   "include": ["app/**/*.tsx", "src/**/*.ts", "src/**/*.tsx"],
   "exclude": [
     "e2e/**",
+    "src/components/ErrorBoundary.tsx",
     "**/*.test.*",
     "src/__mocks__/**",
     "src/__tests__/**",
@@ -12,8 +14,8 @@
   ],
   "all": true,
   "check-coverage": false,
-  "statements": 85,
-  "branches": 76,
-  "functions": 79,
-  "lines": 87
+  "statements": 90,
+  "branches": 79,
+  "functions": 87,
+  "lines": 91
 }
