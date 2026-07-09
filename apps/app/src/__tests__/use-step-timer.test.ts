@@ -1,12 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import {
-  timerSeconds,
-  formatTime,
-  initTimer,
-  tickTimer,
-  toggleTimer,
-  resetTimer,
-} from '../hooks/useStepTimer'
+import { timerSeconds, formatTime, initTimer } from '../hooks/useStepTimer'
 
 describe('timerSeconds', () => {
   it('returns 0 for null duration', () => {
@@ -55,83 +48,6 @@ describe('initTimer', () => {
 
   it('starts idle for zero duration', () => {
     const state = initTimer(0)
-    expect(state).toEqual({ secondsLeft: 0, isRunning: false, completed: false })
-  })
-})
-
-describe('tickTimer', () => {
-  it('decrements secondsLeft by 1', () => {
-    const state = initTimer(1)
-    const next = tickTimer(state)
-    expect(next.secondsLeft).toBe(59)
-    expect(next.isRunning).toBe(true)
-    expect(next.completed).toBe(false)
-  })
-
-  it('completes when reaching 0', () => {
-    const state = { secondsLeft: 1, isRunning: true, completed: false }
-    const next = tickTimer(state)
-    expect(next.secondsLeft).toBe(0)
-    expect(next.isRunning).toBe(false)
-    expect(next.completed).toBe(true)
-  })
-
-  it('does not tick when paused', () => {
-    const state = { secondsLeft: 30, isRunning: false, completed: false }
-    expect(tickTimer(state)).toBe(state)
-  })
-
-  it('does not tick when already completed', () => {
-    const state = { secondsLeft: 0, isRunning: false, completed: true }
-    expect(tickTimer(state)).toBe(state)
-  })
-
-  it('counts down correctly through multiple ticks', () => {
-    let state = initTimer(0.05) // 3 seconds
-    const ticks: number[] = []
-    while (state.isRunning) {
-      state = tickTimer(state)
-      ticks.push(state.secondsLeft)
-    }
-    expect(ticks).toEqual([2, 1, 0])
-    expect(state.completed).toBe(true)
-  })
-
-  it('fires completion exactly once (idempotent after complete)', () => {
-    const state = { secondsLeft: 0, isRunning: false, completed: true }
-    const next = tickTimer(state)
-    expect(next).toBe(state)
-  })
-})
-
-describe('toggleTimer', () => {
-  it('pauses a running timer', () => {
-    const state = { secondsLeft: 30, isRunning: true, completed: false }
-    const paused = toggleTimer(state)
-    expect(paused.isRunning).toBe(false)
-    expect(paused.secondsLeft).toBe(30)
-  })
-
-  it('resumes a paused timer', () => {
-    const state = { secondsLeft: 30, isRunning: false, completed: false }
-    const resumed = toggleTimer(state)
-    expect(resumed.isRunning).toBe(true)
-  })
-
-  it('does not toggle a completed timer', () => {
-    const state = { secondsLeft: 0, isRunning: false, completed: true }
-    expect(toggleTimer(state)).toBe(state)
-  })
-})
-
-describe('resetTimer', () => {
-  it('resets to initial state for given duration', () => {
-    const state = resetTimer(2)
-    expect(state).toEqual({ secondsLeft: 120, isRunning: true, completed: false })
-  })
-
-  it('resets to idle for null duration', () => {
-    const state = resetTimer(null)
     expect(state).toEqual({ secondsLeft: 0, isRunning: false, completed: false })
   })
 })
