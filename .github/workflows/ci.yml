@@ -365,6 +365,16 @@ jobs:
           node e2e/remap-coverage.js
           npx nyc report --reporter=text --reporter=lcov --reporter=json-summary
 
+      # Ratchet toward the 100%-of-browser-reachable-code goal: thresholds live
+      # in apps/app/.nycrc.json and only ever go up as E2E gaps close. Native-only
+      # branches are excluded at the source via documented istanbul-ignore
+      # comments (they are 100% unit-tested). Not if: always() — a red E2E run
+      # already fails the job; this step only adds the coverage floor.
+      - name: Enforce E2E coverage ratchet
+        run: |
+          cd apps/app
+          npx nyc check-coverage
+
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
