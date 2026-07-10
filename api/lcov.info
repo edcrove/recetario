@@ -940,7 +940,7 @@ DA:14,1
 DA:16,1
 LF:13
 LH:13
-BRDA:16,0,0,5
+BRDA:16,0,0,10
 BRF:1
 BRH:1
 end_of_record
