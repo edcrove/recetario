@@ -1,5 +1,6 @@
 import { eq, and, ilike, or, sql, inArray, desc } from 'drizzle-orm'
-import type { CreateRecipe, UpdateRecipe, Recipe } from '@recetario/shared'
+import type { CreateRecipe, UpdateRecipe, Recipe, LibraryRecipe } from '@recetario/shared'
+import { getVisibleOwnerIds } from './household-visibility.js'
 import { getDb, schema } from './index.js'
 
 type DbRow = typeof schema.recipes.$inferSelect
@@ -369,6 +370,105 @@ export class RecipeRepository {
     await this.replaceFoodTypes(id, data.foodTypeIds)
 
     return this.findById(id, ownerId)
+  }
+
+  /**
+   * Public library: every 'public' recipe from any owner, newest first, with
+   * the author's display name (fallback 'Anónimo'). Nothing else about the
+   * author crosses the tenant boundary.
+   */
+  async findPublic(q: {
+    search?: string
+    limit: number
+    offset: number
+  }): Promise<LibraryRecipe[]> {
+    const db = this.db
+
+    const conditions = [eq(schema.recipes.visibility, 'public' as const)]
+    if (q.search) conditions.push(ilike(schema.recipes.title, `%${q.search}%`))
+
+    const rows = await db
+      .select({
+        recipe: schema.recipes,
+        authorName: schema.users.displayName,
+      })
+      .from(schema.recipes)
+      .leftJoin(schema.users, sql`${schema.users.id}::text = ${schema.recipes.ownerId}`)
+      .where(and(...conditions))
+      .orderBy(desc(schema.recipes.createdAt))
+      .limit(q.limit)
+      .offset(q.offset)
+
+    if (rows.length === 0) return []
+
+    const ids = rows.map((r) => r.recipe.id)
+    const ingredientRows = await db
+      .select()
+      .from(schema.ingredients)
+      .where(inArray(schema.ingredients.recipeId, ids))
+    const stepRows = await db.select().from(schema.steps).where(inArray(schema.steps.recipeId, ids))
+    const foodTypesByRecipe = await this.getFoodTypeIdsByRecipe(ids)
+
+    return rows.map((row) => ({
+      ...mapToRecipe(
+        row.recipe,
+        ingredientRows.filter((i) => i.recipeId === row.recipe.id),
+        stepRows.filter((st) => st.recipeId === row.recipe.id),
+        foodTypesByRecipe.get(row.recipe.id) ?? [],
+      ),
+      author: row.authorName ?? 'Anónimo',
+    }))
+  }
+
+  /**
+   * Copies a recipe the caller may read (public, own, or a housemate's) as a
+   * full snapshot fork owned by the caller: private, forkedFromId set, and
+   * from then on completely independent of the original.
+   */
+  async copyAsFork(id: string, callerId: string): Promise<Recipe | null> {
+    const db = this.db
+
+    const [source] = await db
+      .select()
+      .from(schema.recipes)
+      .where(eq(schema.recipes.id, id))
+      .limit(1)
+    if (!source) return null
+
+    if (source.visibility !== 'public' && source.ownerId !== callerId) {
+      const visibleOwners = await getVisibleOwnerIds(callerId)
+      if (!visibleOwners.includes(source.ownerId)) return null
+    }
+
+    const full = await this.findById(id, source.ownerId)
+    /* v8 ignore next - source row fetched above, findById cannot miss */
+    if (!full) return null
+
+    const fork = await this.create(callerId, {
+      title: full.title,
+      servings: full.servings,
+      category: full.category,
+      tags: full.tags,
+      prepTimeMin: full.prepTimeMin,
+      cookTimeMin: full.cookTimeMin,
+      totalTimeMin: full.totalTimeMin,
+      images: full.images,
+      notes: full.notes,
+      yield: full.yield,
+      originalLanguage: full.originalLanguage,
+      translations: full.translations,
+      ingredients: full.ingredients,
+      steps: full.steps,
+      source: full.source,
+      dietaryTags: full.dietaryTags,
+      nutrition: full.nutrition,
+      foodTypeIds: full.foodTypeIds,
+      visibility: 'private',
+    })
+
+    await db.update(schema.recipes).set({ forkedFromId: id }).where(eq(schema.recipes.id, fork.id!))
+
+    return this.findById(fork.id!, callerId)
   }
 
   async delete(id: string, ownerId: string): Promise<boolean> {
