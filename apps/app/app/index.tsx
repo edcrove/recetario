@@ -13,6 +13,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { api } from '../src/api/client'
 import type { Recipe } from '@recetario/shared'
+import { macroStrip } from '../src/utils/macroStrip'
 import { getEmptyMessage, getQueryFnKey } from '../src/utils/homeScreen'
 import { useAuth } from '../src/providers/AuthProvider'
 import { UserMenu } from '../src/components/UserMenu'
@@ -165,6 +166,9 @@ export default function HomeScreen() {
               {item.category} · {item.servings} porciones
               {item.totalTimeMin ? ` · ${item.totalTimeMin} min` : ''}
             </Text>
+            {macroStrip(item.nutrition) ? (
+              <Text style={styles.cardMacros}>{macroStrip(item.nutrition)}</Text>
+            ) : null}
             {item.tags.length > 0 && <Text style={styles.tags}>{item.tags.join(', ')}</Text>}
           </TouchableOpacity>
         )}
@@ -254,6 +258,7 @@ const styles = StyleSheet.create({
   card: { padding: 16, borderRadius: 8, backgroundColor: '#f9f9f9', marginBottom: 8 },
   cardTitle: { fontSize: 18, fontWeight: '600' },
   cardMeta: { color: '#666', marginTop: 4 },
+  cardMacros: { color: '#5C7052', marginTop: 3, fontSize: 12, fontVariant: ['tabular-nums'] },
   tags: { color: '#999', fontSize: 12, marginTop: 4 },
   empty: { textAlign: 'center', color: '#999', marginTop: 40 },
   error: { color: 'red' },

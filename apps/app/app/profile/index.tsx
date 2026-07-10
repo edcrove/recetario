@@ -93,6 +93,23 @@ export default function ProfileScreen() {
     } as never)
   }
 
+  const PER_MEAL_SLOTS = ['Desayuno', 'Almuerzo', 'Merienda', 'Cena'] as const
+
+  function updateMealTarget(slot: string, delta: number) {
+    const t = (profile?.nutritionTargets as Record<string, unknown> | null) ?? {}
+    const daily = {
+      daily_calories: (t['daily_calories'] as number) ?? 2000,
+      daily_protein_g: (t['daily_protein_g'] as number) ?? 50,
+      daily_carbs_g: (t['daily_carbs_g'] as number) ?? 250,
+      daily_fat_g: (t['daily_fat_g'] as number) ?? 70,
+    }
+    const perMeal = { ...((t['per_meal'] as Record<string, { calories?: number }>) ?? {}) }
+    const currentCal = perMeal[slot]?.calories ?? 0
+    const nextCal = Math.max(0, currentCal + delta)
+    perMeal[slot] = { ...perMeal[slot], calories: nextCal }
+    updateProfile.mutate({ nutritionTargets: { ...daily, per_meal: perMeal } } as never)
+  }
+
   async function handleSignOut() {
     await signOut()
     router.replace('/auth/login')
@@ -212,6 +229,38 @@ export default function ProfileScreen() {
               <Text style={s.targetUnit}> {unit}</Text>
             </Text>
             <TouchableOpacity style={s.servingsBtn} onPress={() => updateTarget(field, step)}>
+              <Text style={s.servingsBtnText}>+</Text>
+            </TouchableOpacity>
+          </View>
+        )
+      })}
+
+      {/* Per-meal calorie goals */}
+      <Text style={s.sectionTitle}>Objetivos por comida (calorías)</Text>
+      {PER_MEAL_SLOTS.map((slot) => {
+        const perMeal = (
+          profile?.nutritionTargets as { per_meal?: Record<string, { calories?: number }> } | null
+        )?.per_meal
+        const val = perMeal?.[slot]?.calories ?? 0
+        return (
+          <View key={slot} style={s.targetRow}>
+            <Text style={s.targetLabel}>{slot}</Text>
+            <TouchableOpacity
+              testID={`meal-target-${slot}-minus`}
+              style={s.servingsBtn}
+              onPress={() => updateMealTarget(slot, -50)}
+            >
+              <Text style={s.servingsBtnText}>−</Text>
+            </TouchableOpacity>
+            <Text style={s.targetValue}>
+              {val}
+              <Text style={s.targetUnit}> kcal</Text>
+            </Text>
+            <TouchableOpacity
+              testID={`meal-target-${slot}-plus`}
+              style={s.servingsBtn}
+              onPress={() => updateMealTarget(slot, 50)}
+            >
               <Text style={s.servingsBtnText}>+</Text>
             </TouchableOpacity>
           </View>

@@ -14,6 +14,7 @@ import { api } from '../../src/api/client'
 import { notify } from '../../src/utils/platformAlert'
 import { AllergenBadge } from '../../src/components/AllergenBadge'
 import type { Recipe } from '@recetario/shared'
+import { macroStrip } from '../../src/utils/macroStrip'
 
 export default function PickRecipeScreen() {
   const router = useRouter()
@@ -99,6 +100,9 @@ export default function PickRecipeScreen() {
                 {item.category} · {item.servings} porc. base
                 {item.totalTimeMin ? ` · ${item.totalTimeMin} min` : ''}
               </Text>
+              {macroStrip(item.nutrition) ? (
+                <Text style={styles.cardMacros}>{macroStrip(item.nutrition)}</Text>
+              ) : null}
             </TouchableOpacity>
           )}
           ListEmptyComponent={
@@ -158,6 +162,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: { fontSize: 17, fontWeight: '600', flex: 1 },
   cardMeta: { color: '#666', marginTop: 4, fontSize: 13 },
+  cardMacros: { color: '#5C7052', marginTop: 3, fontSize: 12, fontVariant: ['tabular-nums'] },
   empty: { textAlign: 'center', color: '#999', marginTop: 40 },
   errorText: { color: '#ef4444', textAlign: 'center', padding: 12 },
 })
