@@ -45,6 +45,7 @@ function mapToRecipe(
     nutrition: (row.nutrition as Recipe['nutrition']) ?? undefined,
     visibility: row.visibility,
     forkedFromId: row.forkedFromId,
+    ownerId: row.ownerId,
     foodTypeIds,
     ingredients: ingredientRows
       .sort((a, b) => a.position - b.position)
@@ -416,6 +417,9 @@ export class RecipeRepository {
         stepRows.filter((st) => st.recipeId === row.recipe.id),
         foodTypesByRecipe.get(row.recipe.id) ?? [],
       ),
+      // The library crosses the tenant boundary: only the display name may
+      // identify the author, never their user id.
+      ownerId: undefined,
       author: row.authorName ?? 'Anónimo',
     }))
   }

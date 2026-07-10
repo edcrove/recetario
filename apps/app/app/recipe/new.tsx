@@ -13,6 +13,8 @@ import {
 } from '../../src/utils/recipeForm'
 import { unitLabel } from '../../src/utils/displayIngredient'
 import { FoodTypePicker } from '../../src/components/FoodTypePicker'
+import { confirmAsync } from '../../src/utils/platformAlert'
+import { colors } from '../../src/theme/tokens'
 
 const CATEGORIES: Category[] = ['Desayuno', 'Almuerzo', 'Cena', 'Postre', 'Snack', 'Bebida', 'Otro']
 
@@ -46,6 +48,7 @@ export default function NewRecipeScreen() {
   ])
   const [steps, setSteps] = useState<StepRow[]>([{ text: '' }])
   const [errors, setErrors] = useState<FieldErrors>({})
+  const [visibility, setVisibility] = useState<'private' | 'public'>('private')
 
   const mutation = useMutation({
     mutationFn: api.recipes.create,
@@ -76,7 +79,7 @@ export default function NewRecipeScreen() {
       return
     }
     setErrors({})
-    mutation.mutate(payload as Parameters<typeof api.recipes.create>[0])
+    mutation.mutate({ ...payload, visibility } as Parameters<typeof api.recipes.create>[0])
   }
 
   function updateIngredient(index: number, field: keyof IngredientRow, value: string) {
@@ -101,6 +104,18 @@ export default function NewRecipeScreen() {
 
   function removeStep(index: number) {
     setSteps((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  async function toggleVisibility() {
+    if (visibility === 'private') {
+      const confirmed = await confirmAsync(
+        'Publicar en la biblioteca',
+        'Cualquiera podrá ver esta receta y copiarla a su recetario. ¿Publicar?',
+      )
+      if (confirmed) setVisibility('public')
+    } else {
+      setVisibility('private')
+    }
   }
 
   return (
@@ -145,6 +160,25 @@ export default function NewRecipeScreen() {
       {/* Food types */}
       <Text style={st.label}>Tipo de comida (hasta 3)</Text>
       <FoodTypePicker selected={foodTypeIds} onChange={setFoodTypeIds} />
+
+      {/* Visibility */}
+      <Text style={st.label}>Visibilidad</Text>
+      <TouchableOpacity
+        testID="visibility-toggle"
+        style={st.visRow}
+        onPress={() => void toggleVisibility()}
+      >
+        <View style={[st.visPill, visibility === 'public' && st.visPillPublic]}>
+          <Text style={[st.visPillText, visibility === 'public' && st.visPillTextPublic]}>
+            {visibility === 'public' ? '🌐 Pública' : '🔒 Privada'}
+          </Text>
+        </View>
+        <Text style={st.visHint}>
+          {visibility === 'public'
+            ? 'Visible en la biblioteca: cualquiera puede copiarla.'
+            : 'Solo vos y tu hogar pueden verla.'}
+        </Text>
+      </TouchableOpacity>
 
       {/* Tags */}
       <Text style={st.label}>Etiquetas (separadas por coma)</Text>
@@ -306,4 +340,15 @@ const st = StyleSheet.create({
   },
   saveBtnDisabled: { opacity: 0.6 },
   saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  visRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
+  visPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: colors.sand,
+  },
+  visPillPublic: { backgroundColor: colors.terracotta },
+  visPillText: { fontSize: 13, fontWeight: '600', color: colors.ink },
+  visPillTextPublic: { color: colors.terracottaInk },
+  visHint: { flex: 1, fontSize: 12, color: colors.inkSoft },
 })

@@ -28,6 +28,12 @@ const MENU_ITEMS = [
   { icon: '🏠', label: 'Mi hogar', description: 'Miembros y roles', route: '/household' },
   { icon: '📋', label: 'Colecciones', description: 'Listas de recetas', route: '/collections' },
   {
+    icon: '🌐',
+    label: 'Biblioteca',
+    description: 'Recetas públicas de la comunidad',
+    route: '/library',
+  },
+  {
     icon: '📊',
     label: 'Estadísticas de cocina',
     description: 'Historial y tendencias',

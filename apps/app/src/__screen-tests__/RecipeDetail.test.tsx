@@ -28,6 +28,19 @@ vi.mock('../api/client', () => ({
   },
 }))
 
+// The detail screen imports useAuth (role-aware Editar); the real provider
+// pulls expo-secure-store, which cannot load in jsdom — stub it.
+vi.mock('../providers/AuthProvider', () => ({
+  useAuth: () => ({
+    token: 't',
+    userId: 'me-123',
+    isLoading: false,
+    signIn: vi.fn(),
+    signOut: vi.fn(),
+  }),
+  getStoredToken: vi.fn().mockResolvedValue('t'),
+}))
+
 import RecipeDetailScreen from '../../app/recipe/[id]'
 
 function wrap(ui: React.ReactElement) {

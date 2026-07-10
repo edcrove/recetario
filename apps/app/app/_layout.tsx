@@ -46,6 +46,7 @@ export default function RootLayout() {
               <Stack.Screen name="profile/index" options={{ title: 'Profile' }} />
               <Stack.Screen name="household/index" options={{ title: 'Household' }} />
               <Stack.Screen name="stats/index" options={{ title: 'Cooking Stats' }} />
+              <Stack.Screen name="library/index" options={{ title: 'Biblioteca' }} />
               <Stack.Screen name="collections/index" options={{ title: 'Collections' }} />
               <Stack.Screen name="collections/[id]" options={{ title: 'Colección' }} />
               <Stack.Screen name="config/index" options={{ title: 'Configuración' }} />

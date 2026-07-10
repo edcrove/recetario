@@ -128,6 +128,9 @@ export const RecipeSchema = z.object({
   visibility: RecipeVisibilitySchema.optional(),
   // server-managed: set only by the copy/fork endpoint, never by clients
   forkedFromId: z.uuid().nullable().optional(),
+  // server-set: lets the app distinguish own recipes from housemates' ones.
+  // Stripped from public-library responses (only the display name may leak).
+  ownerId: z.string().optional(),
   createdAt: z.string().datetime().optional(),
   updatedAt: z.string().datetime().optional(),
 })
@@ -145,6 +148,7 @@ export type LibraryRecipe = z.infer<typeof LibraryRecipeSchema>
 export const CreateRecipeSchema = RecipeSchema.omit({
   id: true,
   forkedFromId: true,
+  ownerId: true,
   createdAt: true,
   updatedAt: true,
 })
