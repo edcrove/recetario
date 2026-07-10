@@ -57,6 +57,7 @@ export default function LoginScreen() {
         <Text style={s.subtitle}>Ingresá a tu cuenta</Text>
 
         <TextInput
+          placeholderTextColor={colors.inkSoft}
           style={s.input}
           placeholder="Email"
           value={email}
@@ -66,6 +67,7 @@ export default function LoginScreen() {
           autoComplete="email"
         />
         <TextInput
+          placeholderTextColor={colors.inkSoft}
           style={s.input}
           placeholder="Contraseña"
           value={password}
@@ -120,6 +122,7 @@ const makeStyles = (c: ThemeColors) =>
       fontSize: 16,
       marginBottom: 12,
       backgroundColor: c.surface,
+      color: c.ink,
     },
     error: { color: c.danger, fontSize: 14, marginBottom: 8 },
     btn: {

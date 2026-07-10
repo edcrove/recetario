@@ -265,7 +265,7 @@ const makeStyles = (c: ThemeColors) =>
     },
     navBtn: { paddingVertical: 6, paddingHorizontal: 12 },
     navBtnText: { color: c.terracotta, fontWeight: '600' },
-    weekLabel: { fontWeight: '600', fontSize: 15, fontFamily: fonts.display },
+    weekLabel: { fontWeight: '600', fontSize: 15, fontFamily: fonts.display, color: c.ink },
     shoppingBtn: {
       margin: 12,
       padding: 12,
@@ -289,6 +289,7 @@ const makeStyles = (c: ThemeColors) =>
       fontSize: 14,
       textTransform: 'capitalize',
       fontFamily: fonts.display,
+      color: c.ink,
     },
     slotRow: {
       flexDirection: 'row',

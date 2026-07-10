@@ -191,7 +191,7 @@ const makeStyles = (c: ThemeColors) =>
       paddingVertical: 14,
       gap: 14,
     },
-    itemIcon: { fontSize: 22, width: 28, textAlign: 'center' },
+    itemIcon: { fontSize: 22, width: 28, textAlign: 'center', color: c.ink },
     itemContent: { flex: 1 },
     itemLabel: { fontSize: 15, fontWeight: '600', color: c.ink },
     itemDesc: { fontSize: 12, color: c.inkSoft, marginTop: 1 },

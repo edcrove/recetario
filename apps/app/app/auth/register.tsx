@@ -72,6 +72,7 @@ export default function RegisterScreen() {
 
         <Text style={s.label}>Nombre (opcional)</Text>
         <TextInput
+          placeholderTextColor={colors.inkSoft}
           style={s.input}
           placeholder="Tu nombre"
           value={displayName}
@@ -82,6 +83,7 @@ export default function RegisterScreen() {
 
         <Text style={s.label}>Email</Text>
         <TextInput
+          placeholderTextColor={colors.inkSoft}
           style={s.input}
           placeholder="vos@ejemplo.com"
           value={email}
@@ -93,6 +95,7 @@ export default function RegisterScreen() {
 
         <Text style={s.label}>Contraseña</Text>
         <TextInput
+          placeholderTextColor={colors.inkSoft}
           style={s.input}
           placeholder="Mínimo 8 caracteres"
           value={password}
@@ -103,6 +106,7 @@ export default function RegisterScreen() {
 
         <Text style={s.label}>Confirmá la contraseña</Text>
         <TextInput
+          placeholderTextColor={colors.inkSoft}
           style={s.input}
           placeholder="Repetí la contraseña"
           value={passwordConfirm}
@@ -157,6 +161,7 @@ const makeStyles = (c: ThemeColors) =>
       fontSize: 16,
       marginBottom: 4,
       backgroundColor: c.surface,
+      color: c.ink,
     },
     error: { color: c.danger, fontSize: 14, marginVertical: 8 },
     btn: {
