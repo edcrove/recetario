@@ -11,6 +11,8 @@ vi.mock('../db/repository.js', () => {
     update: vi.fn(),
     delete: vi.fn(),
     create: vi.fn(),
+    findPublic: vi.fn(),
+    copyAsFork: vi.fn(),
   }
   return {
     recipeRepository: mockRepo,
@@ -38,6 +40,8 @@ const mockRepo = recipeRepository as unknown as {
   update: ReturnType<typeof vi.fn>
   delete: ReturnType<typeof vi.fn>
   create: ReturnType<typeof vi.fn>
+  findPublic: ReturnType<typeof vi.fn>
+  copyAsFork: ReturnType<typeof vi.fn>
 }
 
 const DEV_KEY = 'recipes-test-key'
@@ -234,5 +238,62 @@ describe('DELETE /v1/recipes/:id', () => {
       headers: AUTH_HEADERS,
     })
     expect(res.status).toBe(404)
+  })
+})
+
+describe('GET /v1/library', () => {
+  it('returns public recipes with author names', async () => {
+    mockRepo.findPublic.mockResolvedValue([{ ...sampleRecipe, author: 'Ana' }])
+    const res = await app.request('/v1/library', { headers: AUTH_HEADERS })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body[0].author).toBe('Ana')
+    expect(mockRepo.findPublic).toHaveBeenCalledWith({ search: undefined, limit: 30, offset: 0 })
+  })
+
+  it('passes search and pagination through', async () => {
+    mockRepo.findPublic.mockResolvedValue([])
+    const res = await app.request('/v1/library?search=guiso&limit=5&offset=10', {
+      headers: AUTH_HEADERS,
+    })
+    expect(res.status).toBe(200)
+    expect(mockRepo.findPublic).toHaveBeenCalledWith({ search: 'guiso', limit: 5, offset: 10 })
+  })
+
+  it('requires auth', async () => {
+    const res = await app.request('/v1/library')
+    expect(res.status).toBe(401)
+  })
+})
+
+describe('POST /v1/recipes/:id/copy', () => {
+  it('returns 201 with the fork', async () => {
+    mockRepo.copyAsFork.mockResolvedValue({
+      ...sampleRecipe,
+      forkedFromId: sampleRecipe.id,
+    })
+    const res = await app.request(`/v1/recipes/${sampleRecipe.id}/copy`, {
+      method: 'POST',
+      headers: AUTH_HEADERS,
+    })
+    expect(res.status).toBe(201)
+    expect((await res.json()).forkedFromId).toBe(sampleRecipe.id)
+  })
+
+  it('returns 404 when the source is not readable', async () => {
+    mockRepo.copyAsFork.mockResolvedValue(null)
+    const res = await app.request(`/v1/recipes/${sampleRecipe.id}/copy`, {
+      method: 'POST',
+      headers: AUTH_HEADERS,
+    })
+    expect(res.status).toBe(404)
+  })
+
+  it('rejects a malformed id with 400', async () => {
+    const res = await app.request('/v1/recipes/not-a-uuid/copy', {
+      method: 'POST',
+      headers: AUTH_HEADERS,
+    })
+    expect(res.status).toBe(400)
   })
 })

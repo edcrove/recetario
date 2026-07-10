@@ -133,6 +133,14 @@ export const RecipeSchema = z.object({
 })
 export type Recipe = z.infer<typeof RecipeSchema>
 
+// Library listing — a public recipe plus its author's display name. Only the
+// display name (fallback 'Anónimo') crosses the tenant boundary: never emails
+// or user ids.
+export const LibraryRecipeSchema = RecipeSchema.extend({
+  author: z.string(),
+})
+export type LibraryRecipe = z.infer<typeof LibraryRecipeSchema>
+
 // CreateRecipe — omit server-set fields
 export const CreateRecipeSchema = RecipeSchema.omit({
   id: true,
