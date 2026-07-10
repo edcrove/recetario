@@ -127,11 +127,11 @@ describe('GET /v1/menu/nutrition', () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     const monday = body.days.find((d: { date: string }) => d.date === '2026-07-06')
-    expect(monday?.calories).toBe(1000) // 500 * (4/2)
+    expect(monday?.calories).toBe(2000) // per-serving 500 × 4 planned servings
     expect(body.targets).toBeNull()
   })
 
-  it('handles zero recipeServings without dividing by zero', async () => {
+  it('scales by planned servings only (nutrition is per serving)', async () => {
     mockSelect
       .mockReturnValueOnce([
         {
@@ -147,7 +147,7 @@ describe('GET /v1/menu/nutrition', () => {
     })
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.days[0].calories).toBe(500) // scale = 1 when recipeServings = 0
+    expect(body.days[0].calories).toBe(1000) // per-serving 500 × 2 planned servings
   })
 
   it('skips entries with no nutrition data', async () => {

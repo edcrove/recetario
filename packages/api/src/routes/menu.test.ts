@@ -8,6 +8,7 @@ vi.mock('../db/menu-repository.js', () => {
     getWeek: vi.fn(),
     getScaledIngredients: vi.fn(),
     updateServings: vi.fn(),
+    getDayNutritionInputs: vi.fn(),
   }
   return {
     menuRepository: mockRepo,
@@ -44,6 +45,7 @@ const mockRepo = menuRepository as unknown as {
   getWeek: ReturnType<typeof vi.fn>
   getScaledIngredients: ReturnType<typeof vi.fn>
   updateServings: ReturnType<typeof vi.fn>
+  getDayNutritionInputs: ReturnType<typeof vi.fn>
 }
 
 const DEV_KEY = 'menu-test-key'
@@ -359,5 +361,70 @@ describe('viewer role enforcement on menu writes', () => {
       headers: AUTH,
     })
     expect(res.status).toBe(200)
+  })
+})
+
+describe('GET /v1/menu/day-nutrition', () => {
+  const target = {
+    daily_calories: 2000,
+    daily_protein_g: 100,
+    daily_carbs_g: 250,
+    daily_fat_g: 70,
+  }
+
+  it('rolls up totals with a signed delta vs the daily target', async () => {
+    mockRepo.getDayNutritionInputs.mockResolvedValue({
+      entries: [
+        {
+          mealCategory: 'Almuerzo',
+          nutrition: { calories: 500, protein_g: 30, carbs_g: 50, fat_g: 15 },
+          servings: 2,
+        },
+        {
+          mealCategory: 'Cena',
+          nutrition: { calories: 700, protein_g: 40, carbs_g: 70, fat_g: 20 },
+          servings: 1,
+        },
+      ],
+      target,
+    })
+    const res = await app.request('/v1/menu/day-nutrition?date=2026-07-06', { headers: AUTH })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.date).toBe('2026-07-06')
+    expect(body.totals.calories).toBe(1700)
+    expect(body.delta.calories).toBe(-300)
+    expect(body.byMeal).toHaveLength(2)
+    expect(body.partial).toBe(false)
+  })
+
+  it('flags partial and returns no delta without a target', async () => {
+    mockRepo.getDayNutritionInputs.mockResolvedValue({
+      entries: [
+        { mealCategory: 'Cena', nutrition: null, servings: 1 },
+        {
+          mealCategory: 'Cena',
+          nutrition: { calories: 400, protein_g: 20, carbs_g: 40, fat_g: 10 },
+          servings: 1,
+        },
+      ],
+      target: null,
+    })
+    const res = await app.request('/v1/menu/day-nutrition?date=2026-07-06', { headers: AUTH })
+    const body = await res.json()
+    expect(body.partial).toBe(true)
+    expect(body.missingCount).toBe(1)
+    expect(body.target).toBeNull()
+    expect(body.delta).toBeNull()
+  })
+
+  it('rejects a malformed date with 400', async () => {
+    const res = await app.request('/v1/menu/day-nutrition?date=nope', { headers: AUTH })
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 401 without auth', async () => {
+    const res = await app.request('/v1/menu/day-nutrition?date=2026-07-06')
+    expect(res.status).toBe(401)
   })
 })

@@ -5,9 +5,12 @@ import type {
   MenuSlot,
   ScaledIngredient,
   Unit,
+  Nutrition,
+  DayNutritionEntry,
+  NutritionTargets,
 } from '@recetario/shared'
 import { getDb, schema } from './index.js'
-import { getVisibleOwnerIds } from './household-visibility.js'
+import { getVisibleOwnerIds, UUID_RE } from './household-visibility.js'
 
 type MenuRow = typeof schema.menuEntries.$inferSelect
 type RecipeRow = typeof schema.recipes.$inferSelect
@@ -216,6 +219,54 @@ export class MenuRepository {
     }
 
     return scaled
+  }
+
+  /**
+   * Everything the pure computeDayNutrition() needs for one day: each entry's
+   * recipe per-serving nutrition, planned servings and slot (household-shared,
+   * same rule as the week view), plus the caller's daily nutrition target.
+   * Kept in one method so the route never touches getDb directly.
+   */
+  async getDayNutritionInputs(
+    ownerId: string,
+    date: string,
+  ): Promise<{ entries: DayNutritionEntry[]; target: NutritionTargets | null }> {
+    const db = this.db
+    const visibleOwners = await getVisibleOwnerIds(ownerId)
+
+    const rows = await db
+      .select({
+        slot: schema.menuEntries.slot,
+        servings: schema.menuEntries.servings,
+        nutrition: schema.recipes.nutrition,
+      })
+      .from(schema.menuEntries)
+      .innerJoin(schema.recipes, eq(schema.menuEntries.recipeId, schema.recipes.id))
+      .where(
+        and(inArray(schema.menuEntries.ownerId, visibleOwners), eq(schema.menuEntries.date, date)),
+      )
+
+    const entries: DayNutritionEntry[] = rows.map((r) => ({
+      mealCategory: r.slot,
+      nutrition: (r.nutrition as Nutrition | null) ?? null,
+      servings: r.servings,
+    }))
+
+    // user_profiles.user_id is a uuid FK to users; API-key/legacy owners (non-uuid)
+    // can't have a profile, and comparing a non-uuid against a uuid column would
+    // make Postgres throw — short-circuit to no target.
+    if (!UUID_RE.test(ownerId)) return { entries, target: null }
+
+    const [profile] = await db
+      .select({ nutritionTargets: schema.userProfiles.nutritionTargets })
+      .from(schema.userProfiles)
+      .where(eq(schema.userProfiles.userId, ownerId))
+      .limit(1)
+    // The PATCH /auth/profile route validates against NutritionTargetsSchema
+    // before storing, so a cast is safe here (same pattern as the weekly route).
+    const target = (profile?.nutritionTargets as NutritionTargets | null) ?? null
+
+    return { entries, target }
   }
 }
 

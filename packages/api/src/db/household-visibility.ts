@@ -6,7 +6,7 @@ import { getDb, schema } from './index.js'
 // non-uuid string ('dev' fallback, API-key owners like 'test-owner'). Those
 // callers can never belong to a household, and comparing them against a uuid
 // column would make Postgres error out — short-circuit instead.
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /**
  * Owners whose content the caller can see: themselves plus every member of
