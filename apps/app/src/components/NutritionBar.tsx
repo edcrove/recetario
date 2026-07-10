@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native'
+import { useThemeColors, type ThemeColors } from '../theme/tokens'
 
 interface MacroBarProps {
   label: string
@@ -9,6 +10,7 @@ interface MacroBarProps {
 }
 
 function MacroBar({ label, value, unit, color, target }: MacroBarProps) {
+  const s = makeStyles(useThemeColors())
   const pct = target ? Math.min(100, Math.round((value / target) * 100)) : null
   return (
     <View style={s.macroItem}>
@@ -50,6 +52,8 @@ export function NutritionBar({
   targets,
   label,
 }: Props) {
+  const colors = useThemeColors()
+  const s = makeStyles(colors)
   return (
     <View style={s.container}>
       {label && <Text style={s.label}>{label}</Text>}
@@ -86,24 +90,25 @@ export function NutritionBar({
   )
 }
 
-const s = StyleSheet.create({
-  container: { backgroundColor: '#f9fafb', borderRadius: 10, padding: 12, marginVertical: 8 },
-  label: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#9ca3af',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 6,
-  },
-  caloriesRow: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 10 },
-  caloriesValue: { fontSize: 28, fontWeight: '800', color: '#111827' },
-  caloriesUnit: { fontSize: 14, color: '#6b7280' },
-  caloriesTarget: { fontSize: 12, color: '#9ca3af' },
-  macros: { flexDirection: 'row', gap: 8 },
-  macroItem: { flex: 1, alignItems: 'center', gap: 2 },
-  macroLabel: { fontSize: 10, color: '#9ca3af', fontWeight: '600' },
-  macroValue: { fontSize: 14, fontWeight: '700' },
-  barBg: { width: '100%', height: 4, backgroundColor: '#e5e7eb', borderRadius: 2, marginTop: 2 },
-  barFill: { height: 4, borderRadius: 2 },
-})
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { backgroundColor: c.surface, borderRadius: 10, padding: 12, marginVertical: 8 },
+    label: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: c.inkSoft,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginBottom: 6,
+    },
+    caloriesRow: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 10 },
+    caloriesValue: { fontSize: 28, fontWeight: '800', color: c.ink },
+    caloriesUnit: { fontSize: 14, color: c.inkSoft },
+    caloriesTarget: { fontSize: 12, color: c.inkSoft },
+    macros: { flexDirection: 'row', gap: 8 },
+    macroItem: { flex: 1, alignItems: 'center', gap: 2 },
+    macroLabel: { fontSize: 10, color: c.inkSoft, fontWeight: '600' },
+    macroValue: { fontSize: 14, fontWeight: '700' },
+    barBg: { width: '100%', height: 4, backgroundColor: c.line, borderRadius: 2, marginTop: 2 },
+    barFill: { height: 4, borderRadius: 2 },
+  })

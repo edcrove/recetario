@@ -12,8 +12,11 @@ import {
 import { useRouter } from 'expo-router'
 import { api } from '../../src/api/client'
 import { useAuth } from '../../src/providers/AuthProvider'
+import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 
 export default function LoginScreen() {
+  const colors = useThemeColors()
+  const s = makeStyles(colors)
   const router = useRouter()
   const { signIn } = useAuth()
   const [email, setEmail] = useState('')
@@ -96,37 +99,39 @@ export default function LoginScreen() {
   )
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  inner: { flex: 1, justifyContent: 'center', paddingHorizontal: 32 },
-  title: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#2563eb',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  subtitle: { fontSize: 16, color: '#6b7280', textAlign: 'center', marginBottom: 32 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 10,
-    padding: 14,
-    fontSize: 16,
-    marginBottom: 12,
-    backgroundColor: '#f9fafb',
-  },
-  error: { color: '#ef4444', fontSize: 14, marginBottom: 8 },
-  btn: {
-    backgroundColor: '#2563eb',
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  btnDisabled: { opacity: 0.6 },
-  btnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  link: { marginTop: 16, alignItems: 'center' },
-  linkText: { color: '#6b7280', fontSize: 14 },
-  linkBold: { color: '#2563eb', fontWeight: '600' },
-})
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.surface },
+    inner: { flex: 1, justifyContent: 'center', paddingHorizontal: 32 },
+    title: {
+      fontSize: 32,
+      fontWeight: '800',
+      color: c.terracotta,
+      textAlign: 'center',
+      marginBottom: 4,
+      fontFamily: fonts.display,
+    },
+    subtitle: { fontSize: 16, color: c.inkSoft, textAlign: 'center', marginBottom: 32 },
+    input: {
+      borderWidth: 1,
+      borderColor: c.line,
+      borderRadius: 10,
+      padding: 14,
+      fontSize: 16,
+      marginBottom: 12,
+      backgroundColor: c.surface,
+    },
+    error: { color: c.danger, fontSize: 14, marginBottom: 8 },
+    btn: {
+      backgroundColor: c.terracotta,
+      borderRadius: 10,
+      paddingVertical: 14,
+      alignItems: 'center',
+      marginTop: 4,
+    },
+    btnDisabled: { opacity: 0.6 },
+    btnText: { color: c.surface, fontSize: 16, fontWeight: '700' },
+    link: { marginTop: 16, alignItems: 'center' },
+    linkText: { color: c.inkSoft, fontSize: 14 },
+    linkBold: { color: c.terracotta, fontWeight: '600' },
+  })

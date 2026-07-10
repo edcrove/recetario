@@ -12,8 +12,11 @@ import {
 import { useRouter } from 'expo-router'
 import { api } from '../../src/api/client'
 import { useAuth } from '../../src/providers/AuthProvider'
+import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 
 export default function RegisterScreen() {
+  const colors = useThemeColors()
+  const s = makeStyles(colors)
   const router = useRouter()
   const { signIn } = useAuth()
   const [displayName, setDisplayName] = useState('')
@@ -133,32 +136,39 @@ export default function RegisterScreen() {
   )
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  inner: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 32, paddingVertical: 40 },
-  title: { fontSize: 28, fontWeight: '800', color: '#111827', marginBottom: 4 },
-  subtitle: { fontSize: 15, color: '#6b7280', marginBottom: 28 },
-  label: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 4, marginTop: 8 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 10,
-    padding: 14,
-    fontSize: 16,
-    marginBottom: 4,
-    backgroundColor: '#f9fafb',
-  },
-  error: { color: '#ef4444', fontSize: 14, marginVertical: 8 },
-  btn: {
-    backgroundColor: '#2563eb',
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  btnDisabled: { opacity: 0.6 },
-  btnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  link: { marginTop: 20, alignItems: 'center' },
-  linkText: { color: '#6b7280', fontSize: 14 },
-  linkBold: { color: '#2563eb', fontWeight: '600' },
-})
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.surface },
+    inner: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 32, paddingVertical: 40 },
+    title: {
+      fontSize: 28,
+      fontWeight: '800',
+      color: c.ink,
+      marginBottom: 4,
+      fontFamily: fonts.display,
+    },
+    subtitle: { fontSize: 15, color: c.inkSoft, marginBottom: 28 },
+    label: { fontSize: 13, fontWeight: '600', color: c.ink, marginBottom: 4, marginTop: 8 },
+    input: {
+      borderWidth: 1,
+      borderColor: c.line,
+      borderRadius: 10,
+      padding: 14,
+      fontSize: 16,
+      marginBottom: 4,
+      backgroundColor: c.surface,
+    },
+    error: { color: c.danger, fontSize: 14, marginVertical: 8 },
+    btn: {
+      backgroundColor: c.terracotta,
+      borderRadius: 10,
+      paddingVertical: 14,
+      alignItems: 'center',
+      marginTop: 16,
+    },
+    btnDisabled: { opacity: 0.6 },
+    btnText: { color: c.surface, fontSize: 16, fontWeight: '700' },
+    link: { marginTop: 20, alignItems: 'center' },
+    linkText: { color: c.inkSoft, fontSize: 14 },
+    linkBold: { color: c.terracotta, fontWeight: '600' },
+  })

@@ -11,6 +11,7 @@ import { useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
 import { useAuth } from '../providers/AuthProvider'
+import { useThemeColors, type ThemeColors } from '../theme/tokens'
 
 interface Props {
   visible: boolean
@@ -48,6 +49,8 @@ const MENU_ITEMS = [
 ] as const
 
 export function UserMenu({ visible, onClose }: Props) {
+  const colors = useThemeColors()
+  const s = makeStyles(colors)
   const router = useRouter()
   const { signOut } = useAuth()
 
@@ -137,62 +140,63 @@ export function UserMenu({ visible, onClose }: Props) {
   )
 }
 
-const s = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  sheet: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingBottom: 40,
-    maxHeight: '85%',
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    backgroundColor: '#e5e7eb',
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginTop: 10,
-    marginBottom: 4,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderColor: '#f3f4f6',
-    gap: 14,
-  },
-  avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#2563eb',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: { color: '#fff', fontSize: 22, fontWeight: '700' },
-  headerInfo: { flex: 1 },
-  userName: { fontSize: 17, fontWeight: '700', color: '#111827' },
-  userEmail: { fontSize: 13, color: '#6b7280', marginTop: 1 },
-  scroll: { flexGrow: 0 },
-  item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    gap: 14,
-  },
-  itemIcon: { fontSize: 22, width: 28, textAlign: 'center' },
-  itemContent: { flex: 1 },
-  itemLabel: { fontSize: 15, fontWeight: '600', color: '#111827' },
-  itemDesc: { fontSize: 12, color: '#9ca3af', marginTop: 1 },
-  chevron: { fontSize: 20, color: '#d1d5db' },
-  divider: { height: 1, backgroundColor: '#f3f4f6', marginHorizontal: 20, marginVertical: 4 },
-  signOutItem: { paddingVertical: 16 },
-  signOutLabel: { fontSize: 15, fontWeight: '600', color: '#ef4444', flex: 1 },
-})
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    backdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.4)',
+    },
+    sheet: {
+      backgroundColor: c.surface,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      paddingBottom: 40,
+      maxHeight: '85%',
+    },
+    handle: {
+      width: 40,
+      height: 4,
+      backgroundColor: c.line,
+      borderRadius: 2,
+      alignSelf: 'center',
+      marginTop: 10,
+      marginBottom: 4,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderColor: c.sand,
+      gap: 14,
+    },
+    avatar: {
+      width: 52,
+      height: 52,
+      borderRadius: 26,
+      backgroundColor: c.terracotta,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    avatarText: { color: c.surface, fontSize: 22, fontWeight: '700' },
+    headerInfo: { flex: 1 },
+    userName: { fontSize: 17, fontWeight: '700', color: c.ink },
+    userEmail: { fontSize: 13, color: c.inkSoft, marginTop: 1 },
+    scroll: { flexGrow: 0 },
+    item: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      gap: 14,
+    },
+    itemIcon: { fontSize: 22, width: 28, textAlign: 'center' },
+    itemContent: { flex: 1 },
+    itemLabel: { fontSize: 15, fontWeight: '600', color: c.ink },
+    itemDesc: { fontSize: 12, color: c.inkSoft, marginTop: 1 },
+    chevron: { fontSize: 20, color: c.line },
+    divider: { height: 1, backgroundColor: c.sand, marginHorizontal: 20, marginVertical: 4 },
+    signOutItem: { paddingVertical: 16 },
+    signOutLabel: { fontSize: 15, fontWeight: '600', color: c.danger, flex: 1 },
+  })

@@ -15,8 +15,11 @@ import { notify } from '../../src/utils/platformAlert'
 import { AllergenBadge } from '../../src/components/AllergenBadge'
 import type { Recipe } from '@recetario/shared'
 import { macroStrip } from '../../src/utils/macroStrip'
+import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 
 export default function PickRecipeScreen() {
+  const colors = useThemeColors()
+  const styles = makeStyles(colors)
   const router = useRouter()
   const queryClient = useQueryClient()
   const { date, slot, weekStart } = useLocalSearchParams<{
@@ -116,53 +119,54 @@ export default function PickRecipeScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { padding: 16, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
-  subtitle: { fontSize: 16, fontWeight: '600', marginBottom: 8 },
-  servingsRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  servingsLabel: { fontSize: 14, color: '#6b7280', flex: 1 },
-  servingsBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#f3f4f6',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  servingsBtnText: { fontSize: 20, color: '#374151', lineHeight: 22 },
-  servingsValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
-    minWidth: 28,
-    textAlign: 'center',
-  },
-  search: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 10,
-    margin: 12,
-    fontSize: 16,
-  },
-  card: {
-    padding: 16,
-    borderRadius: 8,
-    backgroundColor: '#f9f9f9',
-    marginHorizontal: 12,
-    marginBottom: 8,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  cardTitle: { fontSize: 17, fontWeight: '600', flex: 1 },
-  cardMeta: { color: '#666', marginTop: 4, fontSize: 13 },
-  cardMacros: { color: '#5C7052', marginTop: 3, fontSize: 12, fontVariant: ['tabular-nums'] },
-  empty: { textAlign: 'center', color: '#999', marginTop: 40 },
-  errorText: { color: '#ef4444', textAlign: 'center', padding: 12 },
-})
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.surface },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    header: { padding: 16, borderBottomWidth: 1, borderBottomColor: c.line },
+    subtitle: { fontSize: 16, fontWeight: '600', marginBottom: 8 },
+    servingsRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    servingsLabel: { fontSize: 14, color: c.inkSoft, flex: 1 },
+    servingsBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: c.sand,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    servingsBtnText: { fontSize: 20, color: c.ink, lineHeight: 22 },
+    servingsValue: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: c.ink,
+      minWidth: 28,
+      textAlign: 'center',
+    },
+    search: {
+      borderWidth: 1,
+      borderColor: c.line,
+      borderRadius: 8,
+      padding: 10,
+      margin: 12,
+      fontSize: 16,
+    },
+    card: {
+      padding: 16,
+      borderRadius: 8,
+      backgroundColor: c.surface,
+      marginHorizontal: 12,
+      marginBottom: 8,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 8,
+    },
+    cardTitle: { fontSize: 17, fontWeight: '600', flex: 1, fontFamily: fonts.display },
+    cardMeta: { color: c.inkSoft, marginTop: 4, fontSize: 13 },
+    cardMacros: { color: c.sage, marginTop: 3, fontSize: 12, fontVariant: ['tabular-nums'] },
+    empty: { textAlign: 'center', color: c.inkSoft, marginTop: 40 },
+    errorText: { color: c.danger, textAlign: 'center', padding: 12 },
+  })

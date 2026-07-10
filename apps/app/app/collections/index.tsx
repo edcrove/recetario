@@ -12,8 +12,11 @@ import { useRouter } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../src/api/client'
 import { notify } from '../../src/utils/platformAlert'
+import { useThemeColors, type ThemeColors } from '../../src/theme/tokens'
 
 export default function CollectionsScreen() {
+  const colors = useThemeColors()
+  const s = makeStyles(colors)
   const router = useRouter()
   const queryClient = useQueryClient()
   const [newName, setNewName] = useState('')
@@ -98,45 +101,46 @@ export default function CollectionsScreen() {
   )
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  createRow: {
-    flexDirection: 'row',
-    gap: 8,
-    padding: 16,
-    borderBottomWidth: 1,
-    borderColor: '#f3f4f6',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 15,
-    backgroundColor: '#f9fafb',
-  },
-  addBtn: {
-    backgroundColor: '#2563eb',
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    justifyContent: 'center',
-  },
-  addBtnDisabled: { opacity: 0.4 },
-  addBtnText: { color: '#fff', fontSize: 22, fontWeight: '700' },
-  list: { padding: 16, gap: 8 },
-  empty: { color: '#9ca3af', textAlign: 'center', marginTop: 32, fontSize: 14 },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f9fafb',
-    borderRadius: 12,
-    padding: 14,
-    gap: 12,
-  },
-  cardEmoji: { fontSize: 28 },
-  cardInfo: { flex: 1 },
-  cardName: { fontSize: 16, fontWeight: '600', color: '#111827' },
-  cardCount: { fontSize: 13, color: '#9ca3af', marginTop: 2 },
-  chevron: { fontSize: 20, color: '#9ca3af' },
-})
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.surface },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    createRow: {
+      flexDirection: 'row',
+      gap: 8,
+      padding: 16,
+      borderBottomWidth: 1,
+      borderColor: c.sand,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: c.line,
+      borderRadius: 8,
+      padding: 10,
+      fontSize: 15,
+      backgroundColor: c.surface,
+    },
+    addBtn: {
+      backgroundColor: c.terracotta,
+      borderRadius: 8,
+      paddingHorizontal: 14,
+      justifyContent: 'center',
+    },
+    addBtnDisabled: { opacity: 0.4 },
+    addBtnText: { color: c.surface, fontSize: 22, fontWeight: '700' },
+    list: { padding: 16, gap: 8 },
+    empty: { color: c.inkSoft, textAlign: 'center', marginTop: 32, fontSize: 14 },
+    card: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: c.surface,
+      borderRadius: 12,
+      padding: 14,
+      gap: 12,
+    },
+    cardEmoji: { fontSize: 28 },
+    cardInfo: { flex: 1 },
+    cardName: { fontSize: 16, fontWeight: '600', color: c.ink },
+    cardCount: { fontSize: 13, color: c.inkSoft, marginTop: 2 },
+    chevron: { fontSize: 20, color: c.inkSoft },
+  })

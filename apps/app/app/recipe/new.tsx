@@ -14,7 +14,7 @@ import {
 import { unitLabel } from '../../src/utils/displayIngredient'
 import { FoodTypePicker } from '../../src/components/FoodTypePicker'
 import { confirmAsync } from '../../src/utils/platformAlert'
-import { colors } from '../../src/theme/tokens'
+import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 
 const CATEGORIES: Category[] = ['Desayuno', 'Almuerzo', 'Cena', 'Postre', 'Snack', 'Bebida', 'Otro']
 
@@ -34,6 +34,8 @@ const UNITS: (Unit | '')[] = [
 ]
 
 export default function NewRecipeScreen() {
+  const colors = useThemeColors()
+  const st = makeStyles(colors)
   const router = useRouter()
   const queryClient = useQueryClient()
 
@@ -284,71 +286,78 @@ export default function NewRecipeScreen() {
   )
 }
 
-const st = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  content: { padding: 16, paddingBottom: 40 },
-  heading: { fontSize: 24, fontWeight: 'bold', marginBottom: 16 },
-  label: { fontSize: 14, fontWeight: '600', marginBottom: 4, color: '#333', marginTop: 12 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 15,
-    backgroundColor: '#fafafa',
-  },
-  inputError: { borderColor: '#ef4444' },
-  errorText: { color: '#ef4444', fontSize: 12, marginTop: 2 },
-  sectionTitle: { fontSize: 17, fontWeight: '600', marginTop: 20, marginBottom: 8 },
-  categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 4 },
-  catBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: '#eee',
-    marginBottom: 4,
-  },
-  catBtnActive: { backgroundColor: '#2563eb' },
-  catBtnText: { color: '#333', fontSize: 13 },
-  catBtnTextActive: { color: '#fff' },
-  ingRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 },
-  ingName: { flex: 2 },
-  ingQty: { flex: 1 },
-  ingPresentation: { flex: 1 },
-  unitPickerWrap: { flexDirection: 'row', gap: 4 },
-  unitBtn: {
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    borderRadius: 8,
-    backgroundColor: '#eee',
-  },
-  unitBtnActive: { backgroundColor: '#2563eb' },
-  unitBtnText: { fontSize: 11, color: '#555' },
-  unitBtnTextActive: { color: '#fff' },
-  addRow: { paddingVertical: 8 },
-  addRowText: { color: '#2563eb', fontWeight: '600' },
-  removeBtn: { color: '#ef4444', fontSize: 18, paddingHorizontal: 4 },
-  stepRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8, gap: 6 },
-  stepNum: { fontWeight: 'bold', color: '#2563eb', paddingTop: 10, width: 20 },
-  stepInput: { flex: 1 },
-  saveBtn: {
-    marginTop: 24,
-    backgroundColor: '#2563eb',
-    borderRadius: 10,
-    padding: 16,
-    alignItems: 'center',
-  },
-  saveBtnDisabled: { opacity: 0.6 },
-  saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  visRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
-  visPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: colors.sand,
-  },
-  visPillPublic: { backgroundColor: colors.terracotta },
-  visPillText: { fontSize: 13, fontWeight: '600', color: colors.ink },
-  visPillTextPublic: { color: colors.terracottaInk },
-  visHint: { flex: 1, fontSize: 12, color: colors.inkSoft },
-})
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.surface },
+    content: { padding: 16, paddingBottom: 40 },
+    heading: { fontSize: 24, fontWeight: 'bold', marginBottom: 16, fontFamily: fonts.display },
+    label: { fontSize: 14, fontWeight: '600', marginBottom: 4, color: c.ink, marginTop: 12 },
+    input: {
+      borderWidth: 1,
+      borderColor: c.line,
+      borderRadius: 8,
+      padding: 10,
+      fontSize: 15,
+      backgroundColor: c.surface,
+    },
+    inputError: { borderColor: c.danger },
+    errorText: { color: c.danger, fontSize: 12, marginTop: 2 },
+    sectionTitle: {
+      fontSize: 17,
+      fontWeight: '600',
+      marginTop: 20,
+      marginBottom: 8,
+      fontFamily: fonts.display,
+    },
+    categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 4 },
+    catBtn: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+      backgroundColor: c.sand,
+      marginBottom: 4,
+    },
+    catBtnActive: { backgroundColor: c.terracotta },
+    catBtnText: { color: c.ink, fontSize: 13 },
+    catBtnTextActive: { color: c.surface },
+    ingRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 },
+    ingName: { flex: 2 },
+    ingQty: { flex: 1 },
+    ingPresentation: { flex: 1 },
+    unitPickerWrap: { flexDirection: 'row', gap: 4 },
+    unitBtn: {
+      paddingHorizontal: 6,
+      paddingVertical: 4,
+      borderRadius: 8,
+      backgroundColor: c.sand,
+    },
+    unitBtnActive: { backgroundColor: c.terracotta },
+    unitBtnText: { fontSize: 11, color: c.inkSoft },
+    unitBtnTextActive: { color: c.surface },
+    addRow: { paddingVertical: 8 },
+    addRowText: { color: c.terracotta, fontWeight: '600' },
+    removeBtn: { color: c.danger, fontSize: 18, paddingHorizontal: 4 },
+    stepRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8, gap: 6 },
+    stepNum: { fontWeight: 'bold', color: c.terracotta, paddingTop: 10, width: 20 },
+    stepInput: { flex: 1 },
+    saveBtn: {
+      marginTop: 24,
+      backgroundColor: c.terracotta,
+      borderRadius: 10,
+      padding: 16,
+      alignItems: 'center',
+    },
+    saveBtnDisabled: { opacity: 0.6 },
+    saveBtnText: { color: c.surface, fontSize: 16, fontWeight: '700' },
+    visRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
+    visPill: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 999,
+      backgroundColor: c.sand,
+    },
+    visPillPublic: { backgroundColor: c.terracotta },
+    visPillText: { fontSize: 13, fontWeight: '600', color: c.ink },
+    visPillTextPublic: { color: c.terracottaInk },
+    visHint: { flex: 1, fontSize: 12, color: c.inkSoft },
+  })

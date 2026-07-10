@@ -4,8 +4,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../src/api/client'
 import { notify, confirmAsync } from '../../src/utils/platformAlert'
 import type { Recipe } from '@recetario/shared'
+import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 
 export default function CollectionDetailScreen() {
+  const colors = useThemeColors()
+  const s = makeStyles(colors)
   const router = useRouter()
   const queryClient = useQueryClient()
   const { id, name, emoji } = useLocalSearchParams<{
@@ -93,6 +96,7 @@ function RecipeRow({
   onPress: () => void
   onRemove: () => void
 }) {
+  const s = makeStyles(useThemeColors())
   return (
     <View style={s.card}>
       <TouchableOpacity
@@ -116,30 +120,31 @@ function RecipeRow({
   )
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  errorText: { color: '#dc2626', fontSize: 14 },
-  header: { padding: 16, borderBottomWidth: 1, borderColor: '#f3f4f6' },
-  title: { fontSize: 20, fontWeight: '700', color: '#111827' },
-  list: { padding: 16, gap: 8 },
-  empty: { color: '#9ca3af', textAlign: 'center', marginTop: 32, fontSize: 14 },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f9fafb',
-    borderRadius: 12,
-    padding: 14,
-    gap: 12,
-  },
-  cardInfo: { flex: 1 },
-  cardTitle: { fontSize: 16, fontWeight: '600', color: '#111827' },
-  cardMeta: { fontSize: 13, color: '#9ca3af', marginTop: 2 },
-  removeBtn: {
-    backgroundColor: '#fee2e2',
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  removeBtnText: { color: '#dc2626', fontSize: 13, fontWeight: '600' },
-})
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.surface },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    errorText: { color: c.danger, fontSize: 14 },
+    header: { padding: 16, borderBottomWidth: 1, borderColor: c.sand },
+    title: { fontSize: 20, fontWeight: '700', color: c.ink, fontFamily: fonts.display },
+    list: { padding: 16, gap: 8 },
+    empty: { color: c.inkSoft, textAlign: 'center', marginTop: 32, fontSize: 14 },
+    card: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: c.surface,
+      borderRadius: 12,
+      padding: 14,
+      gap: 12,
+    },
+    cardInfo: { flex: 1 },
+    cardTitle: { fontSize: 16, fontWeight: '600', color: c.ink, fontFamily: fonts.display },
+    cardMeta: { fontSize: 13, color: c.inkSoft, marginTop: 2 },
+    removeBtn: {
+      backgroundColor: '#fee2e2',
+      borderRadius: 8,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+    },
+    removeBtnText: { color: c.danger, fontSize: 13, fontWeight: '600' },
+  })

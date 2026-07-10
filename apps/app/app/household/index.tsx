@@ -12,6 +12,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../src/api/client'
 import { useAuth } from '../../src/providers/AuthProvider'
 import { confirmAsync, notify } from '../../src/utils/platformAlert'
+import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 
 const ROLE_LABELS: Record<string, string> = {
   owner: 'Dueño',
@@ -28,6 +29,8 @@ const ROLE_COLORS: Record<string, string> = {
 }
 
 export default function HouseholdScreen() {
+  const colors = useThemeColors()
+  const s = makeStyles(colors)
   const queryClient = useQueryClient()
   const { token, userId } = useAuth()
   const [newHouseholdName, setNewHouseholdName] = useState('')
@@ -235,63 +238,75 @@ export default function HouseholdScreen() {
   )
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  content: { padding: 20, paddingBottom: 40 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emptyCard: { backgroundColor: '#f9fafb', borderRadius: 12, padding: 20, marginBottom: 16 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#111827', marginBottom: 6 },
-  emptyBody: { fontSize: 14, color: '#6b7280', lineHeight: 20, marginBottom: 16 },
-  card: { backgroundColor: '#f9fafb', borderRadius: 12, padding: 16, marginBottom: 16 },
-  addCard: { backgroundColor: '#f9fafb', borderRadius: 12, padding: 16 },
-  householdName: { fontSize: 18, fontWeight: '700', color: '#111827', marginBottom: 12 },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#9ca3af',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 8,
-  },
-  memberRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 6,
-  },
-  memberInfo: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
-  roleBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
-  roleBadgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  memberUserId: { fontSize: 13, color: '#6b7280', flex: 1 },
-  pending: { fontSize: 11, color: '#f59e0b', fontWeight: '600' },
-  removeText: { color: '#ef4444', fontSize: 16, paddingHorizontal: 8 },
-  inviteBox: { marginTop: 12, borderTopWidth: 1, borderColor: '#e5e7eb', paddingTop: 12 },
-  inviteLabel: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 6 },
-  roleRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
-  roleChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 16,
-    backgroundColor: '#e5e7eb',
-  },
-  roleChipActive: { backgroundColor: '#2563eb' },
-  roleChipText: { fontSize: 13, color: '#374151', fontWeight: '500' },
-  roleChipTextActive: { color: '#fff', fontWeight: '600' },
-  inviteActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  inviteBtn: { marginTop: 12, paddingVertical: 8, alignItems: 'center' },
-  inviteBtnText: { color: '#2563eb', fontWeight: '600', fontSize: 14 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 15,
-    backgroundColor: '#fff',
-    marginBottom: 8,
-  },
-  btn: { backgroundColor: '#2563eb', borderRadius: 8, paddingVertical: 12, alignItems: 'center' },
-  btnSm: { flex: 1 },
-  btnDisabled: { opacity: 0.4 },
-  btnText: { color: '#fff', fontWeight: '600', fontSize: 15 },
-  cancelText: { color: '#6b7280', fontSize: 14 },
-})
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.surface },
+    content: { padding: 20, paddingBottom: 40 },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    emptyCard: { backgroundColor: c.surface, borderRadius: 12, padding: 20, marginBottom: 16 },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: c.ink,
+      marginBottom: 6,
+      fontFamily: fonts.display,
+    },
+    emptyBody: { fontSize: 14, color: c.inkSoft, lineHeight: 20, marginBottom: 16 },
+    card: { backgroundColor: c.surface, borderRadius: 12, padding: 16, marginBottom: 16 },
+    addCard: { backgroundColor: c.surface, borderRadius: 12, padding: 16 },
+    householdName: { fontSize: 18, fontWeight: '700', color: c.ink, marginBottom: 12 },
+    sectionLabel: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: c.inkSoft,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginBottom: 8,
+    },
+    memberRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 6,
+    },
+    memberInfo: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
+    roleBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
+    roleBadgeText: { color: c.surface, fontSize: 11, fontWeight: '700' },
+    memberUserId: { fontSize: 13, color: c.inkSoft, flex: 1 },
+    pending: { fontSize: 11, color: '#f59e0b', fontWeight: '600' },
+    removeText: { color: c.danger, fontSize: 16, paddingHorizontal: 8 },
+    inviteBox: { marginTop: 12, borderTopWidth: 1, borderColor: c.line, paddingTop: 12 },
+    inviteLabel: { fontSize: 13, fontWeight: '600', color: c.ink, marginBottom: 6 },
+    roleRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+    roleChip: {
+      paddingHorizontal: 12,
+      paddingVertical: 5,
+      borderRadius: 16,
+      backgroundColor: c.line,
+    },
+    roleChipActive: { backgroundColor: c.terracotta },
+    roleChipText: { fontSize: 13, color: c.ink, fontWeight: '500' },
+    roleChipTextActive: { color: c.surface, fontWeight: '600' },
+    inviteActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    inviteBtn: { marginTop: 12, paddingVertical: 8, alignItems: 'center' },
+    inviteBtnText: { color: c.terracotta, fontWeight: '600', fontSize: 14 },
+    input: {
+      borderWidth: 1,
+      borderColor: c.line,
+      borderRadius: 8,
+      padding: 12,
+      fontSize: 15,
+      backgroundColor: c.surface,
+      marginBottom: 8,
+    },
+    btn: {
+      backgroundColor: c.terracotta,
+      borderRadius: 8,
+      paddingVertical: 12,
+      alignItems: 'center',
+    },
+    btnSm: { flex: 1 },
+    btnDisabled: { opacity: 0.4 },
+    btnText: { color: c.surface, fontWeight: '600', fontSize: 15 },
+    cancelText: { color: c.inkSoft, fontSize: 14 },
+  })

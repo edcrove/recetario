@@ -13,6 +13,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../src/api/client'
 import { notify } from '../../src/utils/platformAlert'
+import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 
 type TabType = 'categories' | 'food-types' | 'tags'
 type TaxonomyItem = {
@@ -31,6 +32,8 @@ const TAB_LABELS: Record<TabType, string> = {
 }
 
 export default function ConfiguratorScreen() {
+  const colors = useThemeColors()
+  const s = makeStyles(colors)
   const queryClient = useQueryClient()
   const [tab, setTab] = useState<TabType>('categories')
   const [editingItem, setEditingItem] = useState<TaxonomyItem | null>(null)
@@ -254,89 +257,96 @@ export default function ConfiguratorScreen() {
   )
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  tabScroll: { borderBottomWidth: 1, borderColor: '#f3f4f6', flexGrow: 0 },
-  tabRow: { flexDirection: 'row', padding: 12, gap: 8 },
-  tabBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 16,
-    backgroundColor: '#f3f4f6',
-  },
-  tabBtnActive: { backgroundColor: '#2563eb' },
-  tabBtnText: { fontSize: 13, color: '#6b7280', fontWeight: '500' },
-  tabBtnTextActive: { color: '#fff', fontWeight: '600' },
-  list: { padding: 16, gap: 8 },
-  empty: { color: '#9ca3af', textAlign: 'center', marginTop: 32 },
-  itemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f9fafb',
-    borderRadius: 10,
-    padding: 12,
-  },
-  itemInfo: { flex: 1 },
-  itemName: { fontSize: 15, fontWeight: '600', color: '#111827' },
-  itemMeta: { flexDirection: 'row', gap: 6, marginTop: 3 },
-  badge: {
-    fontSize: 11,
-    fontWeight: '600',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  badgeUsed: { backgroundColor: '#eff6ff', color: '#2563eb' },
-  badgeEmpty: { backgroundColor: '#f3f4f6', color: '#9ca3af' },
-  systemBadge: {
-    fontSize: 11,
-    color: '#9ca3af',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    backgroundColor: '#f3f4f6',
-    borderRadius: 8,
-  },
-  itemActions: { flexDirection: 'row', gap: 6 },
-  actionBtn: { padding: 6, borderRadius: 6, backgroundColor: '#eff6ff' },
-  actionBtnDanger: { padding: 6, borderRadius: 6, backgroundColor: '#fef2f2' },
-  actionBtnWarning: { padding: 6, borderRadius: 6, backgroundColor: '#fffbeb' },
-  actionBtnText: { fontSize: 14 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalCard: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 24,
-    paddingBottom: 40,
-  },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: '#111827', marginBottom: 8 },
-  modalSubtitle: { fontSize: 14, color: '#6b7280', marginBottom: 12 },
-  modalLabel: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 6 },
-  modalInput: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 15,
-    backgroundColor: '#f9fafb',
-    marginBottom: 16,
-  },
-  modalActions: { gap: 8 },
-  modalBtn: {
-    backgroundColor: '#2563eb',
-    borderRadius: 8,
-    paddingVertical: 13,
-    alignItems: 'center',
-  },
-  modalBtnDanger: {
-    backgroundColor: '#ef4444',
-    borderRadius: 8,
-    paddingVertical: 13,
-    alignItems: 'center',
-  },
-  modalBtnDisabled: { opacity: 0.4 },
-  modalBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  cancelBtn: { alignItems: 'center', paddingVertical: 10 },
-  cancelBtnText: { color: '#9ca3af', fontSize: 14 },
-})
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.surface },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    tabScroll: { borderBottomWidth: 1, borderColor: c.sand, flexGrow: 0 },
+    tabRow: { flexDirection: 'row', padding: 12, gap: 8 },
+    tabBtn: {
+      paddingHorizontal: 14,
+      paddingVertical: 7,
+      borderRadius: 16,
+      backgroundColor: c.sand,
+    },
+    tabBtnActive: { backgroundColor: c.terracotta },
+    tabBtnText: { fontSize: 13, color: c.inkSoft, fontWeight: '500' },
+    tabBtnTextActive: { color: c.surface, fontWeight: '600' },
+    list: { padding: 16, gap: 8 },
+    empty: { color: c.inkSoft, textAlign: 'center', marginTop: 32 },
+    itemRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: c.surface,
+      borderRadius: 10,
+      padding: 12,
+    },
+    itemInfo: { flex: 1 },
+    itemName: { fontSize: 15, fontWeight: '600', color: c.ink },
+    itemMeta: { flexDirection: 'row', gap: 6, marginTop: 3 },
+    badge: {
+      fontSize: 11,
+      fontWeight: '600',
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 10,
+    },
+    badgeUsed: { backgroundColor: c.terracottaSoft, color: c.terracotta },
+    badgeEmpty: { backgroundColor: c.sand, color: c.inkSoft },
+    systemBadge: {
+      fontSize: 11,
+      color: c.inkSoft,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      backgroundColor: c.sand,
+      borderRadius: 8,
+    },
+    itemActions: { flexDirection: 'row', gap: 6 },
+    actionBtn: { padding: 6, borderRadius: 6, backgroundColor: c.terracottaSoft },
+    actionBtnDanger: { padding: 6, borderRadius: 6, backgroundColor: c.dangerSoft },
+    actionBtnWarning: { padding: 6, borderRadius: 6, backgroundColor: '#fffbeb' },
+    actionBtnText: { fontSize: 14 },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+    modalCard: {
+      backgroundColor: c.surface,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      padding: 24,
+      paddingBottom: 40,
+    },
+    modalTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: c.ink,
+      marginBottom: 8,
+      fontFamily: fonts.display,
+    },
+    modalSubtitle: { fontSize: 14, color: c.inkSoft, marginBottom: 12 },
+    modalLabel: { fontSize: 13, fontWeight: '600', color: c.ink, marginBottom: 6 },
+    modalInput: {
+      borderWidth: 1,
+      borderColor: c.line,
+      borderRadius: 8,
+      padding: 12,
+      fontSize: 15,
+      backgroundColor: c.surface,
+      marginBottom: 16,
+    },
+    modalActions: { gap: 8 },
+    modalBtn: {
+      backgroundColor: c.terracotta,
+      borderRadius: 8,
+      paddingVertical: 13,
+      alignItems: 'center',
+    },
+    modalBtnDanger: {
+      backgroundColor: c.danger,
+      borderRadius: 8,
+      paddingVertical: 13,
+      alignItems: 'center',
+    },
+    modalBtnDisabled: { opacity: 0.4 },
+    modalBtnText: { color: c.surface, fontWeight: '700', fontSize: 15 },
+    cancelBtn: { alignItems: 'center', paddingVertical: 10 },
+    cancelBtnText: { color: c.inkSoft, fontSize: 14 },
+  })
