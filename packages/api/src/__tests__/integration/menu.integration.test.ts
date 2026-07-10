@@ -279,3 +279,126 @@ describe.skipIf(skip).sequential('Menu integration tests', () => {
     expect(list.find((i) => i.ingredient === 'adjacent-week-marker')).toBeUndefined()
   })
 })
+
+// Story: day nutrition rollup (nutrition-goals epic story 2).
+describe.skipIf(skip).sequential('Day nutrition rollup', () => {
+  let token: string
+  let recipeWithNutrition: string
+  let recipeNoNutrition: string
+  const authFor = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${token}` })
+
+  beforeAll(async () => {
+    await resetTestDb()
+    // A real registered user (uuid) — the API-key owner has no users row, so it
+    // can't own a profile (user_profiles.user_id is a uuid FK).
+    const reg = await app.request('/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: `nutri-${Date.now()}@example.com`, password: 'password123' }),
+    })
+    token = (await reg.json()).token
+
+    await app.request('/auth/profile', {
+      method: 'PATCH',
+      headers: authFor(),
+      body: JSON.stringify({
+        nutritionTargets: {
+          daily_calories: 2000,
+          daily_protein_g: 100,
+          daily_carbs_g: 250,
+          daily_fat_g: 70,
+        },
+      }),
+    })
+
+    const withN = await app.request('/v1/recipes', {
+      method: 'POST',
+      headers: authFor(),
+      body: JSON.stringify({
+        title: 'Con Nutrición',
+        servings: 2,
+        category: 'Almuerzo',
+        ingredients: [{ name: 'x', quantity: 1, unit: 'g' }],
+        steps: [{ text: 'a' }],
+        nutrition: { calories: 500, protein_g: 30, carbs_g: 50, fat_g: 15 },
+      }),
+    })
+    recipeWithNutrition = (await withN.json()).id
+
+    const noN = await app.request('/v1/recipes', {
+      method: 'POST',
+      headers: authFor(),
+      body: JSON.stringify({
+        title: 'Sin Nutrición',
+        servings: 2,
+        category: 'Cena',
+        ingredients: [{ name: 'y', quantity: 1, unit: 'g' }],
+        steps: [{ text: 'b' }],
+      }),
+    })
+    recipeNoNutrition = (await noN.json()).id
+  })
+
+  it('rolls up the day with a signed delta and partial flag', async () => {
+    const date = '2026-08-03'
+    await app.request('/v1/menu', {
+      method: 'POST',
+      headers: authFor(),
+      body: JSON.stringify({ date, slot: 'Almuerzo', recipeId: recipeWithNutrition, servings: 3 }),
+    })
+    await app.request('/v1/menu', {
+      method: 'POST',
+      headers: authFor(),
+      body: JSON.stringify({ date, slot: 'Cena', recipeId: recipeNoNutrition, servings: 1 }),
+    })
+
+    const res = await app.request(`/v1/menu/day-nutrition?date=${date}`, { headers: authFor() })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.totals.calories).toBe(1500) // 500/serving × 3; no-nutrition Cena excluded
+    expect(body.delta.calories).toBe(-500)
+    expect(body.partial).toBe(true)
+    expect(body.missingCount).toBe(1)
+    expect(
+      body.byMeal.find((m: { mealCategory: string }) => m.mealCategory === 'Almuerzo'),
+    ).toBeTruthy()
+  })
+
+  it('returns zeros and a full negative delta for an empty day', async () => {
+    const res = await app.request('/v1/menu/day-nutrition?date=2026-08-15', { headers: authFor() })
+    const body = await res.json()
+    expect(body.totals.calories).toBe(0)
+    expect(body.delta.calories).toBe(-2000)
+    expect(body.partial).toBe(false)
+  })
+
+  it('a registered user without goals set gets a null target', async () => {
+    const reg = await app.request('/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: `sin-goals-${Date.now()}@example.com`,
+        password: 'password123',
+      }),
+    })
+    const t = (await reg.json()).token
+    const res = await app.request('/v1/menu/day-nutrition?date=2026-08-03', {
+      headers: { Authorization: `Bearer ${t}` },
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.target).toBeNull()
+    expect(body.delta).toBeNull()
+  })
+
+  it('an API-key (non-uuid) owner gets no target instead of a DB error', async () => {
+    // 'test-owner' is not a uuid → the profile lookup must be skipped, not crash
+    const res = await app.request('/v1/menu/day-nutrition?date=2026-08-03', {
+      headers: { Authorization: `Bearer ${TEST_API_KEY}` },
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.target).toBeNull()
+    expect(body.delta).toBeNull()
+  })
+})

@@ -41,12 +41,25 @@ export const NutritionSchema = z.object({
 })
 export type Nutrition = z.infer<typeof NutritionSchema>
 
-// Nutrition targets per day
+// A per-meal macro goal — every field optional (set only what matters).
+export const MealTargetSchema = z.object({
+  calories: z.number().min(0).optional(),
+  protein_g: z.number().min(0).optional(),
+  carbs_g: z.number().min(0).optional(),
+  fat_g: z.number().min(0).optional(),
+})
+export type MealTarget = z.infer<typeof MealTargetSchema>
+
+// Nutrition targets: daily (required baseline) plus optional per-meal goals
+// keyed by meal category slug (desayuno/almuerzo/cena/...). Stored in the
+// existing user_profiles.nutrition_targets jsonb — per_meal is additive and
+// backward compatible, so no migration.
 export const NutritionTargetsSchema = z.object({
   daily_calories: z.number().int().min(0),
   daily_protein_g: z.number().min(0),
   daily_carbs_g: z.number().min(0),
   daily_fat_g: z.number().min(0),
+  per_meal: z.record(z.string(), MealTargetSchema).optional(),
 })
 export type NutritionTargets = z.infer<typeof NutritionTargetsSchema>
 

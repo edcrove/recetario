@@ -4,6 +4,7 @@ import {
   MenuSlotSchema,
   CreateMenuEntrySchema,
   aggregateIngredients,
+  computeDayNutrition,
 } from '@recetario/shared'
 import { menuRepository } from '../db/menu-repository.js'
 import { isViewerAnywhere } from '../db/household-visibility.js'
@@ -308,12 +309,14 @@ menuRoute.openapi(getMenuNutritionRoute as any, async (c: any) => {
       fat_g: number
     } | null
     if (!n) continue
-    const scale = entry.recipeServings > 0 ? entry.servings / entry.recipeServings : 1
+    // Nutrition is stored per serving; a day's contribution is per-serving ×
+    // planned servings (NOT divided by recipeServings — that was a scaling bug).
+    const s = entry.servings
     const day = dayMap.get(entry.date) ?? { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 }
-    day.calories += Math.round(n.calories * scale)
-    day.protein_g += Math.round(n.protein_g * scale * 10) / 10
-    day.carbs_g += Math.round(n.carbs_g * scale * 10) / 10
-    day.fat_g += Math.round(n.fat_g * scale * 10) / 10
+    day.calories += Math.round(n.calories * s)
+    day.protein_g += Math.round(n.protein_g * s * 10) / 10
+    day.carbs_g += Math.round(n.carbs_g * s * 10) / 10
+    day.fat_g += Math.round(n.fat_g * s * 10) / 10
     dayMap.set(entry.date, day)
   }
 
@@ -335,4 +338,51 @@ menuRoute.openapi(getMenuNutritionRoute as any, async (c: any) => {
         daily_fat_g: number
       } | null) ?? null,
   })
+})
+
+// GET /v1/menu/day-nutrition — one day's macro rollup with signed delta vs the
+// user's daily target, per-meal breakdown, and a partial flag when a planned
+// recipe lacks nutrition data. Household-shared reads.
+const macroTotalsSchema = z.object({
+  calories: z.number(),
+  protein_g: z.number(),
+  carbs_g: z.number(),
+  fat_g: z.number(),
+})
+const dayNutritionResponseSchema = z.object({
+  date: z.string(),
+  totals: macroTotalsSchema,
+  target: macroTotalsSchema.nullable(),
+  delta: z
+    .object({
+      calories: z.number().nullable(),
+      protein_g: z.number().nullable(),
+      carbs_g: z.number().nullable(),
+      fat_g: z.number().nullable(),
+    })
+    .nullable(),
+  byMeal: z.array(z.object({ mealCategory: z.string(), totals: macroTotalsSchema })),
+  partial: z.boolean(),
+  missingCount: z.number(),
+})
+
+const getDayNutritionRoute = defineRoute({
+  method: 'get',
+  path: '/menu/day-nutrition',
+  security: [{ ApiKeyAuth: [] }],
+  request: { query: z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }) },
+  responses: {
+    200: {
+      content: { 'application/json': { schema: dayNutritionResponseSchema } },
+      description: 'Day macro rollup with delta vs target',
+    },
+  },
+})
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+menuRoute.openapi(getDayNutritionRoute as any, async (c: any) => {
+  const ownerId = c.get('ownerId')
+  const { date } = c.req.valid('query')
+  const { entries, target } = await menuRepository.getDayNutritionInputs(ownerId, date)
+  return c.json({ date, ...computeDayNutrition(entries, target) })
 })

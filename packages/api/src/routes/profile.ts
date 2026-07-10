@@ -1,6 +1,7 @@
 import { createRoute as defineRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { eq } from 'drizzle-orm'
 import { getDb, schema } from '../db/index.js'
+import { NutritionTargetsSchema } from '@recetario/shared'
 import { authMiddleware } from '../middleware/auth.js'
 
 export const profileRoute = new OpenAPIHono()
@@ -22,14 +23,7 @@ const userResponseSchema = z.object({
   createdAt: z.string(),
 })
 
-const nutritionTargetsSchema = z
-  .object({
-    daily_calories: z.number().int().min(0),
-    daily_protein_g: z.number().min(0),
-    daily_carbs_g: z.number().min(0),
-    daily_fat_g: z.number().min(0),
-  })
-  .nullable()
+const nutritionTargetsSchema = NutritionTargetsSchema.nullable()
 
 const profileSchema = z.object({
   preferredServings: z.number().int().min(1).max(20).nullable(),
@@ -147,14 +141,7 @@ const patchProfileRoute = defineRoute({
             allergens: z.array(z.string().min(1).max(50)).optional(),
             goals: z.array(z.string().min(1).max(100)).optional(),
             timezone: z.string().optional(),
-            nutritionTargets: z
-              .object({
-                daily_calories: z.number().int().min(0),
-                daily_protein_g: z.number().min(0),
-                daily_carbs_g: z.number().min(0),
-                daily_fat_g: z.number().min(0),
-              })
-              .optional(),
+            nutritionTargets: NutritionTargetsSchema.optional(),
           }),
         },
       },
@@ -192,11 +179,6 @@ profileRoute.openapi(patchProfileRoute, async (c) => {
     goals: (profile?.goals as string[]) ?? [],
     timezone: profile?.timezone ?? null,
     nutritionTargets:
-      (profile?.nutritionTargets as {
-        daily_calories: number
-        daily_protein_g: number
-        daily_carbs_g: number
-        daily_fat_g: number
-      } | null) ?? null,
+      (profile?.nutritionTargets as import('@recetario/shared').NutritionTargets | null) ?? null,
   })
 })

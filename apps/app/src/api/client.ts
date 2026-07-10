@@ -128,6 +128,10 @@ export const api = {
           daily_fat_g: number
         } | null
       }>(`/v1/menu/nutrition?weekStart=${weekStart}`),
+    dayNutrition: (date: string) =>
+      request<import('@recetario/shared').DayNutrition & { date: string }>(
+        `/v1/menu/day-nutrition?date=${date}`,
+      ),
   },
   auth: {
     register: (data: { email: string; password: string; displayName?: string }) =>
