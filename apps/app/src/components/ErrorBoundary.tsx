@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { colors } from '../theme/tokens'
 
 interface Props {
   children: ReactNode
@@ -48,15 +49,15 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    backgroundColor: '#fff',
+    backgroundColor: colors.paper,
   },
-  title: { fontSize: 20, fontWeight: '700', color: '#111827', marginBottom: 8 },
-  message: { fontSize: 14, color: '#6b7280', textAlign: 'center', marginBottom: 20 },
+  title: { fontSize: 20, fontWeight: '700', color: colors.ink, marginBottom: 8 },
+  message: { fontSize: 14, color: colors.inkSoft, textAlign: 'center', marginBottom: 20 },
   button: {
-    backgroundColor: '#2563eb',
+    backgroundColor: colors.terracotta,
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 24,
   },
-  buttonText: { color: '#fff', fontWeight: '600', fontSize: 15 },
+  buttonText: { color: colors.terracottaInk, fontWeight: '600', fontSize: 15 },
 })

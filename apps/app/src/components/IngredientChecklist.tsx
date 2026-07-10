@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native'
 import type { Ingredient } from '@recetario/shared'
 import { formatIngredient } from '../utils/ingredientFormat'
+import { useThemeColors, type ThemeColors } from '../theme/tokens'
 
 interface Props {
   ingredients: Ingredient[]
@@ -10,6 +11,8 @@ interface Props {
 }
 
 export function IngredientChecklist({ ingredients, baseServings, targetServings }: Props) {
+  const colors = useThemeColors()
+  const s = makeStyles(colors)
   const [checked, setChecked] = useState<Set<number>>(new Set())
 
   const toggle = (i: number) =>
@@ -45,29 +48,30 @@ export function IngredientChecklist({ ingredients, baseServings, targetServings 
   )
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1 },
-  content: { padding: 20 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: 10,
-    gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#d1d5db',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 1,
-  },
-  checkboxChecked: { backgroundColor: '#16a34a', borderColor: '#16a34a' },
-  checkmark: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  label: { flex: 1, fontSize: 16, color: '#111827', lineHeight: 24 },
-  labelDone: { color: '#9ca3af', textDecorationLine: 'line-through' },
-})
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1 },
+    content: { padding: 20 },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      paddingVertical: 10,
+      gap: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: c.sand,
+    },
+    checkbox: {
+      width: 24,
+      height: 24,
+      borderRadius: 6,
+      borderWidth: 2,
+      borderColor: c.line,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: 1,
+    },
+    checkboxChecked: { backgroundColor: c.sage, borderColor: c.sage },
+    checkmark: { color: c.surface, fontSize: 14, fontWeight: '700' },
+    label: { flex: 1, fontSize: 16, color: c.ink, lineHeight: 24 },
+    labelDone: { color: c.inkSoft, textDecorationLine: 'line-through' },
+  })

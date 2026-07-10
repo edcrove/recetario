@@ -5,9 +5,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { LibraryRecipe } from '@recetario/shared'
 import { api } from '../../src/api/client'
 import { confirmAsync, notify } from '../../src/utils/platformAlert'
-import { colors } from '../../src/theme/tokens'
+import { useThemeColors, type ThemeColors } from '../../src/theme/tokens'
 
 export default function LibraryScreen() {
+  const colors = useThemeColors()
+  const s = makeStyles(colors)
   const router = useRouter()
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
@@ -84,39 +86,40 @@ export default function LibraryScreen() {
   )
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.paper, padding: 16 },
-  search: {
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 12,
-    padding: 11,
-    fontSize: 15,
-    backgroundColor: colors.surface,
-    color: colors.ink,
-    marginBottom: 12,
-  },
-  list: { paddingBottom: 32 },
-  card: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 12,
-  },
-  cardTitle: { fontSize: 17, fontWeight: '600', color: colors.ink },
-  cardMeta: { fontSize: 13, color: colors.inkSoft, marginTop: 2 },
-  cardTags: { fontSize: 12, color: colors.sage, marginTop: 4 },
-  copyBtn: {
-    marginTop: 12,
-    backgroundColor: colors.terracotta,
-    borderRadius: 10,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  copyBtnText: { color: colors.terracottaInk, fontWeight: '700', fontSize: 14 },
-  emptyBox: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 24 },
-  emptyTitle: { fontSize: 17, fontWeight: '600', color: colors.ink, marginBottom: 8 },
-  emptyBody: { fontSize: 14, color: colors.inkSoft, textAlign: 'center', lineHeight: 20 },
-})
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.paper, padding: 16 },
+    search: {
+      borderWidth: 1,
+      borderColor: c.line,
+      borderRadius: 12,
+      padding: 11,
+      fontSize: 15,
+      backgroundColor: c.surface,
+      color: c.ink,
+      marginBottom: 12,
+    },
+    list: { paddingBottom: 32 },
+    card: {
+      backgroundColor: c.surface,
+      borderWidth: 1,
+      borderColor: c.line,
+      borderRadius: 14,
+      padding: 14,
+      marginBottom: 12,
+    },
+    cardTitle: { fontSize: 17, fontWeight: '600', color: c.ink },
+    cardMeta: { fontSize: 13, color: c.inkSoft, marginTop: 2 },
+    cardTags: { fontSize: 12, color: c.sage, marginTop: 4 },
+    copyBtn: {
+      marginTop: 12,
+      backgroundColor: c.terracotta,
+      borderRadius: 10,
+      paddingVertical: 10,
+      alignItems: 'center',
+    },
+    copyBtnText: { color: c.terracottaInk, fontWeight: '700', fontSize: 14 },
+    emptyBox: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 24 },
+    emptyTitle: { fontSize: 17, fontWeight: '600', color: c.ink, marginBottom: 8 },
+    emptyBody: { fontSize: 14, color: c.inkSoft, textAlign: 'center', lineHeight: 20 },
+  })

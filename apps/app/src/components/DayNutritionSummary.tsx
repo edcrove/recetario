@@ -2,14 +2,7 @@ import { View, Text, StyleSheet } from 'react-native'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
 import { deltaStatus, deltaLabel } from '../utils/nutritionGoals'
-import { colors } from '../theme/tokens'
-
-const STATUS_COLOR = {
-  ok: colors.sage,
-  under: colors.inkSoft,
-  over: colors.terracotta,
-  none: colors.inkSoft,
-} as const
+import { useThemeColors, type ThemeColors } from '../theme/tokens'
 
 /**
  * Compact per-day macro rollup for the planner: total calories and, when a
@@ -17,6 +10,14 @@ const STATUS_COLOR = {
  * falta" signal. Each day renders its own instance (one cached query per day).
  */
 export function DayNutritionSummary({ date }: { date: string }) {
+  const colors = useThemeColors()
+  const s = makeStyles(colors)
+  const STATUS_COLOR = {
+    ok: colors.sage,
+    under: colors.inkSoft,
+    over: colors.terracotta,
+    none: colors.inkSoft,
+  } as const
   const { data } = useQuery({
     queryKey: ['day-nutrition', date],
     queryFn: () => api.menu.dayNutrition(date),
@@ -41,9 +42,10 @@ export function DayNutritionSummary({ date }: { date: string }) {
   )
 }
 
-const s = StyleSheet.create({
-  row: { marginTop: 2, marginBottom: 6 },
-  totals: { fontSize: 12, color: colors.inkSoft, fontVariant: ['tabular-nums'] },
-  delta: { fontSize: 12, fontWeight: '600', marginTop: 1 },
-  partial: { fontSize: 11, color: colors.terracotta, marginTop: 1 },
-})
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    row: { marginTop: 2, marginBottom: 6 },
+    totals: { fontSize: 12, color: c.inkSoft, fontVariant: ['tabular-nums'] },
+    delta: { fontSize: 12, fontWeight: '600', marginTop: 1 },
+    partial: { fontSize: 11, color: c.terracotta, marginTop: 1 },
+  })

@@ -4,8 +4,11 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { api } from '../../src/api/client'
 import type { ShoppingListItem } from '@recetario/shared'
 import { formatShoppingQty } from '../../src/utils/menuLogic'
+import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 
 export default function ShoppingListScreen() {
+  const colors = useThemeColors()
+  const styles = makeStyles(colors)
   const router = useRouter()
   const { weekStart } = useLocalSearchParams<{ weekStart: string }>()
 
@@ -62,39 +65,46 @@ export default function ShoppingListScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
-  errorText: { color: '#ef4444' },
-  retryBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#2563eb',
-    borderRadius: 8,
-  },
-  retryText: { color: '#fff', fontWeight: '600' },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  title: { fontSize: 20, fontWeight: '700' },
-  backLink: { color: '#2563eb', fontWeight: '600' },
-  weekLabel: { paddingHorizontal: 16, paddingTop: 8, color: '#6b7280', fontSize: 13 },
-  list: { padding: 12 },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
-  },
-  name: { fontSize: 15, flex: 1 },
-  qty: { fontSize: 14, color: '#6b7280', marginLeft: 12 },
-  empty: { textAlign: 'center', color: '#999', marginTop: 40 },
-})
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.surface },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
+    errorText: { color: c.danger },
+    retryBtn: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      backgroundColor: c.terracotta,
+      borderRadius: 8,
+    },
+    retryText: { color: c.surface, fontWeight: '600' },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: c.line,
+    },
+    title: { fontSize: 20, fontWeight: '700', fontFamily: fonts.display },
+    backLink: { color: c.terracotta, fontWeight: '600' },
+    weekLabel: {
+      paddingHorizontal: 16,
+      paddingTop: 8,
+      color: c.inkSoft,
+      fontSize: 13,
+      fontFamily: fonts.display,
+    },
+    list: { padding: 12 },
+    row: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 4,
+      borderBottomWidth: 1,
+      borderBottomColor: c.sand,
+    },
+    name: { fontSize: 15, flex: 1 },
+    qty: { fontSize: 14, color: c.inkSoft, marginLeft: 12 },
+    empty: { textAlign: 'center', color: c.inkSoft, marginTop: 40 },
+  })

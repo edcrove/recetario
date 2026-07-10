@@ -93,3 +93,61 @@ test('the planner shows a day nutrition summary with delta vs the goal', async (
     await page.request.delete(`${API_URL}/v1/recipes/${recipe.id}`, { headers })
   }
 })
+
+test('the planner day summary flags datos incompletos with a mixed day', async ({ page }) => {
+  const headers = await authHeaders(page)
+  await page.request.patch(`${API_URL}/auth/profile`, {
+    headers,
+    data: {
+      nutritionTargets: {
+        daily_calories: 2000,
+        daily_protein_g: 100,
+        daily_carbs_g: 250,
+        daily_fat_g: 70,
+      },
+    },
+  })
+  const withN = await page.request.post(`${API_URL}/v1/recipes`, {
+    headers,
+    data: {
+      title: `E2E Parcial A ${Date.now()}`,
+      servings: 2,
+      category: 'Almuerzo',
+      ingredients: [{ name: 'x', quantity: 1, unit: 'g' }],
+      steps: [{ text: 'a' }],
+      nutrition: { calories: 500, protein_g: 30, carbs_g: 50, fat_g: 15 },
+    },
+  })
+  const noN = await page.request.post(`${API_URL}/v1/recipes`, {
+    headers,
+    data: {
+      title: `E2E Parcial B ${Date.now()}`,
+      servings: 2,
+      category: 'Cena',
+      ingredients: [{ name: 'y', quantity: 1, unit: 'g' }],
+      steps: [{ text: 'b' }],
+    },
+  })
+  const a = (await withN.json()) as { id: string }
+  const b = (await noN.json()) as { id: string }
+  const date = new Date().toISOString().slice(0, 10)
+  await page.request.post(`${API_URL}/v1/menu`, {
+    headers,
+    data: { date, slot: 'Almuerzo', recipeId: a.id, servings: 1 },
+  })
+  await page.request.post(`${API_URL}/v1/menu`, {
+    headers,
+    data: { date, slot: 'Cena', recipeId: b.id, servings: 1 },
+  })
+  try {
+    await page.goto('/menu')
+    const summary = page.getByTestId(`day-nutrition-${date}`)
+    await expect(summary).toBeVisible({ timeout: 12000 })
+    await expect(summary.getByText('datos incompletos')).toBeVisible()
+  } finally {
+    await page.request.delete(`${API_URL}/v1/menu/${date}/Almuerzo/${a.id}`, { headers })
+    await page.request.delete(`${API_URL}/v1/menu/${date}/Cena/${b.id}`, { headers })
+    await page.request.delete(`${API_URL}/v1/recipes/${a.id}`, { headers })
+    await page.request.delete(`${API_URL}/v1/recipes/${b.id}`, { headers })
+  }
+})

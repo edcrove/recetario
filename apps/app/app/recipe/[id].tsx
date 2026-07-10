@@ -14,7 +14,7 @@ import { displayIngredient } from '../../src/utils/displayIngredient'
 import type { DisplayMode } from '../../src/utils/displayIngredient'
 import { roundNutrition, scaleNutrition } from '../../src/utils/nutritionDisplay'
 import { AllergenWarning } from '../../src/components/AllergenWarning'
-import { colors } from '../../src/theme/tokens'
+import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 import { isForeignRecipe } from '../../src/utils/roles'
 import { useAuth } from '../../src/providers/AuthProvider'
 import { NutritionBar } from '../../src/components/NutritionBar'
@@ -37,6 +37,8 @@ const ratingStyle = StyleSheet.create({
 })
 
 export default function RecipeDetailScreen() {
+  const colors = useThemeColors()
+  const s = makeStyles(colors)
   const { userId } = useAuth()
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
@@ -268,104 +270,116 @@ export default function RecipeDetailScreen() {
   )
 }
 
-const s = StyleSheet.create({
-  forkChip: {
-    backgroundColor: colors.sageSoft,
-    borderRadius: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginBottom: 10,
-  },
-  forkChipText: { color: colors.sage, fontSize: 12.5, fontWeight: '600' },
-  container: { flex: 1, backgroundColor: '#fff' },
-  content: { padding: 16 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 4, flex: 1 },
-  editLink: { color: '#2563eb', fontSize: 16, paddingLeft: 8 },
-  meta: { color: '#666', marginBottom: 16 },
-  row: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 },
-  label: { fontSize: 16 },
-  btn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#eee',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  btnText: { fontSize: 20 },
-  servings: { fontSize: 20, minWidth: 32, textAlign: 'center' },
-  toggle: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: '#eee' },
-  toggleActive: { backgroundColor: '#2563eb' },
-  toggleText: { color: '#333' },
-  toggleTextActive: { color: '#fff' },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  sectionTitle: { fontSize: 18, fontWeight: '600' },
-  tabBar: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderColor: '#f3f4f6',
-    marginVertical: 12,
-  },
-  tabBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  tabBtnActive: { borderBottomColor: '#2563eb' },
-  tabBtnText: { fontSize: 14, fontWeight: '600', color: '#9ca3af' },
-  tabBtnTextActive: { color: '#2563eb' },
-  emptyHistory: { color: '#9ca3af', textAlign: 'center', marginTop: 24, fontSize: 14 },
-  relatedRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderColor: '#f3f4f6',
-    gap: 10,
-  },
-  relatedLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#2563eb',
-    backgroundColor: '#eff6ff',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  relatedId: { flex: 1, fontSize: 13, color: '#374151' },
-  chevron: { fontSize: 18, color: '#9ca3af' },
-  sessionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderColor: '#f3f4f6',
-  },
-  sessionLeft: { flex: 1, marginRight: 12 },
-  sessionDate: { fontSize: 14, fontWeight: '600', color: '#374151' },
-  sessionNote: { fontSize: 13, color: '#6b7280', marginTop: 2 },
-  cookBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: '#16a34a',
-    borderRadius: 8,
-  },
-  cookBtnText: { color: '#fff', fontWeight: '600', fontSize: 13 },
-  ingredient: { fontSize: 15, marginBottom: 4, paddingLeft: 4 },
-  step: { flexDirection: 'row', marginBottom: 12, gap: 8 },
-  stepNum: { fontWeight: 'bold', color: '#2563eb', width: 24 },
-  stepText: { flex: 1, fontSize: 15, lineHeight: 22 },
-  notes: { fontSize: 14, color: '#555', lineHeight: 20 },
-  error: { color: 'red' },
-})
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    forkChip: {
+      backgroundColor: c.sageSoft,
+      borderRadius: 10,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      marginBottom: 10,
+    },
+    forkChipText: { color: c.sage, fontSize: 12.5, fontWeight: '600' },
+    container: { flex: 1, backgroundColor: c.surface },
+    content: { padding: 16 },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+    title: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      marginBottom: 4,
+      flex: 1,
+      fontFamily: fonts.display,
+    },
+    editLink: { color: c.terracotta, fontSize: 16, paddingLeft: 8 },
+    meta: { color: c.inkSoft, marginBottom: 16 },
+    row: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 },
+    label: { fontSize: 16 },
+    btn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: c.sand,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    btnText: { fontSize: 20 },
+    servings: { fontSize: 20, minWidth: 32, textAlign: 'center' },
+    toggle: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+      backgroundColor: c.sand,
+    },
+    toggleActive: { backgroundColor: c.terracotta },
+    toggleText: { color: c.ink },
+    toggleTextActive: { color: c.surface },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: 16,
+      marginBottom: 8,
+    },
+    sectionTitle: { fontSize: 18, fontWeight: '600', fontFamily: fonts.display },
+    tabBar: {
+      flexDirection: 'row',
+      borderBottomWidth: 1,
+      borderColor: c.sand,
+      marginVertical: 12,
+    },
+    tabBtn: {
+      flex: 1,
+      paddingVertical: 10,
+      alignItems: 'center',
+      borderBottomWidth: 2,
+      borderBottomColor: 'transparent',
+    },
+    tabBtnActive: { borderBottomColor: c.terracotta },
+    tabBtnText: { fontSize: 14, fontWeight: '600', color: c.inkSoft },
+    tabBtnTextActive: { color: c.terracotta },
+    emptyHistory: { color: c.inkSoft, textAlign: 'center', marginTop: 24, fontSize: 14 },
+    relatedRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderColor: c.sand,
+      gap: 10,
+    },
+    relatedLabel: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: c.terracotta,
+      backgroundColor: c.terracottaSoft,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 10,
+    },
+    relatedId: { flex: 1, fontSize: 13, color: c.ink },
+    chevron: { fontSize: 18, color: c.inkSoft },
+    sessionRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderColor: c.sand,
+    },
+    sessionLeft: { flex: 1, marginRight: 12 },
+    sessionDate: { fontSize: 14, fontWeight: '600', color: c.ink },
+    sessionNote: { fontSize: 13, color: c.inkSoft, marginTop: 2 },
+    cookBtn: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      backgroundColor: c.sage,
+      borderRadius: 8,
+    },
+    cookBtnText: { color: c.surface, fontWeight: '600', fontSize: 13 },
+    ingredient: { fontSize: 15, marginBottom: 4, paddingLeft: 4 },
+    step: { flexDirection: 'row', marginBottom: 12, gap: 8 },
+    stepNum: { fontWeight: 'bold', color: c.terracotta, width: 24 },
+    stepText: { flex: 1, fontSize: 15, lineHeight: 22 },
+    notes: { fontSize: 14, color: c.inkSoft, lineHeight: 20 },
+    error: { color: c.danger },
+  })

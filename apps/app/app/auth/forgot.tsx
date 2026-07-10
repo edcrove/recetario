@@ -9,8 +9,11 @@ import {
   Platform,
 } from 'react-native'
 import { useRouter } from 'expo-router'
+import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 
 export default function ForgotPasswordScreen() {
+  const colors = useThemeColors()
+  const s = makeStyles(colors)
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [submitted, setSubmitted] = useState(false)
@@ -76,30 +79,37 @@ export default function ForgotPasswordScreen() {
   )
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  inner: { flex: 1, justifyContent: 'center', paddingHorizontal: 32 },
-  icon: { fontSize: 48, textAlign: 'center', marginBottom: 16 },
-  title: { fontSize: 26, fontWeight: '700', color: '#111827', marginBottom: 8 },
-  body: { fontSize: 15, color: '#6b7280', marginBottom: 28, lineHeight: 22 },
-  bold: { fontWeight: '600', color: '#374151' },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 10,
-    padding: 14,
-    fontSize: 16,
-    marginBottom: 16,
-    backgroundColor: '#f9fafb',
-  },
-  btn: {
-    backgroundColor: '#2563eb',
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  btnDisabled: { opacity: 0.4 },
-  btnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  link: { marginTop: 20, alignItems: 'center' },
-  linkText: { color: '#2563eb', fontSize: 14, fontWeight: '500' },
-})
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.surface },
+    inner: { flex: 1, justifyContent: 'center', paddingHorizontal: 32 },
+    icon: { fontSize: 48, textAlign: 'center', marginBottom: 16 },
+    title: {
+      fontSize: 26,
+      fontWeight: '700',
+      color: c.ink,
+      marginBottom: 8,
+      fontFamily: fonts.display,
+    },
+    body: { fontSize: 15, color: c.inkSoft, marginBottom: 28, lineHeight: 22 },
+    bold: { fontWeight: '600', color: c.ink },
+    input: {
+      borderWidth: 1,
+      borderColor: c.line,
+      borderRadius: 10,
+      padding: 14,
+      fontSize: 16,
+      marginBottom: 16,
+      backgroundColor: c.surface,
+    },
+    btn: {
+      backgroundColor: c.terracotta,
+      borderRadius: 10,
+      paddingVertical: 14,
+      alignItems: 'center',
+    },
+    btnDisabled: { opacity: 0.4 },
+    btnText: { color: c.surface, fontSize: 16, fontWeight: '700' },
+    link: { marginTop: 20, alignItems: 'center' },
+    linkText: { color: c.terracotta, fontSize: 14, fontWeight: '500' },
+  })

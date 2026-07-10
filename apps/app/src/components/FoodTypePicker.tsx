@@ -8,6 +8,7 @@ import {
 } from 'react-native'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
+import { useThemeColors, type ThemeColors } from '../theme/tokens'
 
 interface Props {
   selected: string[]
@@ -16,6 +17,8 @@ interface Props {
 }
 
 export function FoodTypePicker({ selected, onChange, maxSelect = 3 }: Props) {
+  const colors = useThemeColors()
+  const s = makeStyles(colors)
   const { data: types = [], isLoading } = useQuery({
     queryKey: ['food-types'],
     queryFn: () => api.taxonomy.foodTypes(),
@@ -55,18 +58,19 @@ export function FoodTypePicker({ selected, onChange, maxSelect = 3 }: Props) {
   )
 }
 
-const s = StyleSheet.create({
-  scroll: { marginBottom: 8 },
-  row: { gap: 8, paddingHorizontal: 2 },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: '#f3f4f6',
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  chipActive: { backgroundColor: '#eff6ff', borderColor: '#2563eb' },
-  chipText: { fontSize: 13, color: '#6b7280', fontWeight: '500' },
-  chipTextActive: { color: '#2563eb', fontWeight: '600' },
-})
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    scroll: { marginBottom: 8 },
+    row: { gap: 8, paddingHorizontal: 2 },
+    chip: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+      backgroundColor: c.sand,
+      borderWidth: 1,
+      borderColor: 'transparent',
+    },
+    chipActive: { backgroundColor: c.terracottaSoft, borderColor: c.terracotta },
+    chipText: { fontSize: 13, color: c.inkSoft, fontWeight: '500' },
+    chipTextActive: { color: c.terracotta, fontWeight: '600' },
+  })
