@@ -12,7 +12,11 @@
     "ci:local": "pnpm turbo run lint typecheck test build",
     "ci:full": "DATABASE_URL=postgres://postgres:postgres@localhost:5432/recetario_test pnpm turbo run lint typecheck test build",
     "pr": "bash scripts/pr.sh",
-    "prepare": "husky"
+    "prepare": "husky",
+    "e2e:local": "bash scripts/e2e-local.sh",
+    "e2e:up": "docker compose --profile e2e up -d --build postgres-e2e api-e2e app-e2e",
+    "e2e:down": "docker compose --profile e2e down",
+    "e2e:reset": "DATABASE_URL=postgres://recetario:recetario@localhost:5433/recetario_e2e pnpm --filter @recetario/api exec tsx src/scripts/reset-db.ts && API_URL=http://localhost:3001 pnpm --filter @recetario/api seed:e2e-accounts"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

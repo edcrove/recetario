@@ -58,5 +58,57 @@ services:
     depends_on:
       - api
 
+  # ---------------------------------------------------------------------------
+  # Isolated E2E stack (profile: e2e) — its own Postgres server, API and app on
+  # separate ports so automated E2E runs never touch the manual/demo data on
+  # the default stack. Bring up: docker compose --profile e2e up -d
+  # ---------------------------------------------------------------------------
+  postgres-e2e:
+    profiles: ['e2e']
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: recetario_e2e
+      POSTGRES_USER: recetario
+      POSTGRES_PASSWORD: recetario
+    ports:
+      - '5433:5432'
+    volumes:
+      - pgdata-e2e:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U recetario -d recetario_e2e']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api-e2e:
+    profiles: ['e2e']
+    build:
+      context: .
+      dockerfile: packages/api/Dockerfile
+    ports:
+      - '3001:3000'
+    environment:
+      DATABASE_URL: postgres://recetario:recetario@postgres-e2e:5432/recetario_e2e
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production-use-64-random-hex-chars}
+      NODE_ENV: production
+      PORT: 3000
+      RATE_LIMIT_MAX_REQUESTS: '1000'
+    depends_on:
+      postgres-e2e:
+        condition: service_healthy
+
+  app-e2e:
+    profiles: ['e2e']
+    build:
+      context: .
+      dockerfile: apps/app/Dockerfile
+      args:
+        EXPO_PUBLIC_API_URL: http://localhost:3001
+    ports:
+      - '8081:80'
+    depends_on:
+      - api-e2e
+
 volumes:
   pgdata:
+  pgdata-e2e:
