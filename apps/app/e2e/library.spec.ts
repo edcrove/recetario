@@ -93,6 +93,52 @@ test.describe('Biblioteca', () => {
     }
   })
 
+  test('searching for something nonexistent shows the empty state', async ({ page }) => {
+    await page.goto('/library')
+    await expect(page.getByTestId('library-search')).toBeVisible({ timeout: 8000 })
+    await page.getByTestId('library-search').fill('zzz-inexistente-xq')
+    await expect(page.getByText('Sin resultados en la biblioteca')).toBeVisible({ timeout: 8000 })
+  })
+
+  test('a 500 while copying surfaces the error notification', async ({ page }) => {
+    const headers = await authHeaders(page)
+    const title = `E2E CopiaFalla ${Date.now()}`
+    const createRes = await page.request.post(`${API_URL}/v1/recipes`, {
+      headers,
+      data: {
+        title,
+        servings: 2,
+        category: 'Cena',
+        ingredients: [{ name: 'sal', quantity: 1, unit: 'g' }],
+        steps: [{ text: 'Único.' }],
+        visibility: 'public',
+      },
+    })
+    const recipe = (await createRes.json()) as { id: string }
+
+    await page.route(`**/v1/recipes/${recipe.id}/copy`, (route) =>
+      route.fulfill({ status: 500, body: JSON.stringify({ error: 'boom' }) }),
+    )
+    const dialogs: string[] = []
+    page.on('dialog', (dialog) => {
+      dialogs.push(dialog.message())
+      void dialog.accept()
+    })
+
+    try {
+      await page.goto('/library')
+      await page.getByTestId('library-search').fill(title)
+      const copyBtn = page.getByTestId(`library-copy-${recipe.id}`)
+      await expect(copyBtn).toBeVisible({ timeout: 10000 })
+      await copyBtn.click()
+      await expect
+        .poll(() => dialogs.some((d) => d.includes('No se pudo copiar')), { timeout: 8000 })
+        .toBe(true)
+    } finally {
+      await page.request.delete(`${API_URL}/v1/recipes/${recipe.id}`, { headers })
+    }
+  })
+
   test('a new recipe can be born public from the create form', async ({ page }) => {
     const headers = await authHeaders(page)
     const title = `E2E Nace Pública ${Date.now()}`
