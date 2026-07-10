@@ -23,6 +23,12 @@ export function registerMutationTools(server: McpServer, api: ReturnType<typeof 
         )
         .optional(),
       steps: z.array(z.object({ text: z.string() })).optional(),
+      visibility: z
+        .enum(['private', 'public'])
+        .optional()
+        .describe(
+          "Owner-only publish/unpublish: 'public' lists the recipe in the shared library; 'private' hides it again (existing forks are unaffected).",
+        ),
       dietaryTags: z
         .array(z.enum(['vegano', 'vegetariano', 'sin-gluten', 'sin-lactosa', 'keto', 'paleo']))
         .optional()

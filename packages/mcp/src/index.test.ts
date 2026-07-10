@@ -29,6 +29,8 @@ const EXPECTED_TOOLS = [
   'mergeTags',
   'getTaxonomyUsage',
   'getMacros',
+  'browseLibrary',
+  'copyRecipe',
 ]
 
 const mockFetch = vi.fn()
@@ -51,7 +53,7 @@ describe('MCP server', () => {
 })
 
 describe('registerAllTools (main bootstrap)', () => {
-  it('registers all 10 expected tools', async () => {
+  it('registers all expected tools', async () => {
     const server = createMcpServer()
     const apiClient = createApiClient()
     const spy = vi.spyOn(server, 'tool')
@@ -62,14 +64,14 @@ describe('registerAllTools (main bootstrap)', () => {
     expect(registeredNames.sort()).toEqual(EXPECTED_TOOLS.sort())
   })
 
-  it('registers exactly 26 tools — no duplicates, no missing', async () => {
+  it('registers exactly 29 tools — no duplicates, no missing', async () => {
     const server = createMcpServer()
     const apiClient = createApiClient()
     const spy = vi.spyOn(server, 'tool')
 
     await registerAllTools(server, apiClient)
 
-    expect(spy).toHaveBeenCalledTimes(27)
+    expect(spy).toHaveBeenCalledTimes(29)
   })
 })
 
