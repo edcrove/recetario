@@ -68,7 +68,7 @@ test.describe('Profile screen', () => {
     await page.getByTestId('home-profile-button').click()
     await page.getByTestId('usermenu-item-0').click()
     await expect(page.getByText('Objetivos nutricionales diarios')).toBeVisible({ timeout: 8000 })
-    await expect(page.getByText('Calorías')).toBeVisible()
+    await expect(page.getByText('Calorías', { exact: true })).toBeVisible()
   })
 
   test('name edit flow — tap, type, save', async ({ page }) => {

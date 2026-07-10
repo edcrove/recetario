@@ -16,6 +16,7 @@ import { getWeekStart, addDays, formatDate } from '../../src/utils/weekMath'
 import { buildEntryMap } from '../../src/utils/menuLogic'
 import { notify } from '../../src/utils/platformAlert'
 import { isViewerInAnyHousehold } from '../../src/utils/roles'
+import { DayNutritionSummary } from '../../src/components/DayNutritionSummary'
 import { useAuth } from '../../src/providers/AuthProvider'
 
 const SLOTS: MenuSlot[] = ['Desayuno', 'Almuerzo', 'Merienda', 'Cena', 'Snacks/Otros']
@@ -119,6 +120,7 @@ export default function MenuWeekScreen() {
       {days.map((day) => (
         <View key={day} style={s.dayCard}>
           <Text style={s.dayTitle}>{formatDate(day)}</Text>
+          <DayNutritionSummary date={day} />
           {SLOTS.map((slot) => {
             const slotEntries = entryMap.get(`${day}::${slot}`) ?? []
             return (
