@@ -65,6 +65,12 @@ const CreateRecipeInput = z.object({
     .max(3)
     .optional()
     .describe('Up to 3 food type IDs from getFoodTypes (e.g. guiso, sopa, carne)'),
+  visibility: z
+    .enum(['private', 'public'])
+    .optional()
+    .describe(
+      "Defaults to 'private' (owner + their household). 'public' also lists the recipe in the shared library where anyone can copy it as an independent fork.",
+    ),
 })
 
 export function registerCreateRecipe(server: McpServer, api: ReturnType<typeof createApiClient>) {
