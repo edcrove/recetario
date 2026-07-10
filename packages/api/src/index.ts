@@ -20,13 +20,22 @@ export const app = new OpenAPIHono()
 app.use(
   '*',
   cors({
-    // Allow any localhost port (covers Expo web :8081, docker app :8080, Expo Go :19006, etc.)
-    // and any origin configured via CORS_ORIGIN env var for production
+    // Allow localhost (Expo web :8081, docker app :8080, Expo Go :19006, ...),
+    // any private-LAN host so other devices on the router can reach the API,
+    // and anything configured via CORS_ORIGIN for production.
     origin: (origin) => {
       if (!origin) return origin
       const allowed = process.env['CORS_ORIGIN']?.split(',').map((o) => o.trim()) ?? []
       if (allowed.includes(origin)) return origin
       if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) return origin
+      // RFC 1918 private ranges: 10.x, 172.16-31.x, 192.168.x (any port)
+      if (
+        /^https?:\/\/(?:10(?:\.\d{1,3}){3}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2}|192\.168(?:\.\d{1,3}){2})(?::\d+)?$/.test(
+          origin,
+        )
+      ) {
+        return origin
+      }
       return null
     },
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
