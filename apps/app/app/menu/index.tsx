@@ -15,12 +15,22 @@ import type { MenuEntry, MenuSlot } from '@recetario/shared'
 import { getWeekStart, addDays, formatDate } from '../../src/utils/weekMath'
 import { buildEntryMap } from '../../src/utils/menuLogic'
 import { notify } from '../../src/utils/platformAlert'
+import { isViewerInAnyHousehold } from '../../src/utils/roles'
+import { useAuth } from '../../src/providers/AuthProvider'
 
 const SLOTS: MenuSlot[] = ['Desayuno', 'Almuerzo', 'Merienda', 'Cena', 'Snacks/Otros']
 
 export default function MenuWeekScreen() {
   const router = useRouter()
   const queryClient = useQueryClient()
+  const { userId } = useAuth()
+  const { data: households } = useQuery({
+    queryKey: ['households'],
+    queryFn: () => api.households.mine(),
+  })
+  // Viewers are read-only on the shared menu (the API 403s their writes) —
+  // hide every mutation affordance so there are no dead buttons.
+  const isViewer = isViewerInAnyHousehold(households, userId)
   const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()))
   const [editing, setEditing] = useState<MenuEntry | null>(null)
   const [editServings, setEditServings] = useState(1)
@@ -121,6 +131,7 @@ export default function MenuWeekScreen() {
                         <TouchableOpacity
                           testID={`menu-entry-${day}-${slot}-${entry.recipeId}`}
                           style={s.entryChipInner}
+                          disabled={isViewer}
                           onPress={() => openEdit(entry)}
                         >
                           <Text style={s.entryName} numberOfLines={1}>
@@ -128,15 +139,17 @@ export default function MenuWeekScreen() {
                           </Text>
                           <Text style={s.entryServings}>{entry.servings} porc.</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity
-                          testID={`menu-remove-${day}-${slot}-${entry.recipeId}`}
-                          style={s.removeChipBtn}
-                          onPress={() =>
-                            removeMutation.mutate({ date: day, slot, recipeId: entry.recipeId! })
-                          }
-                        >
-                          <Text style={s.removeChipText}>✕</Text>
-                        </TouchableOpacity>
+                        {!isViewer && (
+                          <TouchableOpacity
+                            testID={`menu-remove-${day}-${slot}-${entry.recipeId}`}
+                            style={s.removeChipBtn}
+                            onPress={() =>
+                              removeMutation.mutate({ date: day, slot, recipeId: entry.recipeId! })
+                            }
+                          >
+                            <Text style={s.removeChipText}>✕</Text>
+                          </TouchableOpacity>
+                        )}
                       </View>
                     ) : (
                       // Recipe was deleted since this entry was planned — show the
@@ -148,18 +161,20 @@ export default function MenuWeekScreen() {
                       </View>
                     ),
                   )}
-                  <TouchableOpacity
-                    testID={`menu-add-${day}-${slot}`}
-                    style={s.addSlotBtn}
-                    onPress={() =>
-                      router.push({
-                        pathname: '/menu/pick',
-                        params: { date: day, slot, weekStart },
-                      } as never)
-                    }
-                  >
-                    <Text style={s.addSlotText}>+ Agregar</Text>
-                  </TouchableOpacity>
+                  {!isViewer && (
+                    <TouchableOpacity
+                      testID={`menu-add-${day}-${slot}`}
+                      style={s.addSlotBtn}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/menu/pick',
+                          params: { date: day, slot, weekStart },
+                        } as never)
+                      }
+                    >
+                      <Text style={s.addSlotText}>+ Agregar</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               </View>
             )

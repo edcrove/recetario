@@ -14,6 +14,9 @@ import { displayIngredient } from '../../src/utils/displayIngredient'
 import type { DisplayMode } from '../../src/utils/displayIngredient'
 import { roundNutrition, scaleNutrition } from '../../src/utils/nutritionDisplay'
 import { AllergenWarning } from '../../src/components/AllergenWarning'
+import { colors } from '../../src/theme/tokens'
+import { isForeignRecipe } from '../../src/utils/roles'
+import { useAuth } from '../../src/providers/AuthProvider'
 import { NutritionBar } from '../../src/components/NutritionBar'
 
 type DetailTab = 'recipe' | 'history'
@@ -34,6 +37,7 @@ const ratingStyle = StyleSheet.create({
 })
 
 export default function RecipeDetailScreen() {
+  const { userId } = useAuth()
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
   const [targetServings, setTargetServings] = useState<number | null>(null)
@@ -50,6 +54,17 @@ export default function RecipeDetailScreen() {
   })
 
   // All hooks must be called before any conditional return
+  // Provenance: title of the recipe this one was forked from. The source may
+  // be private to another user (the fork is a snapshot), so a 404 is normal —
+  // the chip then falls back to a generic label.
+  const { data: forkSource } = useQuery({
+    queryKey: ['recipe', recipe?.forkedFromId],
+    queryFn: () => api.recipes.get(recipe!.forkedFromId!),
+    enabled: !!recipe?.forkedFromId,
+    retry: false,
+  })
+  const forkSourceTitle = forkSource?.title
+
   const { data: sessions = [] } = useQuery({
     queryKey: ['cook-sessions', id],
     queryFn: () => api.cookSessions.listByRecipe(id),
@@ -82,9 +97,11 @@ export default function RecipeDetailScreen() {
     <ScrollView style={s.container} contentContainerStyle={s.content}>
       <View style={s.header}>
         <Text style={s.title}>{recipe.title}</Text>
-        <TouchableOpacity onPress={() => router.push(`/recipe/${id}/edit`)}>
-          <Text style={s.editLink}>Editar</Text>
-        </TouchableOpacity>
+        {!isForeignRecipe(recipe.ownerId, userId) && (
+          <TouchableOpacity onPress={() => router.push(`/recipe/${id}/edit`)}>
+            <Text style={s.editLink}>Editar</Text>
+          </TouchableOpacity>
+        )}
       </View>
       <Text style={s.meta}>
         {recipe.category}
@@ -92,6 +109,14 @@ export default function RecipeDetailScreen() {
       </Text>
 
       {/* Allergen warning */}
+      {recipe.forkedFromId && (
+        <View testID="fork-provenance" style={s.forkChip}>
+          <Text style={s.forkChipText}>
+            🍴 Copiada de {forkSourceTitle ?? 'la biblioteca'} — tus cambios no afectan la original.
+          </Text>
+        </View>
+      )}
+
       <AllergenWarning recipe={recipe} />
 
       {/* Tab bar */}
@@ -244,6 +269,14 @@ export default function RecipeDetailScreen() {
 }
 
 const s = StyleSheet.create({
+  forkChip: {
+    backgroundColor: colors.sageSoft,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 10,
+  },
+  forkChipText: { color: colors.sage, fontSize: 12.5, fontWeight: '600' },
   container: { flex: 1, backgroundColor: '#fff' },
   content: { padding: 16 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },

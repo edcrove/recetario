@@ -4,6 +4,7 @@ import type {
   UpdateRecipe,
   MenuEntry,
   ShoppingListItem,
+  LibraryRecipe,
 } from '@recetario/shared'
 
 const BASE_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
@@ -79,7 +80,18 @@ export const api = {
       request<Recipe>('/v1/recipes', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: UpdateRecipe) =>
       request<Recipe>(`/v1/recipes/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    copy: (id: string) => request<Recipe>(`/v1/recipes/${id}/copy`, { method: 'POST' }),
     delete: (id: string) => request<void>(`/v1/recipes/${id}`, { method: 'DELETE' }),
+  },
+  library: {
+    list: (params?: { search?: string; limit?: number; offset?: number }) => {
+      const qs = new URLSearchParams(
+        Object.entries(params ?? {})
+          .filter(([, v]) => v !== undefined)
+          .map(([k, v]) => [k, String(v)]),
+      ).toString()
+      return request<LibraryRecipe[]>(`/v1/library${qs ? `?${qs}` : ''}`)
+    },
   },
   menu: {
     getWeek: (weekStart: string) => request<MenuEntry[]>(`/v1/menu?weekStart=${weekStart}`),
