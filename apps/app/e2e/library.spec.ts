@@ -28,6 +28,7 @@ test.describe('Biblioteca', () => {
         title,
         servings: 2,
         category: 'Cena',
+        tags: ['e2e', 'compartida'],
         notes: 'Original intacta',
         ingredients: [{ name: 'agua', quantity: 1, unit: 'l' }],
         steps: [{ text: 'Hervir.' }],

@@ -243,14 +243,6 @@ test.describe('Cook mode: full session flows', () => {
   })
 
   test('speech toggle switches the speaker icon on and off', async ({ page }) => {
-    // CI's headless linux exposes window.speechSynthesis but its behavior is
-    // erratic (three separate CI-only failures with the identical code passing
-    // locally): sometimes speak() works, sometimes the state never flips.
-    // The toggle is covered by local runs and unit tests — skip on CI.
-    test.skip(!!process.env['CI'], 'speechSynthesis on CI headless is present but erratic')
-    const hasSpeech = await page.evaluate(() => 'speechSynthesis' in window)
-    test.skip(!hasSpeech, 'Web Speech API unavailable in this browser build')
-
     const recipe = await createRecipe(page)
     await openCookMode(page, recipe.title)
     // Click via testID and assert via text content: CI's headless linux lacks
@@ -259,9 +251,20 @@ test.describe('Cook mode: full session flows', () => {
     const speechBtn = page.getByTestId('cook-speech-toggle')
     await expect(speechBtn).toHaveText('🔈', { timeout: 5000 })
     await speechBtn.click()
-    await expect(speechBtn).toHaveText('🔊', { timeout: 5000 })
-    await speechBtn.click()
-    await expect(speechBtn).toHaveText('🔈', { timeout: 5000 })
+
+    if (process.env['CI']) {
+      // CI's headless speechSynthesis is erratic (present but sometimes never
+      // flips state, three separate incidents): the click above still executes
+      // toggleSpeech either way — just prove cook mode survived, and toggle
+      // back off if it did flip.
+      await page.waitForTimeout(400)
+      await expect(page.getByText(/Paso 1 \/ /)).toBeVisible()
+      if ((await speechBtn.textContent()) === '🔊') await speechBtn.click()
+    } else {
+      await expect(speechBtn).toHaveText('🔊', { timeout: 5000 })
+      await speechBtn.click()
+      await expect(speechBtn).toHaveText('🔈', { timeout: 5000 })
+    }
   })
 
   // duration_min is an integer DB column, so the shortest real timer is 60s —
