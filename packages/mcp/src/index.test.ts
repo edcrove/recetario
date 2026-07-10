@@ -31,6 +31,8 @@ const EXPECTED_TOOLS = [
   'getMacros',
   'browseLibrary',
   'copyRecipe',
+  'setNutritionGoals',
+  'getDayNutrition',
 ]
 
 const mockFetch = vi.fn()
@@ -71,7 +73,7 @@ describe('registerAllTools (main bootstrap)', () => {
 
     await registerAllTools(server, apiClient)
 
-    expect(spy).toHaveBeenCalledTimes(29)
+    expect(spy).toHaveBeenCalledTimes(31)
   })
 })
 
