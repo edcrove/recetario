@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm'
-import { normalizeIngredientKey } from '@recetario/shared'
+import { normalizeIngredientKey, resolveCanonical } from '@recetario/shared'
 import { getDb, schema } from './index.js'
 
 export interface CanonicalMaps {
@@ -110,6 +110,59 @@ export class IngredientRepository {
         ),
       }))
       .sort((a, b) => a.name.localeCompare(b.name))
+  }
+
+  /**
+   * Distinct ingredient names from the caller's recipes that do NOT resolve to a
+   * canonical (nor a synonym), with how often each appears — the agent's
+   * curation worklist. Grouped by normalized key; the first spelling is shown.
+   */
+  async listUnmatchedIngredients(
+    ownerId: string,
+  ): Promise<{ name: string; normalized: string; count: number }[]> {
+    const rows = await this.db
+      .select({ name: schema.ingredients.name })
+      .from(schema.ingredients)
+      .innerJoin(schema.recipes, eq(schema.ingredients.recipeId, schema.recipes.id))
+      .where(eq(schema.recipes.ownerId, ownerId))
+
+    const maps = await this.loadCanonicalMaps()
+    const counts = new Map<string, { name: string; count: number }>()
+    for (const r of rows) {
+      const { matched, key } = resolveCanonical(r.name, maps.synonyms, maps.canonicals)
+      if (matched || !key) continue
+      const cur = counts.get(key)
+      if (cur) cur.count += 1
+      else counts.set(key, { name: r.name.trim(), count: 1 })
+    }
+    return [...counts.entries()]
+      .map(([normalized, v]) => ({ normalized, name: v.name, count: v.count }))
+      .sort((a, b) => b.count - a.count || a.normalized.localeCompare(b.normalized))
+  }
+
+  /** Finds a family by name (case-insensitive) or creates it. */
+  async findOrCreateFamily(name: string): Promise<string> {
+    const trimmed = name.trim()
+    const existing = await this.db
+      .select({ id: schema.ingredientFamilies.id, name: schema.ingredientFamilies.name })
+      .from(schema.ingredientFamilies)
+    const hit = existing.find((f) => f.name.toLowerCase() === trimmed.toLowerCase())
+    if (hit) return hit.id
+    const [row] = await this.db
+      .insert(schema.ingredientFamilies)
+      .values({ name: trimmed, isSystem: false })
+      .returning({ id: schema.ingredientFamilies.id })
+    return row!.id
+  }
+
+  /** Resolves a canonical by its display name (case-insensitive). */
+  async findCanonicalByName(name: string): Promise<{ id: string } | null> {
+    const key = normalizeIngredientKey(name)
+    const [row] = await this.db
+      .select({ id: schema.canonicalIngredients.id })
+      .from(schema.canonicalIngredients)
+      .where(eq(schema.canonicalIngredients.normalizedName, key))
+    return row ?? null
   }
 
   /** Creates a non-system canonical (idempotent on the normalized name). */
