@@ -239,6 +239,30 @@ export const api = {
         body: JSON.stringify({ sourceId, targetId }),
       }),
   },
+  ingredients: {
+    list: () =>
+      request<
+        Array<{
+          id: string
+          name: string
+          normalizedName: string
+          familyId: string | null
+          familyName: string | null
+          isSystem: boolean
+          synonyms: Array<{ id: string; synonym: string; isSystem: boolean }>
+        }>
+      >('/v1/ingredients'),
+    createCanonical: (name: string, familyName?: string) =>
+      request<{ id: string; name: string; normalizedName: string }>('/v1/ingredients/canonical', {
+        method: 'POST',
+        body: JSON.stringify(familyName ? { name, familyName } : { name }),
+      }),
+    moveSynonym: (surface: string, canonicalId: string) =>
+      request<{ id: string; synonym: string }>('/v1/ingredients/synonym', {
+        method: 'POST',
+        body: JSON.stringify({ surface, canonicalId }),
+      }),
+  },
   taxonomy: {
     foodTypes: () =>
       request<Array<{ id: string; name: string; slug: string; isSystem: boolean }>>(
