@@ -40,6 +40,7 @@ export default defineConfig({
         'src/db/menu-repository.ts',
         'src/db/ingredient-repository.ts',
         'src/db/seed-ingredients.ts',
+        'src/db/pantry-repository.ts',
         'src/db/household-visibility.ts',
       ],
       thresholds: {
