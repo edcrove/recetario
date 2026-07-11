@@ -1,6 +1,7 @@
 import { DEMO_RECIPES } from '@recetario/shared'
 import { RecipeRepository } from '../db/repository.js'
 import { getDb, schema } from '../db/index.js'
+import { seedIngredients } from '../db/seed-ingredients.js'
 
 const DEMO_OWNER_ID = 'demo'
 
@@ -37,7 +38,8 @@ async function seedTaxonomy(): Promise<void> {
     await db.insert(schema.foodTypes).values(ft).onConflictDoNothing()
   }
 
-  console.log('Taxonomy seeded.')
+  await seedIngredients(db)
+  console.log('Taxonomy + ingredients seeded.')
 }
 
 export async function seedRecipes(ownerId: string = DEMO_OWNER_ID): Promise<void> {

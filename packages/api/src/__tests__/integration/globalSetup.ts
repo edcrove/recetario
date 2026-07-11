@@ -101,6 +101,9 @@ async function seedTestDb(url: string) {
     await db.insert(schema.foodTypes).values(ft).onConflictDoNothing()
   }
 
+  const { seedIngredients } = await import('../../db/seed-ingredients.js')
+  await seedIngredients(db)
+
   await client.end()
 }
 
@@ -138,4 +141,7 @@ export async function resetTestDb() {
   for (const ft of FOOD_TYPE_SEEDS) {
     await db.insert(schema.foodTypes).values(ft)
   }
+
+  const { seedIngredients } = await import('../../db/seed-ingredients.js')
+  await seedIngredients(db)
 }
