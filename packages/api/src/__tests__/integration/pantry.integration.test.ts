@@ -53,10 +53,20 @@ describe.skipIf(skip).sequential('Pantry integration', () => {
     expect(res.status).toBe(201)
     itemId = (await res.json()).id
 
+    // A second in-stock item so the list tiebreaks two same-stock rows by name.
+    await app.request('/v1/pantry', {
+      method: 'POST',
+      headers: auth(owner.token),
+      body: JSON.stringify({ name: 'Aceite' }),
+    })
+
     const list = (await (
       await app.request('/v1/pantry', { headers: auth(owner.token) })
     ).json()) as PantryItem[]
     expect(list.some((i) => i.id === itemId)).toBe(true)
+    // Both are in stock → sorted alphabetically (Aceite before Harina).
+    const names = list.filter((i) => i.inStock).map((i) => i.name)
+    expect(names.indexOf('Aceite')).toBeLessThan(names.indexOf('Harina'))
   })
 
   it("a household member sees and can edit the owner's pantry", async () => {

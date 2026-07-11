@@ -254,6 +254,58 @@ describe.skipIf(skip).sequential('Menu integration tests', () => {
     expect(list.find((i) => i.key === 'sal')?.pantryMatch).toBe(false)
   })
 
+  it('GET /v1/menu/missing-ingredients diffs the planned week against the pantry', async () => {
+    const week = '2026-10-05' // a Monday, isolated
+    const mk = async (title: string, ings: string[]) =>
+      (await (
+        await app.request('/v1/recipes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: auth },
+          body: JSON.stringify({
+            title,
+            servings: 1,
+            category: 'Cena',
+            ingredients: ings.map((name) => ({ name, quantity: 1, unit: 'unit' })),
+            steps: [{ text: 'Cocinar.' }],
+          }),
+        })
+      ).json()) as { id: string }
+
+    const cookable = await mk('Solo arroz', ['Arroz'])
+    const incompleta = await mk('Arroz con pollo', ['Arroz', 'Pollo'])
+    for (const id of [cookable.id, incompleta.id]) {
+      await app.request('/v1/menu', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: auth },
+        body: JSON.stringify({ date: week, slot: 'Cena', recipeId: id, servings: 1 }),
+      })
+    }
+    // Only rice is in stock.
+    await app.request('/v1/pantry/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: auth },
+      body: JSON.stringify({ items: [{ name: 'Arroz', inStock: true }] }),
+    })
+
+    const body = (await (
+      await app.request(`/v1/menu/missing-ingredients?weekStart=${week}`, {
+        headers: { Authorization: auth },
+      })
+    ).json()) as {
+      missing: { key: string }[]
+      meals: { recipeId: string; cookable: boolean; missingIngredients: string[] }[]
+    }
+
+    // Combined missing has pollo but not the in-stock arroz.
+    expect(body.missing.some((m) => m.key === 'pollo')).toBe(true)
+    expect(body.missing.some((m) => m.key === 'arroz')).toBe(false)
+    // The rice-only meal is cookable; the other is not (missing pollo).
+    expect(body.meals.find((m) => m.recipeId === cookable.id)?.cookable).toBe(true)
+    const incompletaMeal = body.meals.find((m) => m.recipeId === incompleta.id)!
+    expect(incompletaMeal.cookable).toBe(false)
+    expect(incompletaMeal.missingIngredients).toContain('Pollo')
+  })
+
   it('PUT /v1/menu/shopping-list/check persists a check across reloads and can be undone', async () => {
     const check = (checked: boolean) =>
       app.request('/v1/menu/shopping-list/check', {
