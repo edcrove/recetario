@@ -162,10 +162,12 @@ describe.skipIf(skip).sequential('Household sharing: reads and viewer enforcemen
     })
 
     it("a member's shopping check is shared with the household and the latest toggle wins", async () => {
-      const shopping = (token: string) =>
-        app
-          .request(`/v1/menu/shopping-list?weekStart=${weekStart}`, { headers: auth(token) })
-          .then((r) => r.json() as Promise<{ ingredient: string; checked: boolean }[]>)
+      const shopping = async (token: string) => {
+        const res = await app.request(`/v1/menu/shopping-list?weekStart=${weekStart}`, {
+          headers: auth(token),
+        })
+        return (await res.json()) as { ingredient: string; checked: boolean }[]
+      }
       const check = (token: string, checked: boolean) =>
         app.request('/v1/menu/shopping-list/check', {
           method: 'PUT',

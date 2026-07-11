@@ -49,6 +49,37 @@ export const FlatList = ({
   </div>
 )
 
+export const SectionList = ({
+  sections,
+  renderItem,
+  renderSectionHeader,
+  keyExtractor,
+  ListEmptyComponent,
+}: {
+  sections: { data: unknown[] }[]
+  renderItem: (arg: { item: unknown; index: number; section: unknown }) => React.ReactNode
+  renderSectionHeader?: (arg: { section: unknown }) => React.ReactNode
+  keyExtractor?: (item: unknown, index: number) => string
+  ListEmptyComponent?: React.ReactNode
+}) => {
+  const isEmpty = sections.every((s) => s.data.length === 0)
+  return (
+    <div>
+      {isEmpty && ListEmptyComponent}
+      {sections.map((section, si) => (
+        <div key={si}>
+          {renderSectionHeader?.({ section })}
+          {section.data.map((item, index) => (
+            <div key={keyExtractor ? keyExtractor(item, index) : index}>
+              {renderItem({ item, index, section })}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export const TextInput = ({
   value,
   onChangeText,
