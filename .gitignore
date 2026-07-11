@@ -13,6 +13,7 @@ apps/app/.e2e-coverage/
 apps/app/.nyc_output/
 apps/app/coverage-e2e/
 apps/app/dist-coverage/
+apps/app/dist-coverage-local/
 apps/app/playwright-report/
 apps/app/test-results/
 apps/.e2e-instrumented/

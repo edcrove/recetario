@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Linking,
 } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
@@ -16,6 +17,7 @@ import { roundNutrition, scaleNutrition } from '../../src/utils/nutritionDisplay
 import { AllergenWarning } from '../../src/components/AllergenWarning'
 import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 import { isForeignRecipe } from '../../src/utils/roles'
+import { sourceHost } from '../../src/utils/sourceHost'
 import { useAuth } from '../../src/providers/AuthProvider'
 import { NutritionBar } from '../../src/components/NutritionBar'
 
@@ -109,6 +111,15 @@ export default function RecipeDetailScreen() {
         {recipe.category}
         {recipe.totalTimeMin ? ` · ${recipe.totalTimeMin} min` : ''}
       </Text>
+
+      {recipe.source?.url ? (
+        <TouchableOpacity
+          testID="recipe-source"
+          onPress={() => void Linking.openURL(recipe.source!.url!)}
+        >
+          <Text style={s.sourceLink}>Fuente: {sourceHost(recipe.source.url)}</Text>
+        </TouchableOpacity>
+      ) : null}
 
       {/* Allergen warning */}
       {recipe.forkedFromId && (
@@ -293,7 +304,8 @@ const makeStyles = (c: ThemeColors) =>
       color: c.ink,
     },
     editLink: { color: c.terracotta, fontSize: 16, paddingLeft: 8 },
-    meta: { color: c.inkSoft, marginBottom: 16 },
+    meta: { color: c.inkSoft, marginBottom: 6 },
+    sourceLink: { color: c.terracotta, fontSize: 13, marginBottom: 16, fontWeight: '600' },
     row: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 },
     label: { fontSize: 16, color: c.ink },
     btn: {

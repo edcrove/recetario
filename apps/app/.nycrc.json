@@ -14,8 +14,8 @@
   ],
   "all": true,
   "check-coverage": false,
-  "statements": 94,
+  "statements": 95,
   "branches": 84,
-  "functions": 93,
-  "lines": 95
+  "functions": 94,
+  "lines": 96
 }

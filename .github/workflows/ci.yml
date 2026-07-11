@@ -351,7 +351,7 @@ jobs:
         # to blow past even generous per-assertion timeouts under load —
         # cap concurrency here without lowering the account/worker ceiling
         # used elsewhere (playwright.config.ts, local runs).
-        run: pnpm --filter recetario-app exec playwright test e2e/smoke.spec.ts e2e/auth.spec.ts e2e/recipes.spec.ts e2e/menu.spec.ts e2e/weekly-menu.spec.ts e2e/cook-mode.spec.ts e2e/profile-menu.spec.ts e2e/coverage-gaps.spec.ts e2e/library.spec.ts e2e/viewer-role.spec.ts e2e/nutrition.spec.ts e2e/theme.spec.ts --workers=2
+        run: pnpm --filter recetario-app exec playwright test e2e/smoke.spec.ts e2e/auth.spec.ts e2e/recipes.spec.ts e2e/menu.spec.ts e2e/weekly-menu.spec.ts e2e/cook-mode.spec.ts e2e/profile-menu.spec.ts e2e/coverage-gaps.spec.ts e2e/library.spec.ts e2e/viewer-role.spec.ts e2e/nutrition.spec.ts e2e/theme.spec.ts e2e/import.spec.ts --workers=2
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:8090
           EXPO_PUBLIC_API_URL: http://localhost:3000
