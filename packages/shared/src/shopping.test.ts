@@ -169,6 +169,31 @@ describe('aggregateIngredients', () => {
   })
 })
 
+describe('aggregateIngredients with a canonical resolver', () => {
+  it('groups synonyms into one canonical line and labels it with the canonical name', () => {
+    // Resolver maps suprema/pechuga → pollo (as the API would from its data).
+    const resolve = (name: string) => {
+      const n = name.toLowerCase()
+      if (n.includes('pechuga') || n.includes('suprema')) return { key: 'pollo', display: 'Pollo' }
+      return { key: n.trim(), display: name.trim() }
+    }
+    const result = aggregateIngredients(
+      [
+        { name: 'Suprema de pollo', quantity: 2, unit: 'unit' },
+        { name: 'Pechuga', quantity: 1, unit: 'unit' },
+        { name: 'Muslo', quantity: 3, unit: 'unit' },
+      ],
+      resolve,
+    )
+    const pollo = result.find((r) => r.ingredient === 'Pollo')
+    expect(pollo).toBeDefined()
+    expect(pollo!.quantity).toBe(3)
+    // muslo stays a separate line
+    expect(result.some((r) => r.ingredient === 'Muslo')).toBe(true)
+    expect(result).toHaveLength(2)
+  })
+})
+
 describe('enrichShoppingList', () => {
   it('attaches key + aisle and marks checked items by normalized key', () => {
     const items = [

@@ -39,6 +39,14 @@ describe('checkAllergens', () => {
     expect(result.matchedAllergens).toEqual(['LECHE'])
   })
 
+  it('matches a regional synonym of the allergen (cacahuate ≡ maní)', () => {
+    const result = checkAllergens(
+      recipe({ ingredients: [{ name: 'Cacahuate tostado', quantity: 50, unit: 'g' }] }),
+      { allergens: ['maní'] },
+    )
+    expect(result.matchedAllergens).toEqual(['maní'])
+  })
+
   it('flags a dietary restriction not covered by the recipe tags', () => {
     const result = checkAllergens(recipe({ dietaryTags: [] }), {
       dietaryRestrictions: ['vegano'],

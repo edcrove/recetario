@@ -150,8 +150,9 @@ describe.skipIf(skip).sequential('Household sharing: reads and viewer enforcemen
         headers: auth(owner.token),
       })
       expect(res.status).toBe(200)
-      const items = (await res.json()) as { ingredient: string }[]
-      expect(items.some((i) => i.ingredient === 'lentejas')).toBe(true)
+      // "lentejas" resolves to the canonical "Lenteja" (key "lenteja").
+      const items = (await res.json()) as { ingredient: string; key: string }[]
+      expect(items.some((i) => i.key === 'lenteja')).toBe(true)
     })
 
     it("an outsider's week view stays empty", async () => {
@@ -166,7 +167,7 @@ describe.skipIf(skip).sequential('Household sharing: reads and viewer enforcemen
         const res = await app.request(`/v1/menu/shopping-list?weekStart=${weekStart}`, {
           headers: auth(token),
         })
-        return (await res.json()) as { ingredient: string; checked: boolean }[]
+        return (await res.json()) as { key: string; checked: boolean }[]
       }
       const check = (token: string, checked: boolean) =>
         app.request('/v1/menu/shopping-list/check', {
@@ -178,12 +179,12 @@ describe.skipIf(skip).sequential('Household sharing: reads and viewer enforcemen
       // Member checks it off — the owner sees it checked.
       await check(member.token, true)
       let ownerList = await shopping(owner.token)
-      expect(ownerList.find((i) => i.ingredient === 'lentejas')?.checked).toBe(true)
+      expect(ownerList.find((i) => i.key === 'lenteja')?.checked).toBe(true)
 
       // Owner unchecks it — the member sees the newer state (latest toggle wins).
       await check(owner.token, false)
       const memberList = await shopping(member.token)
-      expect(memberList.find((i) => i.ingredient === 'lentejas')?.checked).toBe(false)
+      expect(memberList.find((i) => i.key === 'lenteja')?.checked).toBe(false)
     })
   })
 

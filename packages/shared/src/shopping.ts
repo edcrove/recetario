@@ -118,17 +118,29 @@ function tryMerge(name: string, items: UnitGroup[]): ShoppingListItem[] {
  * Same (name, unit) pairs are summed. Different units for the same ingredient
  * are merged via the density model when possible, otherwise kept as separate lines.
  */
-export function aggregateIngredients(ingredients: ScaledIngredient[]): ShoppingListItem[] {
-  // Step 1: Group by (normalized name, unit) and sum quantities — skip zero-quantity items.
-  // The normalized name is only a grouping key; the first original spelling seen
-  // is kept for display so the list reads "Tomates", not "tomate".
+/** Resolves an ingredient name to a grouping key and the label to show for it. */
+export type IngredientResolver = (name: string) => { key: string; display: string }
+
+const defaultResolver: IngredientResolver = (name) => ({
+  key: normalizeKey(name),
+  display: name.trim(),
+})
+
+export function aggregateIngredients(
+  ingredients: ScaledIngredient[],
+  resolve: IngredientResolver = defaultResolver,
+): ShoppingListItem[] {
+  // Step 1: Group by (resolved key, unit) and sum quantities — skip zero-quantity
+  // items. `resolve` maps a raw name to its grouping key (a canonical ingredient
+  // when the API supplies the resolver, otherwise the normalized name) and the
+  // display label; the first label seen for a key wins.
   const grouped = new Map<string, UnitGroup>()
   const display = new Map<string, string>()
 
   for (const ing of ingredients) {
     if (ing.quantity !== null && ing.quantity <= 0) continue
-    const norm = normalizeKey(ing.name)
-    if (!display.has(norm)) display.set(norm, ing.name.trim())
+    const { key: norm, display: label } = resolve(ing.name)
+    if (!display.has(norm)) display.set(norm, label)
     const key = `${norm}::${ing.unit ?? '__null__'}`
     const existing = grouped.get(key)
     if (existing) {

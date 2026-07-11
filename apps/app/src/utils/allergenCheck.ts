@@ -1,4 +1,5 @@
 import type { Recipe } from '@recetario/shared'
+import { ingredientHasAllergen } from '@recetario/shared'
 
 export const DIETARY_LABELS: Record<string, string> = {
   vegano: 'Vegano',
@@ -34,9 +35,10 @@ export function checkAllergens(
   const userDietary = profile.dietaryRestrictions ?? []
   const recipeTags = (recipe.dietaryTags ?? []) as string[]
 
-  const ingredientNames = recipe.ingredients.map((i) => i.name.toLowerCase())
+  // Both sides are normalized (case/accents/plurals/presentation) and the
+  // allergen expands to its aliases, so "Cacahuate" trips a "maní" allergy.
   const matchedAllergens = userAllergens.filter((allergen) =>
-    ingredientNames.some((name) => name.includes(allergen.toLowerCase())),
+    recipe.ingredients.some((i) => ingredientHasAllergen(i.name, allergen)),
   )
 
   const unmetDietary = userDietary.filter((d) => !recipeTags.includes(d))
