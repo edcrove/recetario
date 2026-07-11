@@ -156,6 +156,46 @@ describe.skipIf(skip).sequential('Menu integration tests', () => {
     expect(pasta.unit).toBe('g')
   })
 
+  it('GET /v1/menu/shopping-list tags each item with an aisle and an unchecked default', async () => {
+    const res = await app.request('/v1/menu/shopping-list?weekStart=2026-07-07', {
+      headers: { Authorization: auth },
+    })
+    const list = await res.json()
+    const pasta = list.find((i: { ingredient: string }) => i.ingredient === 'pasta')
+    expect(pasta.aisle).toBe('almacen')
+    expect(pasta.key).toBe('pasta')
+    expect(pasta.checked).toBe(false)
+  })
+
+  it('PUT /v1/menu/shopping-list/check persists a check across reloads and can be undone', async () => {
+    const check = (checked: boolean) =>
+      app.request('/v1/menu/shopping-list/check', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: auth },
+        body: JSON.stringify({ weekStart: '2026-07-07', key: 'pasta', checked }),
+      })
+
+    const put = await check(true)
+    expect(put.status).toBe(200)
+    expect(await put.json()).toEqual({ ok: true })
+
+    let list = await (
+      await app.request('/v1/menu/shopping-list?weekStart=2026-07-07', {
+        headers: { Authorization: auth },
+      })
+    ).json()
+    expect(list.find((i: { ingredient: string }) => i.ingredient === 'pasta').checked).toBe(true)
+
+    // Unchecking flips it back (upsert on the same owner/week/key row)
+    await check(false)
+    list = await (
+      await app.request('/v1/menu/shopping-list?weekStart=2026-07-07', {
+        headers: { Authorization: auth },
+      })
+    ).json()
+    expect(list.find((i: { ingredient: string }) => i.ingredient === 'pasta').checked).toBe(false)
+  })
+
   it('GET /v1/menu/shopping-list returns empty for week with no menu', async () => {
     const res = await app.request('/v1/menu/shopping-list?weekStart=2020-01-06', {
       headers: { Authorization: auth },

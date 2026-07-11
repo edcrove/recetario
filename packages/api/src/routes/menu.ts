@@ -4,6 +4,7 @@ import {
   MenuSlotSchema,
   CreateMenuEntrySchema,
   aggregateIngredients,
+  enrichShoppingList,
   computeDayNutrition,
 } from '@recetario/shared'
 import { menuRepository } from '../db/menu-repository.js'
@@ -196,6 +197,9 @@ const ShoppingListItemSchema = z.object({
   ingredient: z.string(),
   quantity: z.number().nullable(),
   unit: z.string().nullable(),
+  key: z.string(),
+  aisle: z.string(),
+  checked: z.boolean(),
 })
 
 const getShoppingListRoute = defineRoute({
@@ -219,8 +223,44 @@ menuRoute.openapi(getShoppingListRoute, async (c) => {
   const ownerId = c.get('ownerId')
   const { weekStart } = c.req.valid('query')
   const scaled = await menuRepository.getScaledIngredients(ownerId, weekStart)
-  const list = aggregateIngredients(scaled)
+  const items = aggregateIngredients(scaled)
+  const checkedKeys = await menuRepository.getShoppingChecks(ownerId, weekStart)
+  const list = enrichShoppingList(items, checkedKeys)
   return c.json(list, 200)
+})
+
+// PUT /v1/menu/shopping-list/check — persist a per-item check-off for the week
+const putShoppingCheckRoute = defineRoute({
+  method: 'put',
+  path: '/menu/shopping-list/check',
+  security: [{ ApiKeyAuth: [] }],
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+            key: z.string().min(1),
+            checked: z.boolean(),
+          }),
+        },
+      },
+      required: true,
+    },
+  },
+  responses: {
+    200: {
+      content: { 'application/json': { schema: z.object({ ok: z.boolean() }) } },
+      description: 'Check state persisted',
+    },
+  },
+})
+
+menuRoute.openapi(putShoppingCheckRoute, async (c) => {
+  const ownerId = c.get('ownerId')
+  const { weekStart, key, checked } = c.req.valid('json')
+  await menuRepository.setShoppingCheck(ownerId, weekStart, key, checked)
+  return c.json({ ok: true }, 200)
 })
 
 // GET /v1/menu/nutrition — daily nutrition totals vs user targets

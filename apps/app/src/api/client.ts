@@ -3,7 +3,7 @@ import type {
   CreateRecipe,
   UpdateRecipe,
   MenuEntry,
-  ShoppingListItem,
+  ShoppingListEntry,
   LibraryRecipe,
 } from '@recetario/shared'
 
@@ -110,7 +110,12 @@ export const api = {
         body: JSON.stringify({ servings }),
       }),
     shoppingList: (weekStart: string) =>
-      request<ShoppingListItem[]>(`/v1/menu/shopping-list?weekStart=${weekStart}`),
+      request<ShoppingListEntry[]>(`/v1/menu/shopping-list?weekStart=${weekStart}`),
+    setShoppingCheck: (weekStart: string, key: string, checked: boolean) =>
+      request<{ ok: boolean }>('/v1/menu/shopping-list/check', {
+        method: 'PUT',
+        body: JSON.stringify({ weekStart, key, checked }),
+      }),
     nutrition: (weekStart: string) =>
       request<{
         weekStart: string
