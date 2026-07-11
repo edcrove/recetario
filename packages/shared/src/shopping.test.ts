@@ -213,4 +213,22 @@ describe('enrichShoppingList', () => {
   it('returns empty for empty input', () => {
     expect(enrichShoppingList([], new Set())).toEqual([])
   })
+
+  it('flags pantryMatch for items whose key is an in-stock pantry key', () => {
+    const items = [
+      { ingredient: 'Harina', quantity: 500, unit: 'g' as const },
+      { ingredient: 'Sal', quantity: null, unit: null },
+    ]
+    const result = enrichShoppingList(items, new Set(), new Set(['harina']))
+    expect(result[0]).toMatchObject({ key: 'harina', pantryMatch: true })
+    expect(result[1]).toMatchObject({ key: 'sal', pantryMatch: false })
+  })
+
+  it('defaults pantryMatch to false when no pantry set is given', () => {
+    const result = enrichShoppingList(
+      [{ ingredient: 'Harina', quantity: 1, unit: 'kg' }],
+      new Set(),
+    )
+    expect(result[0]!.pantryMatch).toBe(false)
+  })
 })

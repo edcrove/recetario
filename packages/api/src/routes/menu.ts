@@ -9,6 +9,7 @@ import {
   computeDayNutrition,
 } from '@recetario/shared'
 import { ingredientRepository } from '../db/ingredient-repository.js'
+import { pantryRepository } from '../db/pantry-repository.js'
 import { menuRepository } from '../db/menu-repository.js'
 import { isViewerAnywhere } from '../db/household-visibility.js'
 import { authMiddleware } from '../middleware/auth.js'
@@ -202,6 +203,7 @@ const ShoppingListItemSchema = z.object({
   key: z.string(),
   aisle: z.string(),
   checked: z.boolean(),
+  pantryMatch: z.boolean(),
 })
 
 const getShoppingListRoute = defineRoute({
@@ -234,7 +236,13 @@ menuRoute.openapi(getShoppingListRoute, async (c) => {
   }
   const items = aggregateIngredients(scaled, resolve)
   const checkedKeys = await menuRepository.getShoppingChecks(ownerId, weekStart)
-  const list = enrichShoppingList(items, checkedKeys)
+  // Mark items the household already has: resolve in-stock pantry names to the
+  // same canonical keys the list uses.
+  const pantryNames = await pantryRepository.listInStockNames(ownerId)
+  const pantryKeys = new Set(
+    pantryNames.map((n) => resolveCanonical(n, maps.synonyms, maps.canonicals).key),
+  )
+  const list = enrichShoppingList(items, checkedKeys, pantryKeys)
   return c.json(list, 200)
 })
 

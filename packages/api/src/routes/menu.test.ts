@@ -28,6 +28,10 @@ vi.mock('../db/household-visibility.js', () => ({
   isViewerAnywhere: vi.fn(async () => false),
 }))
 
+vi.mock('../db/pantry-repository.js', () => ({
+  pantryRepository: { listInStockNames: vi.fn(async () => [] as string[]) },
+}))
+
 vi.mock('../db/ingredient-repository.js', () => ({
   ingredientRepository: {
     loadCanonicalMaps: vi.fn(async () => ({
@@ -291,8 +295,24 @@ describe('GET /v1/menu/shopping-list', () => {
         key: 'pasta',
         aisle: 'almacen',
         checked: false,
+        pantryMatch: false,
       },
     ])
+  })
+
+  it('flags pantryMatch when the item is in the in-stock pantry', async () => {
+    mockRepo.getScaledIngredients.mockResolvedValue([{ name: 'pasta', quantity: 200, unit: 'g' }])
+    const { pantryRepository } = await import('../db/pantry-repository.js')
+    ;(pantryRepository.listInStockNames as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
+      'Pasta',
+    ])
+
+    const res = await app.request('/v1/menu/shopping-list?weekStart=2026-06-30', {
+      method: 'GET',
+      headers: AUTH,
+    })
+    const json = (await res.json()) as { ingredient: string; pantryMatch: boolean }[]
+    expect(json[0]).toMatchObject({ ingredient: 'pasta', pantryMatch: true })
   })
 
   it('marks an item checked when its normalized key is in the persisted set', async () => {
