@@ -1,4 +1,5 @@
 import { eq, inArray, and } from 'drizzle-orm'
+import { normalizeIngredientKey } from '@recetario/shared'
 import { getDb, schema } from './index.js'
 import { getVisibleOwnerIds } from './household-visibility.js'
 
@@ -115,6 +116,61 @@ export class PantryRepository {
     if (!visible) return false
     await this.db.delete(schema.pantryItems).where(eq(schema.pantryItems.id, id))
     return true
+  }
+
+  /**
+   * Upserts items by normalized name against the household's pantry: a matching
+   * item is updated in place (quantity/unit/expiry/inStock), others are created
+   * under the caller. Used by the agent's update_pantry tool.
+   */
+  async upsert(ownerId: string, items: CreatePantryItem[]): Promise<PantryItem[]> {
+    const existing = await this.list(ownerId)
+    const byKey = new Map(existing.map((i) => [normalizeIngredientKey(i.name), i]))
+    const results: PantryItem[] = []
+    for (const item of items) {
+      const match = byKey.get(normalizeIngredientKey(item.name))
+      if (match) {
+        results.push((await this.update(ownerId, match.id, item))!)
+      } else {
+        results.push(await this.create(ownerId, item))
+      }
+    }
+    return results
+  }
+
+  /** Household-visible recipes with their ingredient names, for what_can_i_cook. */
+  async listHouseholdRecipesWithIngredients(
+    ownerId: string,
+  ): Promise<{ id: string; title: string; ingredients: string[] }[]> {
+    const visibleOwners = await getVisibleOwnerIds(ownerId)
+    const recipes = await this.db
+      .select({ id: schema.recipes.id, title: schema.recipes.title })
+      .from(schema.recipes)
+      .where(inArray(schema.recipes.ownerId, visibleOwners))
+    if (recipes.length === 0) return []
+    const rows = await this.db
+      .select({ recipeId: schema.ingredients.recipeId, name: schema.ingredients.name })
+      .from(schema.ingredients)
+      .where(
+        inArray(
+          schema.ingredients.recipeId,
+          recipes.map((r) => r.id),
+        ),
+      )
+    const byRecipe = new Map<string, string[]>()
+    for (const row of rows) {
+      const list = byRecipe.get(row.recipeId) ?? []
+      list.push(row.name)
+      byRecipe.set(row.recipeId, list)
+    }
+    return recipes.map((r) => ({
+      id: r.id,
+      title: r.title,
+      // Every recipe is created with ≥1 ingredient (API-enforced), so the map
+      // always has an entry; the ?? [] is a defensive fallback only.
+      /* v8 ignore next */
+      ingredients: byRecipe.get(r.id) ?? [],
+    }))
   }
 }
 
