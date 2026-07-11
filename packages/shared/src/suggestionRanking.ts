@@ -28,6 +28,8 @@ export interface SuggestionResult {
   missingIngredients: string[]
   /** How well the recipe fits the remaining daily goal; null without goal/nutrition. */
   goalFit: GoalFit | null
+  /** Per-serving nutrition passed through for the card's macro strip. */
+  nutrition: Nutrition | null
 }
 
 /** Relative distance of the recipe's calories from the remaining calories. */
@@ -67,6 +69,7 @@ export function rankSuggestions(
         matchFraction: totalCount > 0 ? matchedCount / totalCount : 0,
         missingIngredients: missing.map((i) => i.name),
         goalFit: distance === null ? null : fitFromDistance(distance),
+        nutrition: r.nutrition,
         _distance: distance,
       }
     })
