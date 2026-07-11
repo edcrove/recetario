@@ -140,6 +140,81 @@ describe.skipIf(skip).sequential('Pantry integration', () => {
     expect(list.some((i) => i.id === itemId)).toBe(false)
   })
 
+  it('bulk upsert creates new items and updates existing ones by name', async () => {
+    // Create via bulk
+    const first = (await (
+      await app.request('/v1/pantry/bulk', {
+        method: 'POST',
+        headers: auth(owner.token),
+        body: JSON.stringify({ items: [{ name: 'Azúcar', quantity: '1', unit: 'kg' }] }),
+      })
+    ).json()) as PantryItem[]
+    expect(first).toHaveLength(1)
+
+    // Upsert the same name (case/accent-insensitive) → updates, no duplicate
+    const second = (await (
+      await app.request('/v1/pantry/bulk', {
+        method: 'POST',
+        headers: auth(member.token),
+        body: JSON.stringify({ items: [{ name: 'azucar', quantity: '2', inStock: false }] }),
+      })
+    ).json()) as (PantryItem & { quantity: string; inStock: boolean })[]
+    expect(second[0]!.id).toBe(first[0]!.id)
+    expect(second[0]!.quantity).toBe('2')
+    expect(second[0]!.inStock).toBe(false)
+  })
+
+  it('GET /v1/pantry/cookable ranks recipes by in-stock pantry coverage', async () => {
+    const mk = async (title: string, ingredients: string[]) =>
+      (await (
+        await app.request('/v1/recipes', {
+          method: 'POST',
+          headers: auth(owner.token),
+          body: JSON.stringify({
+            title,
+            servings: 1,
+            category: 'Cena',
+            ingredients: ingredients.map((name) => ({ name, quantity: 1, unit: 'unit' })),
+            steps: [{ text: 'Cocinar.' }],
+          }),
+        })
+      ).json()) as { id: string }
+
+    const full = await mk('Solo Arroz', ['Arroz'])
+    const partial = await mk('Arroz con Pollo', ['Arroz', 'Pollo'])
+    // Only rice is in stock.
+    await app.request('/v1/pantry/bulk', {
+      method: 'POST',
+      headers: auth(owner.token),
+      body: JSON.stringify({ items: [{ name: 'Arroz', inStock: true }] }),
+    })
+
+    const ranked = (await (
+      await app.request('/v1/pantry/cookable', { headers: auth(member.token) })
+    ).json()) as {
+      id: string
+      matchedCount: number
+      totalCount: number
+      missingIngredients: string[]
+    }[]
+    const fullRow = ranked.find((r) => r.id === full.id)!
+    const partialRow = ranked.find((r) => r.id === partial.id)!
+    expect(fullRow.matchedCount).toBe(1)
+    expect(fullRow.totalCount).toBe(1)
+    expect(partialRow.missingIngredients).toContain('Pollo')
+    // fully-cookable ranks before the partial one
+    expect(ranked.findIndex((r) => r.id === full.id)).toBeLessThan(
+      ranked.findIndex((r) => r.id === partial.id),
+    )
+  })
+
+  it('cookable is empty for a user with no visible recipes', async () => {
+    const ranked = await (
+      await app.request('/v1/pantry/cookable', { headers: auth(outsider.token) })
+    ).json()
+    expect(ranked).toEqual([])
+  })
+
   it('listInStockNames returns only in-stock names for the household', async () => {
     const { pantryRepository } = await import('../../db/pantry-repository.js')
     await app.request('/v1/pantry', {

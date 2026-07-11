@@ -1,5 +1,7 @@
 import { createRoute as defineRoute, OpenAPIHono, z } from '@hono/zod-openapi'
+import { resolveCanonical, rankCookable } from '@recetario/shared'
 import { pantryRepository } from '../db/pantry-repository.js'
+import { ingredientRepository } from '../db/ingredient-repository.js'
 import { authMiddleware } from '../middleware/auth.js'
 import '../types.js'
 
@@ -67,6 +69,74 @@ pantryRoute.openapi(createRoute, async (c) => {
   const ownerId = c.get('ownerId')
   const item = await pantryRepository.create(ownerId, c.req.valid('json'))
   return c.json(item, 201)
+})
+
+// POST /v1/pantry/bulk — upsert several items by name (agent's update_pantry)
+const bulkRoute = defineRoute({
+  method: 'post',
+  path: '/pantry/bulk',
+  security: [{ ApiKeyAuth: [] }],
+  request: {
+    body: {
+      content: { 'application/json': { schema: z.object({ items: z.array(createBody).min(1) }) } },
+      required: true,
+    },
+  },
+  responses: {
+    200: {
+      content: { 'application/json': { schema: z.array(pantryItemSchema) } },
+      description: 'Items upserted',
+    },
+  },
+})
+
+pantryRoute.openapi(bulkRoute, async (c) => {
+  const ownerId = c.get('ownerId')
+  const { items } = c.req.valid('json')
+  return c.json(await pantryRepository.upsert(ownerId, items), 200)
+})
+
+// GET /v1/pantry/cookable — recipes ranked by pantry coverage (what_can_i_cook)
+const cookableRoute = defineRoute({
+  method: 'get',
+  path: '/pantry/cookable',
+  security: [{ ApiKeyAuth: [] }],
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: z.array(
+            z.object({
+              id: z.uuid(),
+              title: z.string(),
+              matchedCount: z.number().int(),
+              totalCount: z.number().int(),
+              matchFraction: z.number(),
+              missingIngredients: z.array(z.string()),
+            }),
+          ),
+        },
+      },
+      description: 'Recipes ranked by how many ingredients are in stock',
+    },
+  },
+})
+
+pantryRoute.openapi(cookableRoute, async (c) => {
+  const ownerId = c.get('ownerId')
+  const maps = await ingredientRepository.loadCanonicalMaps()
+  const toKey = (name: string) => resolveCanonical(name, maps.synonyms, maps.canonicals).key
+  const pantryKeys = new Set((await pantryRepository.listInStockNames(ownerId)).map(toKey))
+  const recipes = await pantryRepository.listHouseholdRecipesWithIngredients(ownerId)
+  const ranked = rankCookable(
+    recipes.map((r) => ({
+      id: r.id,
+      title: r.title,
+      ingredients: r.ingredients.map((name) => ({ name, key: toKey(name) })),
+    })),
+    pantryKeys,
+  )
+  return c.json(ranked, 200)
 })
 
 // PATCH /v1/pantry/{id}

@@ -6,9 +6,23 @@ vi.mock('../db/pantry-repository.js', () => {
     create: vi.fn(),
     update: vi.fn(),
     remove: vi.fn(),
+    upsert: vi.fn(),
+    listInStockNames: vi.fn(async () => [] as string[]),
+    listHouseholdRecipesWithIngredients: vi.fn(async () => []),
   }
   return { pantryRepository: mockRepo, PantryRepository: vi.fn(() => mockRepo) }
 })
+
+vi.mock('../db/ingredient-repository.js', () => ({
+  ingredientRepository: {
+    loadCanonicalMaps: vi.fn(async () => ({
+      synonyms: new Map(),
+      canonicals: new Set(),
+      displayByKey: new Map(),
+      familyByKey: new Map(),
+    })),
+  },
+}))
 
 vi.mock('../db/index.js', () => ({
   getDb: vi.fn(() => {
@@ -25,6 +39,9 @@ const mockRepo = pantryRepository as unknown as {
   create: ReturnType<typeof vi.fn>
   update: ReturnType<typeof vi.fn>
   remove: ReturnType<typeof vi.fn>
+  upsert: ReturnType<typeof vi.fn>
+  listInStockNames: ReturnType<typeof vi.fn>
+  listHouseholdRecipesWithIngredients: ReturnType<typeof vi.fn>
 }
 
 const DEV_KEY = 'pantry-test-key'
@@ -113,6 +130,48 @@ describe('PATCH /v1/pantry/{id}', () => {
       body: JSON.stringify({ inStock: false }),
     })
     expect(res.status).toBe(404)
+  })
+})
+
+describe('POST /v1/pantry/bulk', () => {
+  it('upserts several items', async () => {
+    mockRepo.upsert.mockResolvedValue([item])
+    const res = await app.request('/v1/pantry/bulk', {
+      method: 'POST',
+      headers: JSON_AUTH,
+      body: JSON.stringify({ items: [{ name: 'Harina', quantity: '2', unit: 'kg' }] }),
+    })
+    expect(res.status).toBe(200)
+    expect(mockRepo.upsert).toHaveBeenCalledWith(expect.any(String), [
+      { name: 'Harina', quantity: '2', unit: 'kg' },
+    ])
+  })
+  it('rejects an empty items array (400)', async () => {
+    const res = await app.request('/v1/pantry/bulk', {
+      method: 'POST',
+      headers: JSON_AUTH,
+      body: JSON.stringify({ items: [] }),
+    })
+    expect(res.status).toBe(400)
+  })
+})
+
+describe('GET /v1/pantry/cookable', () => {
+  it('returns recipes ranked by pantry coverage', async () => {
+    mockRepo.listInStockNames.mockResolvedValueOnce(['Arroz'])
+    mockRepo.listHouseholdRecipesWithIngredients.mockResolvedValueOnce([
+      { id: '550e8400-e29b-41d4-a716-446655440001', title: 'Arroz', ingredients: ['Arroz'] },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440002',
+        title: 'Guiso',
+        ingredients: ['Arroz', 'Sal'],
+      },
+    ])
+    const res = await app.request('/v1/pantry/cookable', { headers: AUTH })
+    expect(res.status).toBe(200)
+    const list = (await res.json()) as { title: string; matchFraction: number }[]
+    expect(list[0]!.title).toBe('Arroz') // 1/1 beats 1/2
+    expect(list[0]!.matchFraction).toBe(1)
   })
 })
 
