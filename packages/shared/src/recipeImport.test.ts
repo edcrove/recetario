@@ -142,10 +142,17 @@ describe('parseRecipeFromHtml', () => {
     const html =
       '<script></script>' +
       '<script src="https://cdn.example/app.js"></script>' +
-      `<script type="application/ld+json">${JSON.stringify(recipe)}</script >`
+      `<script type="application/ld+json">${JSON.stringify(recipe)}</script\n bar>`
     const r = parseRecipeFromHtml(html)
     expect(r?.title).toBe('Menos < que')
     expect(r?.steps).toEqual(['Paso <1>'])
+  })
+
+  it('strips scripts whose close tag carries whitespace or junk', () => {
+    // Browsers end a <script> at "</script" followed by a boundary, ignoring
+    // trailing junk — the text fallback must not leak the script body.
+    expect(htmlToText('<p>a</p><script>evil()</script\n foo>b')).toBe('a b')
+    expect(htmlToText('<style>.x{}</style bar>c')).toBe('c')
   })
 
   it('ignores a JSON-LD primitive and a nutrition object with no numeric fields', () => {

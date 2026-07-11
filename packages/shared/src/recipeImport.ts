@@ -122,7 +122,7 @@ export function parseRecipeFromHtml(html: string): ParsedRecipe | null {
   // the body keeps this linear (no polynomial-ReDoS on hostile input) and lets
   // the close tag carry trailing whitespace ("</script >"). The ld+json check
   // runs on the captured attribute string rather than inside the tag pattern.
-  const scriptRe = /<script\b([^>]*)>((?:[^<]|<(?!\/script[\s>]))*)<\/script\s*>/gi
+  const scriptRe = /<script\b([^>]*)>((?:[^<]|<(?!\/script[\s/>]))*)<\/script(?=[\s/>])[^>]*>/gi
   const blocks = [...html.matchAll(scriptRe)]
   for (const block of blocks) {
     const attrs = block[1]
@@ -163,8 +163,8 @@ export function parseRecipeFromHtml(html: string): ParsedRecipe | null {
 /** Strips tags/scripts/styles from HTML for the agent's text fallback. */
 export function htmlToText(html: string): string {
   return html
-    .replace(/<script\b[^>]*>(?:[^<]|<(?!\/script[\s>]))*<\/script\s*>/gi, ' ')
-    .replace(/<style\b[^>]*>(?:[^<]|<(?!\/style[\s>]))*<\/style\s*>/gi, ' ')
+    .replace(/<script\b[^>]*>(?:[^<]|<(?!\/script[\s/>]))*<\/script(?=[\s/>])[^>]*>/gi, ' ')
+    .replace(/<style\b[^>]*>(?:[^<]|<(?!\/style[\s/>]))*<\/style(?=[\s/>])[^>]*>/gi, ' ')
     .replace(/<[^>]+>/g, ' ')
     .replace(/&nbsp;/gi, ' ')
     .replace(/&amp;/gi, '&')
