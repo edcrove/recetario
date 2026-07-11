@@ -50,6 +50,7 @@ export default function CollectionsScreen() {
       {/* Create new */}
       <View style={s.createRow}>
         <TextInput
+          placeholderTextColor={colors.inkSoft}
           style={[s.input, { width: 44 }]}
           placeholder="🍳"
           value={newEmoji}
@@ -57,6 +58,7 @@ export default function CollectionsScreen() {
           maxLength={2}
         />
         <TextInput
+          placeholderTextColor={colors.inkSoft}
           style={[s.input, { flex: 1 }]}
           placeholder="Nueva colección…"
           value={newName}
@@ -119,6 +121,7 @@ const makeStyles = (c: ThemeColors) =>
       padding: 10,
       fontSize: 15,
       backgroundColor: c.surface,
+      color: c.ink,
     },
     addBtn: {
       backgroundColor: c.terracotta,
@@ -138,7 +141,7 @@ const makeStyles = (c: ThemeColors) =>
       padding: 14,
       gap: 12,
     },
-    cardEmoji: { fontSize: 28 },
+    cardEmoji: { fontSize: 28, color: c.ink },
     cardInfo: { flex: 1 },
     cardName: { fontSize: 16, fontWeight: '600', color: c.ink },
     cardCount: { fontSize: 13, color: c.inkSoft, marginTop: 2 },

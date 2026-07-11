@@ -68,9 +68,28 @@ export default function HomeScreen() {
     <View style={styles.container}>
       {/* Fixed header — never scrolls */}
       <View style={styles.header}>
-        <Text style={styles.title}>Recetario</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>Recetario</Text>
+          <View style={styles.headerIcons}>
+            <TouchableOpacity
+              testID="home-collections-button"
+              style={styles.iconButton}
+              onPress={() => router.push('/collections')}
+            >
+              <Text style={styles.iconButtonText}>📋</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              testID="home-profile-button"
+              style={styles.iconButton}
+              onPress={() => setMenuOpen(true)}
+            >
+              <Text style={styles.iconButtonText}>👤</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
         <View style={styles.searchRow}>
           <TextInput
+            placeholderTextColor={colors.inkSoft}
             style={styles.search}
             placeholder="Buscar recetas..."
             value={query}
@@ -133,20 +152,6 @@ export default function HomeScreen() {
           >
             <Text style={styles.menuButtonText}>🛒 Compras</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            testID="home-collections-button"
-            style={styles.collectionsButton}
-            onPress={() => router.push('/collections')}
-          >
-            <Text style={styles.collectionsButtonText}>📋</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            testID="home-profile-button"
-            style={styles.profileButton}
-            onPress={() => setMenuOpen(true)}
-          >
-            <Text style={styles.profileButtonText}>👤</Text>
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -194,13 +199,28 @@ const makeStyles = (c: ThemeColors) =>
       backgroundColor: c.surface,
     },
     list: { flex: 1, paddingHorizontal: 16 },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 8,
+    },
     title: {
       fontSize: 26,
       fontWeight: '700',
       color: c.ink,
-      marginBottom: 8,
       fontFamily: fonts.display,
     },
+    headerIcons: { flexDirection: 'row', gap: 8 },
+    iconButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: c.sand,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    iconButtonText: { fontSize: 18, color: c.ink },
     searchRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
     search: {
       flex: 1,
@@ -215,23 +235,27 @@ const makeStyles = (c: ThemeColors) =>
     searchSpinner: { marginLeft: 8 },
     actions: {
       flexDirection: 'row',
-      justifyContent: 'flex-end',
+      flexWrap: 'wrap',
       gap: 8,
       marginTop: 8,
       marginBottom: 8,
     },
     addButton: {
-      paddingHorizontal: 16,
-      paddingVertical: 8,
+      flexBasis: '100%',
+      paddingVertical: 12,
       backgroundColor: c.terracotta,
-      borderRadius: 8,
+      borderRadius: 10,
+      alignItems: 'center',
     },
-    addButtonText: { color: c.terracottaInk, fontWeight: '700' },
+    addButtonText: { color: c.terracottaInk, fontWeight: '700', fontSize: 15 },
     menuButton: {
-      paddingHorizontal: 16,
-      paddingVertical: 8,
+      flexGrow: 1,
+      flexBasis: 0,
+      minWidth: 130,
+      paddingVertical: 11,
       backgroundColor: c.sage,
-      borderRadius: 8,
+      borderRadius: 10,
+      alignItems: 'center',
     },
     menuButtonText: { color: c.surface, fontWeight: '700' },
     filterScroll: { marginBottom: 4 },
@@ -248,24 +272,6 @@ const makeStyles = (c: ThemeColors) =>
     filterChipActive: { backgroundColor: c.terracotta, borderColor: c.terracotta },
     filterChipText: { fontSize: 13, color: c.inkSoft, fontWeight: '600' },
     filterChipTextActive: { color: c.terracottaInk, fontWeight: '700' },
-    collectionsButton: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      backgroundColor: c.sand,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    collectionsButtonText: { fontSize: 18 },
-    profileButton: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      backgroundColor: c.sand,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    profileButtonText: { fontSize: 18 },
     card: {
       padding: 16,
       borderRadius: 14,

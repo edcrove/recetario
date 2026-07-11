@@ -73,6 +73,7 @@ export default function PickRecipeScreen() {
       </View>
 
       <TextInput
+        placeholderTextColor={colors.inkSoft}
         style={styles.search}
         placeholder="Buscar receta..."
         value={query}
@@ -124,7 +125,7 @@ const makeStyles = (c: ThemeColors) =>
     container: { flex: 1, backgroundColor: c.surface },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     header: { padding: 16, borderBottomWidth: 1, borderBottomColor: c.line },
-    subtitle: { fontSize: 16, fontWeight: '600', marginBottom: 8 },
+    subtitle: { fontSize: 16, fontWeight: '600', marginBottom: 8, color: c.ink },
     servingsRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     servingsLabel: { fontSize: 14, color: c.inkSoft, flex: 1 },
     servingsBtn: {
@@ -150,6 +151,7 @@ const makeStyles = (c: ThemeColors) =>
       padding: 10,
       margin: 12,
       fontSize: 16,
+      color: c.ink,
     },
     card: {
       padding: 16,
@@ -164,7 +166,13 @@ const makeStyles = (c: ThemeColors) =>
       justifyContent: 'space-between',
       gap: 8,
     },
-    cardTitle: { fontSize: 17, fontWeight: '600', flex: 1, fontFamily: fonts.display },
+    cardTitle: {
+      fontSize: 17,
+      fontWeight: '600',
+      flex: 1,
+      fontFamily: fonts.display,
+      color: c.ink,
+    },
     cardMeta: { color: c.inkSoft, marginTop: 4, fontSize: 13 },
     cardMacros: { color: c.sage, marginTop: 3, fontSize: 12, fontVariant: ['tabular-nums'] },
     empty: { textAlign: 'center', color: c.inkSoft, marginTop: 40 },

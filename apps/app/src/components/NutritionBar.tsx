@@ -108,7 +108,7 @@ const makeStyles = (c: ThemeColors) =>
     macros: { flexDirection: 'row', gap: 8 },
     macroItem: { flex: 1, alignItems: 'center', gap: 2 },
     macroLabel: { fontSize: 10, color: c.inkSoft, fontWeight: '600' },
-    macroValue: { fontSize: 14, fontWeight: '700' },
+    macroValue: { fontSize: 14, fontWeight: '700', color: c.ink },
     barBg: { width: '100%', height: 4, backgroundColor: c.line, borderRadius: 2, marginTop: 2 },
     barFill: { height: 4, borderRadius: 2 },
   })

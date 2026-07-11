@@ -85,7 +85,7 @@ const makeStyles = (c: ThemeColors) =>
       borderBottomWidth: 1,
       borderBottomColor: c.line,
     },
-    title: { fontSize: 20, fontWeight: '700', fontFamily: fonts.display },
+    title: { fontSize: 20, fontWeight: '700', fontFamily: fonts.display, color: c.ink },
     backLink: { color: c.terracotta, fontWeight: '600' },
     weekLabel: {
       paddingHorizontal: 16,
@@ -104,7 +104,7 @@ const makeStyles = (c: ThemeColors) =>
       borderBottomWidth: 1,
       borderBottomColor: c.sand,
     },
-    name: { fontSize: 15, flex: 1 },
+    name: { fontSize: 15, flex: 1, color: c.ink },
     qty: { fontSize: 14, color: c.inkSoft, marginLeft: 12 },
     empty: { textAlign: 'center', color: c.inkSoft, marginTop: 40 },
   })
