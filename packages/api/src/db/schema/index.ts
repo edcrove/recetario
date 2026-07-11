@@ -398,3 +398,23 @@ export const ingredientSynonyms = pgTable(
     index('ingredient_synonyms_canonical_idx').on(t.canonicalId),
   ],
 )
+
+// ── Pantry (despensa) ────────────────────────────────────────────────────────
+// What the household has at home. Reads merge across the household (same rule as
+// the menu/shopping checks); writes are attributed to the caller. quantity/unit
+// and expiry are optional — a bare "tengo harina" is valid.
+export const pantryItems = pgTable(
+  'pantry_items',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ownerId: text('owner_id').notNull(),
+    name: text('name').notNull(),
+    quantity: text('quantity'), // nullable (stored as text like ingredients.quantity)
+    unit: text('unit'), // nullable
+    expiryDate: text('expiry_date'), // ISO date YYYY-MM-DD, nullable
+    inStock: boolean('in_stock').notNull().default(true),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (t) => [index('pantry_items_owner_idx').on(t.ownerId)],
+)

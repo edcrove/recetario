@@ -11,6 +11,7 @@ import { householdsRoute } from './routes/households.js'
 import { cookSessionsRoute } from './routes/cook-sessions.js'
 import { taxonomyRoute } from './routes/taxonomy.js'
 import { ingredientsRoute } from './routes/ingredients.js'
+import { pantryRoute } from './routes/pantry.js'
 import { configRoute } from './routes/config.js'
 import { assertJwtSecretConfigured } from './auth/service.js'
 
@@ -66,6 +67,7 @@ app.route('/v1/households', householdsRoute)
 app.route('/v1/cook-sessions', cookSessionsRoute)
 app.route('/v1', taxonomyRoute)
 app.route('/v1', ingredientsRoute)
+app.route('/v1', pantryRoute)
 app.route('/v1/config', configRoute)
 
 app.doc('/openapi.json', {

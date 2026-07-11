@@ -71,6 +71,13 @@
       "when": 1783773649723,
       "tag": "0009_ingredient_unification",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1783791692772,
+      "tag": "0010_pantry_items",
+      "breakpoints": true
     }
   ]
 }
