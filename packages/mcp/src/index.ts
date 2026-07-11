@@ -59,7 +59,7 @@ export async function registerAllTools(
   registerConfiguratorTools(server, apiClient)
   registerLibraryTools(server, apiClient)
   registerNutritionGoalTools(server, apiClient)
-  registerImportTools(server, apiClient)
+  registerImportTools(server)
 }
 
 /* v8 ignore next 12 */

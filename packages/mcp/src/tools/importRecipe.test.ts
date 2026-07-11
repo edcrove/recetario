@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { createMcpServer, createApiClient } from '../index.js'
+import { createMcpServer } from '../index.js'
 import { registerImportTools, isSafeImportUrl } from './importRecipe.js'
 
 function getToolHandler(server: ReturnType<typeof createMcpServer>, name: string) {
@@ -49,11 +49,10 @@ describe('fetchRecipePage tool', () => {
 
   it('registers the tool', () => {
     const server = createMcpServer()
-    registerImportTools(server, createApiClient())
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect(
-      ((server as any)._registeredTools as Record<string, unknown>)['fetchRecipePage'],
-    ).toBeDefined()
+    registerImportTools(server)
+    const registered = (server as unknown as { _registeredTools: Record<string, unknown> })
+      ._registeredTools
+    expect(registered['fetchRecipePage']).toBeDefined()
   })
 
   it('returns structured data parsed from JSON-LD', async () => {
@@ -65,7 +64,7 @@ describe('fetchRecipePage tool', () => {
       }),
     )
     const server = createMcpServer()
-    registerImportTools(server, createApiClient())
+    registerImportTools(server)
     const handler = getToolHandler(server, 'fetchRecipePage')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = (await handler({ url: 'https://cookpad.com/r' }, {})) as any
@@ -86,7 +85,7 @@ describe('fetchRecipePage tool', () => {
       }),
     )
     const server = createMcpServer()
-    registerImportTools(server, createApiClient())
+    registerImportTools(server)
     const handler = getToolHandler(server, 'fetchRecipePage')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = (await handler({ url: 'https://x.com/r' }, {})) as any
@@ -97,7 +96,7 @@ describe('fetchRecipePage tool', () => {
 
   it('refuses unsafe URLs before fetching', async () => {
     const server = createMcpServer()
-    registerImportTools(server, createApiClient())
+    registerImportTools(server)
     const handler = getToolHandler(server, 'fetchRecipePage')
     await expect(handler({ url: 'https://192.168.0.1/x' }, {})).rejects.toThrow(/public https/)
   })
@@ -105,7 +104,7 @@ describe('fetchRecipePage tool', () => {
   it('throws on a non-ok response and on an oversized body', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }))
     const server = createMcpServer()
-    registerImportTools(server, createApiClient())
+    registerImportTools(server)
     const handler = getToolHandler(server, 'fetchRecipePage')
     await expect(handler({ url: 'https://x.com/r' }, {})).rejects.toThrow(/404/)
 
@@ -117,7 +116,7 @@ describe('fetchRecipePage tool', () => {
       }),
     )
     const server2 = createMcpServer()
-    registerImportTools(server2, createApiClient())
+    registerImportTools(server2)
     const handler2 = getToolHandler(server2, 'fetchRecipePage')
     await expect(handler2({ url: 'https://x.com/r' }, {})).rejects.toThrow(/too large/)
   })

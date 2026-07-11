@@ -1,6 +1,5 @@
 import { z } from 'zod'
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
-import type { createApiClient } from '../index.js'
 import { parseRecipeFromHtml, htmlToText } from '@recetario/shared'
 
 const MAX_BYTES = 2_000_000
@@ -37,7 +36,9 @@ export function isSafeImportUrl(raw: string): boolean {
   return true
 }
 
-export function registerImportTools(server: McpServer, _api: ReturnType<typeof createApiClient>) {
+// No api client: fetchRecipePage only reaches external pages and hands the
+// parsed result back to the agent, which drafts a separate createRecipe call.
+export function registerImportTools(server: McpServer) {
   server.tool(
     'fetchRecipePage',
     "Fetch a recipe web page and extract its data. Returns { structured, cleanedText, sourceUrl }: 'structured' is the recipe parsed deterministically from the page's schema.org/JSON-LD markup (title, ingredients, steps, times, servings, nutrition) when present — prefer it. When the page has no markup, 'structured' is null and you read 'cleanedText' (the page's visible text) to extract the recipe yourself. Then call createRecipe with sourceUrl set to preserve provenance. Only fetches public https URLs.",
