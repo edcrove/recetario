@@ -37,6 +37,29 @@ describe('CORS middleware', () => {
     expect(res.headers.get('access-control-allow-origin')).toBeNull()
   })
 
+  it('allows private-LAN origins so other devices on the router can connect', async () => {
+    for (const origin of [
+      'http://192.168.0.37:8080',
+      'http://10.0.0.5:8080',
+      'http://172.16.4.2:3000',
+    ]) {
+      const res = await app.fetch(
+        new Request('http://localhost:3000/health', { headers: { Origin: origin } }),
+      )
+      expect(res.headers.get('access-control-allow-origin')).toBe(origin)
+    }
+  })
+
+  it('blocks public IPs that merely look private-adjacent', async () => {
+    // 172.15.x and 192.169.x are OUTSIDE the RFC 1918 ranges
+    for (const origin of ['http://172.15.0.1:8080', 'http://192.169.0.1:8080']) {
+      const res = await app.fetch(
+        new Request('http://localhost:3000/health', { headers: { Origin: origin } }),
+      )
+      expect(res.headers.get('access-control-allow-origin')).toBeNull()
+    }
+  })
+
   it('handles preflight OPTIONS request', async () => {
     const req = new Request('http://localhost:3000/auth/login', {
       method: 'OPTIONS',

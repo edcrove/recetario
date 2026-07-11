@@ -47,6 +47,27 @@ pnpm pr --draft                 # Same but as draft
 SKIP_PRE_PUSH=1 git push        # Bypass pre-push hook (emergencies only)
 ```
 
+## Two local environments (data independence)
+
+The default docker stack (Postgres `recetario` / API `:3000` / app `:8080`) is
+the **manual** environment — poke at it by hand, its demo data persists.
+
+A separate **E2E** stack (profile `e2e`: own Postgres `recetario_e2e` on `:5433`
+/ API `:8081`→`:3001` / app `:8081`) runs automated tests without ever touching
+the manual data. It is reset to a clean seeded baseline **before and after**
+each run.
+
+```bash
+pnpm e2e:up        # build + start the isolated E2E stack
+pnpm e2e:reset     # truncate + reseed taxonomy + 4 demo accounts (E2E DB only)
+pnpm e2e:local     # reset → run Playwright against :8081 → reset (clean before + after)
+pnpm e2e:local recipes.spec.ts   # same, filtered to one spec
+pnpm e2e:down      # stop the E2E stack
+```
+
+Never point local E2E at `:8080`/`:3000` — that pollutes the manual data.
+CI is unaffected (it already uses an ephemeral per-run Postgres).
+
 ## Agent-first principle
 
 > The app does **no inference**. Zero.
