@@ -34,6 +34,9 @@ const EXPECTED_TOOLS = [
   'setNutritionGoals',
   'getDayNutrition',
   'fetchRecipePage',
+  'listUnmatchedIngredients',
+  'createCanonicalIngredient',
+  'setIngredientSynonym',
 ]
 
 const mockFetch = vi.fn()
@@ -67,14 +70,14 @@ describe('registerAllTools (main bootstrap)', () => {
     expect(registeredNames.sort()).toEqual(EXPECTED_TOOLS.sort())
   })
 
-  it('registers exactly 29 tools — no duplicates, no missing', async () => {
+  it('registers exactly 35 tools — no duplicates, no missing', async () => {
     const server = createMcpServer()
     const apiClient = createApiClient()
     const spy = vi.spyOn(server, 'tool')
 
     await registerAllTools(server, apiClient)
 
-    expect(spy).toHaveBeenCalledTimes(32)
+    expect(spy).toHaveBeenCalledTimes(35)
   })
 })
 

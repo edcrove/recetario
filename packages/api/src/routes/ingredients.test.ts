@@ -3,8 +3,11 @@ import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from 'vites
 vi.mock('../db/ingredient-repository.js', () => {
   const mockRepo = {
     listCanonicals: vi.fn(),
+    listUnmatchedIngredients: vi.fn(),
     createCanonical: vi.fn(),
     getCanonicalById: vi.fn(),
+    findCanonicalByName: vi.fn(),
+    findOrCreateFamily: vi.fn(),
     setSynonym: vi.fn(),
     deleteCanonical: vi.fn(),
     deleteSynonym: vi.fn(),
@@ -26,8 +29,11 @@ import { ingredientRepository } from '../db/ingredient-repository.js'
 
 const mockRepo = ingredientRepository as unknown as {
   listCanonicals: ReturnType<typeof vi.fn>
+  listUnmatchedIngredients: ReturnType<typeof vi.fn>
   createCanonical: ReturnType<typeof vi.fn>
   getCanonicalById: ReturnType<typeof vi.fn>
+  findCanonicalByName: ReturnType<typeof vi.fn>
+  findOrCreateFamily: ReturnType<typeof vi.fn>
   setSynonym: ReturnType<typeof vi.fn>
   deleteCanonical: ReturnType<typeof vi.fn>
   deleteSynonym: ReturnType<typeof vi.fn>
@@ -72,6 +78,17 @@ describe('GET /v1/ingredients', () => {
   })
 })
 
+describe('GET /v1/ingredients/unmatched', () => {
+  it('returns the caller unmatched ingredient list', async () => {
+    mockRepo.listUnmatchedIngredients.mockResolvedValue([
+      { name: 'suprema de pollo', normalized: 'suprema de pollo', count: 2 },
+    ])
+    const res = await app.request('/v1/ingredients/unmatched', { headers: AUTH })
+    expect(res.status).toBe(200)
+    expect((await res.json())[0].count).toBe(2)
+  })
+})
+
 describe('POST /v1/ingredients/canonical', () => {
   it('creates a canonical', async () => {
     mockRepo.createCanonical.mockResolvedValue({
@@ -89,6 +106,23 @@ describe('POST /v1/ingredients/canonical', () => {
     expect(mockRepo.createCanonical).toHaveBeenCalledWith('Kale', null)
   })
 
+  it('resolves familyName to an id when creating', async () => {
+    mockRepo.findOrCreateFamily.mockResolvedValue('fam-1')
+    mockRepo.createCanonical.mockResolvedValue({
+      id: CANON_ID,
+      name: 'Muslo de pollo',
+      normalizedName: 'muslo de pollo',
+    })
+    const res = await app.request('/v1/ingredients/canonical', {
+      method: 'POST',
+      headers: JSON_AUTH,
+      body: JSON.stringify({ name: 'Muslo de pollo', familyName: 'pollo' }),
+    })
+    expect(res.status).toBe(200)
+    expect(mockRepo.findOrCreateFamily).toHaveBeenCalledWith('pollo')
+    expect(mockRepo.createCanonical).toHaveBeenCalledWith('Muslo de pollo', 'fam-1')
+  })
+
   it('rejects an empty name (400)', async () => {
     const res = await app.request('/v1/ingredients/canonical', {
       method: 'POST',
@@ -100,7 +134,7 @@ describe('POST /v1/ingredients/canonical', () => {
 })
 
 describe('POST /v1/ingredients/synonym', () => {
-  it('maps a synonym to a canonical', async () => {
+  it('maps a synonym to a canonical by id', async () => {
     mockRepo.getCanonicalById.mockResolvedValue({ id: CANON_ID, name: 'Kale' })
     mockRepo.setSynonym.mockResolvedValue({ id: 'syn-1', synonym: 'col rizada' })
     const res = await app.request('/v1/ingredients/synonym', {
@@ -112,7 +146,39 @@ describe('POST /v1/ingredients/synonym', () => {
     expect((await res.json()).synonym).toBe('col rizada')
   })
 
-  it('404s when the canonical does not exist', async () => {
+  it('maps a synonym to a canonical by name', async () => {
+    mockRepo.findCanonicalByName.mockResolvedValue({ id: CANON_ID })
+    mockRepo.setSynonym.mockResolvedValue({ id: 'syn-2', synonym: 'suprema de pollo' })
+    const res = await app.request('/v1/ingredients/synonym', {
+      method: 'POST',
+      headers: JSON_AUTH,
+      body: JSON.stringify({ surface: 'Suprema de pollo', canonicalName: 'Pollo' }),
+    })
+    expect(res.status).toBe(200)
+    expect(mockRepo.findCanonicalByName).toHaveBeenCalledWith('Pollo')
+    expect(mockRepo.setSynonym).toHaveBeenCalledWith('Suprema de pollo', CANON_ID)
+  })
+
+  it('400s when neither canonicalId nor canonicalName is given', async () => {
+    const res = await app.request('/v1/ingredients/synonym', {
+      method: 'POST',
+      headers: JSON_AUTH,
+      body: JSON.stringify({ surface: 'x' }),
+    })
+    expect(res.status).toBe(400)
+  })
+
+  it('404s when the canonical name does not resolve', async () => {
+    mockRepo.findCanonicalByName.mockResolvedValue(null)
+    const res = await app.request('/v1/ingredients/synonym', {
+      method: 'POST',
+      headers: JSON_AUTH,
+      body: JSON.stringify({ surface: 'x', canonicalName: 'Nope' }),
+    })
+    expect(res.status).toBe(404)
+  })
+
+  it('404s when the canonical id does not exist', async () => {
     mockRepo.getCanonicalById.mockResolvedValue(null)
     const res = await app.request('/v1/ingredients/synonym', {
       method: 'POST',

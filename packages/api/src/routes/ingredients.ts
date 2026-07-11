@@ -3,6 +3,9 @@ import { ingredientRepository } from '../db/ingredient-repository.js'
 import { authMiddleware } from '../middleware/auth.js'
 import '../types.js'
 
+// so /ingredients/unmatched isn't shadowed by /ingredients/{...} param routes,
+// static routes are declared before dynamic ones below.
+
 export const ingredientsRoute = new OpenAPIHono()
 ingredientsRoute.use('/ingredients', authMiddleware)
 ingredientsRoute.use('/ingredients/*', authMiddleware)
@@ -43,6 +46,31 @@ ingredientsRoute.openapi(listRoute, async (c) => {
   return c.json(list, 200)
 })
 
+// GET /v1/ingredients/unmatched — caller's recipe ingredients with no canonical
+const unmatchedRoute = defineRoute({
+  method: 'get',
+  path: '/ingredients/unmatched',
+  security: [{ ApiKeyAuth: [] }],
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: z.array(
+            z.object({ name: z.string(), normalized: z.string(), count: z.number().int() }),
+          ),
+        },
+      },
+      description: 'Unmatched ingredient names with frequency',
+    },
+  },
+})
+
+ingredientsRoute.openapi(unmatchedRoute, async (c) => {
+  const ownerId = c.get('ownerId')
+  const list = await ingredientRepository.listUnmatchedIngredients(ownerId)
+  return c.json(list, 200)
+})
+
 // POST /v1/ingredients/canonical — create a canonical
 const createCanonicalRoute = defineRoute({
   method: 'post',
@@ -52,7 +80,12 @@ const createCanonicalRoute = defineRoute({
     body: {
       content: {
         'application/json': {
-          schema: z.object({ name: z.string().min(1), familyId: z.uuid().nullable().optional() }),
+          schema: z.object({
+            name: z.string().min(1),
+            familyId: z.uuid().nullable().optional(),
+            // Agent-friendly alternative to familyId: resolves (or creates) by name.
+            familyName: z.string().min(1).optional(),
+          }),
         },
       },
       required: true,
@@ -71,8 +104,11 @@ const createCanonicalRoute = defineRoute({
 })
 
 ingredientsRoute.openapi(createCanonicalRoute, async (c) => {
-  const { name, familyId } = c.req.valid('json')
-  const created = await ingredientRepository.createCanonical(name, familyId ?? null)
+  const { name, familyId, familyName } = c.req.valid('json')
+  const resolvedFamilyId = familyName
+    ? await ingredientRepository.findOrCreateFamily(familyName)
+    : (familyId ?? null)
+  const created = await ingredientRepository.createCanonical(name, resolvedFamilyId)
   return c.json(created, 200)
 })
 
@@ -85,7 +121,16 @@ const setSynonymRoute = defineRoute({
     body: {
       content: {
         'application/json': {
-          schema: z.object({ surface: z.string().min(1), canonicalId: z.uuid() }),
+          schema: z
+            .object({
+              surface: z.string().min(1),
+              canonicalId: z.uuid().optional(),
+              // Agent-friendly alternative to canonicalId.
+              canonicalName: z.string().min(1).optional(),
+            })
+            .refine((b) => b.canonicalId || b.canonicalName, {
+              message: 'canonicalId or canonicalName is required',
+            }),
         },
       },
       required: true,
@@ -107,10 +152,12 @@ const setSynonymRoute = defineRoute({
 })
 
 ingredientsRoute.openapi(setSynonymRoute, async (c) => {
-  const { surface, canonicalId } = c.req.valid('json')
-  const canonical = await ingredientRepository.getCanonicalById(canonicalId)
-  if (!canonical) return c.json({ error: 'Canonical not found' }, 404)
-  const result = await ingredientRepository.setSynonym(surface, canonicalId)
+  const { surface, canonicalId, canonicalName } = c.req.valid('json')
+  const resolvedId = canonicalName
+    ? (await ingredientRepository.findCanonicalByName(canonicalName))?.id
+    : (await ingredientRepository.getCanonicalById(canonicalId!))?.id
+  if (!resolvedId) return c.json({ error: 'Canonical not found' }, 404)
+  const result = await ingredientRepository.setSynonym(surface, resolvedId)
   if (!result) return c.json({ error: 'Surface normalizes to empty' }, 400)
   return c.json(result, 200)
 })

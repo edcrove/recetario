@@ -153,6 +153,88 @@ describe.skipIf(skip).sequential('Ingredient unification integration', () => {
     expect(missing.status).toBe(404)
   })
 
+  it('lists unmatched recipe ingredients with frequency (curation worklist)', async () => {
+    // Two recipes reference an ingredient with no canonical yet; one also lists
+    // an all-presentation name ("Picado") that normalizes to empty and is skipped.
+    for (const title of ['Sushi A', 'Sushi B']) {
+      await app.request('/v1/recipes', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          title,
+          servings: 1,
+          category: 'Cena',
+          ingredients: [
+            { name: 'Alga nori', quantity: 1, unit: 'unit' },
+            { name: 'Picado', quantity: 1, unit: 'unit' },
+          ],
+          steps: [{ text: 'Armar.' }],
+        }),
+      })
+    }
+    const res = await app.request('/v1/ingredients/unmatched', { headers: { Authorization: auth } })
+    const list = (await res.json()) as { name: string; normalized: string; count: number }[]
+    const nori = list.find((i) => i.normalized === 'alga nori')
+    expect(nori).toBeDefined()
+    expect(nori!.count).toBe(2)
+    // A seeded canonical (e.g. tomate) must NOT appear as unmatched.
+    expect(list.some((i) => i.normalized === 'tomate')).toBe(false)
+    // The all-presentation name normalized to empty and was dropped.
+    expect(list.some((i) => i.normalized === '')).toBe(false)
+  })
+
+  it('curates by name: create a canonical in a new family, then map a synonym to it', async () => {
+    const created = (await (
+      await app.request('/v1/ingredients/canonical', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ name: 'Alga nori', familyName: 'algas' }),
+      })
+    ).json()) as { id: string }
+
+    const canon = await list()
+    const nori = canon.find((c) => c.name === 'Alga nori')
+    expect(nori!.familyName).toBe('algas')
+
+    const synRes = await app.request('/v1/ingredients/synonym', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ surface: 'Nori', canonicalName: 'Alga nori' }),
+    })
+    expect(synRes.status).toBe(200)
+
+    const { ingredientRepository } = await import('../../db/ingredient-repository.js')
+    const { resolveCanonical } = await import('@recetario/shared')
+    const maps = await ingredientRepository.loadCanonicalMaps()
+    expect(resolveCanonical('nori', maps.synonyms, maps.canonicals).key).toBe('alga nori')
+
+    await ingredientRepository.deleteCanonical(created.id)
+  })
+
+  it('reuses an existing family when creating a canonical with a known familyName', async () => {
+    const { ingredientRepository } = await import('../../db/ingredient-repository.js')
+    const res = await app.request('/v1/ingredients/canonical', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ name: 'Contramuslo de pollo', familyName: 'pollo' }),
+    })
+    const created = (await res.json()) as { id: string }
+    const canon = await list()
+    const contramuslo = canon.find((c) => c.id === created.id)
+    // "pollo" family already existed (seeded) — it must be reused, not duplicated.
+    expect(contramuslo!.familyName).toBe('pollo')
+    await ingredientRepository.deleteCanonical(created.id)
+  })
+
+  it('setSynonym by name 404s when the canonical name is unknown', async () => {
+    const res = await app.request('/v1/ingredients/synonym', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ surface: 'Cosa', canonicalName: 'No Existe' }),
+    })
+    expect(res.status).toBe(404)
+  })
+
   it('seedIngredients is idempotent (a second run adds nothing)', async () => {
     const { seedIngredients } = await import('../../db/seed-ingredients.js')
     const { getDb, schema } = await import('../../db/index.js')
