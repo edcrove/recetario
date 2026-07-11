@@ -1,5 +1,5 @@
 import { eq, inArray, and } from 'drizzle-orm'
-import { normalizeIngredientKey } from '@recetario/shared'
+import { normalizeIngredientKey, type Nutrition } from '@recetario/shared'
 import { getDb, schema } from './index.js'
 import { getVisibleOwnerIds } from './household-visibility.js'
 
@@ -138,13 +138,20 @@ export class PantryRepository {
     return results
   }
 
-  /** Household-visible recipes with their ingredient names, for what_can_i_cook. */
+  /**
+   * Household-visible recipes with their ingredient names and per-serving
+   * nutrition — for what_can_i_cook and the ingredient suggestions.
+   */
   async listHouseholdRecipesWithIngredients(
     ownerId: string,
-  ): Promise<{ id: string; title: string; ingredients: string[] }[]> {
+  ): Promise<{ id: string; title: string; ingredients: string[]; nutrition: Nutrition | null }[]> {
     const visibleOwners = await getVisibleOwnerIds(ownerId)
     const recipes = await this.db
-      .select({ id: schema.recipes.id, title: schema.recipes.title })
+      .select({
+        id: schema.recipes.id,
+        title: schema.recipes.title,
+        nutrition: schema.recipes.nutrition,
+      })
       .from(schema.recipes)
       .where(inArray(schema.recipes.ownerId, visibleOwners))
     if (recipes.length === 0) return []
@@ -170,6 +177,7 @@ export class PantryRepository {
       // always has an entry; the ?? [] is a defensive fallback only.
       /* v8 ignore next */
       ingredients: byRecipe.get(r.id) ?? [],
+      nutrition: (r.nutrition as Nutrition | null) ?? null,
     }))
   }
 }
