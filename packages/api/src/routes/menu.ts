@@ -6,6 +6,7 @@ import {
   aggregateIngredients,
   enrichShoppingList,
   resolveCanonical,
+  computeMenuGaps,
   computeDayNutrition,
 } from '@recetario/shared'
 import { ingredientRepository } from '../db/ingredient-repository.js'
@@ -278,6 +279,72 @@ menuRoute.openapi(putShoppingCheckRoute, async (c) => {
   const { weekStart, key, checked } = c.req.valid('json')
   await menuRepository.setShoppingCheck(ownerId, weekStart, key, checked)
   return c.json({ ok: true }, 200)
+})
+
+// GET /v1/menu/missing-ingredients — what's still needed to cook the planned week
+const mealGapSchema = z.object({
+  date: z.string(),
+  slot: z.string(),
+  recipeId: z.uuid().nullable(),
+  recipeName: z.string().optional(),
+  cookable: z.boolean(),
+  missingIngredients: z.array(z.string()),
+})
+
+const getMissingRoute = defineRoute({
+  method: 'get',
+  path: '/menu/missing-ingredients',
+  security: [{ ApiKeyAuth: [] }],
+  request: { query: z.object({ weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }) },
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            missing: z.array(ShoppingListItemSchema),
+            meals: z.array(mealGapSchema),
+          }),
+        },
+      },
+      description: 'Combined missing shopping items + per-meal cookability',
+    },
+  },
+})
+
+menuRoute.openapi(getMissingRoute, async (c) => {
+  const ownerId = c.get('ownerId')
+  const { weekStart } = c.req.valid('query')
+  const maps = await ingredientRepository.loadCanonicalMaps()
+  const toKey = (name: string) => resolveCanonical(name, maps.synonyms, maps.canonicals).key
+  const pantryKeys = new Set((await pantryRepository.listInStockNames(ownerId)).map(toKey))
+
+  // Combined week total, minus what the pantry already covers.
+  const scaled = await menuRepository.getScaledIngredients(ownerId, weekStart)
+  const resolve = (name: string) => {
+    const key = toKey(name)
+    return { key, display: maps.displayByKey.get(key) ?? name.trim() }
+  }
+  const enriched = enrichShoppingList(aggregateIngredients(scaled, resolve), new Set(), pantryKeys)
+  const missing = enriched.filter((i) => !i.pantryMatch)
+
+  // Which planned meals are cookable now.
+  const week = await menuRepository.getWeek(ownerId, weekStart)
+  const recipes = await pantryRepository.listHouseholdRecipesWithIngredients(ownerId)
+  const ingsByRecipe = new Map(recipes.map((r) => [r.id, r.ingredients]))
+  const meals = computeMenuGaps(
+    week.map((e) => ({
+      date: e.date,
+      slot: e.slot,
+      recipeId: e.recipeId,
+      recipeName: e.recipeName,
+      ingredients: (e.recipeId ? (ingsByRecipe.get(e.recipeId) ?? []) : []).map((name) => ({
+        name,
+        key: toKey(name),
+      })),
+    })),
+    pantryKeys,
+  )
+  return c.json({ missing, meals }, 200)
 })
 
 // GET /v1/menu/nutrition — daily nutrition totals vs user targets

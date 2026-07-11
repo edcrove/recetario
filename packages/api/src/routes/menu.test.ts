@@ -29,7 +29,10 @@ vi.mock('../db/household-visibility.js', () => ({
 }))
 
 vi.mock('../db/pantry-repository.js', () => ({
-  pantryRepository: { listInStockNames: vi.fn(async () => [] as string[]) },
+  pantryRepository: {
+    listInStockNames: vi.fn(async () => [] as string[]),
+    listHouseholdRecipesWithIngredients: vi.fn(async () => []),
+  },
 }))
 
 vi.mock('../db/ingredient-repository.js', () => ({
@@ -313,6 +316,38 @@ describe('GET /v1/menu/shopping-list', () => {
     })
     const json = (await res.json()) as { ingredient: string; pantryMatch: boolean }[]
     expect(json[0]).toMatchObject({ ingredient: 'pasta', pantryMatch: true })
+  })
+
+  it('GET /menu/missing-ingredients returns combined missing + per-meal cookability', async () => {
+    mockRepo.getScaledIngredients.mockResolvedValue([
+      { name: 'pollo', quantity: 1, unit: 'unit' },
+      { name: 'arroz', quantity: 100, unit: 'g' },
+    ])
+    // One normal entry, one whose recipe was deleted (null recipeId), and one
+    // pointing at a recipe missing from the ingredient map.
+    mockRepo.getWeek.mockResolvedValue([
+      sampleEntry,
+      { ...sampleEntry, recipeId: null },
+      { ...sampleEntry, recipeId: '550e8400-e29b-41d4-a716-4466554409ff' },
+    ])
+    const { pantryRepository: pantry } = await import('../db/pantry-repository.js')
+    ;(pantry.listInStockNames as ReturnType<typeof vi.fn>).mockResolvedValue(['pollo'])
+    ;(pantry.listHouseholdRecipesWithIngredients as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: sampleEntry.recipeId, ingredients: ['pollo', 'arroz'] },
+    ])
+
+    const res = await app.request('/v1/menu/missing-ingredients?weekStart=2026-06-30', {
+      headers: AUTH,
+    })
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as {
+      missing: { ingredient: string }[]
+      meals: { cookable: boolean; missingIngredients: string[] }[]
+    }
+    // Rice is missing (not in pantry); chicken is covered.
+    expect(body.missing.map((m) => m.ingredient)).toEqual(['arroz'])
+    expect(body.meals[0]!.cookable).toBe(false)
+    expect(body.meals[0]!.missingIngredients).toEqual(['arroz'])
   })
 
   it('marks an item checked when its normalized key is in the persisted set', async () => {
