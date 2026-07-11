@@ -28,6 +28,7 @@ const MENU_ITEMS = [
   },
   { icon: '🏠', label: 'Mi hogar', description: 'Miembros y roles', route: '/household' },
   { icon: '📋', label: 'Colecciones', description: 'Listas de recetas', route: '/collections' },
+  { icon: '🧊', label: 'Despensa', description: 'Lo que tenés en casa', route: '/pantry' },
   {
     icon: '🌐',
     label: 'Biblioteca',
