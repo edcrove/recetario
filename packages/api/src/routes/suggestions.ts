@@ -35,6 +35,14 @@ const suggestionSchema = z.object({
   matchFraction: z.number(),
   missingIngredients: z.array(z.string()),
   goalFit: z.enum(['dentro', 'cerca', 'lejos']).nullable(),
+  nutrition: z
+    .object({
+      calories: z.number(),
+      protein_g: z.number(),
+      carbs_g: z.number(),
+      fat_g: z.number(),
+    })
+    .nullable(),
 })
 
 // POST /v1/suggestions/from-ingredients

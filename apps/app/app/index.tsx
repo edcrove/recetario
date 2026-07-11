@@ -142,6 +142,13 @@ export default function HomeScreen() {
             <Text style={styles.menuButtonText}>Menú Semanal</Text>
           </TouchableOpacity>
           <TouchableOpacity
+            testID="home-heladera-button"
+            style={styles.menuButton}
+            onPress={() => router.push('/heladera')}
+          >
+            <Text style={styles.menuButtonText}>🧊 ¿Qué cocino?</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={styles.menuButton}
             onPress={() =>
               router.push({

@@ -111,6 +111,18 @@ export const api = {
       }),
     shoppingList: (weekStart: string) =>
       request<ShoppingListEntry[]>(`/v1/menu/shopping-list?weekStart=${weekStart}`),
+    missingIngredients: (weekStart: string) =>
+      request<{
+        missing: ShoppingListEntry[]
+        meals: Array<{
+          date: string
+          slot: string
+          recipeId: string | null
+          recipeName?: string
+          cookable: boolean
+          missingIngredients: string[]
+        }>
+      }>(`/v1/menu/missing-ingredients?weekStart=${weekStart}`),
     setShoppingCheck: (weekStart: string, key: string, checked: boolean) =>
       request<{ ok: boolean }>('/v1/menu/shopping-list/check', {
         method: 'PUT',
@@ -294,6 +306,21 @@ export const api = {
       },
     ) => request(`/v1/pantry/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
     remove: (id: string) => request<void>(`/v1/pantry/${id}`, { method: 'DELETE' }),
+  },
+  suggestions: {
+    fromIngredients: (body: { ingredients?: string[]; usePantry?: boolean; date?: string }) =>
+      request<
+        Array<{
+          id: string
+          title: string
+          matchedCount: number
+          totalCount: number
+          matchFraction: number
+          missingIngredients: string[]
+          goalFit: 'dentro' | 'cerca' | 'lejos' | null
+          nutrition: { calories: number; protein_g: number; carbs_g: number; fat_g: number } | null
+        }>
+      >('/v1/suggestions/from-ingredients', { method: 'POST', body: JSON.stringify(body) }),
   },
   taxonomy: {
     foodTypes: () =>
