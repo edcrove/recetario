@@ -356,3 +356,45 @@ export const shoppingListChecks = pgTable(
     index('shopping_list_checks_owner_week_idx').on(t.ownerId, t.weekStart),
   ],
 )
+
+// ── Ingredient unification (canonical / synonym / family) ────────────────────
+// Three-level model (see Spec): a family groups related canonicals ("pollo"
+// covers pollo, muslo, pata) for broad search; each canonical is the real unit
+// of matching; synonyms map surface strings to a canonical. Curated es-AR data
+// is seeded as isSystem rows; users/agents may add non-system entries.
+export const ingredientFamilies = pgTable('ingredient_families', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull().unique(),
+  isSystem: boolean('is_system').notNull().default(false),
+})
+
+export const canonicalIngredients = pgTable(
+  'canonical_ingredients',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(), // display name, e.g. "Pollo"
+    normalizedName: text('normalized_name').notNull(), // normalizeIngredientKey(name)
+    familyId: uuid('family_id').references(() => ingredientFamilies.id, { onDelete: 'set null' }),
+    isSystem: boolean('is_system').notNull().default(false),
+  },
+  (t) => [
+    uniqueIndex('canonical_ingredients_normalized_idx').on(t.normalizedName),
+    index('canonical_ingredients_family_idx').on(t.familyId),
+  ],
+)
+
+export const ingredientSynonyms = pgTable(
+  'ingredient_synonyms',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    synonym: text('synonym').notNull(), // normalized surface key
+    canonicalId: uuid('canonical_id')
+      .notNull()
+      .references(() => canonicalIngredients.id, { onDelete: 'cascade' }),
+    isSystem: boolean('is_system').notNull().default(false),
+  },
+  (t) => [
+    uniqueIndex('ingredient_synonyms_synonym_idx').on(t.synonym),
+    index('ingredient_synonyms_canonical_idx').on(t.canonicalId),
+  ],
+)

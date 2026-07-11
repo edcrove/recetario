@@ -49,7 +49,10 @@ async function main() {
   for (const c of MEAL_CATEGORIES) await db.insert(schema.mealCategories).values(c)
   for (const ft of FOOD_TYPES) await db.insert(schema.foodTypes).values(ft)
 
-  console.log(`🧹 Reset ${tables.length} tables; reseeded taxonomy`)
+  const { seedIngredients } = await import('../db/seed-ingredients.js')
+  await seedIngredients(db)
+
+  console.log(`🧹 Reset ${tables.length} tables; reseeded taxonomy + ingredients`)
   process.exit(0)
 }
 
