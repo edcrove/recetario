@@ -13,9 +13,10 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../src/api/client'
 import { notify } from '../../src/utils/platformAlert'
+import { IngredientsPanel } from '../../src/components/IngredientsPanel'
 import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 
-type TabType = 'categories' | 'food-types' | 'tags'
+type TabType = 'categories' | 'food-types' | 'tags' | 'ingredients'
 type TaxonomyItem = {
   id: string
   name: string
@@ -29,6 +30,7 @@ const TAB_LABELS: Record<TabType, string> = {
   categories: 'Categorías',
   'food-types': 'Tipos de comida',
   tags: 'Etiquetas',
+  ingredients: 'Ingredientes',
 }
 
 export default function ConfiguratorScreen() {
@@ -47,7 +49,8 @@ export default function ConfiguratorScreen() {
   })
 
   const rename = useMutation({
-    mutationFn: ({ id, name }: { id: string; name: string }) => api.config.rename(tab, id, name),
+    mutationFn: ({ id, name }: { id: string; name: string }) =>
+      api.config.rename(tab as Exclude<TabType, 'ingredients'>, id, name),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['config-taxonomy'] })
       setEditingItem(null)
@@ -56,7 +59,7 @@ export default function ConfiguratorScreen() {
 
   const deleteItem = useMutation({
     mutationFn: ({ id, reassignTo }: { id: string; reassignTo?: string }) =>
-      api.config.delete(tab, id, reassignTo),
+      api.config.delete(tab as Exclude<TabType, 'ingredients'>, id, reassignTo),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['config-taxonomy'] })
       setDeleteTarget(null)
@@ -82,7 +85,7 @@ export default function ConfiguratorScreen() {
         ? (taxonomy?.foodTypes ?? [])
         : (taxonomy?.tags ?? [])
 
-  if (isLoading)
+  if (isLoading && tab !== 'ingredients')
     return (
       <View style={s.center}>
         <ActivityIndicator size="large" />
@@ -110,151 +113,157 @@ export default function ConfiguratorScreen() {
         ))}
       </ScrollView>
 
-      {/* Items list */}
-      <FlatList
-        data={currentItems}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={s.list}
-        ListEmptyComponent={<Text style={s.empty}>No hay elementos en esta sección.</Text>}
-        renderItem={({ item }) => (
-          <View style={s.itemRow} testID={`config-item-${item.id}`}>
-            <View style={s.itemInfo}>
-              <Text style={s.itemName}>{item.name}</Text>
-              <View style={s.itemMeta}>
-                <Text style={[s.badge, item.usageCount > 0 ? s.badgeUsed : s.badgeEmpty]}>
-                  {item.usageCount} receta{item.usageCount !== 1 ? 's' : ''}
-                </Text>
-                {item.isSystem && <Text style={s.systemBadge}>Sistema</Text>}
+      {tab === 'ingredients' ? (
+        <IngredientsPanel />
+      ) : (
+        <>
+          {/* Items list */}
+          <FlatList
+            data={currentItems}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={s.list}
+            ListEmptyComponent={<Text style={s.empty}>No hay elementos en esta sección.</Text>}
+            renderItem={({ item }) => (
+              <View style={s.itemRow} testID={`config-item-${item.id}`}>
+                <View style={s.itemInfo}>
+                  <Text style={s.itemName}>{item.name}</Text>
+                  <View style={s.itemMeta}>
+                    <Text style={[s.badge, item.usageCount > 0 ? s.badgeUsed : s.badgeEmpty]}>
+                      {item.usageCount} receta{item.usageCount !== 1 ? 's' : ''}
+                    </Text>
+                    {item.isSystem && <Text style={s.systemBadge}>Sistema</Text>}
+                  </View>
+                </View>
+                <View style={s.itemActions}>
+                  <TouchableOpacity
+                    testID={`config-edit-${item.id}`}
+                    style={s.actionBtn}
+                    onPress={() => {
+                      setEditingItem(item)
+                      setEditName(item.name)
+                    }}
+                  >
+                    <Text style={s.actionBtnText}>✏️</Text>
+                  </TouchableOpacity>
+                  {item.isDeletable && (
+                    <TouchableOpacity
+                      testID={`config-delete-${item.id}`}
+                      style={s.actionBtnDanger}
+                      onPress={() => setDeleteTarget(item)}
+                    >
+                      <Text style={s.actionBtnText}>🗑️</Text>
+                    </TouchableOpacity>
+                  )}
+                  {!item.isDeletable && item.usageCount > 0 && (
+                    <TouchableOpacity
+                      testID={`config-delete-${item.id}`}
+                      style={s.actionBtnWarning}
+                      onPress={() => setDeleteTarget(item)}
+                    >
+                      <Text style={s.actionBtnText}>⚠️</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
               </View>
-            </View>
-            <View style={s.itemActions}>
-              <TouchableOpacity
-                testID={`config-edit-${item.id}`}
-                style={s.actionBtn}
-                onPress={() => {
-                  setEditingItem(item)
-                  setEditName(item.name)
-                }}
-              >
-                <Text style={s.actionBtnText}>✏️</Text>
-              </TouchableOpacity>
-              {item.isDeletable && (
-                <TouchableOpacity
-                  testID={`config-delete-${item.id}`}
-                  style={s.actionBtnDanger}
-                  onPress={() => setDeleteTarget(item)}
-                >
-                  <Text style={s.actionBtnText}>🗑️</Text>
-                </TouchableOpacity>
-              )}
-              {!item.isDeletable && item.usageCount > 0 && (
-                <TouchableOpacity
-                  testID={`config-delete-${item.id}`}
-                  style={s.actionBtnWarning}
-                  onPress={() => setDeleteTarget(item)}
-                >
-                  <Text style={s.actionBtnText}>⚠️</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        )}
-      />
+            )}
+          />
 
-      {/* Rename modal */}
-      <Modal visible={!!editingItem} transparent animationType="slide">
-        <View style={s.modalOverlay}>
-          <View style={s.modalCard}>
-            <Text style={s.modalTitle}>Renombrar</Text>
-            <TextInput
-              placeholderTextColor={colors.inkSoft}
-              style={s.modalInput}
-              value={editName}
-              onChangeText={setEditName}
-              autoFocus
-              placeholder="Nuevo nombre"
-            />
-            <View style={s.modalActions}>
-              <TouchableOpacity
-                testID="config-rename-save"
-                style={[s.modalBtn, !editName.trim() && s.modalBtnDisabled]}
-                disabled={!editName.trim() || rename.isPending}
-                onPress={() =>
-                  editingItem && rename.mutate({ id: editingItem.id, name: editName.trim() })
-                }
-              >
-                <Text style={s.modalBtnText}>Guardar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                testID="config-rename-cancel"
-                style={s.cancelBtn}
-                onPress={() => setEditingItem(null)}
-              >
-                <Text style={s.cancelBtnText}>Cancelar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Delete / reassign modal */}
-      <Modal visible={!!deleteTarget} transparent animationType="slide">
-        <View style={s.modalOverlay}>
-          <View style={s.modalCard}>
-            <Text style={s.modalTitle}>
-              {deleteTarget?.isDeletable
-                ? 'Eliminar'
-                : `"${deleteTarget?.name}" está en ${deleteTarget?.usageCount} receta(s)`}
-            </Text>
-            {!deleteTarget?.isDeletable && (
-              <>
-                <Text style={s.modalSubtitle}>Elige qué hacer:</Text>
-                <Text style={s.modalLabel}>Reasignar a (ID del reemplazo):</Text>
+          {/* Rename modal */}
+          <Modal visible={!!editingItem} transparent animationType="slide">
+            <View style={s.modalOverlay}>
+              <View style={s.modalCard}>
+                <Text style={s.modalTitle}>Renombrar</Text>
                 <TextInput
                   placeholderTextColor={colors.inkSoft}
                   style={s.modalInput}
-                  value={reassignId}
-                  onChangeText={setReassignId}
-                  placeholder="UUID del ítem destino"
-                  autoCapitalize="none"
+                  value={editName}
+                  onChangeText={setEditName}
+                  autoFocus
+                  placeholder="Nuevo nombre"
                 />
-              </>
-            )}
-            <View style={s.modalActions}>
-              <TouchableOpacity
-                testID="config-delete-confirm"
-                style={s.modalBtnDanger}
-                disabled={deleteItem.isPending || mergeTags.isPending}
-                onPress={() => {
-                  if (!deleteTarget) return
-                  if (tab === 'tags' && reassignId.trim()) {
-                    mergeTags.mutate({ sourceId: deleteTarget.id, targetId: reassignId.trim() })
-                  } else {
-                    deleteItem.mutate({
-                      id: deleteTarget.id,
-                      reassignTo: reassignId.trim() || undefined,
-                    })
-                  }
-                }}
-              >
-                <Text style={s.modalBtnText}>
-                  {reassignId.trim() ? 'Reasignar y eliminar' : 'Eliminar de todas las recetas'}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                testID="config-delete-cancel"
-                style={s.cancelBtn}
-                onPress={() => {
-                  setDeleteTarget(null)
-                  setReassignId('')
-                }}
-              >
-                <Text style={s.cancelBtnText}>Cancelar</Text>
-              </TouchableOpacity>
+                <View style={s.modalActions}>
+                  <TouchableOpacity
+                    testID="config-rename-save"
+                    style={[s.modalBtn, !editName.trim() && s.modalBtnDisabled]}
+                    disabled={!editName.trim() || rename.isPending}
+                    onPress={() =>
+                      editingItem && rename.mutate({ id: editingItem.id, name: editName.trim() })
+                    }
+                  >
+                    <Text style={s.modalBtnText}>Guardar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    testID="config-rename-cancel"
+                    style={s.cancelBtn}
+                    onPress={() => setEditingItem(null)}
+                  >
+                    <Text style={s.cancelBtnText}>Cancelar</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
-          </View>
-        </View>
-      </Modal>
+          </Modal>
+
+          {/* Delete / reassign modal */}
+          <Modal visible={!!deleteTarget} transparent animationType="slide">
+            <View style={s.modalOverlay}>
+              <View style={s.modalCard}>
+                <Text style={s.modalTitle}>
+                  {deleteTarget?.isDeletable
+                    ? 'Eliminar'
+                    : `"${deleteTarget?.name}" está en ${deleteTarget?.usageCount} receta(s)`}
+                </Text>
+                {!deleteTarget?.isDeletable && (
+                  <>
+                    <Text style={s.modalSubtitle}>Elige qué hacer:</Text>
+                    <Text style={s.modalLabel}>Reasignar a (ID del reemplazo):</Text>
+                    <TextInput
+                      placeholderTextColor={colors.inkSoft}
+                      style={s.modalInput}
+                      value={reassignId}
+                      onChangeText={setReassignId}
+                      placeholder="UUID del ítem destino"
+                      autoCapitalize="none"
+                    />
+                  </>
+                )}
+                <View style={s.modalActions}>
+                  <TouchableOpacity
+                    testID="config-delete-confirm"
+                    style={s.modalBtnDanger}
+                    disabled={deleteItem.isPending || mergeTags.isPending}
+                    onPress={() => {
+                      if (!deleteTarget) return
+                      if (tab === 'tags' && reassignId.trim()) {
+                        mergeTags.mutate({ sourceId: deleteTarget.id, targetId: reassignId.trim() })
+                      } else {
+                        deleteItem.mutate({
+                          id: deleteTarget.id,
+                          reassignTo: reassignId.trim() || undefined,
+                        })
+                      }
+                    }}
+                  >
+                    <Text style={s.modalBtnText}>
+                      {reassignId.trim() ? 'Reasignar y eliminar' : 'Eliminar de todas las recetas'}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    testID="config-delete-cancel"
+                    style={s.cancelBtn}
+                    onPress={() => {
+                      setDeleteTarget(null)
+                      setReassignId('')
+                    }}
+                  >
+                    <Text style={s.cancelBtnText}>Cancelar</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+        </>
+      )}
     </View>
   )
 }
