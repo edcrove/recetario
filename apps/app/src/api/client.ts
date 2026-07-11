@@ -263,6 +263,38 @@ export const api = {
         body: JSON.stringify({ surface, canonicalId }),
       }),
   },
+  pantry: {
+    list: () =>
+      request<
+        Array<{
+          id: string
+          ownerId: string
+          name: string
+          quantity: string | null
+          unit: string | null
+          expiryDate: string | null
+          inStock: boolean
+        }>
+      >('/v1/pantry'),
+    create: (data: {
+      name: string
+      quantity?: string | null
+      unit?: string | null
+      expiryDate?: string | null
+      inStock?: boolean
+    }) => request('/v1/pantry', { method: 'POST', body: JSON.stringify(data) }),
+    update: (
+      id: string,
+      data: {
+        name?: string
+        quantity?: string | null
+        unit?: string | null
+        expiryDate?: string | null
+        inStock?: boolean
+      },
+    ) => request(`/v1/pantry/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    remove: (id: string) => request<void>(`/v1/pantry/${id}`, { method: 'DELETE' }),
+  },
   taxonomy: {
     foodTypes: () =>
       request<Array<{ id: string; name: string; slug: string; isSystem: boolean }>>(
