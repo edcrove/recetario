@@ -14,6 +14,8 @@ import { api } from '../../src/api/client'
 import { useAuth } from '../../src/providers/AuthProvider'
 import { confirmAsync } from '../../src/utils/platformAlert'
 import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
+import { useThemeContext } from '../../src/theme/themeContext'
+import type { ThemePreference } from '../../src/theme/themeContext'
 
 const DIETARY_OPTIONS = [
   'vegano',
@@ -29,6 +31,7 @@ type DietaryOption = (typeof DIETARY_OPTIONS)[number]
 export default function ProfileScreen() {
   const colors = useThemeColors()
   const s = makeStyles(colors)
+  const themeCtx = useThemeContext()
   const router = useRouter()
   const { signOut } = useAuth()
   const queryClient = useQueryClient()
@@ -142,6 +145,7 @@ export default function ProfileScreen() {
       {editingName ? (
         <View style={s.nameRow}>
           <TextInput
+            placeholderTextColor={colors.inkSoft}
             style={s.nameInput}
             value={displayName}
             onChangeText={setDisplayName}
@@ -167,6 +171,34 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       )}
       <Text style={s.email}>{user?.email}</Text>
+
+      {/* Theme */}
+      {themeCtx ? (
+        <>
+          <Text style={s.sectionTitle}>Tema</Text>
+          <View style={s.themeRow}>
+            {(
+              [
+                { key: 'system', label: '🌓 Sistema' },
+                { key: 'light', label: '☀️ Claro' },
+                { key: 'dark', label: '🌙 Oscuro' },
+              ] as { key: ThemePreference; label: string }[]
+            ).map(({ key, label }) => {
+              const active = themeCtx.preference === key
+              return (
+                <TouchableOpacity
+                  key={key}
+                  testID={`theme-${key}`}
+                  style={[s.themeChip, active && s.themeChipActive]}
+                  onPress={() => themeCtx.setPreference(key)}
+                >
+                  <Text style={[s.themeChipText, active && s.themeChipTextActive]}>{label}</Text>
+                </TouchableOpacity>
+              )
+            })}
+          </View>
+        </>
+      ) : null}
 
       {/* Preferred servings */}
       <Text style={s.sectionTitle}>Porciones por defecto</Text>
@@ -323,12 +355,25 @@ const makeStyles = (c: ThemeColors) =>
       padding: 4,
       minWidth: 120,
       textAlign: 'center',
+      color: c.ink,
     },
     saveText: { color: c.terracotta, fontWeight: '600' },
     cancelText: { color: c.inkSoft },
     name: { fontSize: 22, fontWeight: '700', color: c.ink, textAlign: 'center' },
     editHint: { fontSize: 11, color: c.inkSoft, textAlign: 'center', marginBottom: 2 },
     email: { fontSize: 14, color: c.inkSoft, textAlign: 'center', marginBottom: 28 },
+    themeRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
+    themeChip: {
+      flexGrow: 1,
+      flexBasis: 0,
+      paddingVertical: 10,
+      borderRadius: 999,
+      backgroundColor: c.sand,
+      alignItems: 'center',
+    },
+    themeChipActive: { backgroundColor: c.terracotta },
+    themeChipText: { fontSize: 13, fontWeight: '600', color: c.ink },
+    themeChipTextActive: { color: c.terracottaInk },
     sectionTitle: {
       fontSize: 13,
       fontWeight: '700',

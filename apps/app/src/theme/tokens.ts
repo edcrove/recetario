@@ -1,4 +1,5 @@
 import { useColorScheme } from 'react-native'
+import { useThemeContext } from './themeContext'
 
 /**
  * "Cocina cálida" design tokens — the visual identity approved 2026-07-08
@@ -69,7 +70,14 @@ export const fonts = {
 /** Backward-compatible light palette for screens not yet migrated to the hook. */
 export const colors = lightColors
 
-/** Returns the palette for the active OS color scheme. */
+/**
+ * Returns the palette for the active scheme: the ThemeProvider's resolved
+ * scheme when mounted (honors the user's Sistema/Claro/Oscuro choice), else
+ * the raw OS setting.
+ */
 export function useThemeColors(): ThemeColors {
-  return useColorScheme() === 'dark' ? darkColors : lightColors
+  const ctx = useThemeContext()
+  const os: 'light' | 'dark' = useColorScheme() === 'dark' ? 'dark' : 'light'
+  const scheme = ctx ? ctx.scheme : os
+  return scheme === 'dark' ? darkColors : lightColors
 }

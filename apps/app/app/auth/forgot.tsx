@@ -54,6 +54,7 @@ export default function ForgotPasswordScreen() {
         </Text>
 
         <TextInput
+          placeholderTextColor={colors.inkSoft}
           style={s.input}
           placeholder="vos@ejemplo.com"
           value={email}
@@ -83,7 +84,7 @@ const makeStyles = (c: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: c.surface },
     inner: { flex: 1, justifyContent: 'center', paddingHorizontal: 32 },
-    icon: { fontSize: 48, textAlign: 'center', marginBottom: 16 },
+    icon: { fontSize: 48, textAlign: 'center', marginBottom: 16, color: c.ink },
     title: {
       fontSize: 26,
       fontWeight: '700',
@@ -101,6 +102,7 @@ const makeStyles = (c: ThemeColors) =>
       fontSize: 16,
       marginBottom: 16,
       backgroundColor: c.surface,
+      color: c.ink,
     },
     btn: {
       backgroundColor: c.terracotta,

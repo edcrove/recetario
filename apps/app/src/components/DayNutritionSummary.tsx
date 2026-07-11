@@ -46,6 +46,6 @@ const makeStyles = (c: ThemeColors) =>
   StyleSheet.create({
     row: { marginTop: 2, marginBottom: 6 },
     totals: { fontSize: 12, color: c.inkSoft, fontVariant: ['tabular-nums'] },
-    delta: { fontSize: 12, fontWeight: '600', marginTop: 1 },
+    delta: { fontSize: 12, fontWeight: '600', marginTop: 1, color: c.ink },
     partial: { fontSize: 11, color: c.terracotta, marginTop: 1 },
   })

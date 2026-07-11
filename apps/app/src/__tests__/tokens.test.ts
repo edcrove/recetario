@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 
 const mockScheme = vi.fn(() => 'light')
 vi.mock('react-native', () => ({ useColorScheme: () => mockScheme() }))
+vi.mock('../theme/themeContext', () => ({ useThemeContext: () => null }))
 
 import { useThemeColors, lightColors, darkColors } from '../theme/tokens'
 

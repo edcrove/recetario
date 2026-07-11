@@ -95,6 +95,7 @@ export default function HouseholdScreen() {
             casa.
           </Text>
           <TextInput
+            placeholderTextColor={colors.inkSoft}
             testID="household-create-name-input"
             style={s.input}
             placeholder="ej. Familia García"
@@ -158,6 +159,7 @@ export default function HouseholdScreen() {
                 <View style={s.inviteBox}>
                   <Text style={s.inviteLabel}>Email a invitar</Text>
                   <TextInput
+                    placeholderTextColor={colors.inkSoft}
                     testID="household-invite-email-input"
                     style={s.input}
                     placeholder="familiar@ejemplo.com"
@@ -220,6 +222,7 @@ export default function HouseholdScreen() {
       {households.length > 0 && (
         <View style={s.addCard}>
           <TextInput
+            placeholderTextColor={colors.inkSoft}
             style={s.input}
             placeholder="Nombre del nuevo hogar…"
             value={newHouseholdName}
@@ -298,6 +301,7 @@ const makeStyles = (c: ThemeColors) =>
       fontSize: 15,
       backgroundColor: c.surface,
       marginBottom: 8,
+      color: c.ink,
     },
     btn: {
       backgroundColor: c.terracotta,

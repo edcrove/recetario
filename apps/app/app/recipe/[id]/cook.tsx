@@ -213,6 +213,7 @@ export default function CookModeScreen() {
             </View>
 
             <TextInput
+              placeholderTextColor={colors.inkSoft}
               style={s.noteInput}
               placeholder="Agregar nota (opcional)"
               value={ratingNote}
@@ -360,6 +361,7 @@ const makeStyles = (c: ThemeColors) =>
       textAlignVertical: 'top',
       marginBottom: 16,
       backgroundColor: c.surface,
+      color: c.ink,
     },
     modalBtn: {
       backgroundColor: c.terracotta,

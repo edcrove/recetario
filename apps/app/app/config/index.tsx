@@ -167,6 +167,7 @@ export default function ConfiguratorScreen() {
           <View style={s.modalCard}>
             <Text style={s.modalTitle}>Renombrar</Text>
             <TextInput
+              placeholderTextColor={colors.inkSoft}
               style={s.modalInput}
               value={editName}
               onChangeText={setEditName}
@@ -210,6 +211,7 @@ export default function ConfiguratorScreen() {
                 <Text style={s.modalSubtitle}>Elige qué hacer:</Text>
                 <Text style={s.modalLabel}>Reasignar a (ID del reemplazo):</Text>
                 <TextInput
+                  placeholderTextColor={colors.inkSoft}
                   style={s.modalInput}
                   value={reassignId}
                   onChangeText={setReassignId}
@@ -290,6 +292,7 @@ const makeStyles = (c: ThemeColors) =>
       paddingHorizontal: 8,
       paddingVertical: 2,
       borderRadius: 10,
+      color: c.ink,
     },
     badgeUsed: { backgroundColor: c.terracottaSoft, color: c.terracotta },
     badgeEmpty: { backgroundColor: c.sand, color: c.inkSoft },
@@ -305,7 +308,7 @@ const makeStyles = (c: ThemeColors) =>
     actionBtn: { padding: 6, borderRadius: 6, backgroundColor: c.terracottaSoft },
     actionBtnDanger: { padding: 6, borderRadius: 6, backgroundColor: c.dangerSoft },
     actionBtnWarning: { padding: 6, borderRadius: 6, backgroundColor: '#fffbeb' },
-    actionBtnText: { fontSize: 14 },
+    actionBtnText: { fontSize: 14, color: c.ink },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
     modalCard: {
       backgroundColor: c.surface,
@@ -331,6 +334,7 @@ const makeStyles = (c: ThemeColors) =>
       fontSize: 15,
       backgroundColor: c.surface,
       marginBottom: 16,
+      color: c.ink,
     },
     modalActions: { gap: 8 },
     modalBtn: {

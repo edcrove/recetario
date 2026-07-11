@@ -133,6 +133,7 @@ export default function EditRecipeScreen() {
       {/* Title */}
       <Text style={st.label}>Título *</Text>
       <TextInput
+        placeholderTextColor={colors.inkSoft}
         style={[st.input, errors.title ? st.inputError : null]}
         value={title}
         onChangeText={setTitle}
@@ -143,6 +144,7 @@ export default function EditRecipeScreen() {
       {/* Servings */}
       <Text style={st.label}>Porciones *</Text>
       <TextInput
+        placeholderTextColor={colors.inkSoft}
         style={[st.input, errors.servings ? st.inputError : null]}
         value={servings}
         onChangeText={setServings}
@@ -191,6 +193,7 @@ export default function EditRecipeScreen() {
       {/* Tags */}
       <Text style={st.label}>Etiquetas (separadas por coma)</Text>
       <TextInput
+        placeholderTextColor={colors.inkSoft}
         style={st.input}
         value={tags}
         onChangeText={setTags}
@@ -203,12 +206,14 @@ export default function EditRecipeScreen() {
       {ingredients.map((ing, i) => (
         <View key={i} style={st.ingRow}>
           <TextInput
+            placeholderTextColor={colors.inkSoft}
             style={[st.input, st.ingName]}
             value={ing.name}
             onChangeText={(v) => updateIngredient(i, 'name', v)}
             placeholder="Ingrediente"
           />
           <TextInput
+            placeholderTextColor={colors.inkSoft}
             style={[st.input, st.ingQty]}
             value={ing.quantity}
             onChangeText={(v) => updateIngredient(i, 'quantity', v)}
@@ -216,12 +221,14 @@ export default function EditRecipeScreen() {
             placeholder="Cant."
           />
           <TextInput
+            placeholderTextColor={colors.inkSoft}
             style={[st.input, st.ingUnit]}
             value={ing.unit}
             onChangeText={(v) => updateIngredient(i, 'unit', v)}
             placeholder="Unidad"
           />
           <TextInput
+            placeholderTextColor={colors.inkSoft}
             style={[st.input, st.ingPresentation]}
             value={ing.presentation}
             onChangeText={(v) => updateIngredient(i, 'presentation', v)}
@@ -244,6 +251,7 @@ export default function EditRecipeScreen() {
         <View key={i} style={st.stepRow}>
           <Text style={st.stepNum}>{i + 1}.</Text>
           <TextInput
+            placeholderTextColor={colors.inkSoft}
             style={[st.input, st.stepInput]}
             value={step.text}
             onChangeText={(v) => updateStep(i, v)}
@@ -264,6 +272,7 @@ export default function EditRecipeScreen() {
       {/* Notes */}
       <Text style={st.label}>Notas</Text>
       <TextInput
+        placeholderTextColor={colors.inkSoft}
         style={[st.input, { height: 80 }]}
         value={notes}
         onChangeText={setNotes}
@@ -290,7 +299,13 @@ const makeStyles = (c: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: c.surface },
     content: { padding: 16, paddingBottom: 40 },
-    heading: { fontSize: 24, fontWeight: 'bold', marginBottom: 16, fontFamily: fonts.display },
+    heading: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      marginBottom: 16,
+      fontFamily: fonts.display,
+      color: c.ink,
+    },
     label: { fontSize: 14, fontWeight: '600', marginBottom: 4, color: c.ink, marginTop: 12 },
     input: {
       borderWidth: 1,
@@ -299,6 +314,7 @@ const makeStyles = (c: ThemeColors) =>
       padding: 10,
       fontSize: 15,
       backgroundColor: c.surface,
+      color: c.ink,
     },
     inputError: { borderColor: c.danger },
     errorText: { color: c.danger, fontSize: 12, marginTop: 2 },
@@ -308,6 +324,7 @@ const makeStyles = (c: ThemeColors) =>
       marginTop: 20,
       marginBottom: 8,
       fontFamily: fonts.display,
+      color: c.ink,
     },
     categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 4 },
     catBtn: {
