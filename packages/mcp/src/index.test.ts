@@ -33,6 +33,7 @@ const EXPECTED_TOOLS = [
   'copyRecipe',
   'setNutritionGoals',
   'getDayNutrition',
+  'fetchRecipePage',
 ]
 
 const mockFetch = vi.fn()
@@ -73,7 +74,7 @@ describe('registerAllTools (main bootstrap)', () => {
 
     await registerAllTools(server, apiClient)
 
-    expect(spy).toHaveBeenCalledTimes(31)
+    expect(spy).toHaveBeenCalledTimes(32)
   })
 })
 

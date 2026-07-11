@@ -46,6 +46,7 @@ export async function registerAllTools(
   const { registerConfiguratorTools } = await import('./tools/configurator.js')
   const { registerLibraryTools } = await import('./tools/library.js')
   const { registerNutritionGoalTools } = await import('./tools/nutritionGoals.js')
+  const { registerImportTools } = await import('./tools/importRecipe.js')
 
   registerCreateRecipe(server, apiClient)
   registerReadTools(server, apiClient)
@@ -58,6 +59,7 @@ export async function registerAllTools(
   registerConfiguratorTools(server, apiClient)
   registerLibraryTools(server, apiClient)
   registerNutritionGoalTools(server, apiClient)
+  registerImportTools(server, apiClient)
 }
 
 /* v8 ignore next 12 */
