@@ -167,6 +167,49 @@ describe.skipIf(skip).sequential('Menu integration tests', () => {
     expect(pasta.checked).toBe(false)
   })
 
+  it('combines ingredient synonyms into one canonical line while distinct cuts stay apart', async () => {
+    const week = '2026-08-03' // a Monday, isolated from the other menu tests
+    const mk = async (title: string, ingredient: string) => {
+      const r = await app.request('/v1/recipes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: auth },
+        body: JSON.stringify({
+          title,
+          servings: 1,
+          category: 'Cena',
+          ingredients: [{ name: ingredient, quantity: 200, unit: 'g' }],
+          steps: [{ text: 'Cocinar.' }],
+        }),
+      })
+      return (await r.json()).id as string
+    }
+    // Two recipes use different words for chicken breast; a third uses a thigh.
+    const supremaId = await mk('Suprema Recipe', 'Suprema de pollo')
+    const pechugaId = await mk('Pechuga Recipe', 'Pechuga')
+    const musloId = await mk('Muslo Recipe', 'Muslo de pollo')
+    for (const [i, id] of [supremaId, pechugaId, musloId].entries()) {
+      await app.request('/v1/menu', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: auth },
+        body: JSON.stringify({ date: week, slot: 'Cena', recipeId: id, servings: 1 }),
+      })
+      void i
+    }
+
+    const res = await app.request(`/v1/menu/shopping-list?weekStart=${week}`, {
+      headers: { Authorization: auth },
+    })
+    const list = (await res.json()) as { ingredient: string; quantity: number; key: string }[]
+    const pollo = list.find((i) => i.ingredient === 'Pollo')
+    expect(pollo).toBeDefined()
+    expect(pollo!.key).toBe('pollo')
+    expect(pollo!.quantity).toBe(400) // suprema 200g + pechuga 200g combined
+    // the thigh is a separate canonical, not merged into pollo
+    const muslo = list.find((i) => i.key === 'muslo de pollo')
+    expect(muslo).toBeDefined()
+    expect(list.filter((i) => i.key === 'pollo')).toHaveLength(1)
+  })
+
   it('PUT /v1/menu/shopping-list/check persists a check across reloads and can be undone', async () => {
     const check = (checked: boolean) =>
       app.request('/v1/menu/shopping-list/check', {

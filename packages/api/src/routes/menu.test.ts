@@ -28,6 +28,17 @@ vi.mock('../db/household-visibility.js', () => ({
   isViewerAnywhere: vi.fn(async () => false),
 }))
 
+vi.mock('../db/ingredient-repository.js', () => ({
+  ingredientRepository: {
+    loadCanonicalMaps: vi.fn(async () => ({
+      synonyms: new Map(),
+      canonicals: new Set(),
+      displayByKey: new Map(),
+      familyByKey: new Map(),
+    })),
+  },
+}))
+
 vi.mock('../db/index.js', () => ({
   getDb: vi.fn(() => {
     throw new Error('DB not available in tests')

@@ -5,8 +5,10 @@ import {
   CreateMenuEntrySchema,
   aggregateIngredients,
   enrichShoppingList,
+  resolveCanonical,
   computeDayNutrition,
 } from '@recetario/shared'
+import { ingredientRepository } from '../db/ingredient-repository.js'
 import { menuRepository } from '../db/menu-repository.js'
 import { isViewerAnywhere } from '../db/household-visibility.js'
 import { authMiddleware } from '../middleware/auth.js'
@@ -223,7 +225,14 @@ menuRoute.openapi(getShoppingListRoute, async (c) => {
   const ownerId = c.get('ownerId')
   const { weekStart } = c.req.valid('query')
   const scaled = await menuRepository.getScaledIngredients(ownerId, weekStart)
-  const items = aggregateIngredients(scaled)
+  // Group by canonical ingredient so "suprema de pollo" and "pechuga" combine
+  // into one "Pollo" line while "muslo" stays separate.
+  const maps = await ingredientRepository.loadCanonicalMaps()
+  const resolve = (name: string) => {
+    const { key } = resolveCanonical(name, maps.synonyms, maps.canonicals)
+    return { key, display: maps.displayByKey.get(key) ?? name.trim() }
+  }
+  const items = aggregateIngredients(scaled, resolve)
   const checkedKeys = await menuRepository.getShoppingChecks(ownerId, weekStart)
   const list = enrichShoppingList(items, checkedKeys)
   return c.json(list, 200)
