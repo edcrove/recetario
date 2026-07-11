@@ -210,6 +210,50 @@ describe.skipIf(skip).sequential('Menu integration tests', () => {
     expect(list.filter((i) => i.key === 'pollo')).toHaveLength(1)
   })
 
+  it('flags shopping-list items already in the in-stock pantry', async () => {
+    const week = '2026-09-07' // a Monday, isolated
+    const recipe = await (
+      await app.request('/v1/recipes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: auth },
+        body: JSON.stringify({
+          title: 'Pantry Match Recipe',
+          servings: 1,
+          category: 'Cena',
+          ingredients: [
+            { name: 'Arroz', quantity: 100, unit: 'g' },
+            { name: 'Sal', quantity: null, unit: null },
+          ],
+          steps: [{ text: 'Cocinar.' }],
+        }),
+      })
+    ).json()
+    await app.request('/v1/menu', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: auth },
+      body: JSON.stringify({ date: week, slot: 'Cena', recipeId: recipe.id, servings: 1 }),
+    })
+    // Household has rice in stock, but salt is marked out of stock.
+    await app.request('/v1/pantry', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: auth },
+      body: JSON.stringify({ name: 'arroz', inStock: true }),
+    })
+    await app.request('/v1/pantry', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: auth },
+      body: JSON.stringify({ name: 'sal', inStock: false }),
+    })
+
+    const list = (await (
+      await app.request(`/v1/menu/shopping-list?weekStart=${week}`, {
+        headers: { Authorization: auth },
+      })
+    ).json()) as { key: string; pantryMatch: boolean }[]
+    expect(list.find((i) => i.key === 'arroz')?.pantryMatch).toBe(true)
+    expect(list.find((i) => i.key === 'sal')?.pantryMatch).toBe(false)
+  })
+
   it('PUT /v1/menu/shopping-list/check persists a check across reloads and can be undone', async () => {
     const check = (checked: boolean) =>
       app.request('/v1/menu/shopping-list/check', {

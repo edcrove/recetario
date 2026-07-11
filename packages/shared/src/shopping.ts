@@ -17,25 +17,35 @@ export type ShoppingListItem = {
 }
 
 /** A shopping-list line enriched for the sectioned UI: its stable matching key
- * (normalized name), the aisle it groups under, and whether it's been checked. */
+ * (normalized name), the aisle it groups under, whether it's been checked, and
+ * whether the household already has it in the pantry. */
 export type ShoppingListEntry = ShoppingListItem & {
   key: string
   aisle: Aisle
   checked: boolean
+  pantryMatch: boolean
 }
 
 /**
- * Enriches aggregated items with their aisle and persisted check state. `key` is
- * the normalized name — the same key used to store checks — so a checked item
- * stays checked across reloads and across its plural/accented spellings.
+ * Enriches aggregated items with their aisle, persisted check state and pantry
+ * match. `key` is the normalized name — the same key used to store checks and to
+ * match the pantry — so state survives plural/accented spellings. `pantryKeys`
+ * holds the canonical keys of in-stock pantry items.
  */
 export function enrichShoppingList(
   items: ShoppingListItem[],
   checkedKeys: ReadonlySet<string>,
+  pantryKeys: ReadonlySet<string> = new Set(),
 ): ShoppingListEntry[] {
   return items.map((item) => {
     const key = normalizeIngredientName(item.ingredient)
-    return { ...item, key, aisle: ingredientAisle(item.ingredient), checked: checkedKeys.has(key) }
+    return {
+      ...item,
+      key,
+      aisle: ingredientAisle(item.ingredient),
+      checked: checkedKeys.has(key),
+      pantryMatch: pantryKeys.has(key),
+    }
   })
 }
 

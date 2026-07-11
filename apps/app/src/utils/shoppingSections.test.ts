@@ -9,6 +9,7 @@ const entry = (over: Partial<ShoppingListEntry>): ShoppingListEntry => ({
   key: 'x',
   aisle: 'otros',
   checked: false,
+  pantryMatch: false,
   ...over,
 })
 
