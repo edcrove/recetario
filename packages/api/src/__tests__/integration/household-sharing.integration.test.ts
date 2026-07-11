@@ -160,6 +160,29 @@ describe.skipIf(skip).sequential('Household sharing: reads and viewer enforcemen
       })
       expect(await res.json()).toEqual([])
     })
+
+    it("a member's shopping check is shared with the household and the latest toggle wins", async () => {
+      const shopping = (token: string) =>
+        app
+          .request(`/v1/menu/shopping-list?weekStart=${weekStart}`, { headers: auth(token) })
+          .then((r) => r.json() as Promise<{ ingredient: string; checked: boolean }[]>)
+      const check = (token: string, checked: boolean) =>
+        app.request('/v1/menu/shopping-list/check', {
+          method: 'PUT',
+          headers: auth(token),
+          body: JSON.stringify({ weekStart, key: 'lenteja', checked }),
+        })
+
+      // Member checks it off — the owner sees it checked.
+      await check(member.token, true)
+      let ownerList = await shopping(owner.token)
+      expect(ownerList.find((i) => i.ingredient === 'lentejas')?.checked).toBe(true)
+
+      // Owner unchecks it — the member sees the newer state (latest toggle wins).
+      await check(owner.token, false)
+      const memberList = await shopping(member.token)
+      expect(memberList.find((i) => i.ingredient === 'lentejas')?.checked).toBe(false)
+    })
   })
 
   describe('viewer role enforcement', () => {

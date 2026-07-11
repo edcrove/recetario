@@ -1,6 +1,8 @@
 import type { Unit } from './schema.js'
 import { VOLUME_TO_ML, MASS_TO_G } from './units.js'
 import { lookupDensity } from './density.js'
+import { normalizeIngredientName } from './ingredientName.js'
+import { ingredientAisle, type Aisle } from './aisle.js'
 
 export type ScaledIngredient = {
   name: string
@@ -14,8 +16,31 @@ export type ShoppingListItem = {
   unit: Unit | null
 }
 
+/** A shopping-list line enriched for the sectioned UI: its stable matching key
+ * (normalized name), the aisle it groups under, and whether it's been checked. */
+export type ShoppingListEntry = ShoppingListItem & {
+  key: string
+  aisle: Aisle
+  checked: boolean
+}
+
+/**
+ * Enriches aggregated items with their aisle and persisted check state. `key` is
+ * the normalized name — the same key used to store checks — so a checked item
+ * stays checked across reloads and across its plural/accented spellings.
+ */
+export function enrichShoppingList(
+  items: ShoppingListItem[],
+  checkedKeys: ReadonlySet<string>,
+): ShoppingListEntry[] {
+  return items.map((item) => {
+    const key = normalizeIngredientName(item.ingredient)
+    return { ...item, key, aisle: ingredientAisle(item.ingredient), checked: checkedKeys.has(key) }
+  })
+}
+
 function normalizeKey(name: string): string {
-  return name.toLowerCase().trim()
+  return normalizeIngredientName(name)
 }
 
 function toGrams(qty: number, unit: Unit): number {
@@ -94,12 +119,17 @@ function tryMerge(name: string, items: UnitGroup[]): ShoppingListItem[] {
  * are merged via the density model when possible, otherwise kept as separate lines.
  */
 export function aggregateIngredients(ingredients: ScaledIngredient[]): ShoppingListItem[] {
-  // Step 1: Group by (normalized name, unit) and sum quantities — skip zero-quantity items
+  // Step 1: Group by (normalized name, unit) and sum quantities — skip zero-quantity items.
+  // The normalized name is only a grouping key; the first original spelling seen
+  // is kept for display so the list reads "Tomates", not "tomate".
   const grouped = new Map<string, UnitGroup>()
+  const display = new Map<string, string>()
 
   for (const ing of ingredients) {
     if (ing.quantity !== null && ing.quantity <= 0) continue
-    const key = `${normalizeKey(ing.name)}::${ing.unit ?? '__null__'}`
+    const norm = normalizeKey(ing.name)
+    if (!display.has(norm)) display.set(norm, ing.name.trim())
+    const key = `${norm}::${ing.unit ?? '__null__'}`
     const existing = grouped.get(key)
     if (existing) {
       existing.quantity =
@@ -122,7 +152,8 @@ export function aggregateIngredients(ingredients: ScaledIngredient[]): ShoppingL
   // Step 3: Merge and sort
   const result: ShoppingListItem[] = []
   for (const [name, items] of byName) {
-    result.push(...tryMerge(name, items))
+    // Every byName key came from a norm recorded in `display`, so it is present.
+    result.push(...tryMerge(display.get(name)!, items))
   }
 
   return result.sort((a, b) => a.ingredient.localeCompare(b.ingredient))

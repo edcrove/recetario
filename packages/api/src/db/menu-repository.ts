@@ -222,6 +222,64 @@ export class MenuRepository {
   }
 
   /**
+   * Checked shopping-list item keys for a week, merged across the household
+   * (same visibility rule as the week view). Each member's rows are keyed by
+   * (owner, week, itemKey); the most recently updated row for a given itemKey
+   * wins, so the latest check/uncheck by anyone in the household is what shows.
+   */
+  async getShoppingChecks(ownerId: string, weekStart: string): Promise<Set<string>> {
+    const db = this.db
+    const visibleOwners = await getVisibleOwnerIds(ownerId)
+    const rows = await db
+      .select({
+        itemKey: schema.shoppingListChecks.itemKey,
+        checked: schema.shoppingListChecks.checked,
+        updatedAt: schema.shoppingListChecks.updatedAt,
+      })
+      .from(schema.shoppingListChecks)
+      .where(
+        and(
+          inArray(schema.shoppingListChecks.ownerId, visibleOwners),
+          eq(schema.shoppingListChecks.weekStart, weekStart),
+        ),
+      )
+
+    const latest = new Map<string, { checked: boolean; updatedAt: Date }>()
+    for (const row of rows) {
+      const cur = latest.get(row.itemKey)
+      if (!cur || row.updatedAt > cur.updatedAt) {
+        latest.set(row.itemKey, { checked: row.checked, updatedAt: row.updatedAt })
+      }
+    }
+
+    const checkedKeys = new Set<string>()
+    for (const [key, value] of latest) {
+      if (value.checked) checkedKeys.add(key)
+    }
+    return checkedKeys
+  }
+
+  /** Upserts the caller's check state for one shopping-list item in a week. */
+  async setShoppingCheck(
+    ownerId: string,
+    weekStart: string,
+    itemKey: string,
+    checked: boolean,
+  ): Promise<void> {
+    await this.db
+      .insert(schema.shoppingListChecks)
+      .values({ ownerId, weekStart, itemKey, checked, updatedAt: new Date() })
+      .onConflictDoUpdate({
+        target: [
+          schema.shoppingListChecks.ownerId,
+          schema.shoppingListChecks.weekStart,
+          schema.shoppingListChecks.itemKey,
+        ],
+        set: { checked, updatedAt: new Date() },
+      })
+  }
+
+  /**
    * Everything the pure computeDayNutrition() needs for one day: each entry's
    * recipe per-serving nutrition, planned servings and slot (household-shared,
    * same rule as the week view), plus the caller's daily nutrition target.

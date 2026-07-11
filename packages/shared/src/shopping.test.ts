@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { aggregateIngredients } from './shopping.js'
+import { aggregateIngredients, enrichShoppingList } from './shopping.js'
 import type { ScaledIngredient } from './shopping.js'
 
 describe('aggregateIngredients', () => {
@@ -113,6 +113,16 @@ describe('aggregateIngredients', () => {
     expect(result.map((r) => r.ingredient)).toEqual(['apple', 'mango', 'zucchini'])
   })
 
+  it('merges plural/accented spelling variants and keeps the first spelling for display', () => {
+    const result = aggregateIngredients([
+      { name: 'Tomates', quantity: 2, unit: 'unit' },
+      { name: 'tomate', quantity: 3, unit: 'unit' },
+    ])
+    expect(result).toHaveLength(1)
+    expect(result[0]!.ingredient).toBe('Tomates')
+    expect(result[0]!.quantity).toBe(5)
+  })
+
   it('handles count/unknown units as-is (not merged into mass/volume)', () => {
     const result = aggregateIngredients([
       { name: 'egg', quantity: 2, unit: 'unit' },
@@ -156,5 +166,26 @@ describe('aggregateIngredients', () => {
     expect(result.length).toBe(2)
     expect(result.some((r) => r.unit === 'unit')).toBe(true)
     expect(result.some((r) => r.unit === null)).toBe(true)
+  })
+})
+
+describe('enrichShoppingList', () => {
+  it('attaches key + aisle and marks checked items by normalized key', () => {
+    const items = [
+      { ingredient: 'Tomates', quantity: 2, unit: 'unit' as const },
+      { ingredient: 'Leche', quantity: 1, unit: 'l' as const },
+    ]
+    const result = enrichShoppingList(items, new Set(['tomate']))
+    expect(result[0]).toMatchObject({
+      ingredient: 'Tomates',
+      key: 'tomate',
+      aisle: 'verduleria',
+      checked: true,
+    })
+    expect(result[1]).toMatchObject({ key: 'leche', aisle: 'lacteos', checked: false })
+  })
+
+  it('returns empty for empty input', () => {
+    expect(enrichShoppingList([], new Set())).toEqual([])
   })
 })

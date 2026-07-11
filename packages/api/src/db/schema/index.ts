@@ -4,6 +4,7 @@ import {
   uuid,
   text,
   integer,
+  boolean,
   jsonb,
   timestamp,
   index,
@@ -333,5 +334,25 @@ export const cookSessions = pgTable(
     index('cook_sessions_owner_idx').on(t.ownerId),
     index('cook_sessions_recipe_idx').on(t.recipeId),
     index('cook_sessions_cooked_at_idx').on(t.cookedAt),
+  ],
+)
+
+// ── Shopping list check-off state ────────────────────────────────────────────
+// One row per (owner, week, normalized ingredient) that has been ticked. Reads
+// merge across the household's visible owners (same rule as the menu), so a
+// check by any member shows for everyone; writes are stored under the caller.
+export const shoppingListChecks = pgTable(
+  'shopping_list_checks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ownerId: text('owner_id').notNull(),
+    weekStart: text('week_start').notNull(), // ISO date YYYY-MM-DD (Monday)
+    itemKey: text('item_key').notNull(), // normalizeIngredientName(ingredient)
+    checked: boolean('checked').notNull().default(true),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('shopping_list_checks_owner_week_item_idx').on(t.ownerId, t.weekStart, t.itemKey),
+    index('shopping_list_checks_owner_week_idx').on(t.ownerId, t.weekStart),
   ],
 )

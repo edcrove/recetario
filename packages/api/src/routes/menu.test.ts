@@ -7,6 +7,8 @@ vi.mock('../db/menu-repository.js', () => {
     remove: vi.fn(),
     getWeek: vi.fn(),
     getScaledIngredients: vi.fn(),
+    getShoppingChecks: vi.fn(async () => new Set<string>()),
+    setShoppingCheck: vi.fn(),
     updateServings: vi.fn(),
     getDayNutritionInputs: vi.fn(),
   }
@@ -44,6 +46,8 @@ const mockRepo = menuRepository as unknown as {
   remove: ReturnType<typeof vi.fn>
   getWeek: ReturnType<typeof vi.fn>
   getScaledIngredients: ReturnType<typeof vi.fn>
+  getShoppingChecks: ReturnType<typeof vi.fn>
+  setShoppingCheck: ReturnType<typeof vi.fn>
   updateServings: ReturnType<typeof vi.fn>
   getDayNutritionInputs: ReturnType<typeof vi.fn>
 }
@@ -268,7 +272,31 @@ describe('GET /v1/menu/shopping-list', () => {
 
     expect(res.status).toBe(200)
     const json = await res.json()
-    expect(json).toEqual([{ ingredient: 'pasta', quantity: 300, unit: 'g' }])
+    expect(json).toEqual([
+      {
+        ingredient: 'pasta',
+        quantity: 300,
+        unit: 'g',
+        key: 'pasta',
+        aisle: 'almacen',
+        checked: false,
+      },
+    ])
+  })
+
+  it('marks an item checked when its normalized key is in the persisted set', async () => {
+    mockRepo.getScaledIngredients.mockResolvedValue([
+      { name: 'Tomates', quantity: 2, unit: 'unit' },
+    ])
+    mockRepo.getShoppingChecks.mockResolvedValueOnce(new Set(['tomate']))
+
+    const res = await app.request('/v1/menu/shopping-list?weekStart=2026-06-30', {
+      method: 'GET',
+      headers: AUTH,
+    })
+
+    const json = (await res.json()) as { ingredient: string; checked: boolean; aisle: string }[]
+    expect(json[0]).toMatchObject({ ingredient: 'Tomates', checked: true, aisle: 'verduleria' })
   })
 
   it('returns empty array when no menu entries', async () => {
@@ -297,6 +325,43 @@ describe('GET /v1/menu/shopping-list', () => {
       method: 'GET',
     })
 
+    expect(res.status).toBe(401)
+  })
+})
+
+describe('PUT /v1/menu/shopping-list/check', () => {
+  it('persists the check and returns ok', async () => {
+    const res = await app.request('/v1/menu/shopping-list/check', {
+      method: 'PUT',
+      headers: { ...AUTH, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ weekStart: '2026-06-30', key: 'tomate', checked: true }),
+    })
+
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ ok: true })
+    expect(mockRepo.setShoppingCheck).toHaveBeenCalledWith(
+      expect.any(String),
+      '2026-06-30',
+      'tomate',
+      true,
+    )
+  })
+
+  it('rejects a bad weekStart (400)', async () => {
+    const res = await app.request('/v1/menu/shopping-list/check', {
+      method: 'PUT',
+      headers: { ...AUTH, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ weekStart: 'nope', key: 'tomate', checked: true }),
+    })
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 401 without auth', async () => {
+    const res = await app.request('/v1/menu/shopping-list/check', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ weekStart: '2026-06-30', key: 'tomate', checked: true }),
+    })
     expect(res.status).toBe(401)
   })
 })
