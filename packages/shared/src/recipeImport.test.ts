@@ -129,6 +129,25 @@ describe('parseRecipeFromHtml', () => {
     expect(parseRecipeFromHtml(html)?.title).toBe('Real')
   })
 
+  it('skips non-ld+json scripts, tolerates a < in the body and a spaced close tag', () => {
+    // A bare <script> (no attrs) and a plain-JS <script src> precede the recipe;
+    // both must be skipped. The ld+json body contains a literal '<' and the tag
+    // closes as "</script >" (trailing space) — the parser must still find it.
+    const recipe = {
+      '@type': 'Recipe',
+      name: 'Menos < que',
+      recipeIngredient: ['a'],
+      recipeInstructions: ['Paso <1>'],
+    }
+    const html =
+      '<script></script>' +
+      '<script src="https://cdn.example/app.js"></script>' +
+      `<script type="application/ld+json">${JSON.stringify(recipe)}</script >`
+    const r = parseRecipeFromHtml(html)
+    expect(r?.title).toBe('Menos < que')
+    expect(r?.steps).toEqual(['Paso <1>'])
+  })
+
   it('ignores a JSON-LD primitive and a nutrition object with no numeric fields', () => {
     expect(
       parseRecipeFromHtml('<script type="application/ld+json">"just a string"</script>'),

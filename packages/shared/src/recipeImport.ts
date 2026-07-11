@@ -118,11 +118,16 @@ function normalizeNutrition(n: unknown): ParsedRecipe['nutrition'] {
 
 /** Extracts every JSON-LD block from an HTML string and returns the first Recipe. */
 export function parseRecipeFromHtml(html: string): ParsedRecipe | null {
-  const blocks = [
-    ...html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi),
-  ]
+  // One unbounded run for the opening tag's attributes and a tempered token for
+  // the body keeps this linear (no polynomial-ReDoS on hostile input) and lets
+  // the close tag carry trailing whitespace ("</script >"). The ld+json check
+  // runs on the captured attribute string rather than inside the tag pattern.
+  const scriptRe = /<script\b([^>]*)>((?:[^<]|<(?!\/script[\s>]))*)<\/script\s*>/gi
+  const blocks = [...html.matchAll(scriptRe)]
   for (const block of blocks) {
-    const raw = block[1]
+    const attrs = block[1]
+    if (!attrs || !/type\s*=\s*["']application\/ld\+json["']/i.test(attrs)) continue
+    const raw = block[2]
     if (!raw) continue
     let json: unknown
     try {
@@ -158,8 +163,8 @@ export function parseRecipeFromHtml(html: string): ParsedRecipe | null {
 /** Strips tags/scripts/styles from HTML for the agent's text fallback. */
 export function htmlToText(html: string): string {
   return html
-    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script\b[^>]*>(?:[^<]|<(?!\/script[\s>]))*<\/script\s*>/gi, ' ')
+    .replace(/<style\b[^>]*>(?:[^<]|<(?!\/style[\s>]))*<\/style\s*>/gi, ' ')
     .replace(/<[^>]+>/g, ' ')
     .replace(/&nbsp;/gi, ' ')
     .replace(/&amp;/gi, '&')
