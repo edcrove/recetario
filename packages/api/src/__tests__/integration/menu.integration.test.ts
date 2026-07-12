@@ -591,80 +591,121 @@ describe.skipIf(skip).sequential('Day nutrition rollup', () => {
   })
 })
 
-describe.skipIf(skip).sequential('Menu upsert — cross-tenant title leak', () => {
+describe.skipIf(skip).sequential('Menu — cross-tenant recipe leak (IDOR)', () => {
   let victim: { token: string }
   let attacker: { token: string }
   let privateRecipeId: string
+  // Distinctive strings so a leak is unambiguous across title/ingredients/nutrition.
+  const SECRET_TITLE = 'Secreto de la abuela'
+  const SECRET_INGREDIENT = 'Trufa negra secretísima'
+  const week = '2026-07-06' // a Monday
+
+  const attackerAuth = () => ({
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${attacker.token}`,
+  })
 
   beforeAll(async () => {
     await resetTestDb()
     victim = await register(`menu-victima-${Date.now()}@example.com`)
     attacker = await register(`menu-atacante-${Date.now()}@example.com`)
 
-    // Victim owns a PRIVATE recipe; attacker shares no household with them.
+    // Victim owns a PRIVATE recipe with distinctive ingredient + nutrition;
+    // attacker shares no household with them.
     const rec = await app.request('/v1/recipes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${victim.token}` },
-      body: JSON.stringify({ ...baseRecipe, title: 'Secreto de la abuela', visibility: 'private' }),
+      body: JSON.stringify({
+        title: SECRET_TITLE,
+        servings: 2,
+        category: 'Cena',
+        visibility: 'private',
+        ingredients: [{ name: SECRET_INGREDIENT, quantity: 50, unit: 'g' }],
+        steps: [{ text: 'Cocinar en secreto.' }],
+        nutrition: { calories: 777, protein_g: 33, carbs_g: 44, fat_g: 22 },
+      }),
     })
     privateRecipeId = (await rec.json()).id
+
+    // Attacker plants the victim's private recipe id in their OWN menu.
+    const planted = await app.request('/v1/menu', {
+      method: 'POST',
+      headers: attackerAuth(),
+      body: JSON.stringify({ date: week, slot: 'Cena', recipeId: privateRecipeId, servings: 2 }),
+    })
+    expect(planted.status).toBe(200)
+    // The POST response itself already carries no title (write-side snapshot fix).
+    expect((await planted.json()).recipeName).toBeUndefined()
   })
 
-  it("does not snapshot another owner's private recipe title", async () => {
-    const res = await app.request('/v1/menu', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${attacker.token}` },
-      body: JSON.stringify({
-        date: '2026-07-09',
-        slot: 'Cena',
-        recipeId: privateRecipeId,
-        servings: 2,
-      }),
+  it('GET /v1/menu (week view) does not resolve the victim title', async () => {
+    const res = await app.request(`/v1/menu?weekStart=${week}`, { headers: attackerAuth() })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(JSON.stringify(body)).not.toContain(SECRET_TITLE)
+    const entry = body.find((e: { recipeId: string }) => e.recipeId === privateRecipeId)
+    expect(entry?.recipeName).toBeUndefined()
+  })
+
+  it('GET /v1/menu/shopping-list does not leak the victim ingredients', async () => {
+    const res = await app.request(`/v1/menu/shopping-list?weekStart=${week}`, {
+      headers: attackerAuth(),
+    })
+    expect(res.status).toBe(200)
+    const list = await res.json()
+    expect(JSON.stringify(list)).not.toContain(SECRET_INGREDIENT)
+  })
+
+  it('GET /v1/menu/nutrition does not leak the victim macros', async () => {
+    const res = await app.request(`/v1/menu/nutrition?weekStart=${week}`, {
+      headers: attackerAuth(),
     })
     expect(res.status).toBe(200)
     const body = await res.json()
-    // The attacker's own menu entry must carry NO trace of the victim's title.
-    expect(body.recipeName).toBeUndefined()
-    expect(JSON.stringify(body)).not.toContain('Secreto de la abuela')
+    // The planted entry contributes nothing → no day carries the secret 777 kcal.
+    expect(JSON.stringify(body)).not.toContain('777')
   })
 
-  it('still snapshots the title for the owner’s own recipe', async () => {
-    const res = await app.request('/v1/menu', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${victim.token}` },
-      body: JSON.stringify({
-        date: '2026-07-09',
-        slot: 'Cena',
-        recipeId: privateRecipeId,
-        servings: 2,
-      }),
+  it('GET /v1/menu/day-nutrition does not leak the victim macros', async () => {
+    const res = await app.request(`/v1/menu/day-nutrition?date=${week}`, {
+      headers: attackerAuth(),
     })
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.recipeName).toBe('Secreto de la abuela')
+    expect(JSON.stringify(body)).not.toContain('777')
   })
 
-  it('PATCH servings does not re-resolve another owner’s private title either', async () => {
-    // Attacker first creates a (title-less) entry pointing at the victim's id,
-    // then patches its servings — the re-resolved title must still not leak.
-    await app.request('/v1/menu', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${attacker.token}` },
-      body: JSON.stringify({
-        date: '2026-07-10',
-        slot: 'Cena',
-        recipeId: privateRecipeId,
-        servings: 1,
-      }),
-    })
-    const res = await app.request(`/v1/menu/2026-07-10/Cena/${privateRecipeId}`, {
+  it('PATCH servings does not re-resolve the victim title', async () => {
+    const res = await app.request(`/v1/menu/${week}/Cena/${privateRecipeId}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${attacker.token}` },
+      headers: attackerAuth(),
       body: JSON.stringify({ servings: 3 }),
     })
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.recipeName).toBeUndefined()
-    expect(JSON.stringify(body)).not.toContain('Secreto de la abuela')
+    expect(JSON.stringify(body)).not.toContain(SECRET_TITLE)
+  })
+
+  it('the owner still sees their own title, ingredients and nutrition', async () => {
+    await app.request('/v1/menu', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${victim.token}` },
+      body: JSON.stringify({ date: week, slot: 'Cena', recipeId: privateRecipeId, servings: 2 }),
+    })
+    const wk = await (
+      await app.request(`/v1/menu?weekStart=${week}`, {
+        headers: { Authorization: `Bearer ${victim.token}` },
+      })
+    ).json()
+    expect(wk.find((e: { recipeId: string }) => e.recipeId === privateRecipeId)?.recipeName).toBe(
+      SECRET_TITLE,
+    )
+    const list = await (
+      await app.request(`/v1/menu/shopping-list?weekStart=${week}`, {
+        headers: { Authorization: `Bearer ${victim.token}` },
+      })
+    ).json()
+    expect(JSON.stringify(list)).toContain(SECRET_INGREDIENT)
   })
 })

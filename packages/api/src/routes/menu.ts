@@ -12,10 +12,10 @@ import {
 import { ingredientRepository } from '../db/ingredient-repository.js'
 import { pantryRepository } from '../db/pantry-repository.js'
 import { menuRepository } from '../db/menu-repository.js'
-import { isViewerAnywhere } from '../db/household-visibility.js'
+import { isViewerAnywhere, getVisibleOwnerIds } from '../db/household-visibility.js'
 import { authMiddleware } from '../middleware/auth.js'
 import { getDb, schema as dbSchema } from '../db/index.js'
-import { eq, and, gte, lte } from 'drizzle-orm'
+import { eq, and, gte, lte, inArray } from 'drizzle-orm'
 import '../types.js'
 
 export const menuRoute = new OpenAPIHono()
@@ -394,7 +394,10 @@ menuRoute.openapi(getMenuNutritionRoute as any, async (c: any) => {
   weekEndDate.setUTCDate(weekEndDate.getUTCDate() + 6)
   const weekEnd = weekEndDate.toISOString().slice(0, 10)
 
-  // Get menu entries for the week with recipe nutrition
+  // Get menu entries for the week with recipe nutrition. Scope the recipe join
+  // to visible owners so a planted foreign recipe id can't leak the victim's
+  // nutrition through this endpoint.
+  const visibleOwners = await getVisibleOwnerIds(ownerId)
   const entries = await db
     .select({
       date: dbSchema.menuEntries.date,
@@ -407,6 +410,7 @@ menuRoute.openapi(getMenuNutritionRoute as any, async (c: any) => {
     .where(
       and(
         eq(dbSchema.menuEntries.ownerId, ownerId),
+        inArray(dbSchema.recipes.ownerId, visibleOwners),
         gte(dbSchema.menuEntries.date, weekStart),
         lte(dbSchema.menuEntries.date, weekEnd),
       ),

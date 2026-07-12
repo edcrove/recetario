@@ -167,7 +167,14 @@ export class MenuRepository {
         ? await db
             .select({ id: schema.recipes.id, title: schema.recipes.title })
             .from(schema.recipes)
-            .where(inArray(schema.recipes.id, recipeIds))
+            // Scope to visible owners: an entry may carry a recipeId the caller
+            // can't see (e.g. a planted private id) — never resolve its title.
+            .where(
+              and(
+                inArray(schema.recipes.id, recipeIds),
+                inArray(schema.recipes.ownerId, visibleOwners),
+              ),
+            )
         : []
 
     const recipeMap = new Map(recipes.map((r) => [r.id, r.title]))
@@ -199,6 +206,9 @@ export class MenuRepository {
       .where(
         and(
           inArray(schema.menuEntries.ownerId, visibleOwners),
+          // Only aggregate recipes the caller can see — a planted foreign id must
+          // not leak the victim's ingredients/quantities through the shopping list.
+          inArray(schema.recipes.ownerId, visibleOwners),
           gte(schema.menuEntries.date, weekStart),
           lte(schema.menuEntries.date, weekEndDate),
         ),
@@ -312,7 +322,12 @@ export class MenuRepository {
       .from(schema.menuEntries)
       .innerJoin(schema.recipes, eq(schema.menuEntries.recipeId, schema.recipes.id))
       .where(
-        and(inArray(schema.menuEntries.ownerId, visibleOwners), eq(schema.menuEntries.date, date)),
+        and(
+          inArray(schema.menuEntries.ownerId, visibleOwners),
+          // A planted foreign recipe id must not leak the victim's nutrition.
+          inArray(schema.recipes.ownerId, visibleOwners),
+          eq(schema.menuEntries.date, date),
+        ),
       )
 
     const entries: DayNutritionEntry[] = rows.map((r) => ({
