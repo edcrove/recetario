@@ -134,7 +134,7 @@ describe.skipIf(skip).sequential('Recipe integration tests', () => {
           note: 'use whole wheat',
         },
       ],
-      steps: [{ text: 'Mix.', durationMin: 5, ovenTempC: 180 }],
+      steps: [{ text: 'Mix.', durationSeconds: 300, ovenTempC: 180 }],
     }
     const res = await app.request('/v1/recipes', {
       method: 'POST',
@@ -530,5 +530,33 @@ describe.skipIf(skip).sequential('Recipe visibility and fork provenance', () => 
     expect(got.difficulty).toBeUndefined()
     expect(got.prepTimeMin).toBe(10)
     expect(got.totalTimeMin).toBe(10)
+  })
+
+  it('auto-detects step durationSeconds from text when not provided', async () => {
+    const created = (await (
+      await app.request('/v1/recipes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+        body: JSON.stringify({
+          title: 'Con pasos temporizados',
+          servings: 2,
+          category: 'Cena',
+          ingredients: [{ name: 'x', quantity: 1, unit: 'unit' }],
+          steps: [
+            { text: 'Hervir 40 minutos a fuego medio.' }, // no durationSeconds → parsed
+            { text: 'Freír hasta dorar.' }, // no duration → null
+            { text: 'Reposar.', durationSeconds: 300 }, // explicit wins over parsing
+          ],
+        }),
+      })
+    ).json()) as { id: string }
+
+    const got = (await (
+      await app.request(`/v1/recipes/${created.id}`, { headers: { Authorization: authHeader } })
+    ).json()) as { steps: { text: string; durationSeconds?: number }[] }
+
+    expect(got.steps[0]?.durationSeconds).toBe(2400)
+    expect(got.steps[1]?.durationSeconds).toBeUndefined()
+    expect(got.steps[2]?.durationSeconds).toBe(300)
   })
 })

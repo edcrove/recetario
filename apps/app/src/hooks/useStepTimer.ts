@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 
-export function timerSeconds(durationMin: number | null): number {
-  return durationMin != null ? Math.max(0, Math.round(durationMin * 60)) : 0
+/** Clamps/rounds an incoming seconds value; null → 0. */
+export function timerSeconds(durationSeconds: number | null): number {
+  return durationSeconds != null ? Math.max(0, Math.round(durationSeconds)) : 0
 }
 
 export function formatTime(seconds: number): string {
@@ -16,27 +17,35 @@ export interface TimerState {
   completed: boolean
 }
 
-export function initTimer(durationMin: number | null): TimerState {
-  const secs = timerSeconds(durationMin)
-  return { secondsLeft: secs, isRunning: secs > 0, completed: false }
+/**
+ * Pre-loads a step timer but does NOT auto-start it — the cook taps to start
+ * (tap-to-start). `secondsLeft` is the parsed/auto-detected step duration.
+ */
+export function initTimer(durationSeconds: number | null): TimerState {
+  const secs = timerSeconds(durationSeconds)
+  return { secondsLeft: secs, isRunning: false, completed: false }
 }
 
-export function useStepTimer(durationMin: number | null, onComplete?: () => void) {
-  const init = initTimer(durationMin)
+export function useStepTimer(durationSeconds: number | null, onComplete?: () => void) {
+  const init = initTimer(durationSeconds)
   const [secondsLeft, setSecondsLeft] = useState(init.secondsLeft)
   const [isRunning, setIsRunning] = useState(init.isRunning)
+  // Whether the timer has been started since load/reset — drives the
+  // Iniciar → Pausar/Reanudar label, independent of elapsed time.
+  const [started, setStarted] = useState(false)
   const secondsRef = useRef(init.secondsLeft)
   const completedRef = useRef(false)
   const onCompleteRef = useRef(onComplete)
   onCompleteRef.current = onComplete
 
   useEffect(() => {
-    const state = initTimer(durationMin)
+    const state = initTimer(durationSeconds)
     secondsRef.current = state.secondsLeft
     completedRef.current = false
     setSecondsLeft(state.secondsLeft)
     setIsRunning(state.isRunning)
-  }, [durationMin])
+    setStarted(false)
+  }, [durationSeconds])
 
   useEffect(() => {
     if (!isRunning) return
@@ -53,15 +62,19 @@ export function useStepTimer(durationMin: number | null, onComplete?: () => void
     return () => clearInterval(id)
   }, [isRunning])
 
-  const toggle = useCallback(() => setIsRunning((r) => !r), [])
+  const toggle = useCallback(() => {
+    setStarted(true)
+    setIsRunning((r) => !r)
+  }, [])
 
   const reset = useCallback(() => {
-    const state = initTimer(durationMin)
+    const state = initTimer(durationSeconds)
     completedRef.current = false
     secondsRef.current = state.secondsLeft
     setSecondsLeft(state.secondsLeft)
     setIsRunning(state.isRunning)
-  }, [durationMin])
+    setStarted(false)
+  }, [durationSeconds])
 
-  return { secondsLeft, isRunning, toggle, reset }
+  return { secondsLeft, isRunning, started, toggle, reset }
 }

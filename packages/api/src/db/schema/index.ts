@@ -93,7 +93,7 @@ export const steps = pgTable(
       .references(() => recipes.id, { onDelete: 'cascade' }),
     position: integer('position').notNull(),
     text: text('text').notNull(),
-    durationMin: integer('duration_min'),
+    durationSeconds: integer('duration_seconds'),
     ovenTempC: integer('oven_temp_c'),
   },
   (t) => [index('steps_recipe_idx').on(t.recipeId)],

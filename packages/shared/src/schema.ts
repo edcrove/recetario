@@ -104,7 +104,9 @@ export type Ingredient = z.infer<typeof IngredientSchema>
 // Step
 export const StepSchema = z.object({
   text: z.string().min(1),
-  durationMin: z.number().positive().optional(),
+  // Auto-detected (or agent-set) timer duration in seconds; drives cook-mode
+  // tap-to-start timers. See parseStepDurationSeconds.
+  durationSeconds: z.number().int().positive().optional(),
   ovenTempC: z.number().optional(),
 })
 export type Step = z.infer<typeof StepSchema>

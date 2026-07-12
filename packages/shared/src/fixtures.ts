@@ -21,10 +21,10 @@ export const DEMO_RECIPES: CreateRecipe[] = [
       { text: 'Pelar y cortar las patatas en láminas finas.' },
       {
         text: 'Freír las patatas y la cebolla en aceite a fuego medio hasta que estén tiernas.',
-        durationMin: 20,
+        durationSeconds: 1200,
       },
       { text: 'Batir los huevos con sal y mezclar con las patatas.' },
-      { text: 'Cuajar la tortilla a fuego bajo por ambos lados.', durationMin: 10 },
+      { text: 'Cuajar la tortilla a fuego bajo por ambos lados.', durationSeconds: 600 },
     ],
     source: { type: 'manual' },
   },
@@ -46,8 +46,8 @@ export const DEMO_RECIPES: CreateRecipe[] = [
       { name: 'Sal', quantity: null, unit: null, note: 'a gusto' },
     ],
     steps: [
-      { text: 'Cocinar la pasta en agua con sal hasta al dente.', durationMin: 10 },
-      { text: 'Saltear el ajo en aceite, agregar los tomates y cocinar.', durationMin: 10 },
+      { text: 'Cocinar la pasta en agua con sal hasta al dente.', durationSeconds: 600 },
+      { text: 'Saltear el ajo en aceite, agregar los tomates y cocinar.', durationSeconds: 600 },
       { text: 'Mezclar la pasta con la salsa y servir con albahaca.' },
     ],
     source: { type: 'manual' },
