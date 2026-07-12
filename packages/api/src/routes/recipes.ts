@@ -105,6 +105,8 @@ const listRecipesRoute = defineRoute({
     query: z.object({
       limit: z.coerce.number().int().positive().max(100).default(20),
       offset: z.coerce.number().int().min(0).default(0),
+      maxTotalTime: z.coerce.number().int().positive().optional(),
+      difficulty: z.enum(['fácil', 'media', 'difícil']).optional(),
     }),
   },
   responses: {
@@ -117,9 +119,14 @@ const listRecipesRoute = defineRoute({
 
 recipesRoute.openapi(listRecipesRoute, async (c) => {
   const ownerId = c.get('ownerId')
-  const { limit, offset } = c.req.valid('query')
+  const { limit, offset, maxTotalTime, difficulty } = c.req.valid('query')
   const visibleOwners = await getVisibleOwnerIds(ownerId)
-  const recipes = await recipeRepository.list(visibleOwners, { limit, offset })
+  const recipes = await recipeRepository.list(visibleOwners, {
+    limit,
+    offset,
+    ...(maxTotalTime !== undefined && { maxTotalTime }),
+    ...(difficulty !== undefined && { difficulty }),
+  })
   return c.json(recipes, 200)
 })
 

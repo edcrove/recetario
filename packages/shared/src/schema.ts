@@ -126,6 +126,7 @@ export const RecipeSchema = z.object({
   prepTimeMin: z.number().int().positive().optional(),
   cookTimeMin: z.number().int().positive().optional(),
   totalTimeMin: z.number().int().positive().optional(),
+  difficulty: z.enum(['fácil', 'media', 'difícil']).optional(),
   images: z.array(z.url()).default([]),
   notes: z.string().optional(),
   yield: z.string().optional(), // "12 cookies"
@@ -148,6 +149,7 @@ export const RecipeSchema = z.object({
   updatedAt: z.string().datetime().optional(),
 })
 export type Recipe = z.infer<typeof RecipeSchema>
+export type RecipeDifficulty = NonNullable<Recipe['difficulty']>
 
 // Library listing — a public recipe plus its author's display name. Only the
 // display name (fallback 'Anónimo') crosses the tenant boundary: never emails

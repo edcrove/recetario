@@ -78,6 +78,13 @@
       "when": 1783791692772,
       "tag": "0010_pantry_items",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1783804373335,
+      "tag": "0011_recipe_difficulty",
+      "breakpoints": true
     }
   ]
 }
