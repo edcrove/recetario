@@ -104,7 +104,7 @@ export default function PickRecipeScreen() {
         {TIME_FILTERS.map((tf) => (
           <TouchableOpacity
             key={tf.maxTotalTime}
-            testID={`filter-time-${tf.maxTotalTime}`}
+            testID={`pick-filter-time-${tf.maxTotalTime}`}
             style={[styles.filterChip, maxTotalTime === tf.maxTotalTime && styles.filterChipActive]}
             onPress={() =>
               setMaxTotalTime(maxTotalTime === tf.maxTotalTime ? null : tf.maxTotalTime)
@@ -123,7 +123,7 @@ export default function PickRecipeScreen() {
         {DIFFICULTIES.map((d) => (
           <TouchableOpacity
             key={d}
-            testID={`filter-difficulty-${d}`}
+            testID={`pick-filter-difficulty-${d}`}
             style={[styles.filterChip, difficulty === d && styles.filterChipActive]}
             onPress={() => setDifficulty(difficulty === d ? null : d)}
           >

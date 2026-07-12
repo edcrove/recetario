@@ -103,10 +103,12 @@ test.describe('Menu: pick screen filters', () => {
     await expect(page.getByPlaceholder('Buscar receta...')).toBeVisible({ timeout: 10000 })
 
     // Toggle filters on and off — exercises the picker's filter handlers.
-    await page.getByTestId('filter-time-20').click()
-    await page.getByTestId('filter-difficulty-fácil').click()
-    await page.getByTestId('filter-time-20').click()
-    await page.getByTestId('filter-difficulty-fácil').click()
+    // Pick-screen chips use `pick-filter-*` testIDs so they don't collide with
+    // the home screen's `filter-*` chips (still mounted in the web DOM).
+    await page.getByTestId('pick-filter-time-20').click()
+    await page.getByTestId('pick-filter-difficulty-fácil').click()
+    await page.getByTestId('pick-filter-time-20').click()
+    await page.getByTestId('pick-filter-difficulty-fácil').click()
 
     // Picker still functional after filtering.
     await expect(page.getByPlaceholder('Buscar receta...')).toBeVisible()
