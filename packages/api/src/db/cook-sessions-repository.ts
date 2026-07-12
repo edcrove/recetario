@@ -1,5 +1,6 @@
-import { eq, desc, sql, and, gte } from 'drizzle-orm'
+import { eq, desc, sql, and, gte, inArray } from 'drizzle-orm'
 import { getDb, schema } from './index.js'
+import { getVisibleOwnerIds } from './household-visibility.js'
 
 export interface CookSessionRow {
   id: string
@@ -29,10 +30,14 @@ export const cookSessionsRepository = {
     // Snapshot the recipe's current title — see 2026-07-03 audit finding:
     // deleting the recipe now sets recipeId to null instead of destroying
     // this row, and the snapshot keeps history readable either way.
+    // Scope the lookup to visible owners (own OR household) so a POST with
+    // someone else's private recipe id can't leak its title (cross-tenant IDOR,
+    // same class as the menu upsert fix in #108).
+    const visibleOwners = await getVisibleOwnerIds(ownerId)
     const [recipe] = await db
       .select({ title: schema.recipes.title })
       .from(schema.recipes)
-      .where(eq(schema.recipes.id, recipeId))
+      .where(and(eq(schema.recipes.id, recipeId), inArray(schema.recipes.ownerId, visibleOwners)))
       .limit(1)
 
     const [session] = await db
