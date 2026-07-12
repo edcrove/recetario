@@ -643,4 +643,28 @@ describe.skipIf(skip).sequential('Menu upsert — cross-tenant title leak', () =
     const body = await res.json()
     expect(body.recipeName).toBe('Secreto de la abuela')
   })
+
+  it('PATCH servings does not re-resolve another owner’s private title either', async () => {
+    // Attacker first creates a (title-less) entry pointing at the victim's id,
+    // then patches its servings — the re-resolved title must still not leak.
+    await app.request('/v1/menu', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${attacker.token}` },
+      body: JSON.stringify({
+        date: '2026-07-10',
+        slot: 'Cena',
+        recipeId: privateRecipeId,
+        servings: 1,
+      }),
+    })
+    const res = await app.request(`/v1/menu/2026-07-10/Cena/${privateRecipeId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${attacker.token}` },
+      body: JSON.stringify({ servings: 3 }),
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.recipeName).toBeUndefined()
+    expect(JSON.stringify(body)).not.toContain('Secreto de la abuela')
+  })
 })

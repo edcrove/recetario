@@ -127,10 +127,14 @@ export class MenuRepository {
 
     if (!row) return null
 
+    // Same visibility scoping as upsert — never re-resolve (and thus leak) the
+    // title of a recipe the caller can't see (e.g. an entry pointing at someone
+    // else's private recipe id).
+    const visibleOwners = await getVisibleOwnerIds(ownerId)
     const [recipe] = await db
       .select({ title: schema.recipes.title })
       .from(schema.recipes)
-      .where(eq(schema.recipes.id, recipeId))
+      .where(and(eq(schema.recipes.id, recipeId), inArray(schema.recipes.ownerId, visibleOwners)))
       .limit(1)
 
     return mapToMenuEntry(row, recipe)
