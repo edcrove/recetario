@@ -144,7 +144,7 @@ describe('NewRecipeScreen', () => {
     expect(payload.difficulty).toBe('media')
   })
 
-  it('omits time and difficulty when left untouched', async () => {
+  it('sends null time and difficulty when left untouched', async () => {
     mockCreate.mockResolvedValue({ id: 'x' })
     wrap(<NewRecipeScreen />)
 
@@ -154,8 +154,8 @@ describe('NewRecipeScreen', () => {
 
     await waitFor(() => expect(mockCreate).toHaveBeenCalled())
     const payload = mockCreate.mock.calls[0]?.[0]
-    expect(payload.prepTimeMin).toBeUndefined()
-    expect(payload.difficulty).toBeUndefined()
+    expect(payload.prepTimeMin).toBeNull()
+    expect(payload.difficulty).toBeNull()
   })
 
   it('toggles a difficulty chip off when tapped twice', async () => {
@@ -169,6 +169,6 @@ describe('NewRecipeScreen', () => {
     fireEvent.click(screen.getByText('Guardar Receta'))
 
     await waitFor(() => expect(mockCreate).toHaveBeenCalled())
-    expect(mockCreate.mock.calls[0]?.[0].difficulty).toBeUndefined()
+    expect(mockCreate.mock.calls[0]?.[0].difficulty).toBeNull()
   })
 })

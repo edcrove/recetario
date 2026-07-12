@@ -17,6 +17,9 @@ vi.mock('../api/client', () => ({
         originalLanguage: 'es',
         translations: [],
         notes: 'Muy rica',
+        prepTimeMin: 10,
+        cookTimeMin: 15,
+        difficulty: 'media',
         ingredients: [{ name: 'Azúcar', quantity: 100, unit: 'g' }],
         steps: [{ text: 'Caramelizar' }],
       }),
@@ -110,5 +113,30 @@ describe('EditRecipeScreen', () => {
     await screen.findByDisplayValue('Receta Original')
     expect(screen.getByText('Postre')).toBeInTheDocument()
     expect(screen.getByText('Cena')).toBeInTheDocument()
+  })
+
+  it('populates times and difficulty from the loaded recipe', async () => {
+    wrap(<EditRecipeScreen />)
+    expect(await screen.findByDisplayValue('10')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('15')).toBeInTheDocument()
+  })
+
+  it('clearing time + difficulty sends explicit null so the update unsets them', async () => {
+    mockUpdate.mockResolvedValue({})
+    wrap(<EditRecipeScreen />)
+    await screen.findByDisplayValue('Receta Original')
+
+    // Deselect the pre-selected difficulty and blank both time inputs.
+    fireEvent.click(screen.getByTestId('difficulty-chip-media'))
+    fireEvent.change(screen.getByTestId('recipe-prep-time'), { target: { value: '' } })
+    fireEvent.change(screen.getByTestId('recipe-cook-time'), { target: { value: '' } })
+    fireEvent.click(screen.getByText('Guardar Cambios'))
+
+    await waitFor(() => expect(mockUpdate).toHaveBeenCalled())
+    const payload = mockUpdate.mock.calls[0]?.[1]
+    expect(payload.difficulty).toBeNull()
+    expect(payload.prepTimeMin).toBeNull()
+    expect(payload.cookTimeMin).toBeNull()
+    expect(payload.totalTimeMin).toBeNull()
   })
 })

@@ -46,12 +46,22 @@ export function buildPayload(
   foodTypeIds?: string[],
   times?: RecipeTimes,
 ) {
-  const prepTimeMin = parsePositiveInt(times?.prepTimeMin)
-  const cookTimeMin = parsePositiveInt(times?.cookTimeMin)
-  const totalTimeMin =
-    prepTimeMin !== undefined || cookTimeMin !== undefined
-      ? (prepTimeMin ?? 0) + (cookTimeMin ?? 0)
-      : undefined
+  // When the form supplies times, emit ALL time/difficulty fields as explicit
+  // `number | null` so an edit can CLEAR a previously-set value (null) and
+  // totalTimeMin can never desync from prep/cook. When `times` is absent, the
+  // fields are omitted entirely (leave-unchanged semantics). See CreateRecipeSchema.
+  const timeFields = (() => {
+    if (!times) return {}
+    const prep = parsePositiveInt(times.prepTimeMin) ?? null
+    const cook = parsePositiveInt(times.cookTimeMin) ?? null
+    const total = prep !== null || cook !== null ? (prep ?? 0) + (cook ?? 0) : null
+    return {
+      prepTimeMin: prep,
+      cookTimeMin: cook,
+      totalTimeMin: total,
+      difficulty: times.difficulty ?? null,
+    }
+  })()
   return {
     title: title.trim(),
     servings: parseInt(servings, 10) || 0,
@@ -63,10 +73,7 @@ export function buildPayload(
     notes: notes.trim() || undefined,
     dietaryTags: dietaryTags && dietaryTags.length > 0 ? dietaryTags : undefined,
     foodTypeIds: foodTypeIds && foodTypeIds.length > 0 ? foodTypeIds : undefined,
-    ...(prepTimeMin !== undefined && { prepTimeMin }),
-    ...(cookTimeMin !== undefined && { cookTimeMin }),
-    ...(totalTimeMin !== undefined && { totalTimeMin }),
-    ...(times?.difficulty != null && { difficulty: times.difficulty }),
+    ...timeFields,
     ingredients: ingredients
       .filter((i) => i.name.trim())
       .map((i) => ({
