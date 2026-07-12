@@ -41,8 +41,13 @@ const UNIT_SECONDS: Record<string, number> = {
 
 // A number (with optional range "3-4" / "3 a 4") followed by a time unit.
 // Temperature units (°, grados, c, °c) are deliberately not in UNIT_SECONDS.
-const TOKEN_RE =
-  /(\d+(?:[.,]\d+)?)\s*(?:[-–]|a|to)\s*(\d+(?:[.,]\d+)?)\s*([a-záéíóú]+)|(\d+(?:[.,]\d+)?)\s*([a-záéíóú]+)/gi
+// Digit runs are bounded (\d{1,4}) so the alternation stays linear — an
+// unbounded \d+ here is a polynomial-ReDoS risk on adversarial input.
+const NUM = String.raw`\d{1,4}(?:[.,]\d{1,2})?`
+const TOKEN_RE = new RegExp(
+  `(${NUM})\\s*(?:[-–]|a|to)\\s*(${NUM})\\s*([a-záéíóú]+)|(${NUM})\\s*([a-záéíóú]+)`,
+  'gi',
+)
 
 function toNumber(raw: string): number {
   return parseFloat(raw.replace(',', '.'))
