@@ -208,6 +208,19 @@ test.describe('Recipes: detail view', () => {
     await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 8000 })
   })
 
+  test('can set times and difficulty in the edit form and save', async ({ page }) => {
+    await openFirstRecipeDetail(page)
+    await page.getByText('Editar').click()
+    await expect(page.getByTestId('recipe-prep-time')).toBeVisible({ timeout: 8000 })
+
+    await page.getByTestId('recipe-prep-time').fill('8')
+    await page.getByTestId('recipe-cook-time').fill('12')
+    await page.getByTestId('difficulty-chip-media').click()
+
+    await page.getByText(/Guardar Cambios|Guardar Receta/).click()
+    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 8000 })
+  })
+
   test('can add and remove an ingredient row in the edit form', async ({ page }) => {
     await openFirstRecipeDetail(page)
     await page.getByText('Editar').click()

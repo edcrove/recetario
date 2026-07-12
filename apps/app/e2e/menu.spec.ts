@@ -94,6 +94,25 @@ test.describe('Menu: add recipe to slot', () => {
   })
 })
 
+test.describe('Menu: pick screen filters', () => {
+  test('time and difficulty filter chips work in the picker', async ({ page }) => {
+    await page.getByText('Menú Semanal').click()
+    await expect(page.locator('[data-testid^="menu-add-"]').first()).toBeVisible({ timeout: 8000 })
+    await page.locator('[data-testid^="menu-add-"]').first().click()
+    await page.waitForLoadState('networkidle', { timeout: 15000 })
+    await expect(page.getByPlaceholder('Buscar receta...')).toBeVisible({ timeout: 10000 })
+
+    // Toggle filters on and off — exercises the picker's filter handlers.
+    await page.getByTestId('filter-time-20').click()
+    await page.getByTestId('filter-difficulty-fácil').click()
+    await page.getByTestId('filter-time-20').click()
+    await page.getByTestId('filter-difficulty-fácil').click()
+
+    // Picker still functional after filtering.
+    await expect(page.getByPlaceholder('Buscar receta...')).toBeVisible()
+  })
+})
+
 test.describe('Menu: edit servings', () => {
   async function ensureRecipeInMenu(page: import('@playwright/test').Page) {
     // Add a recipe if there's no chip yet — uses testID for reliable pick
