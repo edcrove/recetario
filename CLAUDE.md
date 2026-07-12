@@ -97,7 +97,7 @@ The Expo app reads data from the API like any other REST client. It never calls 
 1. **pre-commit** (automatic): lint-staged runs ESLint + Prettier on staged files.
 2. **pre-push** (automatic): runs `lint → typecheck → test → build`. Fails fast. Saves output to `.last-ci-output.txt`.
 3. **`pnpm pr`**: runs CI, captures evidence, creates PR with structured description.
-4. Never lower coverage thresholds — write the tests instead.
+4. Aim for 100% coverage; the configured thresholds are defined lower bounds, never targets. Never lower a threshold — write the tests (or add a justified source-level exclusion) instead. See "Coverage approach" below.
 
 ## Testing rules (CRITICAL)
 
@@ -115,17 +115,38 @@ Each new feature must include tests at every applicable layer before the PR can 
 
 **Never ship a story without tests at every layer that applies.** If a layer isn't applicable (e.g., a backend-only story has no E2E), document why in the PR description.
 
-### Coverage thresholds (enforced in CI)
+### Coverage approach — aim for 100%, floors are the defined lower bounds
 
-| Package                  | Statements | Lines | Branches | Functions |
-| ------------------------ | ---------- | ----- | -------- | --------- |
-| `packages/api`           | 100%       | 100%  | 98%      | 80%       |
-| `packages/shared`        | 100%       | 100%  | 100%     | 100%      |
-| `packages/mcp`           | 100%       | 100%  | 100%     | 100%      |
-| `apps/app` (utils scope) | 100%       | 100%  | 100%     | 100%      |
+**The target is always 100%** — statements, branches, functions, and lines, at every
+applicable layer. The numbers configured in CI are **defined lower bounds** (a safety
+net), **not** the goal. Treat any gap below 100% as debt to close, not as budget to spend.
 
-Never lower thresholds — write the tests instead. If a new file breaks coverage → write tests for it.
+Working rules:
+
+1. **New code ships at 100%.** When a change adds code, write tests until the new code
+   is fully covered at every layer that applies. Never merge a feature that pushes a
+   metric down toward its floor "because there's still room."
+2. **Unreachable-by-design code is excluded at the source, not accommodated by a lower floor.**
+   Use `/* v8 ignore … */` (vitest) or `/* istanbul ignore … */` (E2E/nyc) at the exact
+   site, with a one-line justification, so measured coverage reflects 100% of what is
+   genuinely reachable. Prefer this over lowering a threshold.
+3. **Floors only ratchet up.** Never lower a threshold to make CI pass — write the tests
+   (or add a justified source-level exclusion) instead. Raise a floor once a gap is
+   permanently closed to lock the gain in.
+
+Current enforced lower bounds:
+
+| Layer / package                | Statements | Lines | Branches | Functions | Notes                                                     |
+| ------------------------------ | ---------- | ----- | -------- | --------- | --------------------------------------------------------- |
+| `packages/api`                 | 100%       | 100%  | 98%      | 80%       | DB repos are covered by integration, not unit             |
+| `packages/shared`              | 100%       | 100%  | 100%     | 100%      | at target                                                 |
+| `packages/mcp`                 | 100%       | 100%  | 100%     | 100%      | at target                                                 |
+| `apps/app` (utils scope)       | 100%       | 100%  | 100%     | 100%      | at target                                                 |
+| `apps/app` E2E (`.nycrc.json`) | 95%        | 96%   | 84%      | 94%       | ratchet toward 100%; native-only paths excluded at source |
+
 Scripts (`src/scripts/**`), entrypoints (`src/index.ts`), type files, and DB schema are excluded.
+The sub-100% floors above are the only accepted lower bounds and each has a documented reason;
+everywhere else the floor is 100% because that is the target.
 
 ### Test environments
 
