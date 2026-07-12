@@ -6,6 +6,15 @@ import { TEST_API_KEY, resetTestDb } from './globalSetup.js'
 
 const auth = `Bearer ${TEST_API_KEY}`
 
+async function register(email: string): Promise<{ token: string }> {
+  const res = await app.request('/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password: 'password123' }),
+  })
+  return { token: (await res.json()).token as string }
+}
+
 const baseRecipe = {
   title: 'Menu Integration Pasta',
   servings: 4,
@@ -579,5 +588,59 @@ describe.skipIf(skip).sequential('Day nutrition rollup', () => {
     const body = await res.json()
     expect(body.target).toBeNull()
     expect(body.delta).toBeNull()
+  })
+})
+
+describe.skipIf(skip).sequential('Menu upsert — cross-tenant title leak', () => {
+  let victim: { token: string }
+  let attacker: { token: string }
+  let privateRecipeId: string
+
+  beforeAll(async () => {
+    await resetTestDb()
+    victim = await register(`menu-victima-${Date.now()}@example.com`)
+    attacker = await register(`menu-atacante-${Date.now()}@example.com`)
+
+    // Victim owns a PRIVATE recipe; attacker shares no household with them.
+    const rec = await app.request('/v1/recipes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${victim.token}` },
+      body: JSON.stringify({ ...baseRecipe, title: 'Secreto de la abuela', visibility: 'private' }),
+    })
+    privateRecipeId = (await rec.json()).id
+  })
+
+  it("does not snapshot another owner's private recipe title", async () => {
+    const res = await app.request('/v1/menu', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${attacker.token}` },
+      body: JSON.stringify({
+        date: '2026-07-09',
+        slot: 'Cena',
+        recipeId: privateRecipeId,
+        servings: 2,
+      }),
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    // The attacker's own menu entry must carry NO trace of the victim's title.
+    expect(body.recipeName).toBeUndefined()
+    expect(JSON.stringify(body)).not.toContain('Secreto de la abuela')
+  })
+
+  it('still snapshots the title for the owner’s own recipe', async () => {
+    const res = await app.request('/v1/menu', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${victim.token}` },
+      body: JSON.stringify({
+        date: '2026-07-09',
+        slot: 'Cena',
+        recipeId: privateRecipeId,
+        servings: 2,
+      }),
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.recipeName).toBe('Secreto de la abuela')
   })
 })

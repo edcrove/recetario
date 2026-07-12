@@ -47,10 +47,17 @@ export class MenuRepository {
   async upsert(ownerId: string, data: CreateMenuEntry): Promise<MenuEntry> {
     const db = this.db
 
+    // Snapshot the title only from a recipe the user can actually see (own OR
+    // household) — the same visibility as reads. Without this owner filter, a
+    // POST with someone else's private recipe id would leak its title into the
+    // attacker's menu entry (cross-tenant IDOR).
+    const visibleOwners = await getVisibleOwnerIds(ownerId)
     const [recipe] = await db
       .select({ title: schema.recipes.title })
       .from(schema.recipes)
-      .where(eq(schema.recipes.id, data.recipeId))
+      .where(
+        and(eq(schema.recipes.id, data.recipeId), inArray(schema.recipes.ownerId, visibleOwners)),
+      )
       .limit(1)
 
     const [row] = await db
