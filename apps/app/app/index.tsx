@@ -12,8 +12,14 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { api } from '../src/api/client'
-import type { Recipe } from '@recetario/shared'
+import type { Recipe, RecipeDifficulty } from '@recetario/shared'
 import { macroStrip } from '../src/utils/macroStrip'
+import {
+  DIFFICULTIES,
+  TIME_FILTERS,
+  formatTimeDifficulty,
+  filterByTimeDifficulty,
+} from '../src/utils/recipeMeta'
 import { getEmptyMessage, getQueryFnKey } from '../src/utils/homeScreen'
 import { useAuth } from '../src/providers/AuthProvider'
 import { UserMenu } from '../src/components/UserMenu'
@@ -27,6 +33,8 @@ export default function HomeScreen() {
   const router = useRouter()
   const { token } = useAuth()
   const [activeType, setActiveType] = useState<string | null>(null)
+  const [maxTotalTime, setMaxTotalTime] = useState<number | null>(null)
+  const [difficulty, setDifficulty] = useState<RecipeDifficulty | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
 
   const { data: foodTypes = [] } = useQuery({
@@ -47,6 +55,11 @@ export default function HomeScreen() {
         ? api.recipes.search({ q: query, ...(activeType ? { tag: activeType } : {}) })
         : api.recipes.list({ limit: 50 }),
     placeholderData: (prev) => prev,
+  })
+
+  const visibleRecipes = filterByTimeDifficulty(recipes, {
+    ...(maxTotalTime != null && { maxTotalTime }),
+    ...(difficulty != null && { difficulty }),
   })
 
   // Only show full-screen loader on first load, not on subsequent searches
@@ -134,6 +147,49 @@ export default function HomeScreen() {
             ))}
           </ScrollView>
         )}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterScroll}
+          contentContainerStyle={styles.filterRow}
+        >
+          {TIME_FILTERS.map((tf) => (
+            <TouchableOpacity
+              key={tf.maxTotalTime}
+              testID={`filter-time-${tf.maxTotalTime}`}
+              style={[
+                styles.filterChip,
+                maxTotalTime === tf.maxTotalTime && styles.filterChipActive,
+              ]}
+              onPress={() =>
+                setMaxTotalTime(maxTotalTime === tf.maxTotalTime ? null : tf.maxTotalTime)
+              }
+            >
+              <Text
+                style={[
+                  styles.filterChipText,
+                  maxTotalTime === tf.maxTotalTime && styles.filterChipTextActive,
+                ]}
+              >
+                {tf.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+          {DIFFICULTIES.map((d) => (
+            <TouchableOpacity
+              key={d}
+              testID={`filter-difficulty-${d}`}
+              style={[styles.filterChip, difficulty === d && styles.filterChipActive]}
+              onPress={() => setDifficulty(difficulty === d ? null : d)}
+            >
+              <Text
+                style={[styles.filterChipText, difficulty === d && styles.filterChipTextActive]}
+              >
+                {d}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
         <View style={styles.actions}>
           <TouchableOpacity style={styles.addButton} onPress={() => router.push('/recipe/new')}>
             <Text style={styles.addButtonText}>+ Nueva Receta</Text>
@@ -166,7 +222,7 @@ export default function HomeScreen() {
       <UserMenu visible={menuOpen} onClose={() => setMenuOpen(false)} />
       <FlatList
         style={styles.list}
-        data={recipes}
+        data={visibleRecipes}
         keyExtractor={(item: Recipe) => item.id ?? item.title}
         renderItem={({ item }: { item: Recipe }) => (
           <TouchableOpacity
@@ -179,15 +235,21 @@ export default function HomeScreen() {
             </Text>
             <Text style={styles.cardMeta}>
               {item.category} · {item.servings} porciones
-              {item.totalTimeMin ? ` · ${item.totalTimeMin} min` : ''}
             </Text>
+            {formatTimeDifficulty(item) ? (
+              <Text testID={`recipe-meta-${item.id}`} style={styles.cardTimeMeta}>
+                {formatTimeDifficulty(item)}
+              </Text>
+            ) : null}
             {macroStrip(item.nutrition) ? (
               <Text style={styles.cardMacros}>{macroStrip(item.nutrition)}</Text>
             ) : null}
             {item.tags.length > 0 && <Text style={styles.tags}>{item.tags.join(', ')}</Text>}
           </TouchableOpacity>
         )}
-        ListEmptyComponent={<Text style={styles.empty}>{getEmptyMessage(query, recipes)}</Text>}
+        ListEmptyComponent={
+          <Text style={styles.empty}>{getEmptyMessage(query, visibleRecipes)}</Text>
+        }
       />
     </View>
   )
@@ -289,6 +351,13 @@ const makeStyles = (c: ThemeColors) =>
     },
     cardTitle: { fontSize: 18, fontWeight: '600', color: c.ink, fontFamily: fonts.display },
     cardMeta: { color: c.inkSoft, marginTop: 4 },
+    cardTimeMeta: {
+      color: c.ink,
+      marginTop: 3,
+      fontSize: 13,
+      fontWeight: '600',
+      fontVariant: ['tabular-nums'],
+    },
     cardMacros: { color: c.sage, marginTop: 3, fontSize: 12, fontVariant: ['tabular-nums'] },
     tags: { color: c.inkSoft, fontSize: 12, marginTop: 4 },
     empty: { textAlign: 'center', color: c.inkSoft, marginTop: 40 },

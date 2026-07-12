@@ -168,6 +168,125 @@ describe('buildPayload', () => {
     const result = buildPayload('Torta', '4', 'Postre', '', '', validIngredients, validSteps)
     expect(result.foodTypeIds).toBeUndefined()
   })
+
+  it('parses prep/cook minutes and computes total time', () => {
+    const result = buildPayload(
+      'Torta',
+      '4',
+      'Postre',
+      '',
+      '',
+      validIngredients,
+      validSteps,
+      [],
+      [],
+      {
+        prepTimeMin: '10',
+        cookTimeMin: '15',
+        difficulty: 'media',
+      },
+    )
+    expect(result.prepTimeMin).toBe(10)
+    expect(result.cookTimeMin).toBe(15)
+    expect(result.totalTimeMin).toBe(25)
+    expect(result.difficulty).toBe('media')
+  })
+
+  it('computes total from prep time only', () => {
+    const result = buildPayload(
+      'Torta',
+      '4',
+      'Postre',
+      '',
+      '',
+      validIngredients,
+      validSteps,
+      [],
+      [],
+      {
+        prepTimeMin: '20',
+        cookTimeMin: '',
+        difficulty: null,
+      },
+    )
+    expect(result.prepTimeMin).toBe(20)
+    expect(result.cookTimeMin).toBeUndefined()
+    expect(result.totalTimeMin).toBe(20)
+  })
+
+  it('computes total from cook time only', () => {
+    const result = buildPayload(
+      'Torta',
+      '4',
+      'Postre',
+      '',
+      '',
+      validIngredients,
+      validSteps,
+      [],
+      [],
+      {
+        prepTimeMin: '',
+        cookTimeMin: '30',
+        difficulty: null,
+      },
+    )
+    expect(result.prepTimeMin).toBeUndefined()
+    expect(result.cookTimeMin).toBe(30)
+    expect(result.totalTimeMin).toBe(30)
+  })
+
+  it('omits time fields when both blank and difficulty when null', () => {
+    const result = buildPayload(
+      'Torta',
+      '4',
+      'Postre',
+      '',
+      '',
+      validIngredients,
+      validSteps,
+      [],
+      [],
+      {
+        prepTimeMin: '',
+        cookTimeMin: '',
+        difficulty: null,
+      },
+    )
+    expect(result.prepTimeMin).toBeUndefined()
+    expect(result.cookTimeMin).toBeUndefined()
+    expect(result.totalTimeMin).toBeUndefined()
+    expect(result.difficulty).toBeUndefined()
+  })
+
+  it('ignores non-positive minute values', () => {
+    const result = buildPayload(
+      'Torta',
+      '4',
+      'Postre',
+      '',
+      '',
+      validIngredients,
+      validSteps,
+      [],
+      [],
+      {
+        prepTimeMin: '0',
+        cookTimeMin: 'abc',
+        difficulty: null,
+      },
+    )
+    expect(result.prepTimeMin).toBeUndefined()
+    expect(result.cookTimeMin).toBeUndefined()
+    expect(result.totalTimeMin).toBeUndefined()
+  })
+
+  it('omits all time fields when no times object is passed', () => {
+    const result = buildPayload('Torta', '4', 'Postre', '', '', validIngredients, validSteps)
+    expect(result.prepTimeMin).toBeUndefined()
+    expect(result.totalTimeMin).toBeUndefined()
+    expect(result.difficulty).toBeUndefined()
+  })
 })
 
 describe('validatePayload', () => {
@@ -284,5 +403,24 @@ describe('recipeToFormState', () => {
   it('handles null notes', () => {
     const form = recipeToFormState({ ...recipe, notes: undefined })
     expect(form.notes).toBe('')
+  })
+
+  it('maps times and difficulty to form state', () => {
+    const form = recipeToFormState({
+      ...recipe,
+      prepTimeMin: 10,
+      cookTimeMin: 15,
+      difficulty: 'fácil',
+    })
+    expect(form.prepTimeMin).toBe('10')
+    expect(form.cookTimeMin).toBe('15')
+    expect(form.difficulty).toBe('fácil')
+  })
+
+  it('defaults times to empty strings and difficulty to null when absent', () => {
+    const form = recipeToFormState(recipe)
+    expect(form.prepTimeMin).toBe('')
+    expect(form.cookTimeMin).toBe('')
+    expect(form.difficulty).toBeNull()
   })
 })
