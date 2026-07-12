@@ -208,6 +208,19 @@ test.describe('Recipes: detail view', () => {
     await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 8000 })
   })
 
+  test('can set times and difficulty in the edit form and save', async ({ page }) => {
+    await openFirstRecipeDetail(page)
+    await page.getByText('Editar').click()
+    await expect(page.getByTestId('recipe-prep-time')).toBeVisible({ timeout: 8000 })
+
+    await page.getByTestId('recipe-prep-time').fill('8')
+    await page.getByTestId('recipe-cook-time').fill('12')
+    await page.getByTestId('difficulty-chip-media').click()
+
+    await page.getByText(/Guardar Cambios|Guardar Receta/).click()
+    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 8000 })
+  })
+
   test('can add and remove an ingredient row in the edit form', async ({ page }) => {
     await openFirstRecipeDetail(page)
     await page.getByText('Editar').click()
@@ -263,5 +276,39 @@ test.describe('Recipes: detail view', () => {
     await page.getByTestId('recipe-tab-history').click()
     await page.getByTestId('recipe-tab-recipe').click()
     await expect(page.getByText('Ingredientes')).toBeVisible({ timeout: 5000 })
+  })
+})
+
+test.describe('Recipes: times & difficulty', () => {
+  test('creates a recipe with times + difficulty and filters by them', async ({ page }) => {
+    const recipeName = `E2E Rápida ${Date.now()}`
+
+    await page.getByText('+ Nueva Receta').click()
+    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible({ timeout: 8000 })
+    await page.getByPlaceholder('Nombre de la receta').fill(recipeName)
+    await page.getByPlaceholder('Ingrediente').first().fill('Agua')
+    await page.getByPlaceholder('Cant.').first().fill('1')
+    await page.getByPlaceholder(/Paso 1/i).fill('Calentar.')
+
+    // Times + difficulty (total = 15 min, fácil)
+    await page.getByTestId('recipe-prep-time').fill('5')
+    await page.getByTestId('recipe-cook-time').fill('10')
+    await page.getByTestId('difficulty-chip-fácil').click()
+
+    await page.getByText('Guardar Receta').click()
+    await expect(page.getByText(recipeName)).toBeVisible({ timeout: 10000 })
+
+    // Compact "⏱ 15 min · fácil" line renders on the card.
+    await expect(page.getByText('⏱ 15 min · fácil').first()).toBeVisible({ timeout: 8000 })
+
+    // ≤20 min keeps our recipe but hides untimed seed recipes.
+    await page.getByTestId('filter-time-20').click()
+    await expect(page.getByText(recipeName)).toBeVisible()
+    await expect(page.getByText('Milanesa de pollo')).toHaveCount(0)
+
+    // difficulty=difícil hides our fácil recipe.
+    await page.getByTestId('filter-time-20').click()
+    await page.getByTestId('filter-difficulty-difícil').click()
+    await expect(page.getByText(recipeName)).toHaveCount(0)
   })
 })

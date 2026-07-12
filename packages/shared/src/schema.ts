@@ -166,6 +166,15 @@ export const CreateRecipeSchema = RecipeSchema.omit({
   ownerId: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  // Times/difficulty accept null on INPUT so the edit form can CLEAR a value.
+  // On a partial update, `undefined` means "leave unchanged" while `null` means
+  // "clear this field" — without null there is no way to unset a time/difficulty.
+  // (RecipeSchema itself keeps these as number|undefined for read responses.)
+  prepTimeMin: z.number().int().positive().nullable().optional(),
+  cookTimeMin: z.number().int().positive().nullable().optional(),
+  totalTimeMin: z.number().int().positive().nullable().optional(),
+  difficulty: z.enum(['fácil', 'media', 'difícil']).nullable().optional(),
 })
 export type CreateRecipe = z.infer<typeof CreateRecipeSchema>
 

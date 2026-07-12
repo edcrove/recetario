@@ -7,14 +7,21 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { api } from '../../src/api/client'
 import { notify } from '../../src/utils/platformAlert'
 import { AllergenBadge } from '../../src/components/AllergenBadge'
-import type { Recipe } from '@recetario/shared'
+import type { Recipe, RecipeDifficulty } from '@recetario/shared'
 import { macroStrip } from '../../src/utils/macroStrip'
+import {
+  DIFFICULTIES,
+  TIME_FILTERS,
+  formatTimeDifficulty,
+  filterByTimeDifficulty,
+} from '../../src/utils/recipeMeta'
 import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 
 export default function PickRecipeScreen() {
@@ -29,11 +36,18 @@ export default function PickRecipeScreen() {
   }>()
   const [query, setQuery] = useState('')
   const [servings, setServings] = useState(2)
+  const [maxTotalTime, setMaxTotalTime] = useState<number | null>(null)
+  const [difficulty, setDifficulty] = useState<RecipeDifficulty | null>(null)
 
   const { data: recipes = [], isLoading } = useQuery({
     queryKey: ['recipes', query],
     queryFn: () =>
       query.trim() ? api.recipes.search({ q: query }) : api.recipes.list({ limit: 50 }),
+  })
+
+  const visibleRecipes = filterByTimeDifficulty(recipes, {
+    ...(maxTotalTime != null && { maxTotalTime }),
+    ...(difficulty != null && { difficulty }),
   })
 
   const addMutation = useMutation({
@@ -81,13 +95,52 @@ export default function PickRecipeScreen() {
         clearButtonMode="while-editing"
       />
 
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filterScroll}
+        contentContainerStyle={styles.filterRow}
+      >
+        {TIME_FILTERS.map((tf) => (
+          <TouchableOpacity
+            key={tf.maxTotalTime}
+            testID={`pick-filter-time-${tf.maxTotalTime}`}
+            style={[styles.filterChip, maxTotalTime === tf.maxTotalTime && styles.filterChipActive]}
+            onPress={() =>
+              setMaxTotalTime(maxTotalTime === tf.maxTotalTime ? null : tf.maxTotalTime)
+            }
+          >
+            <Text
+              style={[
+                styles.filterChipText,
+                maxTotalTime === tf.maxTotalTime && styles.filterChipTextActive,
+              ]}
+            >
+              {tf.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+        {DIFFICULTIES.map((d) => (
+          <TouchableOpacity
+            key={d}
+            testID={`pick-filter-difficulty-${d}`}
+            style={[styles.filterChip, difficulty === d && styles.filterChipActive]}
+            onPress={() => setDifficulty(difficulty === d ? null : d)}
+          >
+            <Text style={[styles.filterChipText, difficulty === d && styles.filterChipTextActive]}>
+              {d}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
       {isLoading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" />
         </View>
       ) : (
         <FlatList
-          data={recipes}
+          data={visibleRecipes}
           keyExtractor={(item: Recipe) => item.id ?? item.title}
           renderItem={({ item }: { item: Recipe }) => (
             <TouchableOpacity
@@ -102,8 +155,12 @@ export default function PickRecipeScreen() {
               </View>
               <Text style={styles.cardMeta}>
                 {item.category} · {item.servings} porc. base
-                {item.totalTimeMin ? ` · ${item.totalTimeMin} min` : ''}
               </Text>
+              {formatTimeDifficulty(item) ? (
+                <Text testID={`pick-meta-${item.id}`} style={styles.cardTimeMeta}>
+                  {formatTimeDifficulty(item)}
+                </Text>
+              ) : null}
               {macroStrip(item.nutrition) ? (
                 <Text style={styles.cardMacros}>{macroStrip(item.nutrition)}</Text>
               ) : null}
@@ -174,7 +231,28 @@ const makeStyles = (c: ThemeColors) =>
       color: c.ink,
     },
     cardMeta: { color: c.inkSoft, marginTop: 4, fontSize: 13 },
+    cardTimeMeta: {
+      color: c.ink,
+      marginTop: 3,
+      fontSize: 13,
+      fontWeight: '600',
+      fontVariant: ['tabular-nums'],
+    },
     cardMacros: { color: c.sage, marginTop: 3, fontSize: 12, fontVariant: ['tabular-nums'] },
+    filterScroll: { marginHorizontal: 12, marginBottom: 4, flexGrow: 0 },
+    filterRow: { gap: 6, paddingHorizontal: 2 },
+    filterChip: {
+      paddingHorizontal: 12,
+      height: 30,
+      justifyContent: 'center',
+      borderRadius: 15,
+      backgroundColor: c.sand,
+      borderWidth: 1,
+      borderColor: c.line,
+    },
+    filterChipActive: { backgroundColor: c.terracotta, borderColor: c.terracotta },
+    filterChipText: { fontSize: 13, color: c.inkSoft, fontWeight: '600' },
+    filterChipTextActive: { color: c.terracottaInk, fontWeight: '700' },
     empty: { textAlign: 'center', color: c.inkSoft, marginTop: 40 },
     errorText: { color: c.danger, textAlign: 'center', padding: 12 },
   })

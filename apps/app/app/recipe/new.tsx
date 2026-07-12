@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import type { Category, Unit } from '@recetario/shared'
+import type { Category, RecipeDifficulty, Unit } from '@recetario/shared'
 import { api } from '../../src/api/client'
 import {
   buildPayload,
@@ -11,6 +11,7 @@ import {
   type StepRow,
   type FieldErrors,
 } from '../../src/utils/recipeForm'
+import { DIFFICULTIES } from '../../src/utils/recipeMeta'
 import { unitLabel } from '../../src/utils/displayIngredient'
 import { FoodTypePicker } from '../../src/components/FoodTypePicker'
 import { confirmAsync } from '../../src/utils/platformAlert'
@@ -51,6 +52,9 @@ export default function NewRecipeScreen() {
   const [steps, setSteps] = useState<StepRow[]>([{ text: '' }])
   const [errors, setErrors] = useState<FieldErrors>({})
   const [visibility, setVisibility] = useState<'private' | 'public'>('private')
+  const [prepTimeMin, setPrepTimeMin] = useState('')
+  const [cookTimeMin, setCookTimeMin] = useState('')
+  const [difficulty, setDifficulty] = useState<RecipeDifficulty | null>(null)
 
   const mutation = useMutation({
     mutationFn: api.recipes.create,
@@ -74,6 +78,7 @@ export default function NewRecipeScreen() {
       steps,
       undefined,
       foodTypeIds,
+      { prepTimeMin, cookTimeMin, difficulty },
     )
     const { valid, errors: fieldErrors } = validatePayload(payload)
     if (!valid) {
@@ -164,6 +169,47 @@ export default function NewRecipeScreen() {
       {/* Food types */}
       <Text style={st.label}>Tipo de comida (hasta 3)</Text>
       <FoodTypePicker selected={foodTypeIds} onChange={setFoodTypeIds} />
+
+      {/* Times + difficulty */}
+      <View style={st.timesRow}>
+        <View style={st.timeCol}>
+          <Text style={st.label}>Prep. (min)</Text>
+          <TextInput
+            testID="recipe-prep-time"
+            placeholderTextColor={colors.inkSoft}
+            style={st.input}
+            value={prepTimeMin}
+            onChangeText={setPrepTimeMin}
+            keyboardType="numeric"
+            placeholder="10"
+          />
+        </View>
+        <View style={st.timeCol}>
+          <Text style={st.label}>Cocción (min)</Text>
+          <TextInput
+            testID="recipe-cook-time"
+            placeholderTextColor={colors.inkSoft}
+            style={st.input}
+            value={cookTimeMin}
+            onChangeText={setCookTimeMin}
+            keyboardType="numeric"
+            placeholder="15"
+          />
+        </View>
+      </View>
+      <Text style={st.label}>Dificultad</Text>
+      <View style={st.categoryRow}>
+        {DIFFICULTIES.map((d) => (
+          <TouchableOpacity
+            key={d}
+            testID={`difficulty-chip-${d}`}
+            style={[st.catBtn, difficulty === d && st.catBtnActive]}
+            onPress={() => setDifficulty(difficulty === d ? null : d)}
+          >
+            <Text style={[st.catBtnText, difficulty === d && st.catBtnTextActive]}>{d}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       {/* Visibility */}
       <Text style={st.label}>Visibilidad</Text>
@@ -326,6 +372,8 @@ const makeStyles = (c: ThemeColors) =>
       color: c.ink,
     },
     categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 4 },
+    timesRow: { flexDirection: 'row', gap: 12 },
+    timeCol: { flex: 1 },
     catBtn: {
       paddingHorizontal: 12,
       paddingVertical: 6,

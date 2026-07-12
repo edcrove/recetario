@@ -122,4 +122,53 @@ describe('NewRecipeScreen', () => {
     await waitFor(() => expect(mockCreate).toHaveBeenCalled())
     expect(mockCreate.mock.calls[0]?.[0].ingredients).toHaveLength(1)
   })
+
+  it('submits prep/cook time, computed total, and selected difficulty', async () => {
+    mockCreate.mockResolvedValue({ id: 'x' })
+    wrap(<NewRecipeScreen />)
+
+    fireEvent.change(screen.getByPlaceholderText('Nombre de la receta'), {
+      target: { value: 'Sopa' },
+    })
+    fireEvent.change(screen.getByPlaceholderText('Ingrediente'), { target: { value: 'Agua' } })
+    fireEvent.change(screen.getByTestId('recipe-prep-time'), { target: { value: '10' } })
+    fireEvent.change(screen.getByTestId('recipe-cook-time'), { target: { value: '15' } })
+    fireEvent.click(screen.getByTestId('difficulty-chip-media'))
+    fireEvent.click(screen.getByText('Guardar Receta'))
+
+    await waitFor(() => expect(mockCreate).toHaveBeenCalled())
+    const payload = mockCreate.mock.calls[0]?.[0]
+    expect(payload.prepTimeMin).toBe(10)
+    expect(payload.cookTimeMin).toBe(15)
+    expect(payload.totalTimeMin).toBe(25)
+    expect(payload.difficulty).toBe('media')
+  })
+
+  it('sends null time and difficulty when left untouched', async () => {
+    mockCreate.mockResolvedValue({ id: 'x' })
+    wrap(<NewRecipeScreen />)
+
+    fireEvent.change(screen.getByPlaceholderText('Nombre de la receta'), { target: { value: 'X' } })
+    fireEvent.change(screen.getByPlaceholderText('Ingrediente'), { target: { value: 'Y' } })
+    fireEvent.click(screen.getByText('Guardar Receta'))
+
+    await waitFor(() => expect(mockCreate).toHaveBeenCalled())
+    const payload = mockCreate.mock.calls[0]?.[0]
+    expect(payload.prepTimeMin).toBeNull()
+    expect(payload.difficulty).toBeNull()
+  })
+
+  it('toggles a difficulty chip off when tapped twice', async () => {
+    mockCreate.mockResolvedValue({ id: 'x' })
+    wrap(<NewRecipeScreen />)
+
+    fireEvent.change(screen.getByPlaceholderText('Nombre de la receta'), { target: { value: 'X' } })
+    fireEvent.change(screen.getByPlaceholderText('Ingrediente'), { target: { value: 'Y' } })
+    fireEvent.click(screen.getByTestId('difficulty-chip-fácil'))
+    fireEvent.click(screen.getByTestId('difficulty-chip-fácil'))
+    fireEvent.click(screen.getByText('Guardar Receta'))
+
+    await waitFor(() => expect(mockCreate).toHaveBeenCalled())
+    expect(mockCreate.mock.calls[0]?.[0].difficulty).toBeNull()
+  })
 })

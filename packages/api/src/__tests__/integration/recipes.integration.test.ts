@@ -490,4 +490,45 @@ describe.skipIf(skip).sequential('Recipe visibility and fork provenance', () => 
     expect(byDiff.some((r) => r.id === slow.id)).toBe(true)
     expect(byDiff.some((r) => r.id === quick.id)).toBe(false)
   })
+
+  it('PUT with null clears a previously-set time/difficulty', async () => {
+    const created = (await (
+      await app.request('/v1/recipes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+        body: JSON.stringify({
+          title: 'Con tiempos',
+          servings: 2,
+          category: 'Cena',
+          prepTimeMin: 10,
+          cookTimeMin: 15,
+          totalTimeMin: 25,
+          difficulty: 'media',
+          ingredients: [{ name: 'x', quantity: 1, unit: 'unit' }],
+          steps: [{ text: 'Cocinar.' }],
+        }),
+      })
+    ).json()) as { id: string }
+
+    const res = await app.request(`/v1/recipes/${created.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+      body: JSON.stringify({ cookTimeMin: null, totalTimeMin: 10, difficulty: null }),
+    })
+    expect(res.status).toBe(200)
+
+    const got = (await (
+      await app.request(`/v1/recipes/${created.id}`, { headers: { Authorization: authHeader } })
+    ).json()) as {
+      prepTimeMin?: number
+      cookTimeMin?: number
+      totalTimeMin?: number
+      difficulty?: string
+    }
+    // cook + difficulty cleared; prep untouched (omitted); total updated consistently.
+    expect(got.cookTimeMin).toBeUndefined()
+    expect(got.difficulty).toBeUndefined()
+    expect(got.prepTimeMin).toBe(10)
+    expect(got.totalTimeMin).toBe(10)
+  })
 })

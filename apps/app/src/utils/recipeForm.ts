@@ -1,5 +1,18 @@
 import { CreateRecipeSchema } from '@recetario/shared'
-import type { Category, Recipe, Unit } from '@recetario/shared'
+import type { Category, Recipe, RecipeDifficulty, Unit } from '@recetario/shared'
+
+export interface RecipeTimes {
+  prepTimeMin: string
+  cookTimeMin: string
+  difficulty: RecipeDifficulty | null
+}
+
+/** Parses a form-string minute value; returns undefined unless a positive int. */
+function parsePositiveInt(value?: string): number | undefined {
+  if (!value) return undefined
+  const n = parseInt(value, 10)
+  return Number.isFinite(n) && n > 0 ? n : undefined
+}
 
 export interface IngredientRow {
   name: string
@@ -31,7 +44,24 @@ export function buildPayload(
   steps: StepRow[],
   dietaryTags?: string[],
   foodTypeIds?: string[],
+  times?: RecipeTimes,
 ) {
+  // When the form supplies times, emit ALL time/difficulty fields as explicit
+  // `number | null` so an edit can CLEAR a previously-set value (null) and
+  // totalTimeMin can never desync from prep/cook. When `times` is absent, the
+  // fields are omitted entirely (leave-unchanged semantics). See CreateRecipeSchema.
+  const timeFields = (() => {
+    if (!times) return {}
+    const prep = parsePositiveInt(times.prepTimeMin) ?? null
+    const cook = parsePositiveInt(times.cookTimeMin) ?? null
+    const total = prep !== null || cook !== null ? (prep ?? 0) + (cook ?? 0) : null
+    return {
+      prepTimeMin: prep,
+      cookTimeMin: cook,
+      totalTimeMin: total,
+      difficulty: times.difficulty ?? null,
+    }
+  })()
   return {
     title: title.trim(),
     servings: parseInt(servings, 10) || 0,
@@ -43,6 +73,7 @@ export function buildPayload(
     notes: notes.trim() || undefined,
     dietaryTags: dietaryTags && dietaryTags.length > 0 ? dietaryTags : undefined,
     foodTypeIds: foodTypeIds && foodTypeIds.length > 0 ? foodTypeIds : undefined,
+    ...timeFields,
     ingredients: ingredients
       .filter((i) => i.name.trim())
       .map((i) => ({
@@ -82,6 +113,9 @@ export function recipeToFormState(recipe: Recipe): {
   notes: string
   ingredients: IngredientRow[]
   steps: StepRow[]
+  prepTimeMin: string
+  cookTimeMin: string
+  difficulty: RecipeDifficulty | null
 } {
   return {
     title: recipe.title,
@@ -96,5 +130,8 @@ export function recipeToFormState(recipe: Recipe): {
       presentation: ing.presentation ?? '',
     })),
     steps: recipe.steps.map((s) => ({ text: s.text })),
+    prepTimeMin: recipe.prepTimeMin != null ? String(recipe.prepTimeMin) : '',
+    cookTimeMin: recipe.cookTimeMin != null ? String(recipe.cookTimeMin) : '',
+    difficulty: recipe.difficulty ?? null,
   }
 }
