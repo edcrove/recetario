@@ -175,6 +175,23 @@ describe('GET /v1/recipes', () => {
     expect(Array.isArray(body)).toBe(true)
     expect(body).toHaveLength(1)
   })
+
+  it('passes maxTotalTime and difficulty filters to the repository', async () => {
+    mockRepo.list.mockResolvedValue([])
+    const res = await app.request('/v1/recipes?maxTotalTime=30&difficulty=f%C3%A1cil', {
+      headers: AUTH_HEADERS,
+    })
+    expect(res.status).toBe(200)
+    expect(mockRepo.list).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ maxTotalTime: 30, difficulty: 'fácil' }),
+    )
+  })
+
+  it('rejects an invalid difficulty (400)', async () => {
+    const res = await app.request('/v1/recipes?difficulty=imposible', { headers: AUTH_HEADERS })
+    expect(res.status).toBe(400)
+  })
 })
 
 describe('GET /v1/recipes/search', () => {

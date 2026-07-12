@@ -22,6 +22,8 @@ export const menuSlot = pgEnum('menu_slot', [
 
 export const recipeVisibility = pgEnum('recipe_visibility', ['private', 'public'])
 
+export const recipeDifficulty = pgEnum('recipe_difficulty', ['fácil', 'media', 'difícil'])
+
 export const recipes = pgTable(
   'recipes',
   {
@@ -34,6 +36,7 @@ export const recipes = pgTable(
     prepTimeMin: integer('prep_time_min'),
     cookTimeMin: integer('cook_time_min'),
     totalTimeMin: integer('total_time_min'),
+    difficulty: recipeDifficulty('difficulty'),
     images: jsonb('images').notNull().default([]),
     notes: text('notes'),
     yield: text('yield'),

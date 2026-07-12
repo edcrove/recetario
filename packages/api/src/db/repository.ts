@@ -1,5 +1,11 @@
-import { eq, and, ilike, or, sql, inArray, desc } from 'drizzle-orm'
-import type { CreateRecipe, UpdateRecipe, Recipe, LibraryRecipe } from '@recetario/shared'
+import { eq, and, ilike, or, sql, inArray, desc, lte } from 'drizzle-orm'
+import type {
+  CreateRecipe,
+  UpdateRecipe,
+  Recipe,
+  LibraryRecipe,
+  RecipeDifficulty,
+} from '@recetario/shared'
 import { getVisibleOwnerIds } from './household-visibility.js'
 import { getDb, schema } from './index.js'
 
@@ -32,6 +38,7 @@ function mapToRecipe(
     prepTimeMin: row.prepTimeMin ?? undefined,
     cookTimeMin: row.cookTimeMin ?? undefined,
     totalTimeMin: row.totalTimeMin ?? undefined,
+    difficulty: row.difficulty ?? undefined,
     /* v8 ignore next */
     images: (row.images as string[]) ?? [],
     notes: row.notes ?? undefined,
@@ -87,6 +94,7 @@ export class RecipeRepository {
         prepTimeMin: data.prepTimeMin ?? null,
         cookTimeMin: data.cookTimeMin ?? null,
         totalTimeMin: data.totalTimeMin ?? null,
+        difficulty: data.difficulty ?? null,
         images: data.images,
         notes: data.notes ?? null,
         yield: data.yield ?? null,
@@ -209,13 +217,30 @@ export class RecipeRepository {
     return mapToRecipe(recipe, ingredientRows, stepRows, foodTypeIds)
   }
 
-  async list(owner: string | string[], opts: { limit: number; offset: number }): Promise<Recipe[]> {
+  async list(
+    owner: string | string[],
+    opts: {
+      limit: number
+      offset: number
+      maxTotalTime?: number
+      difficulty?: RecipeDifficulty
+    },
+  ): Promise<Recipe[]> {
     const db = this.db
+
+    const conditions = [
+      ownerCondition(owner),
+      // A null totalTimeMin can't be confirmed under the cap, so it's excluded.
+      ...(opts.maxTotalTime !== undefined
+        ? [lte(schema.recipes.totalTimeMin, opts.maxTotalTime)]
+        : []),
+      ...(opts.difficulty !== undefined ? [eq(schema.recipes.difficulty, opts.difficulty)] : []),
+    ]
 
     const recipes = await db
       .select()
       .from(schema.recipes)
-      .where(ownerCondition(owner))
+      .where(and(...conditions))
       .orderBy(desc(schema.recipes.createdAt))
       .limit(opts.limit)
       .offset(opts.offset)
@@ -339,6 +364,7 @@ export class RecipeRepository {
         ...(data.prepTimeMin !== undefined && { prepTimeMin: data.prepTimeMin }),
         ...(data.cookTimeMin !== undefined && { cookTimeMin: data.cookTimeMin }),
         ...(data.totalTimeMin !== undefined && { totalTimeMin: data.totalTimeMin }),
+        ...(data.difficulty !== undefined && { difficulty: data.difficulty }),
         ...(data.images !== undefined && { images: data.images }),
         ...(data.notes !== undefined && { notes: data.notes }),
         ...(data.yield !== undefined && { yield: data.yield }),

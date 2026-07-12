@@ -443,4 +443,51 @@ describe.skipIf(skip).sequential('Recipe visibility and fork provenance', () => 
       .where(eq(schema.recipes.id, fork!.id))
     expect(after?.forkedFromId).toBeNull()
   })
+
+  it('round-trips difficulty and filters the list by maxTotalTime and difficulty', async () => {
+    const json = (title: string, body: object) =>
+      app.request('/v1/recipes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+        body: JSON.stringify({
+          title,
+          servings: 2,
+          category: 'Cena',
+          ingredients: [{ name: 'x', quantity: 1, unit: 'unit' }],
+          steps: [{ text: 'Cocinar.' }],
+          ...body,
+        }),
+      })
+
+    const quick = (await (
+      await json('Rápida fácil', { totalTimeMin: 15, difficulty: 'fácil' })
+    ).json()) as { id: string; difficulty: string }
+    const slow = (await (
+      await json('Lenta difícil', { totalTimeMin: 90, difficulty: 'difícil' })
+    ).json()) as { id: string }
+    // difficulty is persisted and returned.
+    expect(quick.difficulty).toBe('fácil')
+    const got = (await (
+      await app.request(`/v1/recipes/${quick.id}`, { headers: { Authorization: authHeader } })
+    ).json()) as { difficulty: string }
+    expect(got.difficulty).toBe('fácil')
+
+    // maxTotalTime=30 excludes the 90-min recipe.
+    const byTime = (await (
+      await app.request('/v1/recipes?limit=100&maxTotalTime=30', {
+        headers: { Authorization: authHeader },
+      })
+    ).json()) as { id: string }[]
+    expect(byTime.some((r) => r.id === quick.id)).toBe(true)
+    expect(byTime.some((r) => r.id === slow.id)).toBe(false)
+
+    // difficulty filter.
+    const byDiff = (await (
+      await app.request('/v1/recipes?limit=100&difficulty=dif%C3%ADcil', {
+        headers: { Authorization: authHeader },
+      })
+    ).json()) as { id: string }[]
+    expect(byDiff.some((r) => r.id === slow.id)).toBe(true)
+    expect(byDiff.some((r) => r.id === quick.id)).toBe(false)
+  })
 })
