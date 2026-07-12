@@ -28,6 +28,19 @@ export const ScrollView = ({
   contentContainerStyle?: unknown
 }) => React.createElement('div', { 'data-testid': testID, ...rest }, children)
 export const SafeAreaView = passThrough('div')
+// Modal is always in the tree with a `visible` prop (not conditional JSX), so
+// mirror RN semantics: render children only when visible.
+export const Modal = ({
+  visible = true,
+  children,
+  testID,
+  style: _style,
+  ...rest
+}: React.HTMLAttributes<HTMLElement> & {
+  visible?: boolean
+  testID?: string
+  style?: unknown
+}) => (visible ? React.createElement('div', { 'data-testid': testID, ...rest }, children) : null)
 export const FlatList = ({
   data,
   renderItem,

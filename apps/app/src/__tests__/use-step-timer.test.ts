@@ -5,12 +5,12 @@ describe('timerSeconds', () => {
   it('returns 0 for null duration', () => {
     expect(timerSeconds(null)).toBe(0)
   })
-  it('converts minutes to seconds', () => {
-    expect(timerSeconds(2)).toBe(120)
-    expect(timerSeconds(0.5)).toBe(30)
+  it('passes through a seconds value', () => {
+    expect(timerSeconds(120)).toBe(120)
+    expect(timerSeconds(30)).toBe(30)
   })
   it('rounds fractional seconds', () => {
-    expect(timerSeconds(0.1)).toBe(6)
+    expect(timerSeconds(6.4)).toBe(6)
   })
   it('clamps negative to 0', () => {
     expect(timerSeconds(-1)).toBe(0)
@@ -36,9 +36,9 @@ describe('formatTime', () => {
 })
 
 describe('initTimer', () => {
-  it('starts running with positive duration', () => {
-    const state = initTimer(1)
-    expect(state).toEqual({ secondsLeft: 60, isRunning: true, completed: false })
+  it('pre-loads paused (tap-to-start) with a positive duration', () => {
+    const state = initTimer(60)
+    expect(state).toEqual({ secondsLeft: 60, isRunning: false, completed: false })
   })
 
   it('starts idle for null duration', () => {

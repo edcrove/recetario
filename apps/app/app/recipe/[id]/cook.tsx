@@ -89,8 +89,8 @@ export default function CookModeScreen() {
     onStepTimerComplete()
   }, [])
 
-  const { secondsLeft, isRunning, toggle, reset } = useStepTimer(
-    current?.durationMin ?? null,
+  const { secondsLeft, isRunning, started, toggle, reset } = useStepTimer(
+    current?.durationSeconds ?? null,
     handleTimerComplete,
   )
 
@@ -163,15 +163,17 @@ export default function CookModeScreen() {
         <View style={s.body}>
           <Text style={s.stepText}>{current?.text}</Text>
 
-          {current?.durationMin != null && (
+          {current?.durationSeconds != null && (
             <View style={s.timerRow}>
-              <Text style={[s.timerChip, secondsLeft === 0 && s.timerChipDone]}>
+              <Text testID="cook-timer" style={[s.timerChip, secondsLeft === 0 && s.timerChipDone]}>
                 {formatTime(secondsLeft)}
               </Text>
-              <TouchableOpacity style={s.timerBtn} onPress={toggle}>
-                <Text style={s.timerBtnText}>{isRunning ? 'Pausar' : 'Reanudar'}</Text>
+              <TouchableOpacity testID="cook-timer-toggle" style={s.timerBtn} onPress={toggle}>
+                <Text style={s.timerBtnText}>
+                  {isRunning ? 'Pausar' : started ? 'Reanudar' : 'Iniciar'}
+                </Text>
               </TouchableOpacity>
-              <TouchableOpacity style={s.timerBtn} onPress={reset}>
+              <TouchableOpacity testID="cook-timer-reset" style={s.timerBtn} onPress={reset}>
                 <Text style={s.timerBtnText}>↺</Text>
               </TouchableOpacity>
             </View>

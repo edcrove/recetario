@@ -245,3 +245,24 @@ it('handles non-Error thrown (string error)', async () => {
   const parsed = JSON.parse(result.content[0].text)
   expect(parsed.error).toBe('Failed to create recipe')
 })
+
+it('forwards a step durationSeconds to the API payload', async () => {
+  const mockFetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: () => Promise.resolve({ id: 'dur1' }),
+  })
+  vi.stubGlobal('fetch', mockFetch)
+
+  const server = createMcpServer()
+  const api = createApiClient()
+  registerCreateRecipe(server, api)
+
+  const handler = getToolHandler(server, 'createRecipe')
+  await handler(
+    { ...validInput, steps: [{ text: 'Hervir 40 minutos.', durationSeconds: 2400 }] },
+    {},
+  )
+
+  const body = JSON.parse((mockFetch.mock.calls[0]?.[1] as { body: string }).body)
+  expect(body.steps[0]).toEqual({ text: 'Hervir 40 minutos.', durationSeconds: 2400 })
+})

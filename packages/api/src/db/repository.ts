@@ -1,10 +1,11 @@
 import { eq, and, ilike, or, sql, inArray, desc, lte } from 'drizzle-orm'
-import type {
-  CreateRecipe,
-  UpdateRecipe,
-  Recipe,
-  LibraryRecipe,
-  RecipeDifficulty,
+import {
+  parseStepDurationSeconds,
+  type CreateRecipe,
+  type UpdateRecipe,
+  type Recipe,
+  type LibraryRecipe,
+  type RecipeDifficulty,
 } from '@recetario/shared'
 import { getVisibleOwnerIds } from './household-visibility.js'
 import { getDb, schema } from './index.js'
@@ -68,7 +69,7 @@ function mapToRecipe(
       .sort((a, b) => a.position - b.position)
       .map((s) => ({
         text: s.text,
-        durationMin: s.durationMin ?? undefined,
+        durationSeconds: s.durationSeconds ?? undefined,
         ovenTempC: s.ovenTempC ?? undefined,
       })),
     createdAt: row.createdAt.toISOString(),
@@ -189,7 +190,9 @@ export class RecipeRepository {
           recipeId,
           position: idx,
           text: step.text,
-          durationMin: step.durationMin ?? null,
+          // Auto-detect a timer duration from the step text when the caller
+          // (agent/import) didn't supply one, so cook mode can pre-load a timer.
+          durationSeconds: step.durationSeconds ?? parseStepDurationSeconds(step.text),
           ovenTempC: step.ovenTempC ?? null,
         })),
       )

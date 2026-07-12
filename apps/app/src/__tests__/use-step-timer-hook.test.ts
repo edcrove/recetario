@@ -12,10 +12,10 @@ afterEach(() => {
 })
 
 describe('useStepTimer hook', () => {
-  it('initializes with correct seconds and running state', () => {
-    const { result } = renderHook(() => useStepTimer(1))
+  it('pre-loads paused with the given seconds (tap-to-start)', () => {
+    const { result } = renderHook(() => useStepTimer(60))
     expect(result.current.secondsLeft).toBe(60)
-    expect(result.current.isRunning).toBe(true)
+    expect(result.current.isRunning).toBe(false)
   })
 
   it('initializes idle for null duration', () => {
@@ -24,10 +24,13 @@ describe('useStepTimer hook', () => {
     expect(result.current.isRunning).toBe(false)
   })
 
-  it('counts down each second', () => {
-    const { result } = renderHook(() => useStepTimer(0.05))
+  it('counts down each second once started', () => {
+    const { result } = renderHook(() => useStepTimer(3))
     expect(result.current.secondsLeft).toBe(3)
 
+    act(() => {
+      result.current.toggle()
+    })
     act(() => {
       vi.advanceTimersByTime(1000)
     })
@@ -41,8 +44,11 @@ describe('useStepTimer hook', () => {
 
   it('fires onComplete exactly once when reaching 0', () => {
     const onComplete = vi.fn()
-    const { result } = renderHook(() => useStepTimer(0.05, onComplete))
+    const { result } = renderHook(() => useStepTimer(3, onComplete))
 
+    act(() => {
+      result.current.toggle()
+    })
     act(() => {
       vi.advanceTimersByTime(3000)
     })
@@ -56,8 +62,40 @@ describe('useStepTimer hook', () => {
     expect(onComplete).toHaveBeenCalledTimes(1)
   })
 
-  it('toggle pauses and resumes', () => {
-    const { result } = renderHook(() => useStepTimer(1))
+  it('tracks the started flag for the Iniciar/Reanudar label', () => {
+    const { result } = renderHook(() => useStepTimer(60))
+    expect(result.current.started).toBe(false) // shows "Iniciar"
+
+    act(() => {
+      result.current.toggle()
+    })
+    expect(result.current.started).toBe(true) // now "Pausar"/"Reanudar"
+
+    act(() => {
+      result.current.reset()
+    })
+    expect(result.current.started).toBe(false) // back to "Iniciar"
+  })
+
+  it('clears started when durationSeconds changes', () => {
+    let duration: number | null = 3
+    const { result, rerender } = renderHook(() => useStepTimer(duration))
+    act(() => {
+      result.current.toggle()
+    })
+    expect(result.current.started).toBe(true)
+    duration = 60
+    rerender()
+    expect(result.current.started).toBe(false)
+  })
+
+  it('toggle starts, pauses and resumes', () => {
+    const { result } = renderHook(() => useStepTimer(60))
+    expect(result.current.isRunning).toBe(false) // tap-to-start: paused initially
+
+    act(() => {
+      result.current.toggle()
+    })
     expect(result.current.isRunning).toBe(true)
 
     act(() => {
@@ -77,9 +115,12 @@ describe('useStepTimer hook', () => {
     expect(result.current.isRunning).toBe(true)
   })
 
-  it('reset restarts the timer', () => {
-    const { result } = renderHook(() => useStepTimer(0.05))
+  it('reset returns to the full duration, paused', () => {
+    const { result } = renderHook(() => useStepTimer(3))
 
+    act(() => {
+      result.current.toggle()
+    })
     act(() => {
       vi.advanceTimersByTime(2000)
     })
@@ -89,21 +130,24 @@ describe('useStepTimer hook', () => {
       result.current.reset()
     })
     expect(result.current.secondsLeft).toBe(3)
-    expect(result.current.isRunning).toBe(true)
+    expect(result.current.isRunning).toBe(false)
   })
 
-  it('resets when durationMin changes', () => {
-    let duration: number | null = 0.05
+  it('resets to paused when durationSeconds changes', () => {
+    let duration: number | null = 3
     const { result, rerender } = renderHook(() => useStepTimer(duration))
 
+    act(() => {
+      result.current.toggle()
+    })
     act(() => {
       vi.advanceTimersByTime(2000)
     })
     expect(result.current.secondsLeft).toBe(1)
 
-    duration = 1
+    duration = 60
     rerender()
     expect(result.current.secondsLeft).toBe(60)
-    expect(result.current.isRunning).toBe(true)
+    expect(result.current.isRunning).toBe(false)
   })
 })

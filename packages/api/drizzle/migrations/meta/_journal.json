@@ -85,6 +85,13 @@
       "when": 1783804373335,
       "tag": "0011_recipe_difficulty",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1783804473335,
+      "tag": "0012_recipe_step_duration_seconds",
+      "breakpoints": true
     }
   ]
 }

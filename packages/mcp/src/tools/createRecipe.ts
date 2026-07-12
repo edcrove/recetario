@@ -35,7 +35,14 @@ const CreateRecipeInput = z.object({
     .array(
       z.object({
         text: z.string().describe('Step instructions'),
-        durationMin: z.number().int().positive().optional(),
+        durationSeconds: z
+          .number()
+          .int()
+          .positive()
+          .optional()
+          .describe(
+            'Timer duration for this step in SECONDS (e.g. 40 min → 2400). Set it when the step has a clear time so cook mode can offer a tap-to-start timer. If omitted, the API auto-detects it from the step text.',
+          ),
         ovenTempC: z.number().optional(),
       }),
     )

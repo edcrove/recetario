@@ -72,21 +72,25 @@ describe('SourceSchema', () => {
 
 describe('StepSchema', () => {
   it('accepts valid step with duration', () => {
-    const result = StepSchema.parse({ text: 'Mix well', durationMin: 5 })
+    const result = StepSchema.parse({ text: 'Mix well', durationSeconds: 300 })
     expect(result.text).toBe('Mix well')
-    expect(result.durationMin).toBe(5)
+    expect(result.durationSeconds).toBe(300)
   })
 
   it('rejects empty text', () => {
     expect(() => StepSchema.parse({ text: '' })).toThrow()
   })
 
-  it('rejects negative durationMin', () => {
-    expect(() => StepSchema.parse({ text: 'Mix', durationMin: -1 })).toThrow()
+  it('rejects negative durationSeconds', () => {
+    expect(() => StepSchema.parse({ text: 'Mix', durationSeconds: -1 })).toThrow()
   })
 
-  it('rejects zero durationMin', () => {
-    expect(() => StepSchema.parse({ text: 'Mix', durationMin: 0 })).toThrow()
+  it('rejects zero durationSeconds', () => {
+    expect(() => StepSchema.parse({ text: 'Mix', durationSeconds: 0 })).toThrow()
+  })
+
+  it('rejects non-integer durationSeconds', () => {
+    expect(() => StepSchema.parse({ text: 'Mix', durationSeconds: 1.5 })).toThrow()
   })
 
   it('accepts step with ovenTempC', () => {
@@ -140,7 +144,7 @@ describe('RecipeSchema', () => {
       yield: '1 cake',
       originalLanguage: 'es',
       translations: [{ language: 'en', title: 'Chocolate Cake' }],
-      steps: [{ text: 'Mix ingredients', durationMin: 10 }],
+      steps: [{ text: 'Mix ingredients', durationSeconds: 600 }],
       source: { type: 'url', url: 'https://example.com/recipe' },
       createdAt: '2024-01-01T00:00:00.000Z',
       updatedAt: '2024-01-02T00:00:00.000Z',

@@ -15,7 +15,7 @@ const fullRecipe = {
     { name: 'lentejas', quantity: 500, unit: 'g' as const, presentation: 'remojadas' },
     { name: 'sal', quantity: null, unit: null },
   ],
-  steps: [{ text: 'Rehogar.', durationMin: 10 }, { text: 'Hervir.' }],
+  steps: [{ text: 'Rehogar.', durationSeconds: 600 }, { text: 'Hervir.' }],
   nutrition: { calories: 420, protein_g: 28, carbs_g: 52, fat_g: 12 },
   dietaryTags: ['sin-lactosa'],
   visibility: 'public' as const,
@@ -138,7 +138,7 @@ describe.skipIf(skip).sequential('Public library and copy-as-fork', () => {
         presentation: 'remojadas',
       })
       expect(fork.steps).toHaveLength(2)
-      expect(fork.steps[0]).toMatchObject({ text: 'Rehogar.', durationMin: 10 })
+      expect(fork.steps[0]).toMatchObject({ text: 'Rehogar.', durationSeconds: 600 })
     })
 
     it('the fork belongs to the visitor and shows in their list', async () => {

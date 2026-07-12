@@ -95,7 +95,7 @@ test.describe('Cook mode: basic flow', () => {
   })
 
   test('step timer is visible and can be paused/resumed', async ({ page }) => {
-    // "Milanesa de pollo napolitana" step 4 has durationMin — navigate there
+    // "Milanesa de pollo napolitana" step 4 has a durationSeconds timer — navigate there
     const recipe = page.getByText('Milanesa de pollo napolitana').first()
     await expect(recipe).toBeVisible({ timeout: 10000 })
     await recipe.click()
@@ -109,11 +109,12 @@ test.describe('Cook mode: basic flow', () => {
       await page.waitForTimeout(200)
     }
 
-    const pauseBtn = page.getByText(/Pausar|Reanudar/).first()
-    const hasTimer = await pauseBtn.count()
-    if (hasTimer > 0) {
-      await pauseBtn.click()
-      await expect(page.getByText(/Pausar|Reanudar/).first()).toBeVisible()
+    const toggle = page.getByTestId('cook-timer-toggle')
+    if ((await toggle.count()) > 0) {
+      // Tap-to-start: pre-loaded paused, so it reads "Iniciar" first.
+      await expect(toggle).toHaveText(/Iniciar|Reanudar/)
+      await toggle.click()
+      await expect(toggle).toHaveText('Pausar')
     }
   })
 
@@ -161,10 +162,9 @@ test.describe('Cook mode: basic flow', () => {
 })
 
 // Deep-coverage flows: full session with rating, skip path, speech toggle,
-// timer completion driven by Playwright's fake clock (duration_min is an
-// integer column, so the shortest real timer is a full 60s), and the
-// no-steps empty state. Uses dedicated recipes created via API so the
-// seeded demo data stays untouched.
+// step timer tap-to-start and completion (duration_seconds allows a short real
+// timer), and the no-steps empty state. Uses dedicated recipes created via API
+// so the seeded demo data stays untouched.
 test.describe('Cook mode: full session flows', () => {
   const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
 
@@ -267,34 +267,35 @@ test.describe('Cook mode: full session flows', () => {
     }
   })
 
-  // duration_min is an integer DB column, so the shortest real timer is 60s —
-  // too slow to wait for. Playwright's fake clock drives it instead: pausing
-  // clears useStepTimer's interval and resuming creates a fresh one, so
-  // installing the clock while paused puts the new interval under fake time.
-  test('a step timer runs to completion and supports pause/reset', async ({ page }) => {
+  // duration_seconds allows a short real timer, so no fake clock is needed —
+  // a 3s step runs to completion within the test.
+  test('a step timer pre-loads, taps to start, and runs to completion', async ({ page }) => {
     const recipe = await createRecipe(page, {
-      steps: [{ text: 'Paso cronometrado.', durationMin: 1 }, { text: 'Fin.' }],
+      steps: [{ text: 'Paso cronometrado.', durationSeconds: 3 }, { text: 'Fin.' }],
     })
     // notify() fires window.alert when the timer completes — auto-accept it
     page.on('dialog', (dialog) => void dialog.accept())
     await openCookMode(page, recipe.title)
 
-    // Pause / reset round trip with real timers (reset restarts the countdown,
-    // so it flips the button back to 'Pausar')
-    await expect(page.getByText('Pausar')).toBeVisible({ timeout: 5000 })
-    await page.getByText('Pausar').click()
-    await expect(page.getByText('Reanudar')).toBeVisible()
-    await page.getByText('↺').click()
-    await expect(page.getByText('Pausar')).toBeVisible()
+    const toggle = page.getByTestId('cook-timer-toggle')
+    const timer = page.getByTestId('cook-timer')
 
-    // Pause again, install the fake clock, resume under it, fast-forward 60s+
-    await page.getByText('Pausar').click()
-    await expect(page.getByText('Reanudar')).toBeVisible()
-    await page.clock.install()
-    await page.getByText('Reanudar').click()
-    await expect(page.getByText('Pausar')).toBeVisible()
-    await page.clock.runFor(65_000)
-    await expect(page.getByText('00:00')).toBeVisible({ timeout: 10000 })
+    // Tap-to-start: pre-loaded paused at the full duration, button reads "Iniciar".
+    await expect(toggle).toHaveText('Iniciar', { timeout: 5000 })
+    await expect(timer).toHaveText('00:03')
+
+    // Start → Pausar; pause → Reanudar; reset → back to Iniciar at full time.
+    await toggle.click()
+    await expect(toggle).toHaveText('Pausar')
+    await toggle.click()
+    await expect(toggle).toHaveText('Reanudar')
+    await page.getByTestId('cook-timer-reset').click()
+    await expect(toggle).toHaveText('Iniciar')
+    await expect(timer).toHaveText('00:03')
+
+    // Run to completion.
+    await toggle.click()
+    await expect(timer).toHaveText('00:00', { timeout: 8000 })
   })
 
   test('a recipe without steps shows the cook-mode empty state', async ({ page }) => {
