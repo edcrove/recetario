@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.3.0](https://github.com/edcrove/recetario/compare/api-v0.2.0...api-v0.3.0) (2026-07-13)
+
+
+### Features
+
+* **app:** tiempos/dificultad en form, cards y filtros ([f2e4123](https://github.com/edcrove/recetario/commit/f2e4123d04b20bf09febf9024978c95e4aea021f))
+* auto-detected step timers (durationSeconds + tap-to-start) ([47662b9](https://github.com/edcrove/recetario/commit/47662b917af5090873a52e1d7c138f72f1a18611))
+* auto-detected step timers (durationSeconds + tap-to-start) ([1a43aa0](https://github.com/edcrove/recetario/commit/1a43aa069e995d9b1fadc05743dbf16d1c9aaaa3))
+
+
+### Bug Fixes
+
+* **api:** close menu IDOR on read paths too (title, ingredients, nutrition) ([ca34426](https://github.com/edcrove/recetario/commit/ca34426f68cc1b4e3f9173915d05636781c4bde6))
+* **api:** scope cook-session title snapshot to visible recipes ([fa90c9c](https://github.com/edcrove/recetario/commit/fa90c9c69c96b368c80694b72423b8d0bfffec14))
+* **api:** scope cook-session title snapshot to visible recipes (cross-tenant leak) ([7750072](https://github.com/edcrove/recetario/commit/775007274f18fe8274c652ab3e1d59518b93af45))
+* **api:** scope menu title snapshot to visible recipes (cross-tenant leak) ([b521dd1](https://github.com/edcrove/recetario/commit/b521dd1a561752d5de5638b8b18bf1b0d41b03f1))
+* **api:** scope menu upsert title snapshot to visible recipes ([b3fa9bd](https://github.com/edcrove/recetario/commit/b3fa9bd16e2342c17b0e4a2c876b4827c27c2eee))
+* **api:** scope updateServings title lookup to visible recipes too ([8904a4d](https://github.com/edcrove/recetario/commit/8904a4d217e62bf7df8e27e521e8dafa77a53b68))
+* **app:** allow clearing recipe time/difficulty on edit (explicit null) ([0f80ff3](https://github.com/edcrove/recetario/commit/0f80ff33265d9fb73aa6af11c4a4d894dc7099d9))
+
 ## [0.2.0](https://github.com/edcrove/recetario/compare/api-v0.1.0...api-v0.2.0) (2026-07-12)
 
 

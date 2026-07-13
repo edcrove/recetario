@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/edcrove/recetario/compare/mcp-v0.2.0...mcp-v0.3.0) (2026-07-13)
+
+
+### Features
+
+* auto-detected step timers (durationSeconds + tap-to-start) ([47662b9](https://github.com/edcrove/recetario/commit/47662b917af5090873a52e1d7c138f72f1a18611))
+* auto-detected step timers (durationSeconds + tap-to-start) ([1a43aa0](https://github.com/edcrove/recetario/commit/1a43aa069e995d9b1fadc05743dbf16d1c9aaaa3))
+
 ## [0.2.0](https://github.com/edcrove/recetario/compare/mcp-v0.1.0...mcp-v0.2.0) (2026-07-12)
 
 
