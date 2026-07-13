@@ -165,50 +165,85 @@ test.describe('Menu: pick screen filters', () => {
 })
 
 test.describe('Menu: edit servings', () => {
-  async function ensureRecipeInMenu(page: import('@playwright/test').Page) {
-    // Add a recipe if there's no chip yet — uses testID for reliable pick
+  // Returns {day, slot, recipeId} when it had to add a recipe (so the caller
+  // can clean it up), or null when a chip already existed (nothing to clean
+  // up — this test didn't create it). Same leak class as "Menu: add recipe to
+  // slot" above: this helper used to add a real seeded recipe to today's first
+  // empty slot with no cleanup at all.
+  async function ensureRecipeInMenu(
+    page: import('@playwright/test').Page,
+  ): Promise<{ day: string; slot: string; recipeId: string } | null> {
     const chip = page.locator('[data-testid^="menu-entry-"]').first()
-    if ((await chip.count()) === 0) {
-      await page.locator('[data-testid^="menu-add-"]').first().click()
-      await page.waitForLoadState('networkidle', { timeout: 15000 })
-      const firstPickItem = page.locator('[data-testid^="pick-recipe-"]').first()
-      await expect(firstPickItem).toBeVisible({ timeout: 15000 })
-      await firstPickItem.click()
-      await page.waitForLoadState('networkidle', { timeout: 15000 })
-    }
+    if ((await chip.count()) > 0) return null
+
+    const addBtn = page.locator('[data-testid^="menu-add-"]').first()
+    const addTestId = (await addBtn.getAttribute('data-testid'))!
+    const rest = addTestId.replace(/^menu-add-/, '') // "{day}-{slot}", day = YYYY-MM-DD
+    const lastDash = rest.lastIndexOf('-')
+    const day = rest.slice(0, lastDash)
+    const slot = rest.slice(lastDash + 1)
+
+    await addBtn.click()
+    await page.waitForLoadState('networkidle', { timeout: 15000 })
+    const firstPickItem = page.locator('[data-testid^="pick-recipe-"]').first()
+    await expect(firstPickItem).toBeVisible({ timeout: 15000 })
+    const pickTestId = (await firstPickItem.getAttribute('data-testid'))!
+    const recipeId = pickTestId.replace('pick-recipe-', '')
+    await firstPickItem.click()
+    await page.waitForLoadState('networkidle', { timeout: 15000 })
+    return { day, slot, recipeId }
+  }
+
+  async function cleanupAddedEntry(
+    page: import('@playwright/test').Page,
+    added: { day: string; slot: string; recipeId: string } | null,
+  ) {
+    if (!added) return
+    const headers = await authHeaders(page)
+    await page.request.delete(`${API_URL}/v1/menu/${added.day}/${added.slot}/${added.recipeId}`, {
+      headers,
+    })
   }
 
   test('tapping recipe chip opens edit modal', async ({ page }) => {
     await page.getByText('Menú Semanal').click()
     await expect(page.locator('[data-testid^="menu-add-"]').first()).toBeVisible({ timeout: 8000 })
-    await ensureRecipeInMenu(page)
+    const added = await ensureRecipeInMenu(page)
 
-    // Click the chip using testID — triggers React's onPress via native pointer event
-    const chip = page.locator('[data-testid^="menu-entry-"]').first()
-    await expect(chip).toBeVisible({ timeout: 8000 })
-    await chip.click()
+    try {
+      // Click the chip using testID — triggers React's onPress via native pointer event
+      const chip = page.locator('[data-testid^="menu-entry-"]').first()
+      await expect(chip).toBeVisible({ timeout: 8000 })
+      await chip.click()
 
-    // Modal opens — identified by the save/delete testIDs
-    await expect(page.getByTestId('menu-modal-save')).toBeVisible({ timeout: 8000 })
-    await expect(page.getByTestId('menu-modal-delete')).toBeVisible()
+      // Modal opens — identified by the save/delete testIDs
+      await expect(page.getByTestId('menu-modal-save')).toBeVisible({ timeout: 8000 })
+      await expect(page.getByTestId('menu-modal-delete')).toBeVisible()
+    } finally {
+      await cleanupAddedEntry(page, added)
+    }
   })
 
   test('can update servings in modal', async ({ page }) => {
     await page.getByText('Menú Semanal').click()
     await expect(page.locator('[data-testid^="menu-add-"]').first()).toBeVisible({ timeout: 8000 })
-    await ensureRecipeInMenu(page)
+    const added = await ensureRecipeInMenu(page)
 
-    const chip = page.locator('[data-testid^="menu-entry-"]').first()
-    await expect(chip).toBeVisible({ timeout: 8000 })
-    await chip.click()
-    await expect(page.getByTestId('menu-modal-save')).toBeVisible({ timeout: 8000 })
+    try {
+      const chip = page.locator('[data-testid^="menu-entry-"]').first()
+      await expect(chip).toBeVisible({ timeout: 8000 })
+      await chip.click()
+      await expect(page.getByTestId('menu-modal-save')).toBeVisible({ timeout: 8000 })
 
-    // Increment servings and save
-    await page.getByText('+').last().click()
-    await page.waitForTimeout(300)
-    await page.getByTestId('menu-modal-save').click()
-    // Modal closes after save
-    await expect(page.getByTestId('menu-modal-save')).not.toBeVisible({ timeout: 10000 })
+      // Increment servings and save
+      await page.getByText('+').last().click()
+      await page.waitForTimeout(300)
+      await page.getByTestId('menu-modal-save').click()
+      // Modal closes after save
+      await expect(page.getByTestId('menu-modal-save')).not.toBeVisible({ timeout: 10000 })
+    } finally {
+      await cleanupAddedEntry(page, added)
+    }
   })
 })
 
