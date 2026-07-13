@@ -254,20 +254,56 @@ test.describe('Recipe detail: deep flows', () => {
 })
 
 test.describe('Menu planner: deep flows', () => {
-  async function ensureRecipeInMenu(page: import('@playwright/test').Page) {
+  // Returns the day/slot/recipeId it had to create, or null when a chip
+  // already existed (nothing this call is responsible for cleaning up).
+  // The two 500-mocked tests below intercept DELETE/PATCH to '/v1/menu/**' so
+  // the UI-driven removal never reaches the real backend — without an
+  // explicit cleanup via a direct (unmocked) page.request call, the entry
+  // they create would leak onto today's first-empty slot forever, the same
+  // leak class fixed in menu.spec.ts (2026-07-13 investigation).
+  async function ensureRecipeInMenu(
+    page: import('@playwright/test').Page,
+  ): Promise<{ day: string; slot: string; recipeId: string } | null> {
     await page.getByText('Menú Semanal').click()
     await expect(page.locator('[data-testid^="menu-add-"]').first()).toBeVisible({ timeout: 8000 })
     const chip = page.locator('[data-testid^="menu-entry-"]').first()
+    let created: { day: string; slot: string; recipeId: string } | null = null
     if ((await chip.count()) === 0) {
-      await page.locator('[data-testid^="menu-add-"]').first().click()
+      const addBtn = page.locator('[data-testid^="menu-add-"]').first()
+      const addTestId = (await addBtn.getAttribute('data-testid'))!
+      const rest = addTestId.replace(/^menu-add-/, '') // "{day}-{slot}", day = YYYY-MM-DD
+      const lastDash = rest.lastIndexOf('-')
+      const day = rest.slice(0, lastDash)
+      const slot = rest.slice(lastDash + 1)
+
+      await addBtn.click()
       const firstPickItem = page.locator('[data-testid^="pick-recipe-"]').first()
       await expect(firstPickItem).toBeVisible({ timeout: 15000 })
+      const pickTestId = (await firstPickItem.getAttribute('data-testid'))!
+      const recipeId = pickTestId.replace('pick-recipe-', '')
       await firstPickItem.click()
       await page.waitForLoadState('networkidle', { timeout: 15000 })
+      created = { day, slot, recipeId }
     }
     await expect(page.locator('[data-testid^="menu-entry-"]').first()).toBeVisible({
       timeout: 8000,
     })
+    return created
+  }
+
+  // Deletes via a direct API call (Playwright's page.request context is a
+  // separate transport from page.route() interception, so this reaches the
+  // real backend even while the test mocks DELETE/PATCH for the UI).
+  async function cleanupCreatedEntry(
+    page: import('@playwright/test').Page,
+    created: { day: string; slot: string; recipeId: string } | null,
+  ) {
+    if (!created) return
+    const headers = await authHeaders(page)
+    await page.request.delete(
+      `${API_URL}/v1/menu/${created.day}/${created.slot}/${created.recipeId}`,
+      { headers },
+    )
   }
 
   test('the ✕ chip removes an entry directly from the grid', async ({ page }) => {
@@ -307,37 +343,48 @@ test.describe('Menu planner: deep flows', () => {
   })
 
   test('a 500 removing an entry surfaces the error notification', async ({ page }) => {
-    await ensureRecipeInMenu(page)
-    await page.route('**/v1/menu/**', (route) =>
-      route.request().method() === 'DELETE'
-        ? route.fulfill({ status: 500, body: JSON.stringify({ error: 'boom' }) })
-        : route.fallback(),
-    )
-    let dialogMessage = ''
-    page.on('dialog', (dialog) => {
-      dialogMessage = dialog.message()
-      void dialog.accept()
-    })
-    await page.locator('[data-testid^="menu-remove-"]').first().click()
-    await expect.poll(() => dialogMessage, { timeout: 8000 }).toContain('Error')
+    const created = await ensureRecipeInMenu(page)
+    try {
+      await page.route('**/v1/menu/**', (route) =>
+        route.request().method() === 'DELETE'
+          ? route.fulfill({ status: 500, body: JSON.stringify({ error: 'boom' }) })
+          : route.fallback(),
+      )
+      let dialogMessage = ''
+      page.on('dialog', (dialog) => {
+        dialogMessage = dialog.message()
+        void dialog.accept()
+      })
+      await page.locator('[data-testid^="menu-remove-"]').first().click()
+      await expect.poll(() => dialogMessage, { timeout: 8000 }).toContain('Error')
+    } finally {
+      // The mocked DELETE above never reaches the backend, so the entry
+      // ensureRecipeInMenu created (if any) is still there — remove it via an
+      // unmocked request.
+      await cleanupCreatedEntry(page, created)
+    }
   })
 
   test('a 500 updating servings surfaces the error notification', async ({ page }) => {
-    await ensureRecipeInMenu(page)
-    await page.route('**/v1/menu/**', (route) =>
-      route.request().method() === 'PATCH'
-        ? route.fulfill({ status: 500, body: JSON.stringify({ error: 'boom' }) })
-        : route.fallback(),
-    )
-    let dialogMessage = ''
-    page.on('dialog', (dialog) => {
-      dialogMessage = dialog.message()
-      void dialog.accept()
-    })
-    await page.locator('[data-testid^="menu-entry-"]').first().click()
-    await expect(page.getByTestId('menu-modal-save')).toBeVisible({ timeout: 8000 })
-    await page.getByTestId('menu-modal-save').click()
-    await expect.poll(() => dialogMessage, { timeout: 8000 }).toContain('Error')
+    const created = await ensureRecipeInMenu(page)
+    try {
+      await page.route('**/v1/menu/**', (route) =>
+        route.request().method() === 'PATCH'
+          ? route.fulfill({ status: 500, body: JSON.stringify({ error: 'boom' }) })
+          : route.fallback(),
+      )
+      let dialogMessage = ''
+      page.on('dialog', (dialog) => {
+        dialogMessage = dialog.message()
+        void dialog.accept()
+      })
+      await page.locator('[data-testid^="menu-entry-"]').first().click()
+      await expect(page.getByTestId('menu-modal-save')).toBeVisible({ timeout: 8000 })
+      await page.getByTestId('menu-modal-save').click()
+      await expect.poll(() => dialogMessage, { timeout: 8000 }).toContain('Error')
+    } finally {
+      await cleanupCreatedEntry(page, created)
+    }
   })
 })
 
