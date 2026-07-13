@@ -5,6 +5,13 @@ import { test, expect } from './fixtures'
  * All tests run authenticated via the auth fixture.
  */
 
+const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
+
+async function authHeaders(page: import('@playwright/test').Page) {
+  const token = await page.evaluate(() => localStorage.getItem('auth_token'))
+  return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+}
+
 test.describe('Menu: navigation', () => {
   test('Menú Semanal button opens menu screen', async ({ page }) => {
     await page.getByText('Menú Semanal').click()
@@ -49,48 +56,90 @@ test.describe('Menu: add recipe to slot', () => {
     await expect(page.getByText('Porciones:')).toBeVisible()
   })
 
+  // Reads the day/slot off the "+ Agregar" testID before clicking it, and the
+  // recipeId off the resulting "menu-entry-*" chip afterward, so the entry
+  // these tests create can be deleted in cleanup — this account's E2E
+  // database persists across runs (only reset before/after the FULL suite),
+  // and a leftover entry on whatever day happens to be "today" pollutes any
+  // later test that expects a clean day (e.g. nutrition.spec.ts's exact-kcal
+  // assertion). See the 2026-07-13 investigation: these two tests used to
+  // leave a real seeded recipe on the current day/slot forever.
+  async function clickFirstAddSlot(page: import('@playwright/test').Page) {
+    const addBtn = page.locator('[data-testid^="menu-add-"]').first()
+    await expect(addBtn).toBeVisible({ timeout: 8000 })
+    const testId = (await addBtn.getAttribute('data-testid'))!
+    const rest = testId.replace(/^menu-add-/, '') // "{day}-{slot}", day = YYYY-MM-DD
+    const lastDash = rest.lastIndexOf('-')
+    const day = rest.slice(0, lastDash)
+    const slot = rest.slice(lastDash + 1)
+    await addBtn.click()
+    return { day, slot }
+  }
+
+  async function deleteEntriesInSlot(
+    page: import('@playwright/test').Page,
+    day: string,
+    slot: string,
+  ) {
+    const headers = await authHeaders(page)
+    const entries = page.locator(`[data-testid^="menu-entry-${day}-${slot}-"]`)
+    const count = await entries.count()
+    for (let i = 0; i < count; i++) {
+      const testId = await entries.nth(i).getAttribute('data-testid')
+      const recipeId = testId?.replace(`menu-entry-${day}-${slot}-`, '')
+      if (recipeId) {
+        await page.request.delete(`${API_URL}/v1/menu/${day}/${slot}/${recipeId}`, { headers })
+      }
+    }
+  }
+
   test('can add a recipe to a slot', async ({ page }) => {
     await page.getByText('Menú Semanal').click()
-    await expect(page.getByText('+ Agregar').first()).toBeVisible({ timeout: 8000 })
-    await page.getByText('+ Agregar').first().click()
+    const { day, slot } = await clickFirstAddSlot(page)
     await page.waitForLoadState('networkidle', { timeout: 10000 })
     await expect(page.getByPlaceholder('Buscar receta...')).toBeVisible({ timeout: 10000 })
 
-    // RN Web may hide items — use evaluate to find + click
-    const recipeName = await page.evaluate((pattern) => {
-      const allText = Array.from(document.querySelectorAll('[dir="auto"]')).find((el) =>
-        new RegExp(pattern).test(el.textContent ?? ''),
-      )
-      if (allText) {
-        allText.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
-        return allText.textContent
-      }
-      return null
-    }, 'Milanesa de pollo|Empanadas de carne|Guiso de lentejas|Revuelto gramajo|Alfajores caseros')
+    try {
+      // RN Web may hide items — use evaluate to find + click
+      await page.evaluate((pattern) => {
+        const allText = Array.from(document.querySelectorAll('[dir="auto"]')).find((el) =>
+          new RegExp(pattern).test(el.textContent ?? ''),
+        )
+        if (allText) {
+          allText.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+        }
+      }, 'Milanesa de pollo|Empanadas de carne|Guiso de lentejas|Revuelto gramajo|Alfajores caseros')
 
-    await page.waitForLoadState('networkidle', { timeout: 10000 })
-    // Verify we navigated back (URL changed from /menu/pick)
-    await expect(page).not.toHaveURL(/\/menu\/pick/, { timeout: 8000 })
+      await page.waitForLoadState('networkidle', { timeout: 10000 })
+      // Verify we navigated back (URL changed from /menu/pick)
+      await expect(page).not.toHaveURL(/\/menu\/pick/, { timeout: 8000 })
+    } finally {
+      await deleteEntriesInSlot(page, day, slot)
+    }
   })
 
   test('slot shows multiple recipes after adding second', async ({ page }) => {
     await page.getByText('Menú Semanal').click()
-    await expect(page.getByText('+ Agregar').first()).toBeVisible({ timeout: 8000 })
-    await page.getByText('+ Agregar').first().click()
+    const { day, slot } = await clickFirstAddSlot(page)
     await page.waitForLoadState('networkidle', { timeout: 10000 })
     await expect(page.getByPlaceholder('Buscar receta...')).toBeVisible({ timeout: 10000 })
 
-    await page.evaluate((pattern) => {
-      const allText = Array.from(document.querySelectorAll('[dir="auto"]')).find((el) =>
-        new RegExp(pattern).test(el.textContent ?? ''),
-      )
-      if (allText)
-        allText.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
-    }, 'Milanesa de pollo|Empanadas de carne|Guiso de lentejas|Revuelto gramajo|Alfajores caseros')
+    try {
+      await page.evaluate((pattern) => {
+        const allText = Array.from(document.querySelectorAll('[dir="auto"]')).find((el) =>
+          new RegExp(pattern).test(el.textContent ?? ''),
+        )
+        if (allText) {
+          allText.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+        }
+      }, 'Milanesa de pollo|Empanadas de carne|Guiso de lentejas|Revuelto gramajo|Alfajores caseros')
 
-    await page.waitForLoadState('networkidle', { timeout: 10000 })
-    await expect(page).not.toHaveURL(/\/menu\/pick/, { timeout: 8000 })
-    await expect(page.getByText('+ Agregar').first()).toBeAttached()
+      await page.waitForLoadState('networkidle', { timeout: 10000 })
+      await expect(page).not.toHaveURL(/\/menu\/pick/, { timeout: 8000 })
+      await expect(page.getByText('+ Agregar').first()).toBeAttached()
+    } finally {
+      await deleteEntriesInSlot(page, day, slot)
+    }
   })
 })
 
