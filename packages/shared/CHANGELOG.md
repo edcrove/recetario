@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.3.0](https://github.com/edcrove/recetario/compare/shared-v0.2.0...shared-v0.3.0) (2026-07-13)
+
+
+### Features
+
+* **app:** tiempos/dificultad en form, cards y filtros ([f2e4123](https://github.com/edcrove/recetario/commit/f2e4123d04b20bf09febf9024978c95e4aea021f))
+* auto-detected step timers (durationSeconds + tap-to-start) ([47662b9](https://github.com/edcrove/recetario/commit/47662b917af5090873a52e1d7c138f72f1a18611))
+* auto-detected step timers (durationSeconds + tap-to-start) ([1a43aa0](https://github.com/edcrove/recetario/commit/1a43aa069e995d9b1fadc05743dbf16d1c9aaaa3))
+
+
+### Bug Fixes
+
+* **app:** allow clearing recipe time/difficulty on edit (explicit null) ([0f80ff3](https://github.com/edcrove/recetario/commit/0f80ff33265d9fb73aa6af11c4a4d894dc7099d9))
+* **shared:** bound digit runs in step-duration regex (ReDoS) ([533b857](https://github.com/edcrove/recetario/commit/533b8573f30c1470e9cc3a8dcb6b2705f563feca))
+
 ## [0.2.0](https://github.com/edcrove/recetario/compare/shared-v0.1.0...shared-v0.2.0) (2026-07-12)
 
 
