@@ -22,11 +22,11 @@
   "dependencies": {
     "@hono/node-server": "^1.13.0",
     "@hono/swagger-ui": "^0.6.1",
-    "@hono/zod-openapi": "^1.4.0",
+    "@hono/zod-openapi": "^1.5.1",
     "@recetario/shared": "workspace:*",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.2",
-    "hono": "^4.12.30",
+    "hono": "^4.12.31",
     "jose": "^6.2.3",
     "postgres": "^3.4.0",
     "zod": "^4.4.3"
