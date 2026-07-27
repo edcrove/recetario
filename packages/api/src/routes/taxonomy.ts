@@ -4,6 +4,7 @@ import { RecipeSchema } from '@recetario/shared'
 import { getDb, schema } from '../db/index.js'
 import { authMiddleware } from '../middleware/auth.js'
 import { recipeRepository } from '../db/repository.js'
+import { getVisibleOwnerIds } from '../db/household-visibility.js'
 
 export const taxonomyRoute = new OpenAPIHono()
 taxonomyRoute.use('*', authMiddleware)
@@ -207,6 +208,11 @@ taxonomyRoute.openapi(
       .where(and(eq(schema.collections.id, id), eq(schema.collections.ownerId, ownerId)))
       .limit(1)
     if (!col) return c.json({ error: 'Collection not found' } as never, 404)
+    // The recipe must be readable by the caller (own or household-shared);
+    // without this any recipeId could be linked into a collection (IDOR).
+    const visibleOwners = await getVisibleOwnerIds(ownerId)
+    const recipe = await recipeRepository.findById(recipeId, visibleOwners)
+    if (!recipe) return c.json({ error: 'Recipe not found' } as never, 404)
     await db
       .insert(schema.recipeCollections)
       .values({ collectionId: id, recipeId })
@@ -247,8 +253,12 @@ taxonomyRoute.openapi(collectionRecipesRoute as any, async (c: any) => {
     .from(schema.recipeCollections)
     .where(eq(schema.recipeCollections.collectionId, id))
 
+  // Recipes are household-shared, so a collection listing must resolve each
+  // linked recipe against the caller's full visible-owner set — otherwise a
+  // housemate's recipe added to the collection silently vanishes from the list.
+  const visibleOwners = await getVisibleOwnerIds(ownerId)
   const recipes = await Promise.all(
-    links.map((link) => recipeRepository.findById(link.recipeId, ownerId)),
+    links.map((link) => recipeRepository.findById(link.recipeId, visibleOwners)),
   )
   return c.json(recipes.filter((r): r is NonNullable<typeof r> => r !== null))
 })
