@@ -1,6 +1,6 @@
 {
-  "packages/shared": "0.3.0",
-  "packages/api": "0.3.0",
-  "packages/mcp": "0.3.0",
+  "packages/shared": "0.3.1",
+  "packages/api": "0.3.1",
+  "packages/mcp": "0.3.1",
   "apps/app": "0.3.0"
 }
