@@ -143,6 +143,41 @@ test.describe('Stats: live top-recipe row and weekly chart', () => {
   })
 })
 
+test.describe('More reachable branches', () => {
+  test('FoodTypePicker deselects a chip on a second tap', async ({ page }) => {
+    await page.getByText('+ Nueva Receta').click()
+    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible({ timeout: 10000 })
+    const chip = page.locator('[data-testid^="food-type-chip-"]').first()
+    await expect(chip).toBeVisible({ timeout: 8000 })
+    await chip.click() // select
+    await chip.click() // deselect → the includes()→filter() branch
+    // Form stays healthy; a third tap re-selects without error.
+    await chip.click()
+    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible()
+  })
+
+  test('library search with no matches shows the empty-with-search message', async ({ page }) => {
+    await page.goto('/library')
+    await expect(page.getByTestId('library-search')).toBeVisible({ timeout: 10000 })
+    await page.getByTestId('library-search').fill('zzzz-no-match-en-biblioteca-xq')
+    await expect(page.getByText('Sin resultados en la biblioteca')).toBeVisible({ timeout: 10000 })
+  })
+
+  test('NutritionBar renders the fiber macro when the recipe carries fiber', async ({ page }) => {
+    const recipe = await createRecipeViaApi(page, {
+      nutrition: { calories: 400, protein_g: 20, carbs_g: 40, fat_g: 10, fiber_g: 6 },
+    })
+    try {
+      await page.goto(`/recipe/${recipe.id}`)
+      await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 10000 })
+      await expect(page.getByText('Fibra').first()).toBeVisible({ timeout: 8000 })
+      await expect(page.getByText('6g').first()).toBeVisible()
+    } finally {
+      await deleteRecipeViaApi(page, recipe.id)
+    }
+  })
+})
+
 test.describe('Household empty state', () => {
   test('a user with no household sees the create-your-first-household card', async ({ page }) => {
     // Force the "no household yet" path (the AC's gap that otherwise needs a
