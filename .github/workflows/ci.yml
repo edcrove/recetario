@@ -250,6 +250,21 @@ jobs:
       - name: Build all packages
         run: pnpm turbo run build
 
+  docker-build:
+    name: Docker Build
+    needs: [lint, typecheck]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build the API image
+        run: docker build -f packages/api/Dockerfile -t recetario-api:ci .
+      # NOTE: the app web image (apps/app/Dockerfile) is intentionally not gated
+      # yet — its `expo export` step fails in the Docker builder for a separate,
+      # pre-existing reason (the expo CLI does not resolve under the partial
+      # workspace install). Tracked as its own backlog item. Add it here once
+      # fixed. Distribution ships via a static host running `expo export`
+      # directly (ADR-012), not this image, so it is not on the critical path.
+
   e2e:
     name: E2E Tests (Playwright)
     needs: [build]
@@ -394,12 +409,12 @@ jobs:
   ci:
     name: CI Gate
     if: always()
-    needs: [lint, typecheck, test, build, coverage, e2e]
+    needs: [lint, typecheck, test, build, coverage, e2e, docker-build]
     runs-on: ubuntu-latest
     steps:
       - name: Check all jobs passed
         run: |
-          results=("${{ needs.lint.result }}" "${{ needs.typecheck.result }}" "${{ needs.test.result }}" "${{ needs.build.result }}" "${{ needs.coverage.result }}" "${{ needs.e2e.result }}")
+          results=("${{ needs.lint.result }}" "${{ needs.typecheck.result }}" "${{ needs.test.result }}" "${{ needs.build.result }}" "${{ needs.coverage.result }}" "${{ needs.e2e.result }}" "${{ needs.docker-build.result }}")
           for r in "${results[@]}"; do
             if [ "$r" != "success" ]; then
               echo "Job failed with result: $r"
