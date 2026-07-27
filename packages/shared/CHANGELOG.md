@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.1](https://github.com/edcrove/recetario/compare/shared-v0.3.0...shared-v0.3.1) (2026-07-27)
+
+
+### Bug Fixes
+
+* **build:** exclude tests from production build so the API image builds + CI gate ([3b32889](https://github.com/edcrove/recetario/commit/3b3288986ebe49ca7f7f64ee04fd43561ca2360f))
+* **build:** exclude tests from the production tsc build so images build ([e7c7a31](https://github.com/edcrove/recetario/commit/e7c7a3157686e4069b24c79493885a81b493df74))
+
 ## [0.3.0](https://github.com/edcrove/recetario/compare/shared-v0.2.0...shared-v0.3.0) (2026-07-13)
 
 
