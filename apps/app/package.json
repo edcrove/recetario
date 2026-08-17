@@ -28,7 +28,7 @@
     "expo-speech": "~56.0.3",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "react-native": "^0.86.2",
+    "react-native": "^0.87.0",
     "react-native-web": "^0.21.2"
   },
   "devDependencies": {
