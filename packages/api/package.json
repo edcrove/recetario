@@ -22,14 +22,14 @@
   "dependencies": {
     "@hono/node-server": "^1.19.17",
     "@hono/swagger-ui": "^0.6.1",
-    "@hono/zod-openapi": "^1.5.1",
+    "@hono/zod-openapi": "^1.6.3",
     "@recetario/shared": "workspace:*",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.13.5",
-    "jose": "^6.2.8",
+    "jose": "^6.2.12",
     "postgres": "^3.4.0",
-    "zod": "^4.4.3"
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@testcontainers/postgresql": "^12.1.0",
