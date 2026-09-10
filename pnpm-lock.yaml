@@ -158,13 +158,13 @@ importers:
     dependencies:
       '@hono/node-server':
         specifier: ^1.19.17
-        version: 1.19.17(hono@4.13.0)
+        version: 1.19.17(hono@4.13.7)
       '@hono/swagger-ui':
         specifier: ^0.6.1
-        version: 0.6.1(hono@4.13.0)
+        version: 0.6.1(hono@4.13.7)
       '@hono/zod-openapi':
         specifier: ^1.5.1
-        version: 1.5.1(hono@4.13.0)(zod@4.4.3)
+        version: 1.5.1(hono@4.13.7)(zod@4.4.3)
       '@recetario/shared':
         specifier: workspace:*
         version: link:../shared
@@ -175,8 +175,8 @@ importers:
         specifier: ^0.45.2
         version: 0.45.2(postgres@3.4.9)
       hono:
-        specifier: ^4.12.34
-        version: 4.13.0
+        specifier: ^4.13.5
+        version: 4.13.7
       jose:
         specifier: ^6.2.8
         version: 6.2.8
@@ -2669,11 +2669,14 @@ packages:
     peerDependencies:
       '@types/react': '*'
 
-  '@types/react-test-renderer@19.1.0':
-    resolution: {integrity: sha512-XD0WZrHqjNrxA/MaR9O22w/RNidWR9YZmBdRGI7wcnWGrv/3dA8wKCJ8m63Sn+tLJhcjmuhOi629N66W6kgWzQ==}
+  '@types/react-test-renderer@19.3.0':
+    resolution: {integrity: sha512-TX4p2D4Z2oigM3SXU7+QyLSUnSR0vR1S1Pfxm/qFL9nHQ3jclgi6ioGoWQmlIr1DeKRVmPJrmNlhgM0JlWlLUg==}
 
   '@types/react@19.2.18':
     resolution: {integrity: sha512-AnzbBERsrLKtk2XSfTbYRLjQPdy116Sty4q+T+Bp3IC4l6jNBvreVPAHmpq9qhXQM7CXZPjLVmGMw9sy+hxQ3w==}
+
+  '@types/react@19.3.0':
+    resolution: {integrity: sha512-N0rFCuH9YoxG9/m61l9MfpJKfmLOVU0em7ipIz6TRgSSkvReLB9vL85GB+yr8Bs5leqpvg96JSwF4ZS1s4viQg==}
 
   '@types/ssh2-streams@0.1.13':
     resolution: {integrity: sha512-faHyY3brO9oLEA0QlcO8N2wT7R0+1sHWZvQ+y3rMLwdY1ZyS1z0W3t65j9PqT4HmQ6ALzNe7RZlNuCNE0wBSWA==}
@@ -4444,8 +4447,8 @@ packages:
   hermes-parser@0.36.1:
     resolution: {integrity: sha512-GApNk4zLHi2UWoWZZkx7LNCOSzLSc5lB55pZ/PhK7ycFeg7u5LcF88p/WbpIi1XUDtE0MpHE3uRR3u3KB7TjSQ==}
 
-  hono@4.13.0:
-    resolution: {integrity: sha512-jhunvfHWxd7J5EFfSgH4xsYJzSe/lfqbUCxiyyeaQasUsXeEHXtzVid+7EOGByc5JnFa23SSFL3Y2RV/z1T+eQ==}
+  hono@4.13.7:
+    resolution: {integrity: sha512-c8/gF9ac8Y78/agExVocyLevgR+JlpNB444Py0FSX8pJoPdYUfUzRcXtYEYGwt6l19qIlVZPN5Mfsw9jFShmQQ==}
     engines: {node: '>=16.9.0'}
 
   hosted-git-info@7.0.2:
@@ -5782,6 +5785,9 @@ packages:
 
   react-is@19.2.8:
     resolution: {integrity: sha512-s5un28nYxKJw5gvUHyW5PCC28CvBqLu9r3cWgzHT4Vo/5fqqkFcdRYsGcKf50WMPpjjFZS5d76fn3YCo2njKwQ==}
+
+  react-is@19.3.0:
+    resolution: {integrity: sha512-UpMYezM4v5/18F28aC66AEsjXIgE02kyEMH6yLdgLXu/UTfa1Ntwck/nNLrbqJsEXW7gPb0coNO9FQse9WTovA==}
 
   react-native-drawer-layout@4.2.10:
     resolution: {integrity: sha512-O6TQdZ5LSm3dqnuR4rX9KPtE+9dVg7jsezEYz1l01rkQTe4fQvYZIoPu2sZFl5X2N70uhRdjnPULySVR3sBUwA==}
@@ -8547,25 +8553,25 @@ snapshots:
       protobufjs: 7.6.5
       yargs: 17.7.3
 
-  '@hono/node-server@1.19.17(hono@4.13.0)':
+  '@hono/node-server@1.19.17(hono@4.13.7)':
     dependencies:
-      hono: 4.13.0
+      hono: 4.13.7
 
-  '@hono/swagger-ui@0.6.1(hono@4.13.0)':
+  '@hono/swagger-ui@0.6.1(hono@4.13.7)':
     dependencies:
-      hono: 4.13.0
+      hono: 4.13.7
 
-  '@hono/zod-openapi@1.5.1(hono@4.13.0)(zod@4.4.3)':
+  '@hono/zod-openapi@1.5.1(hono@4.13.7)(zod@4.4.3)':
     dependencies:
       '@asteasolutions/zod-to-openapi': 8.5.0(zod@4.4.3)
-      '@hono/zod-validator': 0.9.0(hono@4.13.0)(zod@4.4.3)
-      hono: 4.13.0
+      '@hono/zod-validator': 0.9.0(hono@4.13.7)(zod@4.4.3)
+      hono: 4.13.7
       openapi3-ts: 4.6.0
       zod: 4.4.3
 
-  '@hono/zod-validator@0.9.0(hono@4.13.0)(zod@4.4.3)':
+  '@hono/zod-validator@0.9.0(hono@4.13.7)(zod@4.4.3)':
     dependencies:
-      hono: 4.13.0
+      hono: 4.13.7
       zod: 4.4.3
 
   '@humanfs/core@0.19.2':
@@ -8815,7 +8821,7 @@ snapshots:
 
   '@modelcontextprotocol/sdk@1.30.0(zod@4.4.3)':
     dependencies:
-      '@hono/node-server': 1.19.17(hono@4.13.0)
+      '@hono/node-server': 1.19.17(hono@4.13.7)
       ajv: 8.20.0
       ajv-formats: 3.0.1(ajv@8.20.0)
       content-type: 1.0.5
@@ -8825,7 +8831,7 @@ snapshots:
       eventsource-parser: 3.1.0
       express: 5.2.1
       express-rate-limit: 8.6.1(express@5.2.1)
-      hono: 4.13.0
+      hono: 4.13.7
       jose: 6.2.8
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.1
@@ -9575,11 +9581,15 @@ snapshots:
     dependencies:
       '@types/react': 19.2.18
 
-  '@types/react-test-renderer@19.1.0':
+  '@types/react-test-renderer@19.3.0':
     dependencies:
-      '@types/react': 19.2.18
+      '@types/react': 19.3.0
 
   '@types/react@19.2.18':
+    dependencies:
+      csstype: 3.2.3
+
+  '@types/react@19.3.0':
     dependencies:
       csstype: 3.2.3
 
@@ -11644,7 +11654,7 @@ snapshots:
     dependencies:
       hermes-estree: 0.36.1
 
-  hono@4.13.0: {}
+  hono@4.13.7: {}
 
   hosted-git-info@7.0.2:
     dependencies:
@@ -13250,7 +13260,7 @@ snapshots:
       '@jest/schemas': 30.4.1
       ansi-styles: 5.2.0
       react-is-18: react-is@18.3.1
-      react-is-19: react-is@19.2.8
+      react-is-19: react-is@19.3.0
 
   proc-log@4.2.0: {}
 
@@ -13381,6 +13391,8 @@ snapshots:
 
   react-is@19.2.8: {}
 
+  react-is@19.3.0: {}
+
   react-native-drawer-layout@4.2.10(fl4sc7qt3w3f2yxm5knnsqhxve):
     dependencies:
       color: 4.2.3
@@ -13392,7 +13404,7 @@ snapshots:
 
   react-native-gesture-handler@3.0.2(react-native@0.86.2(@babel/core@7.29.7)(@react-native/jest-preset@0.87.1(@babel/core@7.29.7)(react@19.2.8))(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.8))(react@19.2.8):
     dependencies:
-      '@types/react-test-renderer': 19.1.0
+      '@types/react-test-renderer': 19.3.0
       invariant: 2.2.4
       react: 19.2.8
       react-native: 0.86.2(@babel/core@7.29.7)(@react-native/jest-preset@0.87.1(@babel/core@7.29.7)(react@19.2.8))(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.8)
