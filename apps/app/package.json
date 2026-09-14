@@ -33,7 +33,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
-    "@playwright/test": "^1.62.1",
+    "@playwright/test": "^1.63.0",
     "@react-native/jest-preset": "^0.87.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.3",
@@ -47,7 +47,7 @@
     "@vitest/coverage-v8": "^3.2.7",
     "babel-jest": "^29.7.0",
     "babel-plugin-istanbul": "^8.0.0",
-    "babel-preset-expo": "^57.0.10",
+    "babel-preset-expo": "^57.0.11",
     "c8": "^11.0.0",
     "jest": "^29.7.0",
     "jest-expo": "^56.0.5",
