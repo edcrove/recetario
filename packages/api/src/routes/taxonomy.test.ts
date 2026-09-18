@@ -172,6 +172,11 @@ describe('POST /v1/collections', () => {
 describe('POST /v1/collections/:id/recipes', () => {
   it('adds a recipe to a collection', async () => {
     mockSelect.mockReturnValue([{ id: UUID, name: 'Favoritas', ownerId: 'dev' }])
+    // The recipe must be readable by the caller before it can be linked.
+    vi.mocked(recipeRepository.findById).mockResolvedValueOnce({
+      id: UUID2,
+      title: 'Receta',
+    } as never)
     const res = await app.request(`/v1/collections/${UUID}/recipes`, {
       method: 'POST',
       headers: AUTH,
@@ -185,6 +190,17 @@ describe('POST /v1/collections/:id/recipes', () => {
 
   it('returns 404 when collection not found', async () => {
     mockSelect.mockReturnValue([])
+    const res = await app.request(`/v1/collections/${UUID}/recipes`, {
+      method: 'POST',
+      headers: AUTH,
+      body: JSON.stringify({ recipeId: UUID2 }),
+    })
+    expect(res.status).toBe(404)
+  })
+
+  it('returns 404 when the recipe is not readable by the caller (IDOR guard)', async () => {
+    mockSelect.mockReturnValue([{ id: UUID, name: 'Favoritas', ownerId: 'dev' }])
+    vi.mocked(recipeRepository.findById).mockResolvedValueOnce(null as never)
     const res = await app.request(`/v1/collections/${UUID}/recipes`, {
       method: 'POST',
       headers: AUTH,
