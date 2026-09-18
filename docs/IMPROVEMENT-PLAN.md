@@ -58,12 +58,11 @@ supervisión, con CI como oráculo.** Subir de modelo cuando la tarea requiere
 juicio (decisiones de diseño, seguridad, muchos archivos que interactúan, o
 diagnóstico de fallas sin mensaje de error claro).
 
-| Modelo               | ID                 | Precio (in/out por MTok) | Usar para                                                                                                                                                                                         |
-| -------------------- | ------------------ | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Claude Haiku 4.5** | `claude-haiku-4-5` | $1 / $5                  | Tareas mecánicas con spec cerrada y verificación automática: limpiar warnings, actualizar docs con datos dados, sacar deps, editar YAML de CI, renombrar.                                         |
-| **Claude Sonnet 5**  | `claude-sonnet-5`  | $2 / $10                 | Features y fixes con patrón existente en el repo: nuevo endpoint copiando otro, middleware estándar, tests que siguen un template, pantallas nuevas con componentes ya hechos.                    |
-| **Claude Opus 5**    | `claude-opus-5`    | $5 / $25                 | Trabajo multi-archivo con decisiones: cambios de schema + migración + API + MCP + app, infra/deploy, seguridad, migraciones de deps mayores, diagnóstico de CI sin error obvio.                   |
-| **Claude Fable 5.1** | `claude-fable-5-1` | $10 / $50                | Lo más difícil o lo que define el producto: upgrade de Expo SDK con fallas encadenadas, diseño de tools MCP agénticas, spikes de producto, auditorías completas, revisión final antes de release. |
+| Modelo               | ID                 | Precio (in/out por MTok) | Usar para                                                                                                                                                                                                                                                                                        |
+| -------------------- | ------------------ | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Claude Haiku 4.5** | `claude-haiku-4-5` | $1 / $5                  | Tareas mecánicas con spec cerrada y verificación automática: limpiar warnings, actualizar docs con datos dados, sacar deps, editar YAML de CI, renombrar.                                                                                                                                        |
+| **Claude Sonnet 5**  | `claude-sonnet-5`  | $2 / $10                 | Features y fixes con patrón existente en el repo: nuevo endpoint copiando otro, middleware estándar, tests que siguen un template, pantallas nuevas con componentes ya hechos.                                                                                                                   |
+| **Claude Opus 5**    | `claude-opus-5`    | $5 / $25                 | Trabajo multi-archivo con decisiones: cambios de schema + migración + API + MCP + app, infra/deploy, seguridad, migraciones de deps mayores, diagnóstico de CI sin error obvio, upgrades de SDK con fallas encadenadas, diseño de tools MCP agénticas, spikes de producto, auditorías completas. |
 
 Notas prácticas:
 
@@ -73,8 +72,11 @@ Notas prácticas:
 - Una tarea marcada Haiku que falla dos veces en CI se escala a Sonnet, no se
   reintenta una tercera vez.
 - **Revisión de PR**: independientemente del modelo que implementó, la revisión
-  (`/code-review` o `/security-review`) conviene hacerla con Opus 5 como mínimo, y
-  con Fable 5.1 en las tareas marcadas de seguridad.
+  (`/code-review` o `/security-review`) conviene hacerla con Opus 5, con
+  `/effort xhigh` en las tareas marcadas de seguridad.
+- **Opus 5 es el techo.** Para las tareas más difíciles (F3.4, F3.5, F4.2) se
+  compensa con `xhigh`, una spec más cerrada en el prompt, y partir la tarea en
+  una PR de diseño y otra de implementación.
 
 ### 2.2 Modos de trabajo (alineado al backlog Notion)
 
@@ -479,10 +481,12 @@ son Modo 2.
   gluten" sin que el usuario toque la app.
 - **Verificación**: además de la pirámide, un eval manual documentado en
   `docs/evals/mcp-planning.md` con 5 conversaciones de referencia.
-- **Modelo**: **Fable 5.1**. Es diseño de interfaz para agentes: lo que devuelve
-  la tool determina la calidad de lo que el agente puede hacer, y no hay patrón
-  previo en el repo. Implementación posterior con Sonnet 5 si el contrato queda
-  bien especificado en la PR de diseño.
+- **Modelo**: **Opus 5 con `xhigh`**, en dos PRs: primero una de diseño (mini-ADR
+  con el contrato de cada tool: inputs, shape de salida, tamaño, paginación) que
+  revisás vos en Modo 1; después la implementación, con Sonnet 5 si el contrato
+  quedó cerrado o con Opus 5 si quedaron puntos abiertos. Es diseño de interfaz
+  para agentes: lo que devuelve la tool determina lo que el agente puede hacer, y
+  no hay patrón previo en el repo.
 - **Puntos**: 6 (3 + 3)
 
 ### F3.5 — Cerrar el spike de UX (Order 201, "In progress")
@@ -492,7 +496,7 @@ son Modo 2.
   refresh visual acotado, y convierta cada propuesta en story del backlog con
   puntos. También resolver los dos "Decide:" en Ready (Order 203 BYOK importer,
   Order 204 qué significa "done").
-- **Modelo**: Fable 5.1 para el spike (juicio de producto, comparación
+- **Modelo**: Opus 5 con `xhigh` para el spike (juicio de producto, comparación
   competitiva); Modo 1 para las dos decisiones.
 - **Puntos**: 3
 
@@ -523,9 +527,11 @@ explique solo. Ninguna tarea bloquea a otra fase.
   `e2e/build-instrumented.js` (istanbul), volver a correr todo incluyendo E2E con
   coverage. Habilita el bump de RN que Dependabot intentó en #143.
 - **Aceptación**: `pnpm ci:full` y el job `e2e` verdes; ratchet de E2E no baja.
-- **Modelo**: **Fable 5.1**. Los upgrades de SDK de Expo típicamente rompen 3 o 4
-  cosas encadenadas (Metro, babel, react-native-web, Playwright coverage) sin
-  mensajes claros. Es el caso de uso donde más se nota la diferencia de modelo.
+- **Modelo**: **Opus 5 con `xhigh`**. Los upgrades de SDK de Expo típicamente rompen
+  3 o 4 cosas encadenadas (Metro, babel, react-native-web, Playwright coverage) sin
+  mensajes claros. Darle en el prompt la guía oficial de upgrade 56→57 y el listado
+  de archivos de tooling a revisar; hacerlo en branch aislada con límite de dos
+  sesiones antes de revertir (ver riesgos).
 - **Puntos**: 3
 - **Depende de**: F4.1, F0.3
 
