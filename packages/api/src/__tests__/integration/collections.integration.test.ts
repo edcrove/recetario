@@ -127,6 +127,11 @@ describe.skipIf(skip).sequential('Collections + household visibility / IDOR', ()
     })
     expect(invite.status).toBe(201)
 
+    await app.request(`/v1/households/${householdId}/accept`, {
+      method: 'POST',
+      headers: bearer(mate.token),
+    })
+
     mateRecipeId = await createRecipe(mate.token, 'Receta del Compa')
     outsiderRecipeId = await createRecipe(outsider.token, 'Receta Ajena')
 

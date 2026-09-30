@@ -14,6 +14,19 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
 
 ## 2026-09-30 — Dependency & maintenance session (PRs #125, #140, #147, #148, #124)
 
+### D-2026-09-30-9 · Household sharing starts only when the invite is accepted
+
+- **Decision**: household visibility (recipes, menu, shopping list, pantry, day
+  nutrition) and the viewer write restriction only count memberships with
+  `acceptedAt` set, on both sides. A pending invite shares nothing and restricts nothing.
+- **Why**: Auditar 2026-09-30 found (and confirmed live) that inviting any registered
+  email immediately exposed both users' private data, and that a pending viewer invite
+  blocked the invitee's own menu. The UI already showed such members as "Pendiente".
+- **Where it lives**: `packages/api/src/db/household-visibility.ts`; regression tests in
+  `household-sharing.integration.test.ts`.
+- **Status**: active. Invitees still need an in-app way to accept (backlog story
+  "accept/decline invitations in the app").
+
 ### D-2026-09-30-8 · Visual regression screenshots reviewed by the QA auditor
 
 - **Decision**: with `E2E_SCREENSHOTS=true`, Playwright keeps a full-page screenshot of
