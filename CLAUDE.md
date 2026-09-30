@@ -264,10 +264,15 @@ pnpm --filter @recetario/api exec tsx src/scripts/generate-key.ts
 
 ## Agent harness (Claude Code)
 
-- **Where it lives**: `.claude/settings.json` (permissions + hooks) and `.claude/skills/`
-  (repo skills, e.g. `auditar`). Keep them model-agnostic: subagents inherit the session
+- **Where it lives**: `.claude/settings.json` (permissions + hooks), `.claude/skills/`
+  (repo skills, e.g. `auditar`) and `.claude/agents/` (subagent types, e.g. the read-only
+  `audit-deep` / `audit-persona` auditors). Keep them model-agnostic: subagents inherit the session
   model — do not pin model aliases or IDs in skills, settings or code unless a skill
   documents a deliberate cheaper pass.
+- **Effort**: set `effort` in skill/agent frontmatter by the kind of work — `high` for
+  code tracing, security, correctness and consolidation; `medium` for flow/product
+  judgement and routine reviews; `low` for mechanical tasks. The `Agent` tool has no
+  per-call effort, so per-subagent effort needs an agent type in `.claude/agents/`.
 - **Notion tool names differ by surface**: `mcp__claude_ai_Notion__*` (desktop/CLI
   connector) and `mcp__Notion__*` (cloud sessions). Permissions and hook matchers list
   or match both.

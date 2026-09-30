@@ -2,6 +2,7 @@
 name: auditar
 description: Full-project multi-agent audit of Recetario. Launches 12 specialized agents in parallel (QA, Backend, Frontend, UX/UI, Nutrition, Parent/family user, Read-only user, Product Management, Data Science, Clean Code/Architecture, QA Automation Architecture, Planning & decisions sync), each reviewing the codebase and tests from their own expertise, then consolidates findings into a deduplicated, prioritized report and creates Notion backlog entries for real issues. Use when the user says "Auditar" (as a standalone message or a request to run a project audit). Not for single-feature reviews — this is a whole-project pass, expensive and meant to be run periodically (e.g. before a release), not per-PR.
 user-invocable: true
+effort: high
 ---
 
 # Auditar — multi-agent project audit for Recetario
@@ -36,10 +37,22 @@ spend across 12 parallel agents. Don't run it speculatively; only when the user 
 
 ## Launching the 12 agents
 
-**Single message, 12 parallel `Agent` tool calls** (`subagent_type: general-purpose`).
-Omit `model` so every persona inherits the session's model — audits need the strongest
-reasoning available, and a pinned alias goes stale as models change. Pass a cheaper
-alias (e.g. `"sonnet"`) only when the user explicitly asks for a lighter/cheaper pass.
+**Single message, 12 parallel `Agent` tool calls.** Use the repo's read-only agent
+types, which set the reasoning effort per persona (the `Agent` tool has no per-call
+effort parameter):
+
+- `subagent_type: audit-deep` (effort `high`): personas 1, 2, 3, 5, 10, 11, 12 — they
+  trace code across files and must get correctness/security/drift right.
+- `subagent_type: audit-persona` (effort `medium`): personas 4, 6, 7, 8, 9 — they judge
+  flows and product fit; more effort adds cost, not findings.
+
+The orchestrator itself runs at `high` (skill frontmatter) because deduplicating and
+prioritizing 12 reports is the step where judgement matters most.
+
+Both agent types use `model: inherit`, so every persona runs on the session's model —
+don't pass `model` in the call. Pass a cheaper alias (e.g. `"sonnet"`) only when the user
+explicitly asks for a lighter/cheaper pass. Both types also block file edits and Notion
+writes; only the orchestrator writes to Notion, during consolidation.
 
 Agents run in the background and the harness notifies you when each one finishes: do
 not poll, sleep or re-launch while they run, and do not start consolidating until all

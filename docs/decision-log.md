@@ -14,6 +14,20 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
 
 ## 2026-09-30 — Dependency & maintenance session (PRs #125, #140, #147, #148, #124)
 
+### D-2026-09-30-7 · Effort levels per skill and subagent
+
+- **Decision**: the `auditar` skill runs at `effort: high`. Its personas run as two
+  read-only agent types: `audit-deep` (`high`: QA, Backend, Frontend, Nutrition, Clean
+  Code, QA Automation, Planning sync) and `audit-persona` (`medium`: UX, parent user,
+  read-only user, Product, Data Science). New skills/agents declare `effort` by kind of
+  work (see CLAUDE.md, Agent harness).
+- **Why**: correctness/security/drift findings need deep tracing; persona walkthroughs
+  don't gain findings from more effort, only cost. The `Agent` tool has no per-call
+  effort, so agent types carry it. They also enforce "investigate only" (no edits, no
+  Notion writes).
+- **Where it lives**: `.claude/skills/auditar/SKILL.md`, `.claude/agents/audit-*.md`.
+- **Status**: active
+
 ### D-2026-09-30-6 · Model-agnostic agent harness
 
 - **Decision**: repo skills and settings do not pin model aliases or IDs; subagents
