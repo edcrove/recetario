@@ -62,6 +62,7 @@ pnpm e2e:up        # build + start the isolated E2E stack
 pnpm e2e:reset     # truncate + reseed taxonomy + 4 demo accounts (E2E DB only)
 pnpm e2e:local     # reset → run Playwright against :8081 → reset (clean before + after)
 pnpm e2e:local recipes.spec.ts   # same, filtered to one spec
+E2E_SCREENSHOTS=true pnpm e2e:local   # + full-page screenshot per test and the visual tour (every screen × phone/desktop × light/dark) in apps/app/test-results/
 pnpm e2e:down      # stop the E2E stack
 ```
 
