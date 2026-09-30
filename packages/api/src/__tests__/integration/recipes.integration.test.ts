@@ -107,6 +107,42 @@ describe.skipIf(skip).sequential('Recipe integration tests', () => {
     expect(body.servings).toBe(6)
   })
 
+  it('a partial PUT leaves omitted steps, tags, images and translations untouched', async () => {
+    // Regression (Auditar 2026-09-30): Zod defaults inside .partial() turned a
+    // title-only update into "replace steps/tags/images/translations with []".
+    const createRes = await app.request('/v1/recipes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+      body: JSON.stringify({
+        ...baseRecipe,
+        title: 'Partial Update Target',
+        tags: ['rapida', 'casera'],
+        images: ['https://example.com/foto.jpg'],
+        translations: [{ language: 'en', title: 'Partial Update Target EN' }],
+      }),
+    })
+    expect(createRes.status).toBe(201)
+    const id = (await createRes.json()).id
+
+    const putRes = await app.request(`/v1/recipes/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+      body: JSON.stringify({ title: 'Partial Update Renamed' }),
+    })
+    expect(putRes.status).toBe(200)
+
+    const getRes = await app.request(`/v1/recipes/${id}`, {
+      headers: { Authorization: authHeader },
+    })
+    const body = await getRes.json()
+    expect(body.title).toBe('Partial Update Renamed')
+    expect(body.steps).toHaveLength(baseRecipe.steps.length)
+    expect(body.ingredients).toHaveLength(baseRecipe.ingredients.length)
+    expect(body.tags).toEqual(['rapida', 'casera'])
+    expect(body.images).toEqual(['https://example.com/foto.jpg'])
+    expect(body.translations).toHaveLength(1)
+  })
+
   it('PUT /v1/recipes/:id returns 404 for non-existent recipe', async () => {
     const res = await app.request('/v1/recipes/00000000-0000-0000-0000-000000000000', {
       method: 'PUT',
