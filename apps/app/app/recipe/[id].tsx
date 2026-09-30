@@ -17,7 +17,7 @@ import { roundNutrition, scaleNutrition } from '../../src/utils/nutritionDisplay
 import { AllergenWarning } from '../../src/components/AllergenWarning'
 import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 import { isForeignRecipe } from '../../src/utils/roles'
-import { sourceHost } from '../../src/utils/sourceHost'
+import { isHttpUrl, sourceHost } from '../../src/utils/sourceHost'
 import { useAuth } from '../../src/providers/AuthProvider'
 import { NutritionBar } from '../../src/components/NutritionBar'
 
@@ -112,7 +112,7 @@ export default function RecipeDetailScreen() {
         {recipe.totalTimeMin ? ` · ${recipe.totalTimeMin} min` : ''}
       </Text>
 
-      {recipe.source?.url ? (
+      {recipe.source?.url && isHttpUrl(recipe.source.url) ? (
         <TouchableOpacity
           testID="recipe-source"
           onPress={() => void Linking.openURL(recipe.source!.url!)}

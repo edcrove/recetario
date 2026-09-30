@@ -64,6 +64,17 @@ describe('SourceSchema', () => {
     expect(() => SourceSchema.parse({ type: 'url', url: 'not-a-url' })).toThrow()
   })
 
+  it('rejects non-http(s) schemes that could run script when opened', () => {
+    for (const url of [
+      'javascript:alert(document.domain)',
+      'data:text/html,<script>alert(1)</script>',
+      'file:///etc/passwd',
+    ]) {
+      expect(SourceSchema.safeParse({ type: 'url', url }).success).toBe(false)
+    }
+    expect(SourceSchema.safeParse({ type: 'url', url: 'http://example.com' }).success).toBe(true)
+  })
+
   it('accepts source without url (manual/photo)', () => {
     expect(() => SourceSchema.parse({ type: 'manual' })).not.toThrow()
     expect(() => SourceSchema.parse({ type: 'photo' })).not.toThrow()
@@ -275,5 +286,25 @@ describe('UpdateRecipeSchema', () => {
     expect(result.tags).toEqual(['a'])
     expect(result.steps).toHaveLength(1)
     expect(() => UpdateRecipeSchema.parse({ images: ['not a url'] })).toThrow()
+  })
+})
+
+describe('recipe image URLs', () => {
+  it('only accept http(s) on create and update', () => {
+    const base = {
+      title: 'X',
+      servings: 1,
+      category: 'Cena',
+      ingredients: [{ name: 'sal', quantity: 1, unit: 'g' }],
+    }
+    expect(CreateRecipeSchema.safeParse({ ...base, images: ['javascript:alert(1)'] }).success).toBe(
+      false,
+    )
+    expect(UpdateRecipeSchema.safeParse({ images: ['data:image/svg+xml,<svg/>'] }).success).toBe(
+      false,
+    )
+    expect(UpdateRecipeSchema.safeParse({ images: ['https://img.example/a.jpg'] }).success).toBe(
+      true,
+    )
   })
 })

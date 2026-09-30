@@ -42,6 +42,18 @@ describe('createRecipe tool', () => {
     expect(tools['createRecipe']).toBeDefined()
   })
 
+  it('rejects a sourceUrl that is not http(s)', () => {
+    const server = createMcpServer()
+    registerCreateRecipe(server, createApiClient())
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tool = (server as any)._registeredTools['createRecipe'] as {
+      inputSchema: { safeParse: (v: unknown) => { success: boolean } }
+    }
+    const parse = (sourceUrl: string) => tool.inputSchema.safeParse({ ...validInput, sourceUrl })
+    expect(parse('javascript:alert(1)').success).toBe(false)
+    expect(parse('https://ejemplo.com/receta').success).toBe(true)
+  })
+
   it('calls POST /v1/recipes with valid data', async () => {
     const mockRecipe = { id: 'abc123', ...validInput }
     const mockFetch = vi.fn().mockResolvedValue({
