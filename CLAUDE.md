@@ -262,6 +262,24 @@ pnpm --filter @recetario/api exec tsx src/scripts/generate-key.ts
 - **MCP server tools**: registered via `registerAllTools()` — add new tools there.
 - **React Native Web gotchas**: `Alert.alert()` is a documented no-op on web (`static alert() {}` in react-native-web). Use `src/utils/platformAlert.ts` (`confirmAsync`/`notify`) instead of `Alert.alert` directly for any confirm dialog or error notification that must work on web. Audit other RN-only APIs (`Vibration`, `Share`, `Clipboard`, `Linking`) for the same class of silent-no-op bug before relying on them in web-facing flows.
 
+## Agent harness (Claude Code)
+
+- **Where it lives**: `.claude/settings.json` (permissions + hooks) and `.claude/skills/`
+  (repo skills, e.g. `auditar`). Keep them model-agnostic: subagents inherit the session
+  model — do not pin model aliases or IDs in skills, settings or code unless a skill
+  documents a deliberate cheaper pass.
+- **Notion tool names differ by surface**: `mcp__claude_ai_Notion__*` (desktop/CLI
+  connector) and `mcp__Notion__*` (cloud sessions). Permissions and hook matchers list
+  or match both.
+- **Cloud sessions** (claude.ai/code): no Docker (integration + E2E run only in CI), no
+  `gh` CLI (use the GitHub MCP tools), outbound HTTP goes through a proxy (e.g.
+  `npx expo install --check` cannot reach the Expo API — compare against
+  `expo/bundledNativeModules.json` instead).
+- **Pushing**: run `pnpm ci:local` (plus `test:screens` and the per-package
+  `test:coverage` when tests or deps change) before `SKIP_PRE_PUSH=1 git push`; the
+  pre-push hook is only skipped once that evidence exists.
+- **Background agents** notify on completion — never poll or sleep waiting for them.
+
 ## Full project audit: "Auditar"
 
 Typing **"Auditar"** (as its own message, case-insensitive) triggers `.claude/skills/auditar/SKILL.md` — a 12-agent parallel audit of the whole project (QA, Backend, Frontend, UX/UI, Nutrition, parent/family user persona, read-only user persona, Product Management, Data Science, Clean Code/Architecture, QA Automation Architecture, Planning & decisions sync). Heavy operation (10-20 min, 12 parallel agents) — only run when the user explicitly asks. See the skill file for the full persona scopes, output format, and Notion consolidation steps.

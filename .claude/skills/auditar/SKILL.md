@@ -36,8 +36,17 @@ spend across 12 parallel agents. Don't run it speculatively; only when the user 
 
 ## Launching the 12 agents
 
-**Single message, 12 parallel `Agent` tool calls** (`subagent_type: general-purpose`,
-`model: "sonnet"` unless the user asked for deeper reasoning, in which case `"opus"`).
+**Single message, 12 parallel `Agent` tool calls** (`subagent_type: general-purpose`).
+Omit `model` so every persona inherits the session's model — audits need the strongest
+reasoning available, and a pinned alias goes stale as models change. Pass a cheaper
+alias (e.g. `"sonnet"`) only when the user explicitly asks for a lighter/cheaper pass.
+
+Agents run in the background and the harness notifies you when each one finishes: do
+not poll, sleep or re-launch while they run, and do not start consolidating until all
+12 have reported. If one has not reported after a long time, check on it once
+(`SendMessage` / its status) before re-running it with a narrower scope — the
+2026-07-03 hangs below came from very broad scopes, not from the prompt.
+
 Each agent gets:
 
 - The persona prompt from the table below (verbatim intent, adapt file paths if the repo
