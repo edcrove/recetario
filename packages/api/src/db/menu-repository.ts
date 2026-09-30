@@ -103,7 +103,7 @@ export class MenuRepository {
     return result.length > 0
   }
 
-  /* v8 ignore next 32 */
+  /* v8 ignore next -- the whole method; covered by integration tests */
   async updateServings(
     ownerId: string,
     date: string,

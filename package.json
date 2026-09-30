@@ -30,12 +30,6 @@
   "pnpm": {
     "overrides": {
       "@xmldom/xmldom": ">=0.8.13"
-    },
-    "auditConfig": {
-      "ignoreGhsas": [
-        "GHSA-5p2g-fcmc-qvqq",
-        "GHSA-w3rx-r6r6-pgpr"
-      ]
     }
   },
   "devDependencies": {

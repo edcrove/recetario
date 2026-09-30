@@ -298,7 +298,7 @@ export class RecipeRepository {
       conditions.push(sql`${schema.recipes.tags}::jsonb @> ${JSON.stringify([q.tag])}::jsonb`)
     }
 
-    /* v8 ignore next 5 - covered by integration tests */
+    /* v8 ignore next -- the whole if; covered by integration tests */
     if (q.dietary) {
       conditions.push(
         sql`${schema.recipes.dietaryTags}::jsonb @> ${JSON.stringify([q.dietary])}::jsonb`,
@@ -374,9 +374,10 @@ export class RecipeRepository {
         ...(data.originalLanguage !== undefined && { originalLanguage: data.originalLanguage }),
         ...(data.translations !== undefined && { translations: data.translations }),
         ...(data.source !== undefined && { source: data.source }),
-        /* v8 ignore next 2 */
+        /* v8 ignore start */
         ...(data.dietaryTags !== undefined && { dietaryTags: data.dietaryTags }),
         ...(data.nutrition !== undefined && { nutrition: data.nutrition }),
+        /* v8 ignore stop */
         ...(data.visibility !== undefined && { visibility: data.visibility }),
         updatedAt: new Date(),
       })

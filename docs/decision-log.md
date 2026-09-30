@@ -38,8 +38,10 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
   work (see CLAUDE.md, Agent harness).
 - **Why**: correctness/security/drift findings need deep tracing; persona walkthroughs
   don't gain findings from more effort, only cost. The `Agent` tool has no per-call
-  effort, so agent types carry it. They also enforce "investigate only" (no edits, no
-  Notion writes).
+  effort, so agent types carry it. They block file edits and the GitHub/Notion write
+  tools (extended 2026-09-30 after the audit found only Notion page writes were blocked);
+  Bash stays available for tests, so "investigate only" is enforced for tools and asked
+  of the agent for shell use.
 - **Where it lives**: `.claude/skills/auditar/SKILL.md`, `.claude/agents/audit-*.md`.
 - **Status**: active
 
@@ -72,6 +74,8 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
 - **Why**: Dependabot bumped RN 0.86 → 0.87 and React 19.2 → 19.3 outside the SDK, which
   broke `expo export` (`rn-get-polyfills` not exported).
 - **Where it lives**: `.github/dependabot.yml` (ignore list), `apps/app/package.json`, PR #147.
+  Scope extended on 2026-09-30 (audit) to `babel-preset-expo`, `jest-expo` and
+  `@react-native/*`, which are SDK-pinned too.
 - **Status**: active. Known drift: Expo 56 expects RN `0.85.3` / React `19.2.3`, the repo
   runs RN `0.86.x` / React `19.2.8` (drifted before this session; builds and E2E are
   green). Revisit on the next Expo SDK upgrade.
@@ -83,7 +87,8 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
 - **Why**: only reached through metro 0.84 at build time, which needs the 1.x API; it
   parses the app's own bundled assets, so the DoS is not reachable from user input.
 - **Where it lives**: root `package.json`, PR #148.
-- **Status**: revisit when Expo/metro depend on `image-size` ≥ 2.0.3 (then remove the ignore).
+- **Status**: superseded 2026-09-30 — `image-size` had already left the tree via metro
+  0.84.5 (#147) when this was recorded; the `ignoreGhsas` entries were removed.
 
 ### D-2026-09-30-4 · Vitest 4 and coverage ignore hints
 
@@ -93,7 +98,8 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
 - **Why**: Vitest 4 silently ignores `next N`, and an unclosed `start` excluded the rest of
   `households.ts`. The AST-aware remapping also counts branches v3 missed; they were
   covered with tests rather than lowering thresholds.
-- **Where it lives**: `packages/*/vitest.config.ts`, PR #140.
+- **Where it lives**: `packages/*/vitest.config.ts`, PR #140. Three leftover `next N`
+  hints in `packages/api/src/db/` were converted on 2026-09-30 (audit).
 - **Status**: active
 
 ### D-2026-09-30-5 · Release 0.3.1
