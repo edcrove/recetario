@@ -49,6 +49,16 @@ describe('getCookHistory', () => {
     await getHandler(spy, 'getCookHistory')({ recipeId: 'r1', limit: 5 })
     expect(mockRequest).toHaveBeenCalledWith(expect.stringContaining('cook-sessions'))
   })
+
+  it('omits query params when no filters are given', async () => {
+    const server = createMcpServer()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const spy = vi.spyOn(server as any, 'tool')
+    registerCookHistoryTools(server, mockApi as never)
+    mockRequest.mockResolvedValueOnce([])
+    await getHandler(spy, 'getCookHistory')({})
+    expect(mockRequest).toHaveBeenLastCalledWith('/v1/cook-sessions?')
+  })
 })
 
 describe('getMostCooked', () => {

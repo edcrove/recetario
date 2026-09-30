@@ -39,6 +39,20 @@ describe('whoami', () => {
     expect(JSON.stringify(result)).toContain('Alice')
     expect(JSON.stringify(result)).toContain('preferredServings')
   })
+
+  it('still returns the user when /auth/profile fails', async () => {
+    const server = createMcpServer()
+    const spy = vi.spyOn(server, 'tool')
+    registerIdentityTools(server, mockApi as never)
+
+    mockRequest
+      .mockResolvedValueOnce({ id: 'u1', email: 'a@a.com', displayName: 'Alice' })
+      .mockRejectedValueOnce(new Error('404'))
+
+    const result = await getHandler(spy, 'whoami')()
+    expect(JSON.stringify(result)).toContain('Alice')
+    expect(JSON.stringify(result)).not.toContain('preferredServings')
+  })
 })
 
 describe('updateProfile', () => {

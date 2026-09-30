@@ -68,7 +68,7 @@ export async function registerAllTools(
   registerSuggestionTools(server, apiClient)
 }
 
-/* v8 ignore next 12 */
+/* v8 ignore start */
 async function main() {
   const server = createMcpServer()
   const apiClient = createApiClient()
@@ -81,3 +81,4 @@ async function main() {
 if (process.env['NODE_ENV'] !== 'test') {
   main().catch(console.error)
 }
+/* v8 ignore stop */

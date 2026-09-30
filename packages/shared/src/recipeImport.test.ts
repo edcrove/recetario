@@ -189,6 +189,23 @@ describe('parseRecipeFromHtml', () => {
     expect(c?.nutrition).toBeUndefined()
     expect(c?.imageUrl).toBeUndefined()
   })
+
+  it('drops malformed values: yield without digits, non-string names/urls, odd steps', () => {
+    const r = parseRecipeFromHtml(
+      ldBlock({
+        '@type': 'Recipe',
+        name: 'D',
+        recipeYield: 'unas porciones',
+        author: { name: 42 },
+        image: { url: 5 },
+        recipeInstructions: [42, null, { '@type': 'HowToStep' }, { text: '   ' }, 'Paso'],
+      }),
+    )
+    expect(r?.servings).toBeUndefined()
+    expect(r?.author).toBeUndefined()
+    expect(r?.imageUrl).toBeUndefined()
+    expect(r?.steps).toEqual(['Paso'])
+  })
 })
 
 describe('htmlToText', () => {

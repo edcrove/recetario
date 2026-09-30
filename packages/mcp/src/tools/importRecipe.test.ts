@@ -120,4 +120,27 @@ describe('fetchRecipePage tool', () => {
     const handler2 = getToolHandler(server2, 'fetchRecipePage')
     await expect(handler2({ url: 'https://x.com/r' }, {})).rejects.toThrow(/too large/)
   })
+
+  it('aborts the fetch when it exceeds the timeout', async () => {
+    vi.useFakeTimers()
+    try {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(
+          (_url: string, init: { signal: AbortSignal }) =>
+            new Promise((_, reject) => {
+              init.signal.addEventListener('abort', () => reject(new Error('aborted')))
+            }),
+        ),
+      )
+      const server = createMcpServer()
+      registerImportTools(server)
+      const handler = getToolHandler(server, 'fetchRecipePage')
+      const pending = expect(handler({ url: 'https://x.com/r' }, {})).rejects.toThrow(/aborted/)
+      await vi.runAllTimersAsync()
+      await pending
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })

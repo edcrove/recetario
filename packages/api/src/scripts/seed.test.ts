@@ -2,9 +2,13 @@ import { describe, it, expect, vi } from 'vitest'
 import { DEMO_RECIPES } from '@recetario/shared'
 
 vi.mock('../db/repository.js', () => ({
-  RecipeRepository: vi.fn().mockImplementation(() => ({
-    upsert: vi.fn().mockResolvedValue({ recipe: { id: 'mock-id', title: 'Mock' }, created: true }),
-  })),
+  RecipeRepository: vi.fn().mockImplementation(function () {
+    return {
+      upsert: vi
+        .fn()
+        .mockResolvedValue({ recipe: { id: 'mock-id', title: 'Mock' }, created: true }),
+    }
+  }),
 }))
 
 import { seedRecipes } from './seed.js'
@@ -15,7 +19,9 @@ describe('seedRecipes', () => {
     const mockUpsert = vi
       .fn()
       .mockResolvedValue({ recipe: { id: 'id', title: 'T' }, created: true })
-    vi.mocked(RecipeRepository).mockImplementation(() => ({ upsert: mockUpsert }) as never)
+    vi.mocked(RecipeRepository).mockImplementation(function () {
+      return { upsert: mockUpsert } as never
+    })
 
     await seedRecipes('test-owner')
 
@@ -27,7 +33,9 @@ describe('seedRecipes', () => {
     const mockUpsert = vi
       .fn()
       .mockResolvedValue({ recipe: { id: 'id', title: 'T' }, created: true })
-    vi.mocked(RecipeRepository).mockImplementation(() => ({ upsert: mockUpsert }) as never)
+    vi.mocked(RecipeRepository).mockImplementation(function () {
+      return { upsert: mockUpsert } as never
+    })
 
     await seedRecipes('custom-owner')
 
@@ -39,15 +47,14 @@ describe('seedRecipes', () => {
   it('seeds all DEMO_RECIPES (content check)', async () => {
     const { RecipeRepository } = await import('../db/repository.js')
     const seededTitles: string[] = []
-    vi.mocked(RecipeRepository).mockImplementation(
-      () =>
-        ({
-          upsert: vi.fn().mockImplementation((_, recipe) => {
-            seededTitles.push(recipe.title)
-            return Promise.resolve({ recipe: { id: 'id', title: recipe.title }, created: true })
-          }),
-        }) as never,
-    )
+    vi.mocked(RecipeRepository).mockImplementation(function () {
+      return {
+        upsert: vi.fn().mockImplementation((_, recipe) => {
+          seededTitles.push(recipe.title)
+          return Promise.resolve({ recipe: { id: 'id', title: recipe.title }, created: true })
+        }),
+      } as never
+    })
 
     await seedRecipes('owner')
 

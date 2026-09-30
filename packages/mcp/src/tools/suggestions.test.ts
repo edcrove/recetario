@@ -55,6 +55,19 @@ describe('registerSuggestionTools', () => {
     })
   })
 
+  it('suggest_from_ingredients omits usePantry when not set', async () => {
+    const server = createMcpServer()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const spy = vi.spyOn(server as any, 'tool')
+    registerSuggestionTools(server, mockApi as never)
+    mockRequest.mockResolvedValueOnce([])
+    await getHandler(spy, 'suggest_from_ingredients')({ ingredients: ['pollo'] })
+    expect(mockRequest).toHaveBeenCalledWith('/v1/suggestions/from-ingredients', {
+      method: 'POST',
+      body: JSON.stringify({ ingredients: ['pollo'] }),
+    })
+  })
+
   it('get_menu_missing_ingredients GETs the week gap', async () => {
     const server = createMcpServer()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
