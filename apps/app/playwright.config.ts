@@ -12,6 +12,10 @@ export default defineConfig({
   use: {
     baseURL: process.env['PLAYWRIGHT_BASE_URL'] ?? 'http://localhost:8080',
     trace: 'retain-on-failure',
+    // E2E_SCREENSHOTS=true keeps a full-page screenshot of the final state of every
+    // test (plus the visual-tour spec) in test-results/, for the Auditar QA
+    // persona's aesthetic/design/workflow review. Off by default locally.
+    screenshot: process.env['E2E_SCREENSHOTS'] === 'true' ? { mode: 'on', fullPage: true } : 'off',
   },
   projects: [
     {

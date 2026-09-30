@@ -4,6 +4,12 @@ ADRs are maintained in Notion: https://app.notion.com/p/7eeb7d9edad842c6b3024dfd
 
 Each file here mirrors one ADR for offline reference.
 
+> **Known drift (2026-09-30):** the Notion database numbers ADRs differently from these
+> files (e.g. Notion #4 "Agent-first product", #9 "CI/CD execution model" have no file
+> here, and files 006/008/009 have no Notion row), and Notion lists "Nutrition data source"
+> as _Proposed_ while ADR-010 here says _Accepted_. Reconciling them is the backlog task
+> "docs: relocate the test plan and ADRs into the repo, stub them in Notion".
+
 | ID                                                        | Title                                    | Status   |
 | --------------------------------------------------------- | ---------------------------------------- | -------- |
 | [ADR-001](ADR-001-stack-and-monorepo.md)                  | Stack & monorepo                         | Accepted |
