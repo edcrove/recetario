@@ -129,7 +129,9 @@ Working rules:
 2. **Unreachable-by-design code is excluded at the source, not accommodated by a lower floor.**
    Use `/* v8 ignore … */` (vitest) or `/* istanbul ignore … */` (E2E/nyc) at the exact
    site, with a one-line justification, so measured coverage reflects 100% of what is
-   genuinely reachable. Prefer this over lowering a threshold.
+   genuinely reachable. Prefer this over lowering a threshold. Vitest 4 only supports
+   `/* v8 ignore next */` and `/* v8 ignore start */ … /* v8 ignore stop */` — never `next N`,
+   and always close a `start`.
 3. **Floors only ratchet up.** Never lower a threshold to make CI pass — write the tests
    (or add a justified source-level exclusion) instead. Raise a floor once a gap is
    permanently closed to lock the gain in.
@@ -195,6 +197,14 @@ everywhere else the floor is 100% because that is the target.
 - **No ESLint warnings**: CI runs `eslint --max-warnings=0`. Fix all warnings before pushing.
 - **Dependabot alerts**: check open Dependabot security alerts before merging. Address or acknowledge each one. Patch/minor updates are auto-merged when CI passes.
 
+## Decision log
+
+Decisions taken in a working session (with the owner or by an agent) that are too small
+for an ADR go in `docs/decision-log.md` in the same PR that implements them: what was
+decided, why, where it lives, and its status (`active`, `superseded`, `revisit when …`).
+A decision that only exists in a chat or a PR description is treated as drift by the
+"Auditar" planning-sync persona. Architectural decisions still get an ADR.
+
 ## Notion
 
 Stories and the project roadmap live at:
@@ -245,7 +255,7 @@ pnpm --filter @recetario/api exec tsx src/scripts/generate-key.ts
 
 ## React Native / Expo rules
 
-- **Current SDK**: Expo 56, React Native 0.85, React 19.
+- **Current SDK**: Expo 56, React Native 0.86, React 19.2 (Expo 56 expects RN 0.85 — known drift, see `docs/decision-log.md` D-2026-09-30-2). `react`, `react-dom` and `react-native` move only with the Expo SDK; Dependabot ignores their minor bumps.
 - **Expo upgrades**: bump `expo` SDK first via `npx expo install`, never `react-native` alone.
 - **Component testing**: use `vitest.screen.config.ts` (jsdom + `src/__mocks__/react-native.tsx`). Do not use jest-expo (version conflicts with Vite 7).
 - **Screen logic**: extract to pure utils in `src/utils/` before testing. Do not test JSX directly unless necessary.
@@ -254,4 +264,4 @@ pnpm --filter @recetario/api exec tsx src/scripts/generate-key.ts
 
 ## Full project audit: "Auditar"
 
-Typing **"Auditar"** (as its own message, case-insensitive) triggers `.claude/skills/auditar/SKILL.md` — an 11-agent parallel audit of the whole project (QA, Backend, Frontend, UX/UI, Nutrition, parent/family user persona, read-only user persona, Product Management, Data Science, Clean Code/Architecture, QA Automation Architecture). Heavy operation (10-20 min, 11 parallel agents) — only run when the user explicitly asks. See the skill file for the full persona scopes, output format, and Notion consolidation steps.
+Typing **"Auditar"** (as its own message, case-insensitive) triggers `.claude/skills/auditar/SKILL.md` — a 12-agent parallel audit of the whole project (QA, Backend, Frontend, UX/UI, Nutrition, parent/family user persona, read-only user persona, Product Management, Data Science, Clean Code/Architecture, QA Automation Architecture, Planning & decisions sync). Heavy operation (10-20 min, 12 parallel agents) — only run when the user explicitly asks. See the skill file for the full persona scopes, output format, and Notion consolidation steps.
