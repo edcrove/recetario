@@ -180,6 +180,16 @@ export const CreateRecipeSchema = RecipeSchema.omit({
 })
 export type CreateRecipe = z.infer<typeof CreateRecipeSchema>
 
-// UpdateRecipe — all optional partial
-export const UpdateRecipeSchema = CreateRecipeSchema.partial()
+// UpdateRecipe — all optional partial. The defaulted fields are re-declared
+// WITHOUT .default(): Zod 4 keeps defaults inside .partial(), so `{ title }`
+// used to parse as `{ title, tags: [], images: [], steps: [], … }` and the
+// repository (which treats any defined field as "replace") wiped them.
+// Omitted must mean "leave unchanged".
+export const UpdateRecipeSchema = CreateRecipeSchema.extend({
+  tags: z.array(z.string()),
+  images: z.array(z.url()),
+  originalLanguage: z.string(),
+  translations: z.array(TranslationSchema),
+  steps: z.array(StepSchema),
+}).partial()
 export type UpdateRecipe = z.infer<typeof UpdateRecipeSchema>

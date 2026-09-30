@@ -260,11 +260,20 @@ describe('UpdateRecipeSchema', () => {
     expect(() => UpdateRecipeSchema.parse({ visibility: 'shared' })).toThrow()
   })
 
-  it('parses empty object (defaults still applied for defaulted fields)', () => {
-    const result = UpdateRecipeSchema.parse({})
-    // defaults from .default() are still applied even in partial; no required fields
-    expect(result.title).toBeUndefined()
-    expect(result.servings).toBeUndefined()
-    expect(result.category).toBeUndefined()
+  it('parses an empty object to an empty object (no defaults injected)', () => {
+    expect(UpdateRecipeSchema.parse({})).toEqual({})
+  })
+
+  it('never injects defaults for omitted fields (a title-only update stays title-only)', () => {
+    // Regression: Zod 4 kept .default([]) inside .partial(), so every partial
+    // update wiped steps, tags, images and translations.
+    expect(UpdateRecipeSchema.parse({ title: 'x' })).toEqual({ title: 'x' })
+  })
+
+  it('still validates the formerly-defaulted fields when they are provided', () => {
+    const result = UpdateRecipeSchema.parse({ tags: ['a'], steps: [{ text: 'Paso' }] })
+    expect(result.tags).toEqual(['a'])
+    expect(result.steps).toHaveLength(1)
+    expect(() => UpdateRecipeSchema.parse({ images: ['not a url'] })).toThrow()
   })
 })
