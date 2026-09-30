@@ -14,6 +14,21 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
 
 ## 2026-09-30 — Dependency & maintenance session (PRs #125, #140, #147, #148, #124)
 
+### D-2026-09-30-10 · Per-IP rate limit on login and register
+
+- **Decision**: `POST /auth/login` and `POST /auth/register` share a per-IP sliding
+  window of 10 requests/minute (`AUTH_RATE_LIMIT_MAX_REQUESTS`); over it they return 429
+  with `Retry-After: 60`. The client IP is the rightmost `X-Forwarded-For` entry (one
+  proxy hop, e.g. Railway), else the socket address. The per-account recipe limiter now
+  applies to writes only, and both limiters prune empty windows (full sweep once a minute).
+  CI, docker-compose and the integration suite raise the auth limit via env.
+- **Why**: Auditar 2026-09-30 found no brute-force protection on the unauthenticated
+  auth endpoints, a prerequisite for the first public deploy. In-memory is enough for a
+  single API instance.
+- **Where it lives**: `packages/api/src/middleware/rateLimit.ts`, `routes/auth.ts`.
+- **Status**: revisit when the API runs more than one instance (move the store to
+  Postgres/Redis) or sits behind more than one proxy hop.
+
 ### D-2026-09-30-9 · Household sharing starts only when the invite is accepted
 
 - **Decision**: household visibility (recipes, menu, shopping list, pantry, day

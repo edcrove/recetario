@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 // Hoisted mocks
 const { mockUsersSelect, mockUsersInsert, mockProfileInsert } = vi.hoisted(() => ({
@@ -53,6 +53,11 @@ vi.mock('../db/menu-repository.js', () => ({
 }))
 
 import { app } from '../index.js'
+import { authRequests } from '../middleware/rateLimit.js'
+
+// Every request here comes from the same (unknown) IP; keep the auth limiter
+// out of the way except in the burst test that exercises it.
+beforeEach(() => authRequests.clear())
 
 const DEMO_USER = {
   id: 'user-001',
@@ -214,5 +219,54 @@ describe('GET /auth/me', () => {
     expect(res.status).toBe(401)
     const body = await res.json()
     expect(body.error).toContain('not found')
+  })
+})
+
+describe('auth rate limit (per IP)', () => {
+  // The integration config raises the limit for the whole run; pin the default
+  beforeEach(() => {
+    vi.stubEnv('AUTH_RATE_LIMIT_MAX_REQUESTS', undefined)
+  })
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('returns 429 with Retry-After after 10 login attempts from one IP in a minute', async () => {
+    mockUsersSelect.mockReturnValue([])
+    const attempt = (ip: string) =>
+      app.request('/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': ip },
+        body: JSON.stringify({ email: 'x@test.com', password: 'wrongpass' }),
+      })
+
+    for (let i = 0; i < 10; i++) {
+      expect((await attempt('203.0.113.7')).status).toBe(401)
+    }
+    const blocked = await attempt('203.0.113.7')
+    expect(blocked.status).toBe(429)
+    expect(blocked.headers.get('Retry-After')).toBe('60')
+    expect((await blocked.json()).error).toMatch(/too many attempts/i)
+
+    // Another client is unaffected
+    expect((await attempt('198.51.100.1')).status).toBe(401)
+  })
+
+  it('counts register attempts in the same per-IP window', async () => {
+    mockUsersSelect.mockReturnValue([DEMO_USER])
+    const register = () =>
+      app.request('/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': '203.0.113.9' },
+        body: JSON.stringify({ email: 'test@test.com', password: 'password123' }),
+      })
+    for (let i = 0; i < 10; i++) expect((await register()).status).toBe(409)
+    expect((await register()).status).toBe(429)
+  })
+
+  it('does not limit GET /auth/me', async () => {
+    for (let i = 0; i < 12; i++) {
+      expect((await app.request('/auth/me')).status).toBe(401)
+    }
   })
 })

@@ -20,6 +20,8 @@ export default defineConfig({
     fileParallelism: false,
     env: {
       SKIP_INTEGRATION: 'false',
+      // Every file registers/logs in many users from one (unknown) IP
+      AUTH_RATE_LIMIT_MAX_REQUESTS: '100000',
     },
     coverage: {
       provider: 'v8',

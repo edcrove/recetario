@@ -19,7 +19,8 @@ recipesRoute.use('/recipes/*', authMiddleware)
 
 recipesRoute.use('/library', authMiddleware)
 
-// Rate limit on write operations (/recipes POST and /recipes/:id PUT+DELETE)
+// Rate limit on write operations (/recipes POST and /recipes/:id PUT+DELETE);
+// the middleware lets reads through
 recipesRoute.use('/recipes/:id', rateLimitMiddleware)
 recipesRoute.use('/recipes', rateLimitMiddleware)
 
