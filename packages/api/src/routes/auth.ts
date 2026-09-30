@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm'
 import { getDb, schema } from '../db/index.js'
 import { hashPassword, verifyPassword, signJwt, verifyJwt } from '../auth/service.js'
 import { authRateLimitMiddleware } from '../middleware/rateLimit.js'
+import { registrationOpen } from '../config/production.js'
 
 export const authRoute = new OpenAPIHono()
 
@@ -47,11 +48,18 @@ const registerRoute = defineRoute({
       content: { 'application/json': { schema: authResponseSchema } },
       description: 'Created',
     },
+    403: {
+      content: { 'application/json': { schema: errorSchema } },
+      description: 'Registration closed (REGISTRATION_OPEN)',
+    },
     409: { content: { 'application/json': { schema: errorSchema } }, description: 'Email taken' },
   },
 })
 
 authRoute.openapi(registerRoute, async (c) => {
+  if (!registrationOpen()) {
+    return c.json({ error: 'Registration is closed' }, 403)
+  }
   const { email, password, displayName } = c.req.valid('json')
   const db = getDb()
 

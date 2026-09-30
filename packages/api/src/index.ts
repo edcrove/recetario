@@ -14,9 +14,9 @@ import { ingredientsRoute } from './routes/ingredients.js'
 import { pantryRoute } from './routes/pantry.js'
 import { suggestionsRoute } from './routes/suggestions.js'
 import { configRoute } from './routes/config.js'
-import { assertJwtSecretConfigured } from './auth/service.js'
+import { assertProductionConfig } from './config/production.js'
 
-assertJwtSecretConfigured()
+assertProductionConfig()
 
 export const app = new OpenAPIHono()
 

@@ -175,7 +175,7 @@ everywhere else the floor is 100% because that is the target.
 - **Migrations**: always generated with `drizzle-kit generate`, applied with `drizzle-kit migrate`. Never edit migration files manually.
 - **Schema changes**: update `packages/api/src/db/schema/index.ts` → generate → migrate → export new Zod schemas in `packages/shared/src/`.
 - **New entities**: add Zod schemas to shared (e.g. `taxonomy.ts`, `schema.ts`) and export from `shared/src/index.ts`.
-- **Seed data**: `src/scripts/seed.ts` (guarded by `NODE_ENV !== 'test'`) seeds taxonomy, the ingredient catalog and demo recipes. Nothing seeds at API startup, and only the Docker entrypoint runs migrations — a deploy must run `drizzle-kit migrate` plus a taxonomy/catalog seed without demo recipes.
+- **Seed data**: `src/scripts/seed.ts` (guarded by `NODE_ENV !== 'test'`) seeds taxonomy, the ingredient catalog and demo recipes. `pnpm --filter @recetario/api start:prod` (Railway, and the Docker entrypoint) first runs `src/scripts/release.ts`: migrations + the production-safe taxonomy/catalog seed, no demo recipes.
 
 ## Auth conventions
 
@@ -229,16 +229,18 @@ Include the PR link in the story's PR field.
 
 ### Required vars per environment
 
-| Variable                       | Package | Required in prod | Notes                                                                          |
-| ------------------------------ | ------- | ---------------- | ------------------------------------------------------------------------------ |
-| `DATABASE_URL`                 | api     | ✅               | Postgres connection string                                                     |
-| `JWT_SECRET`                   | api     | ✅               | ≥64 random hex chars. **Fails fast at startup if missing in production.**      |
-| `DEV_API_KEY`                  | api     | ❌               | Local/CI fallback auth. Never in production.                                   |
-| `AUTH_RATE_LIMIT_MAX_REQUESTS` | api     | ❌               | Per-IP login/register attempts per minute (default 10). Raised only in CI/E2E. |
-| `API_BASE_URL`                 | mcp     | ✅               | URL of the API the MCP server calls                                            |
-| `MCP_API_KEY`                  | mcp     | ✅               | API key for MCP→API auth (from api_keys table)                                 |
-| `EXPO_PUBLIC_API_URL`          | app     | ✅               | Public — embedded at build time                                                |
-| `EXPO_PUBLIC_API_KEY`          | app     | ❌               | Public — never put secrets here                                                |
+| Variable                       | Package | Required in prod | Notes                                                                            |
+| ------------------------------ | ------- | ---------------- | -------------------------------------------------------------------------------- |
+| `DATABASE_URL`                 | api     | ✅               | Postgres connection string                                                       |
+| `JWT_SECRET`                   | api     | ✅               | ≥64 random hex chars. **Fails fast at startup if missing in production.**        |
+| `DEV_API_KEY`                  | api     | ❌               | Local/CI fallback auth. Never in production.                                     |
+| `REGISTRATION_OPEN`            | api     | ❌               | `true` opens sign-up in production (closed by default there).                    |
+| `ALLOW_DEV_SECRETS`            | api     | ❌               | docker-compose/CI only: relaxes the production secret checks. Never on a deploy. |
+| `AUTH_RATE_LIMIT_MAX_REQUESTS` | api     | ❌               | Per-IP login/register attempts per minute (default 10). Raised only in CI/E2E.   |
+| `API_BASE_URL`                 | mcp     | ✅               | URL of the API the MCP server calls                                              |
+| `MCP_API_KEY`                  | mcp     | ✅               | API key for MCP→API auth (from api_keys table)                                   |
+| `EXPO_PUBLIC_API_URL`          | app     | ✅               | Public — embedded at build time                                                  |
+| `EXPO_PUBLIC_API_KEY`          | app     | ❌               | Public — never put secrets here                                                  |
 
 ### Local development
 
@@ -259,7 +261,7 @@ DATABASE_URL=… pnpm --filter @recetario/api reset-password someone@example.com
 
 ### Production safeguard
 
-`JWT_SECRET` throws at startup if `NODE_ENV=production` and the var is missing or equals `dev-secret-change-in-production`. It does **not** yet reject other placeholders (e.g. the docker-compose default) or short secrets — tracked for the deploy story.
+With `NODE_ENV=production` the API refuses to start (`src/config/production.ts`) if `JWT_SECRET` is missing, a repo placeholder or shorter than 64 hex chars, or if `DEV_API_KEY` is set. docker-compose and CI set `ALLOW_DEV_SECRETS=true`, which keeps only the "is set" check — never set it on a real deploy. Sign-up is closed in production unless `REGISTRATION_OPEN=true`. Deploy guide: `docs/deploy/railway.md`.
 
 ## React Native / Expo rules
 

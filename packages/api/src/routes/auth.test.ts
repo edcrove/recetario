@@ -92,6 +92,20 @@ describe('POST /auth/register', () => {
     expect(typeof body.token).toBe('string')
   })
 
+  it('returns 403 when registration is closed', async () => {
+    vi.stubEnv('REGISTRATION_OPEN', 'false')
+    const insertsBefore = mockUsersInsert.mock.calls.length
+    const res = await app.request('/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'new@test.com', password: 'password123' }),
+    })
+    vi.unstubAllEnvs()
+    expect(res.status).toBe(403)
+    expect(await res.json()).toEqual({ error: 'Registration is closed' })
+    expect(mockUsersInsert.mock.calls.length).toBe(insertsBefore)
+  })
+
   it('returns 409 when email is already registered', async () => {
     mockUsersSelect.mockReturnValue([DEMO_USER])
 
