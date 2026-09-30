@@ -162,9 +162,9 @@ export const StyleSheet = {
   flatten: (style: unknown) => style,
 }
 
-import { vi } from 'vitest'
-export const Alert = { alert: vi.fn() }
-export const Vibration = { vibrate: vi.fn() }
+import { vi, type Mock } from 'vitest'
+export const Alert: { alert: Mock } = { alert: vi.fn() }
+export const Vibration: { vibrate: Mock } = { vibrate: vi.fn() }
 export const Platform = {
   OS: 'ios',
   select: (obj: Record<string, unknown>) => obj.ios ?? obj.default,

@@ -88,7 +88,8 @@ householdsRoute.openapi(listMineRoute, async (c) => {
     .innerJoin(schema.households, eq(schema.householdMembers.householdId, schema.households.id))
     .where(eq(schema.householdMembers.userId, ownerId))
 
-  /* v8 ignore next 23 - full coverage via integration tests */
+  // full coverage via integration tests
+  /* v8 ignore start */
   const allMembers = await Promise.all(
     memberships.map(async ({ household }) => {
       const members = await db
@@ -99,7 +100,6 @@ householdsRoute.openapi(listMineRoute, async (c) => {
     }),
   )
 
-  // v8 ignore start
   return c.json(
     allMembers.map(({ household, members }) => ({
       id: household.id,
@@ -114,6 +114,7 @@ householdsRoute.openapi(listMineRoute, async (c) => {
       })),
     })),
   )
+  /* v8 ignore stop */
 })
 
 // POST /households/:id/invite
