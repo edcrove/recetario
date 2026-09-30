@@ -76,6 +76,15 @@ describe('PATCH /auth/me', () => {
     expect(body.displayName).toBe('New Name')
   })
 
+  it('returns 400 for a non-http(s) avatarUrl', async () => {
+    const res = await app.request('/auth/me', {
+      method: 'PATCH',
+      headers: AUTH,
+      body: JSON.stringify({ avatarUrl: 'javascript:alert(1)' }),
+    })
+    expect(res.status).toBe(400)
+  })
+
   it('returns 404 when user not found', async () => {
     mockUsersUpdate.mockReturnValue([])
     const res = await app.request('/auth/me', {

@@ -1,5 +1,10 @@
 import { z } from 'zod'
 
+// URLs we store and later open or render (recipe source, images, avatars) must be
+// http(s): a bare z.url() also accepts javascript:, data:, file:, etc.
+export const HTTP_URL_PROTOCOL = /^https?$/
+export const HttpUrlSchema = z.url({ protocol: HTTP_URL_PROTOCOL })
+
 // Unit enum — covers volume, mass, count, and presentation-only
 export const UnitSchema = z.enum([
   // Volume
@@ -84,7 +89,7 @@ export type RecipeVisibility = z.infer<typeof RecipeVisibilitySchema>
 // Source
 export const SourceSchema = z.object({
   type: z.enum(['url', 'photo', 'manual', 'mcp']),
-  url: z.url().optional(),
+  url: HttpUrlSchema.optional(),
   author: z.string().optional(),
   externalId: z.string().optional(),
 })
@@ -129,7 +134,7 @@ export const RecipeSchema = z.object({
   cookTimeMin: z.number().int().positive().optional(),
   totalTimeMin: z.number().int().positive().optional(),
   difficulty: z.enum(['fácil', 'media', 'difícil']).optional(),
-  images: z.array(z.url()).default([]),
+  images: z.array(HttpUrlSchema).default([]),
   notes: z.string().optional(),
   yield: z.string().optional(), // "12 cookies"
   originalLanguage: z.string().default('es'),
@@ -187,7 +192,7 @@ export type CreateRecipe = z.infer<typeof CreateRecipeSchema>
 // Omitted must mean "leave unchanged".
 export const UpdateRecipeSchema = CreateRecipeSchema.extend({
   tags: z.array(z.string()),
-  images: z.array(z.url()),
+  images: z.array(HttpUrlSchema),
   originalLanguage: z.string(),
   translations: z.array(TranslationSchema),
   steps: z.array(StepSchema),

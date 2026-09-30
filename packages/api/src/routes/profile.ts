@@ -1,7 +1,7 @@
 import { createRoute as defineRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { eq } from 'drizzle-orm'
 import { getDb, schema } from '../db/index.js'
-import { NutritionTargetsSchema } from '@recetario/shared'
+import { HTTP_URL_PROTOCOL, NutritionTargetsSchema } from '@recetario/shared'
 import { authMiddleware } from '../middleware/auth.js'
 
 export const profileRoute = new OpenAPIHono()
@@ -12,7 +12,7 @@ const errorSchema = z.object({ error: z.string() })
 
 const userPatchSchema = z.object({
   displayName: z.string().min(1).max(100).optional(),
-  avatarUrl: z.url().optional(),
+  avatarUrl: z.url({ protocol: HTTP_URL_PROTOCOL }).optional(),
 })
 
 const userResponseSchema = z.object({

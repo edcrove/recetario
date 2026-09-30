@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { HTTP_URL_PROTOCOL } from '@recetario/shared'
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { createApiClient } from '../index.js'
 
@@ -49,7 +50,10 @@ const CreateRecipeInput = z.object({
     .optional()
     .default([])
     .describe('Cooking steps in order'),
-  sourceUrl: z.url().optional().describe('Original URL if scraped from web'),
+  sourceUrl: z
+    .url({ protocol: HTTP_URL_PROTOCOL })
+    .optional()
+    .describe('Original URL if scraped from web'),
   sourceType: z.enum(['url', 'photo', 'manual', 'mcp']).optional().default('mcp'),
   externalId: z.string().optional().describe('External ID for deduplication'),
   originalLanguage: z.string().optional().default('es'),
