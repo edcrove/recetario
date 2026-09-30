@@ -28,6 +28,20 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
   `railway.json`, `docs/deploy/railway.md`.
 - **Status**: active. Revisit sign-up (invite tokens) when non-family users arrive.
 
+### D-2026-09-30-11 · Password reset is an admin script until there is an email provider
+
+- **Decision**: the forgot-password screen no longer asks for an email or claims one was
+  sent. It tells the user to ask whoever runs their household, who runs
+  `pnpm --filter @recetario/api reset-password <email>` against the deployed DB and hands
+  over the printed temporary password.
+- **Why**: Auditar 2026-09-30 found the screen promised a reset email that never
+  existed. The first deploy is for one family; an email provider (and reset tokens) is
+  cost and setup that no one needs yet.
+- **Where it lives**: `apps/app/app/auth/forgot.tsx`,
+  `packages/api/src/scripts/reset-password.ts`.
+- **Status**: revisit when the app has users outside the owner's family (then add an email
+  provider and a token-based reset flow).
+
 ### D-2026-09-30-10 · Per-IP rate limit on login and register
 
 - **Decision**: `POST /auth/login` and `POST /auth/register` share a per-IP sliding

@@ -254,6 +254,9 @@ node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 
 # API key pair (key to share + hash to store in DB)
 pnpm --filter @recetario/api exec tsx src/scripts/generate-key.ts
+
+# Reset a user's password (no email provider yet — prints a temporary password)
+DATABASE_URL=… pnpm --filter @recetario/api reset-password someone@example.com
 ```
 
 ### Production safeguard

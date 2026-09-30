@@ -6,7 +6,8 @@ export const QUERY_DEFAULT_OPTIONS = {
   retry: 1,
 } as const
 
-const queryClient = new QueryClient({
+// Exported so AuthProvider can drop every cached query when the session changes.
+export const queryClient = new QueryClient({
   defaultOptions: { queries: QUERY_DEFAULT_OPTIONS },
 })
 
