@@ -71,35 +71,20 @@ test.describe('Auth: login via form', () => {
 })
 
 test.describe('Auth: forgot password', () => {
-  test('submit button disabled until email is filled', async ({ page }) => {
+  // No email provider yet: the screen must not promise an email (D-2026-09-30-11).
+  test('explains the admin reset instead of promising an email', async ({ page }) => {
     await page.goto('/auth/forgot')
     await expect(page.getByText('Restablecer contraseña')).toBeVisible({ timeout: 5000 })
-    await expect(page.getByPlaceholder('vos@ejemplo.com')).toBeVisible()
+    await expect(page.getByTestId('forgot-explainer')).toContainText('Todavía no enviamos emails')
+    await expect(page.getByPlaceholder('vos@ejemplo.com')).toHaveCount(0)
+    await expect(page.getByText(/Revisá tu email|Enviar link/)).toHaveCount(0)
   })
 
-  test('submitting shows confirmation screen', async ({ page }) => {
-    await page.goto('/auth/forgot')
-    await page.getByPlaceholder('vos@ejemplo.com').fill('someone@example.com')
-    await page.getByText('Enviar link').click()
-    await expect(page.getByText('Revisá tu email')).toBeVisible({ timeout: 5000 })
-    await expect(page.getByText(/someone@example\.com/)).toBeVisible()
-  })
-
-  test('back to sign in link from confirmation screen', async ({ page }) => {
-    await page.goto('/auth/forgot')
-    await page.getByPlaceholder('vos@ejemplo.com').fill('someone@example.com')
-    await page.getByText('Enviar link').click()
-    await expect(page.getByText('Revisá tu email')).toBeVisible({ timeout: 5000 })
-    await page.getByText('Volver al inicio').click()
-    await expect(page).toHaveURL(/auth\/login/, { timeout: 5000 })
-  })
-
-  test('back link from initial forgot screen returns to login', async ({ page }) => {
-    // Navigate via login so router.back() has history to go to
+  test('back to sign in returns to login', async ({ page }) => {
     await page.goto('/auth/login')
     await page.getByText('¿Olvidaste tu contraseña?').click()
-    await expect(page.getByText('Restablecer contraseña')).toBeVisible({ timeout: 5000 })
-    await page.getByText('← Volver al inicio').click()
+    await expect(page.getByTestId('forgot-explainer')).toBeVisible({ timeout: 5000 })
+    await page.getByTestId('forgot-back').click()
     await expect(page).toHaveURL(/auth\/login/, { timeout: 5000 })
   })
 })
@@ -198,18 +183,5 @@ test.describe('Auth: error branches', () => {
       timeout: 8000,
     })
     await expect(page).toHaveURL(/auth\/login/)
-  })
-
-  test('forgot password shows the confirmation and returns to login', async ({ page }) => {
-    await page.goto('/auth/forgot')
-    await expect(page.getByText('Restablecer contraseña')).toBeVisible({ timeout: 8000 })
-    await page.getByPlaceholder('vos@ejemplo.com').fill('alguien@example.com')
-    await page
-      .getByText(/Enviar/)
-      .first()
-      .click()
-    await expect(page.getByText('Revisá tu email')).toBeVisible({ timeout: 5000 })
-    await page.getByText('Volver al inicio').click()
-    await expect(page).toHaveURL(/auth\/login/, { timeout: 8000 })
   })
 })
