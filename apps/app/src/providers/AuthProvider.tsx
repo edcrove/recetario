@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { authStorage as storage } from '../utils/authStorage'
 import { api, setOnUnauthorized } from '../api/client'
+import { queryClient } from './QueryProvider'
 
 const TOKEN_KEY = 'auth_token'
 
@@ -44,13 +45,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .catch(() => setUserId(null))
   }, [token])
 
+  // Every session change drops the query cache: it is a module singleton with a
+  // 30s staleTime, so on a shared family device the next user would otherwise
+  // see the previous user's recipes, profile (allergens) and households.
   const signIn = useCallback(async (newToken: string) => {
     await storage.set(TOKEN_KEY, newToken)
+    queryClient.clear()
     setToken(newToken)
   }, [])
 
   const signOut = useCallback(async () => {
     await storage.del(TOKEN_KEY)
+    queryClient.clear()
     setToken(null)
   }, [])
 
@@ -60,7 +66,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setOnUnauthorized(() => {
       setToken((current) => {
-        if (current) void storage.del(TOKEN_KEY)
+        if (current) {
+          void storage.del(TOKEN_KEY)
+          queryClient.clear()
+        }
         return null
       })
     })
