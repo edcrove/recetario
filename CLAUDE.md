@@ -229,15 +229,16 @@ Include the PR link in the story's PR field.
 
 ### Required vars per environment
 
-| Variable              | Package | Required in prod | Notes                                                                     |
-| --------------------- | ------- | ---------------- | ------------------------------------------------------------------------- |
-| `DATABASE_URL`        | api     | ✅               | Postgres connection string                                                |
-| `JWT_SECRET`          | api     | ✅               | ≥64 random hex chars. **Fails fast at startup if missing in production.** |
-| `DEV_API_KEY`         | api     | ❌               | Local/CI fallback auth. Never in production.                              |
-| `API_BASE_URL`        | mcp     | ✅               | URL of the API the MCP server calls                                       |
-| `MCP_API_KEY`         | mcp     | ✅               | API key for MCP→API auth (from api_keys table)                            |
-| `EXPO_PUBLIC_API_URL` | app     | ✅               | Public — embedded at build time                                           |
-| `EXPO_PUBLIC_API_KEY` | app     | ❌               | Public — never put secrets here                                           |
+| Variable                       | Package | Required in prod | Notes                                                                          |
+| ------------------------------ | ------- | ---------------- | ------------------------------------------------------------------------------ |
+| `DATABASE_URL`                 | api     | ✅               | Postgres connection string                                                     |
+| `JWT_SECRET`                   | api     | ✅               | ≥64 random hex chars. **Fails fast at startup if missing in production.**      |
+| `DEV_API_KEY`                  | api     | ❌               | Local/CI fallback auth. Never in production.                                   |
+| `AUTH_RATE_LIMIT_MAX_REQUESTS` | api     | ❌               | Per-IP login/register attempts per minute (default 10). Raised only in CI/E2E. |
+| `API_BASE_URL`                 | mcp     | ✅               | URL of the API the MCP server calls                                            |
+| `MCP_API_KEY`                  | mcp     | ✅               | API key for MCP→API auth (from api_keys table)                                 |
+| `EXPO_PUBLIC_API_URL`          | app     | ✅               | Public — embedded at build time                                                |
+| `EXPO_PUBLIC_API_KEY`          | app     | ❌               | Public — never put secrets here                                                |
 
 ### Local development
 

@@ -29,6 +29,8 @@ services:
       # Higher than the production default (100) — local/E2E runs several
       # parallel demo accounts hitting /v1/recipes within the same window.
       RATE_LIMIT_MAX_REQUESTS: '1000'
+      # Per-IP login/register limit (prod default 10/min); E2E logs in per test.
+      AUTH_RATE_LIMIT_MAX_REQUESTS: '100000'
     depends_on:
       postgres:
         condition: service_healthy
@@ -93,6 +95,7 @@ services:
       NODE_ENV: production
       PORT: 3000
       RATE_LIMIT_MAX_REQUESTS: '1000'
+      AUTH_RATE_LIMIT_MAX_REQUESTS: '100000'
     depends_on:
       postgres-e2e:
         condition: service_healthy

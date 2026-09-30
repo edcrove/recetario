@@ -322,6 +322,8 @@ jobs:
           PORT: 3000
           # 4 parallel E2E demo accounts share this window against /v1/recipes.
           RATE_LIMIT_MAX_REQUESTS: '1000'
+          # Every E2E test logs in from this runner's single IP.
+          AUTH_RATE_LIMIT_MAX_REQUESTS: '100000'
 
       - name: Seed E2E demo accounts (one per Playwright worker)
         run: pnpm --filter @recetario/api seed:e2e-accounts
