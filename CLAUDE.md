@@ -30,7 +30,8 @@ pnpm lint                       # ESLint across all packages
 pnpm test                       # Run all Vitest suites (no DB required)
 pnpm --filter recetario-app test:screens   # Screen component tests (jsdom)
 pnpm ci:local                   # Full pipeline: lint + typecheck + test + build
-pnpm ci:full                    # Same + integration tests (requires Docker)
+pnpm ci:full                    # Same, with DATABASE_URL set (does NOT run the integration suite)
+pnpm --filter @recetario/api test:integration-coverage   # Integration suite (Postgres via DATABASE_URL or testcontainers)
 
 # Type checking
 pnpm typecheck                  # tsc --noEmit across all packages (turbo)
@@ -53,7 +54,7 @@ The default docker stack (Postgres `recetario` / API `:3000` / app `:8080`) is
 the **manual** environment — poke at it by hand, its demo data persists.
 
 A separate **E2E** stack (profile `e2e`: own Postgres `recetario_e2e` on `:5433`
-/ API `:8081`→`:3001` / app `:8081`) runs automated tests without ever touching
+/ API `:3001` / app `:8081`) runs automated tests without ever touching
 the manual data. It is reset to a clean seeded baseline **before and after**
 each run.
 
@@ -66,7 +67,9 @@ E2E_SCREENSHOTS=true pnpm e2e:local   # + full-page screenshot per test and the 
 pnpm e2e:down      # stop the E2E stack
 ```
 
-Never point local E2E at `:8080`/`:3000` — that pollutes the manual data.
+Never point local E2E at `:8080`/`:3000` — that pollutes the manual data. Known issue: the
+app web image (`apps/app/Dockerfile`) fails at `expo export`, which blocks `e2e:up`/`e2e:local`
+until fixed (backlog bug); without it, use the no-Docker recipe in `.claude/skills/auditar/SKILL.md`.
 CI is unaffected (it already uses an ephemeral per-run Postgres).
 
 ## Agent-first principle
@@ -172,7 +175,7 @@ everywhere else the floor is 100% because that is the target.
 - **Migrations**: always generated with `drizzle-kit generate`, applied with `drizzle-kit migrate`. Never edit migration files manually.
 - **Schema changes**: update `packages/api/src/db/schema/index.ts` → generate → migrate → export new Zod schemas in `packages/shared/src/`.
 - **New entities**: add Zod schemas to shared (e.g. `taxonomy.ts`, `schema.ts`) and export from `shared/src/index.ts`.
-- **Seed data**: `src/scripts/seed.ts` (guarded by `NODE_ENV !== 'test'`). Taxonomy (meal_categories, food_types) seeded at startup.
+- **Seed data**: `src/scripts/seed.ts` (guarded by `NODE_ENV !== 'test'`) seeds taxonomy, the ingredient catalog and demo recipes. Nothing seeds at API startup, and only the Docker entrypoint runs migrations — a deploy must run `drizzle-kit migrate` plus a taxonomy/catalog seed without demo recipes.
 
 ## Auth conventions
 
@@ -252,7 +255,7 @@ pnpm --filter @recetario/api exec tsx src/scripts/generate-key.ts
 
 ### Production safeguard
 
-`JWT_SECRET` throws at startup if `NODE_ENV=production` and the var is missing or is the default value. This prevents accidental insecure deploys.
+`JWT_SECRET` throws at startup if `NODE_ENV=production` and the var is missing or equals `dev-secret-change-in-production`. It does **not** yet reject other placeholders (e.g. the docker-compose default) or short secrets — tracked for the deploy story.
 
 ## React Native / Expo rules
 
