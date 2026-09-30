@@ -3,6 +3,12 @@
 **Status:** Accepted  
 **Notion:** https://app.notion.com/p/3a964048cc3581b684acf43c2e90f968
 
+> **Update 2026-09-30:** the "broken container build" below refers to the state on
+> 2026-07-27. The API image now builds and is gated in CI (PR #123). Only the app web
+> image (`apps/app/Dockerfile`, `expo export` in the builder) still fails — tracked as a
+> P2 backlog bug. Mirrored in the Notion ADR database, where it supersedes "Hosting &
+> managed Postgres".
+
 ## Decision
 
 Two routes, decided together because deploying the backend without a way to
@@ -50,7 +56,7 @@ Because the app is already a web app, the web/PWA route sidesteps all of it.
   highest operational surface of the options.
 - **AWS free tier (EC2 + RDS, or Lightsail).** The free tier is 12 months only
   (and the 2025 credit-based model can expire in ~6 months for new accounts),
-  reverting to ~US$25–30/month — not near-zero *sustained*. Raw EC2 is high-ops
+  reverting to ~US$25–30/month — not near-zero _sustained_. Raw EC2 is high-ops
   (VPC/IAM/patching), 1 GB micro is tight for Node + Postgres colocated, and there
   is no always-free Postgres path (Aurora Serverless min ~US$40/mo; DynamoDB would
   be a rewrite). It is precisely the portfolio instinct the constraints warn
