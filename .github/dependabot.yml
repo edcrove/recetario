@@ -16,6 +16,17 @@ updates:
     ignore:
       - dependency-name: '*'
         update-types: ['version-update:semver-major']
+      # Expo SDK pins these; bump them only via `npx expo install` with the SDK
+      - dependency-name: 'react'
+        update-types: ['version-update:semver-minor']
+      - dependency-name: 'react-dom'
+        update-types: ['version-update:semver-minor']
+      - dependency-name: '@types/react'
+        update-types: ['version-update:semver-minor']
+      - dependency-name: '@types/react-dom'
+        update-types: ['version-update:semver-minor']
+      - dependency-name: 'react-native'
+        update-types: ['version-update:semver-minor']
     labels:
       - dependencies
     commit-message:
