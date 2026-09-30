@@ -54,6 +54,11 @@ test('a household viewer sees shared content without mutation affordances', asyn
     data: { userId: viewer.user.id, role: 'viewer' },
   })
   expect(inviteRes.status()).toBe(201)
+  // Sharing (and the viewer restriction) only applies once the invite is accepted.
+  const acceptRes = await page.request.post(`${API_URL}/v1/households/${householdId}/accept`, {
+    headers: { Authorization: `Bearer ${viewer.token}` },
+  })
+  expect(acceptRes.status()).toBe(200)
 
   try {
     // Become the viewer in the browser

@@ -200,6 +200,10 @@ describe.skipIf(skip).sequential('Public library and copy-as-fork', () => {
         body: JSON.stringify({ userId: visitor.userId, role: 'member' }),
       })
       expect(inviteRes.status).toBe(201)
+      await app.request(`/v1/households/${householdId}/accept`, {
+        method: 'POST',
+        headers: auth(visitor.token),
+      })
 
       const res = await app.request(`/v1/recipes/${privateRecipeId}/copy`, {
         method: 'POST',

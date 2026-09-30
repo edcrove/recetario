@@ -42,6 +42,11 @@ describe.skipIf(skip).sequential('Pantry integration', () => {
       headers: auth(owner.token),
       body: JSON.stringify({ userId: member.userId, role: 'member' }),
     })
+
+    await app.request(`/v1/households/${householdId}/accept`, {
+      method: 'POST',
+      headers: auth(member.token),
+    })
   })
 
   it('creates a pantry item (201) and lists it', async () => {

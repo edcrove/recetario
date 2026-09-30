@@ -1,4 +1,4 @@
-import { eq, and } from 'drizzle-orm'
+import { eq, and, isNotNull } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { getDb, schema } from './index.js'
 
@@ -12,6 +12,10 @@ export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f
  * Owners whose content the caller can see: themselves plus every member of
  * every household the caller belongs to. Used ONLY by read paths (recipe
  * list/detail, menu week, shopping list) — writes stay strictly owner-scoped.
+ *
+ * Only ACCEPTED memberships count, on both sides: a pending invite must not
+ * share anything, otherwise inviting someone's email would expose their
+ * private content to the inviter (and the inviter's to them).
  */
 export async function getVisibleOwnerIds(callerId: string): Promise<string[]> {
   if (!UUID_RE.test(callerId)) return [callerId]
@@ -22,7 +26,13 @@ export async function getVisibleOwnerIds(callerId: string): Promise<string[]> {
     .selectDistinct({ userId: schema.householdMembers.userId })
     .from(schema.householdMembers)
     .innerJoin(mine, eq(mine.householdId, schema.householdMembers.householdId))
-    .where(eq(mine.userId, callerId))
+    .where(
+      and(
+        eq(mine.userId, callerId),
+        isNotNull(mine.acceptedAt),
+        isNotNull(schema.householdMembers.acceptedAt),
+      ),
+    )
 
   const ids = new Set<string>(rows.map((r) => r.userId))
   ids.add(callerId)
@@ -30,7 +40,8 @@ export async function getVisibleOwnerIds(callerId: string): Promise<string[]> {
 }
 
 /**
- * True when the caller has role 'viewer' in ANY of their households.
+ * True when the caller has an ACCEPTED 'viewer' membership in ANY household
+ * (a pending viewer invite must not block the invitee's own writes).
  * Conservative rule for write-blocking: since a member's menu entries are
  * visible to every household they belong to, someone who is a viewer anywhere
  * must not create content that would surface inside that household. The
@@ -45,7 +56,11 @@ export async function isViewerAnywhere(callerId: string): Promise<boolean> {
     .select({ userId: schema.householdMembers.userId })
     .from(schema.householdMembers)
     .where(
-      and(eq(schema.householdMembers.userId, callerId), eq(schema.householdMembers.role, 'viewer')),
+      and(
+        eq(schema.householdMembers.userId, callerId),
+        eq(schema.householdMembers.role, 'viewer'),
+        isNotNull(schema.householdMembers.acceptedAt),
+      ),
     )
     .limit(1)
 

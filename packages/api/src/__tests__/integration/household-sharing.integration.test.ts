@@ -34,6 +34,7 @@ describe.skipIf(skip).sequential('Household sharing: reads and viewer enforcemen
   let viewer: { token: string; userId: string }
   let outsider: { token: string; userId: string }
   let ownerRecipeId: string
+  let householdId: string
 
   beforeAll(async () => {
     await resetTestDb()
@@ -48,7 +49,7 @@ describe.skipIf(skip).sequential('Household sharing: reads and viewer enforcemen
       headers: auth(owner.token),
       body: JSON.stringify({ name: 'Casa Compartida' }),
     })
-    const householdId = (await hhRes.json()).id
+    householdId = (await hhRes.json()).id
 
     for (const [user, role] of [
       [member, 'member'],
@@ -60,6 +61,12 @@ describe.skipIf(skip).sequential('Household sharing: reads and viewer enforcemen
         body: JSON.stringify({ userId: user.userId, role }),
       })
       expect(inviteRes.status).toBe(201)
+      // Sharing starts only once the invitee accepts.
+      const acceptRes = await app.request(`/v1/households/${householdId}/accept`, {
+        method: 'POST',
+        headers: auth(user.token),
+      })
+      expect(acceptRes.status).toBe(200)
     }
 
     const recipeRes = await app.request('/v1/recipes', {
@@ -230,6 +237,78 @@ describe.skipIf(skip).sequential('Household sharing: reads and viewer enforcemen
         method: 'PATCH',
         headers: auth(member.token),
         body: JSON.stringify({ servings: 6 }),
+      })
+      expect(res.status).toBe(200)
+    })
+  })
+
+  // Regression: a pending (not yet accepted) invite used to share content in
+  // both directions immediately, so inviting any registered email exposed that
+  // user's private recipes/menu/pantry — and a pending *viewer* invite blocked
+  // the invitee's own menu writes.
+  describe('pending invitations share nothing', () => {
+    let invitee: { token: string; userId: string }
+    let inviteeRecipeId: string
+
+    beforeAll(async () => {
+      invitee = await register(`invitee-${Date.now()}@example.com`)
+      const recipeRes = await app.request('/v1/recipes', {
+        method: 'POST',
+        headers: auth(invitee.token),
+        body: JSON.stringify({ ...baseRecipe, title: 'Receta Privada del Invitado' }),
+      })
+      inviteeRecipeId = (await recipeRes.json()).id
+
+      const inviteRes = await app.request(`/v1/households/${householdId}/invite`, {
+        method: 'POST',
+        headers: auth(owner.token),
+        body: JSON.stringify({ userId: invitee.userId, role: 'viewer' }),
+      })
+      expect(inviteRes.status).toBe(201)
+      expect((await inviteRes.json()).acceptedAt).toBeNull()
+    })
+
+    it("the inviter cannot see the invitee's private recipe", async () => {
+      const detailRes = await app.request(`/v1/recipes/${inviteeRecipeId}`, {
+        headers: auth(owner.token),
+      })
+      expect(detailRes.status).toBe(404)
+
+      const listRes = await app.request('/v1/recipes?limit=100', { headers: auth(owner.token) })
+      const ids = (await listRes.json()).map((r: { id: string }) => r.id)
+      expect(ids).not.toContain(inviteeRecipeId)
+    })
+
+    it("the invitee cannot see the household's recipes before accepting", async () => {
+      const res = await app.request(`/v1/recipes/${ownerRecipeId}`, {
+        headers: auth(invitee.token),
+      })
+      expect(res.status).toBe(404)
+    })
+
+    it('a pending viewer invite does not block the invitee from their own menu', async () => {
+      const res = await app.request('/v1/menu', {
+        method: 'POST',
+        headers: auth(invitee.token),
+        body: JSON.stringify({
+          date: '2026-07-09',
+          slot: 'Cena',
+          recipeId: inviteeRecipeId,
+          servings: 2,
+        }),
+      })
+      expect(res.status).toBe(200)
+    })
+
+    it('after accepting, the invitee sees the household recipes', async () => {
+      const acceptRes = await app.request(`/v1/households/${householdId}/accept`, {
+        method: 'POST',
+        headers: auth(invitee.token),
+      })
+      expect(acceptRes.status).toBe(200)
+
+      const res = await app.request(`/v1/recipes/${ownerRecipeId}`, {
+        headers: auth(invitee.token),
       })
       expect(res.status).toBe(200)
     })
