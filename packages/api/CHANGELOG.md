@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.3.1](https://github.com/edcrove/recetario/compare/api-v0.3.0...api-v0.3.1) (2026-09-30)
+
+
+### Bug Fixes
+
+* **api:** collections respect household visibility + add-to-collection IDOR guard ([561a315](https://github.com/edcrove/recetario/commit/561a315ddb20f5add1c6ca6a3c854fdcf6eb5519))
+* **api:** collections respect household visibility + validate add readability ([7102423](https://github.com/edcrove/recetario/commit/7102423ded5569d1b69bcd93fe1c89fd85131834))
+* **build:** exclude tests from production build so the API image builds + CI gate ([3b32889](https://github.com/edcrove/recetario/commit/3b3288986ebe49ca7f7f64ee04fd43561ca2360f))
+* **build:** exclude tests from the production tsc build so images build ([e7c7a31](https://github.com/edcrove/recetario/commit/e7c7a3157686e4069b24c79493885a81b493df74))
+* **deps:** adapt test suites to vitest 4 ([5bae46a](https://github.com/edcrove/recetario/commit/5bae46a963deef235eaa3bc96782730f4c3be783))
+
 ## [0.3.0](https://github.com/edcrove/recetario/compare/api-v0.2.0...api-v0.3.0) (2026-07-13)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/edcrove/recetario/compare/recetario-app-v0.3.0...recetario-app-v0.3.1) (2026-09-30)
+
+
+### Bug Fixes
+
+* **deps:** adapt test suites to vitest 4 ([5bae46a](https://github.com/edcrove/recetario/commit/5bae46a963deef235eaa3bc96782730f4c3be783))
+
 ## [0.3.0](https://github.com/edcrove/recetario/compare/recetario-app-v0.2.0...recetario-app-v0.3.0) (2026-07-13)
 
 
