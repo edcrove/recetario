@@ -1,9 +1,9 @@
 #!/bin/sh
 set -e
 
-echo "Running database migrations..."
+echo "Running release (migrations + base seed)..."
 cd /app/packages/api
-npx drizzle-kit migrate
+node dist/scripts/release.js
 
 echo "Starting API..."
 exec node dist/index.js

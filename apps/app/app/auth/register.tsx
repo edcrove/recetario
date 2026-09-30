@@ -53,6 +53,8 @@ export default function RegisterScreen() {
       const msg = e instanceof Error ? e.message : ''
       if (msg.includes('409') || msg.includes('already')) {
         setError('Este email ya está registrado.')
+      } else if (msg.includes('403') || msg.includes('closed')) {
+        setError('El registro está cerrado. Pedile una cuenta a quien administra tu hogar.')
       } else {
         setError('Error al registrarse. Intentá de nuevo.')
       }

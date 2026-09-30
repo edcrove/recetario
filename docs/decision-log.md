@@ -14,6 +14,20 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
 
 ## 2026-09-30 — Dependency & maintenance session (PRs #125, #140, #147, #148, #124)
 
+### D-2026-09-30-12 · Production startup guard, closed sign-up and release step
+
+- **Decision**: with `NODE_ENV=production` the API refuses to start unless `JWT_SECRET` is
+  ≥64 hex chars and not a repo placeholder, and `DEV_API_KEY` is unset. docker-compose and
+  CI mimic production but set `ALLOW_DEV_SECRETS=true`, which keeps only the "secret is
+  set" check. Sign-up is closed in production unless `REGISTRATION_OPEN=true`. Every start
+  runs `release.ts` (Drizzle migrator + base taxonomy/ingredient seed, no demo recipes)
+  before the server; the Docker entrypoint uses the same step.
+- **Why**: deploy story acceptance criteria (ADR-012). An env flag, not invite tokens,
+  because the family is ~4 people and accounts are opened once.
+- **Where it lives**: `packages/api/src/config/production.ts`, `src/scripts/release.ts`,
+  `railway.json`, `docs/deploy/railway.md`.
+- **Status**: active. Revisit sign-up (invite tokens) when non-family users arrive.
+
 ### D-2026-09-30-10 · Per-IP rate limit on login and register
 
 - **Decision**: `POST /auth/login` and `POST /auth/register` share a per-IP sliding
