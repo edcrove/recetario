@@ -10,7 +10,15 @@
       "mcp__claude_ai_Notion__notion-get-users",
       "mcp__claude_ai_Notion__notion-create-pages",
       "mcp__claude_ai_Notion__notion-update-page",
-
+      "mcp__Notion__notion-fetch",
+      "mcp__Notion__notion-search",
+      "mcp__Notion__notion-query-data-sources",
+      "mcp__Notion__notion-query-database-view",
+      "mcp__Notion__notion-get-comments",
+      "mcp__Notion__notion-get-teams",
+      "mcp__Notion__notion-get-users",
+      "mcp__Notion__notion-create-pages",
+      "mcp__Notion__notion-update-page",
       "Bash(pnpm test)",
       "Bash(pnpm --filter @recetario/api test)",
       "Bash(pnpm --filter @recetario/api test:coverage)",
@@ -22,27 +30,30 @@
       "Bash(pnpm lint)",
       "Bash(pnpm build)",
       "Bash(pnpm ci:local)",
+      "Bash(npx prettier --check *)",
+      "Bash(pnpm audit *)",
+      "Bash(pnpm install --frozen-lockfile)",
+      "Bash(pnpm --filter recetario-app test:screens)",
+      "Bash(pnpm --filter recetario-app test:coverage)",
+      "Bash(pnpm --filter @recetario/mcp test:coverage)",
+      "Bash(pnpm --filter @recetario/shared test:coverage)",
       "Bash(pnpm --filter recetario-app exec tsc --noEmit)",
       "Bash(pnpm --filter recetario-app exec tsc --noEmit --project tsconfig.screens.json)",
       "Bash(pnpm --filter @recetario/api exec tsc --noEmit)",
       "Bash(pnpm --filter @recetario/shared exec tsc --noEmit)",
       "Bash(pnpm --filter @recetario/mcp exec tsc --noEmit)",
-
       "Bash(pnpm --filter @recetario/api exec drizzle-kit generate)",
       "Bash(pnpm --filter @recetario/api exec drizzle-kit migrate)",
       "Bash(pnpm --filter @recetario/api exec drizzle-kit studio)",
-
       "Bash(docker compose up -d)",
       "Bash(docker compose exec postgres pg_isready *)",
       "Bash(docker compose ps)",
-
       "Bash(gh pr view *)",
       "Bash(gh pr list *)",
       "Bash(gh run list *)",
       "Bash(gh run view *)",
       "Bash(gh repo view *)",
       "Bash(gh api repos/edcrove/recetario *)",
-
       "Bash(git log *)",
       "Bash(git branch *)",
       "Bash(git status)",
@@ -54,7 +65,7 @@
   "hooks": {
     "PostToolUse": [
       {
-        "matcher": "mcp__claude_ai_Notion__notion-update-page",
+        "matcher": "mcp__(claude_ai_)?Notion__notion-update-page",
         "hooks": [
           {
             "type": "command",

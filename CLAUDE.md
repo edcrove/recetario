@@ -62,6 +62,7 @@ pnpm e2e:up        # build + start the isolated E2E stack
 pnpm e2e:reset     # truncate + reseed taxonomy + 4 demo accounts (E2E DB only)
 pnpm e2e:local     # reset → run Playwright against :8081 → reset (clean before + after)
 pnpm e2e:local recipes.spec.ts   # same, filtered to one spec
+E2E_SCREENSHOTS=true pnpm e2e:local   # + full-page screenshot per test and the visual tour (every screen × phone/desktop × light/dark) in apps/app/test-results/
 pnpm e2e:down      # stop the E2E stack
 ```
 
@@ -261,6 +262,29 @@ pnpm --filter @recetario/api exec tsx src/scripts/generate-key.ts
 - **Screen logic**: extract to pure utils in `src/utils/` before testing. Do not test JSX directly unless necessary.
 - **MCP server tools**: registered via `registerAllTools()` — add new tools there.
 - **React Native Web gotchas**: `Alert.alert()` is a documented no-op on web (`static alert() {}` in react-native-web). Use `src/utils/platformAlert.ts` (`confirmAsync`/`notify`) instead of `Alert.alert` directly for any confirm dialog or error notification that must work on web. Audit other RN-only APIs (`Vibration`, `Share`, `Clipboard`, `Linking`) for the same class of silent-no-op bug before relying on them in web-facing flows.
+
+## Agent harness (Claude Code)
+
+- **Where it lives**: `.claude/settings.json` (permissions + hooks), `.claude/skills/`
+  (repo skills, e.g. `auditar`) and `.claude/agents/` (subagent types, e.g. the read-only
+  `audit-deep` / `audit-persona` auditors). Keep them model-agnostic: subagents inherit the session
+  model — do not pin model aliases or IDs in skills, settings or code unless a skill
+  documents a deliberate cheaper pass.
+- **Effort**: set `effort` in skill/agent frontmatter by the kind of work — `high` for
+  code tracing, security, correctness and consolidation; `medium` for flow/product
+  judgement and routine reviews; `low` for mechanical tasks. The `Agent` tool has no
+  per-call effort, so per-subagent effort needs an agent type in `.claude/agents/`.
+- **Notion tool names differ by surface**: `mcp__claude_ai_Notion__*` (desktop/CLI
+  connector) and `mcp__Notion__*` (cloud sessions). Permissions and hook matchers list
+  or match both.
+- **Cloud sessions** (claude.ai/code): no Docker (integration + E2E run only in CI), no
+  `gh` CLI (use the GitHub MCP tools), outbound HTTP goes through a proxy (e.g.
+  `npx expo install --check` cannot reach the Expo API — compare against
+  `expo/bundledNativeModules.json` instead).
+- **Pushing**: run `pnpm ci:local` (plus `test:screens` and the per-package
+  `test:coverage` when tests or deps change) before `SKIP_PRE_PUSH=1 git push`; the
+  pre-push hook is only skipped once that evidence exists.
+- **Background agents** notify on completion — never poll or sleep waiting for them.
 
 ## Full project audit: "Auditar"
 

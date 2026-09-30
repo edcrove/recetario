@@ -366,11 +366,15 @@ jobs:
         # to blow past even generous per-assertion timeouts under load —
         # cap concurrency here without lowering the account/worker ceiling
         # used elsewhere (playwright.config.ts, local runs).
-        run: pnpm --filter recetario-app exec playwright test e2e/smoke.spec.ts e2e/auth.spec.ts e2e/recipes.spec.ts e2e/menu.spec.ts e2e/weekly-menu.spec.ts e2e/cook-mode.spec.ts e2e/profile-menu.spec.ts e2e/coverage-gaps.spec.ts e2e/coverage-round4.spec.ts e2e/library.spec.ts e2e/viewer-role.spec.ts e2e/nutrition.spec.ts e2e/theme.spec.ts e2e/import.spec.ts e2e/shopping-list.spec.ts e2e/ingredients-config.spec.ts e2e/pantry.spec.ts e2e/heladera.spec.ts --workers=2
+        run: pnpm --filter recetario-app exec playwright test e2e/smoke.spec.ts e2e/auth.spec.ts e2e/recipes.spec.ts e2e/menu.spec.ts e2e/weekly-menu.spec.ts e2e/cook-mode.spec.ts e2e/profile-menu.spec.ts e2e/coverage-gaps.spec.ts e2e/coverage-round4.spec.ts e2e/library.spec.ts e2e/viewer-role.spec.ts e2e/nutrition.spec.ts e2e/theme.spec.ts e2e/import.spec.ts e2e/shopping-list.spec.ts e2e/ingredients-config.spec.ts e2e/pantry.spec.ts e2e/heladera.spec.ts e2e/visual-tour.spec.ts --workers=2
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:8090
           EXPO_PUBLIC_API_URL: http://localhost:3000
           E2E_COVERAGE: 'true'
+          # Full-page screenshot of every test's final state + the visual tour
+          # (every screen × phone/desktop × light/dark), uploaded below for the
+          # Auditar QA persona's visual review.
+          E2E_SCREENSHOTS: 'true'
 
       - name: Generate E2E coverage report
         if: always()
@@ -397,6 +401,14 @@ jobs:
           name: playwright-report
           path: apps/app/playwright-report/
           retention-days: 7
+
+      - name: Upload E2E screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-screenshots
+          path: apps/app/test-results/**/*.png
+          retention-days: 14
 
       - name: Upload E2E coverage report
         if: always()

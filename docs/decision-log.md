@@ -14,6 +14,47 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
 
 ## 2026-09-30 — Dependency & maintenance session (PRs #125, #140, #147, #148, #124)
 
+### D-2026-09-30-8 · Visual regression screenshots reviewed by the QA auditor
+
+- **Decision**: with `E2E_SCREENSHOTS=true`, Playwright keeps a full-page screenshot of
+  every E2E test's final state, and `e2e/visual-tour.spec.ts` captures every screen at
+  phone/desktop width in light/dark mode. CI always runs it and uploads the
+  `e2e-screenshots` artifact (14 days). The Auditar QA persona must review every
+  screenshot for aesthetic, design-consistency and workflow issues.
+- **Why**: the E2E suite asserts behaviour, not looks. Visual and flow problems (e.g. a
+  header that stays white in dark mode) were invisible to every automated check.
+- **Where it lives**: `apps/app/playwright.config.ts`, `apps/app/e2e/visual-tour.spec.ts`,
+  `.github/workflows/ci.yml` (E2E job), `.claude/skills/auditar/SKILL.md` (prerequisite 4,
+  persona 1).
+- **Status**: active. The tour asserts that every screen renders; it does not compare
+  pixels. Add pixel baselines only if the review becomes repetitive.
+
+### D-2026-09-30-7 · Effort levels per skill and subagent
+
+- **Decision**: the `auditar` skill runs at `effort: high`. Its personas run as two
+  read-only agent types: `audit-deep` (`high`: QA, Backend, Frontend, Nutrition, Clean
+  Code, QA Automation, Planning sync) and `audit-persona` (`medium`: UX, parent user,
+  read-only user, Product, Data Science). New skills/agents declare `effort` by kind of
+  work (see CLAUDE.md, Agent harness).
+- **Why**: correctness/security/drift findings need deep tracing; persona walkthroughs
+  don't gain findings from more effort, only cost. The `Agent` tool has no per-call
+  effort, so agent types carry it. They also enforce "investigate only" (no edits, no
+  Notion writes).
+- **Where it lives**: `.claude/skills/auditar/SKILL.md`, `.claude/agents/audit-*.md`.
+- **Status**: active
+
+### D-2026-09-30-6 · Model-agnostic agent harness
+
+- **Decision**: repo skills and settings do not pin model aliases or IDs; subagents
+  (e.g. the 12 Auditar personas) inherit the session model. A cheaper alias is passed
+  only when the user asks for a lighter pass. Permissions cover the Notion connector
+  names of both the desktop/CLI and cloud surfaces.
+- **Why**: the Auditar skill pinned a weaker default model and the harness only matched
+  desktop Notion tool names, so cloud sessions prompted for every Notion call.
+- **Where it lives**: `.claude/skills/auditar/SKILL.md`, `.claude/settings.json`,
+  `CLAUDE.md` (Agent harness section).
+- **Status**: active
+
 ### D-2026-09-30-1 · Collections respect household visibility
 
 - **Decision**: a recipe added to a collection renders for household members if the
