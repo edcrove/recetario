@@ -14,6 +14,18 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
 
 ## 2026-09-30 — Dependency & maintenance session (PRs #125, #140, #147, #148, #124)
 
+### D-2026-09-30-6 · Model-agnostic agent harness
+
+- **Decision**: repo skills and settings do not pin model aliases or IDs; subagents
+  (e.g. the 12 Auditar personas) inherit the session model. A cheaper alias is passed
+  only when the user asks for a lighter pass. Permissions cover the Notion connector
+  names of both the desktop/CLI and cloud surfaces.
+- **Why**: the Auditar skill pinned a weaker default model and the harness only matched
+  desktop Notion tool names, so cloud sessions prompted for every Notion call.
+- **Where it lives**: `.claude/skills/auditar/SKILL.md`, `.claude/settings.json`,
+  `CLAUDE.md` (Agent harness section).
+- **Status**: active
+
 ### D-2026-09-30-1 · Collections respect household visibility
 
 - **Decision**: a recipe added to a collection renders for household members if the
