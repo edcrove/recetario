@@ -19,6 +19,8 @@ export function createApiClient() {
         const body = await res.json().catch(() => ({}))
         throw new Error(`API error ${res.status}: ${JSON.stringify(body)}`)
       }
+      // DELETEs and other actions answer 204 with no body: that is success, not an error
+      if (res.status === 204) return null
       return res.json()
     },
   }

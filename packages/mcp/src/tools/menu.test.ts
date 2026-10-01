@@ -98,7 +98,25 @@ describe('menu tools', () => {
       expect(url).toContain('/v1/menu/2026-07-07/')
       expect(url).toContain('Cena')
       expect(opts.method).toBe('DELETE')
-      expect(result.content[0].text).toContain('Removed')
+      expect(result.content[0].text).toContain('Cleared')
+    })
+
+    it('with recipeId removes only that recipe, and a real 204 counts as success', async () => {
+      const mockFetch = vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
+      vi.stubGlobal('fetch', mockFetch)
+
+      const server = createMcpServer()
+      registerMenuTools(server, createApiClient())
+      const rid = '550e8400-e29b-41d4-a716-446655440000'
+
+      const result = (await getToolHandler(server, 'removeFromMenu')(
+        { date: '2026-07-07', slot: 'Cena', recipeId: rid },
+        {},
+      )) as { content: Array<{ text: string }> }
+
+      const [url] = mockFetch.mock.calls[0] as [string, RequestInit]
+      expect(url).toMatch(new RegExp(`/v1/menu/2026-07-07/Cena/${rid}$`))
+      expect(result.content[0]?.text).toContain(`Removed recipe ${rid}`)
     })
 
     it('encodes slot with slashes (Snacks/Otros)', async () => {

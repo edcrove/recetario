@@ -7,8 +7,6 @@ export const cookSessionsRoute = createRouter()
 
 cookSessionsRoute.use('*', authMiddleware)
 
-const errorSchema = z.object({ error: z.string() })
-
 const sessionSchema = z.object({
   id: z.uuid(),
   recipeId: z.uuid().nullable(),
@@ -156,7 +154,7 @@ cookSessionsRoute.openapi(statsRoute, async (c) => {
   })
 })
 
-// GET /v1/cook-sessions (all sessions for user, for error 400 missing recipeId awareness)
+// GET /v1/cook-sessions — the user's sessions, newest first; optionally for one recipe
 const listRoute = defineRoute({
   method: 'get',
   path: '/',
@@ -173,7 +171,6 @@ const listRoute = defineRoute({
       content: { 'application/json': { schema: z.array(sessionSchema) } },
       description: 'OK',
     },
-    400: { content: { 'application/json': { schema: errorSchema } }, description: 'Bad request' },
   },
 })
 
@@ -182,9 +179,9 @@ cookSessionsRoute.openapi(listRoute as any, async (c: any) => {
   const ownerId = c.get('ownerId')
   const { recipeId, limit = 20, offset = 0 } = c.req.valid('query')
 
-  if (!recipeId) return c.json({ error: 'recipeId query param required' }, 400)
-
-  const sessions = await cookSessionsRepository.listByRecipe(ownerId, recipeId, limit, offset)
+  const sessions = recipeId
+    ? await cookSessionsRepository.listByRecipe(ownerId, recipeId, limit, offset)
+    : await cookSessionsRepository.listRecent(ownerId, limit, offset)
   return c.json(
     sessions.map((s) => ({
       id: s.id,
