@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { scaleQuantity } from './scaling.js'
+import { scaleQuantity, isCountUnit, roundCount } from './scaling.js'
 
 describe('scaleQuantity', () => {
   it('scales up (200 * 8/4 = 400)', () => {
@@ -24,5 +24,22 @@ describe('scaleQuantity', () => {
 
   it('returns same value when baseServings equals targetServings', () => {
     expect(scaleQuantity(150, 4, 4)).toBe(150)
+  })
+})
+
+describe('count units', () => {
+  it('treats bare counts and unit/clove/slice as counts', () => {
+    expect(isCountUnit(null)).toBe(true)
+    expect(isCountUnit(undefined)).toBe(true)
+    expect(isCountUnit('clove')).toBe(true)
+    expect(isCountUnit('g')).toBe(false)
+  })
+
+  it('snaps to halves and never rounds a positive amount to zero', () => {
+    expect(roundCount(1.33)).toBe(1.5)
+    expect(roundCount(1.2)).toBe(1)
+    expect(roundCount(0.2)).toBe(0.5)
+    expect(roundCount(3)).toBe(3)
+    expect(roundCount(0)).toBe(0)
   })
 })

@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { formatQuantity, displayIngredient, unitLabel } from '../utils/displayIngredient'
+import {
+  formatQuantity,
+  formatCount,
+  displayIngredient,
+  unitLabel,
+} from '../utils/displayIngredient'
 import type { Ingredient } from '@recetario/shared'
 
 // regression: bug 403 — units were shown in English
@@ -119,5 +124,22 @@ describe('displayIngredient', () => {
   it('metric mode: count units stay as written', () => {
     const ing: Ingredient = { name: 'Huevo', quantity: 2, unit: 'unit' }
     expect(displayIngredient(ing, 1, 1, 'metric')).toBe('2 u Huevo')
+  })
+
+  it('scaled counts snap to halves and read as fractions (never 1.33 u huevos)', () => {
+    const eggs: Ingredient = { name: 'Huevos', quantity: 2, unit: 'unit' }
+    expect(displayIngredient(eggs, 3, 2, 'cooking')).toBe('1½ u Huevos')
+    const garlic: Ingredient = { name: 'Ajo', quantity: 1, unit: 'clove' }
+    expect(displayIngredient(garlic, 4, 1, 'cooking')).toBe('½ diente Ajo')
+    const lemons: Ingredient = { name: 'Limones', quantity: 3, unit: null }
+    expect(displayIngredient(lemons, 2, 3, 'cooking')).toBe('4½ Limones')
+  })
+})
+
+describe('formatCount', () => {
+  it('uses ½ for halves and falls back otherwise', () => {
+    expect(formatCount(0.5)).toBe('½')
+    expect(formatCount(2.5)).toBe('2½')
+    expect(formatCount(3)).toBe('3')
   })
 })

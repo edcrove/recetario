@@ -1,4 +1,11 @@
-import { scaleQuantity, convertUnit, bestVolumeUnit, VOLUME_TO_ML } from '@recetario/shared'
+import {
+  scaleQuantity,
+  convertUnit,
+  bestVolumeUnit,
+  VOLUME_TO_ML,
+  isCountUnit,
+  roundCount,
+} from '@recetario/shared'
 import type { Ingredient } from '@recetario/shared'
 
 export type DisplayMode = 'cooking' | 'metric' | 'imperial'
@@ -28,6 +35,13 @@ export function formatQuantity(qty: number | null): string {
   return qty.toFixed(2).replace(/\.?0+$/, '')
 }
 
+/** Counts read as kitchen fractions: 1.5 → "1½", 0.5 → "½". */
+export function formatCount(qty: number): string {
+  const whole = Math.floor(qty)
+  if (qty - whole !== 0.5) return formatQuantity(qty)
+  return whole === 0 ? '½' : `${whole}½`
+}
+
 export function displayIngredient(
   ing: Ingredient,
   baseServings: number,
@@ -48,7 +62,10 @@ export function displayIngredient(
     finalQty = convertUnit(scaled, ing.unit, finalUnit)
   }
 
-  const qtyStr = formatQuantity(finalQty)
+  const qtyStr =
+    finalQty !== null && isCountUnit(finalUnit)
+      ? formatCount(roundCount(finalQty))
+      : formatQuantity(finalQty)
   const parts = [qtyStr, unitLabel(finalUnit), ing.presentation, ing.name].filter(Boolean)
   return parts.join(' ') + (ing.note ? ` (${ing.note})` : '')
 }
