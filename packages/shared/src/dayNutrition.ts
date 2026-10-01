@@ -1,14 +1,17 @@
 import type { Nutrition } from './schema.js'
 import type { NutritionTargets } from './schema.js'
 
-/** One planned menu entry contributing to a day's nutrition. */
+/**
+ * One planned menu entry contributing to a day's nutrition. The rollup is
+ * per-person intake: each planned dish counts as one portion for the person
+ * whose target it is compared against, however many servings the household
+ * cooks (decision D-2026-10-01-5).
+ */
 export interface DayNutritionEntry {
   /** Meal category slug (e.g. 'almuerzo'), for the per-meal breakdown. */
   mealCategory?: string
   /** Per-serving nutrition of the recipe; null when the recipe has no data. */
   nutrition: Nutrition | null
-  /** Number of servings planned for this entry. */
-  servings: number
 }
 
 export interface MacroTotals {
@@ -51,12 +54,12 @@ function round1(n: number): number {
   return Math.round(n * 10) / 10
 }
 
-function addScaled(acc: MacroTotals, n: Nutrition, servings: number): MacroTotals {
+function addPortion(acc: MacroTotals, n: Nutrition): MacroTotals {
   return {
-    calories: acc.calories + n.calories * servings,
-    protein_g: acc.protein_g + n.protein_g * servings,
-    carbs_g: acc.carbs_g + n.carbs_g * servings,
-    fat_g: acc.fat_g + n.fat_g * servings,
+    calories: acc.calories + n.calories,
+    protein_g: acc.protein_g + n.protein_g,
+    carbs_g: acc.carbs_g + n.carbs_g,
+    fat_g: acc.fat_g + n.fat_g,
   }
 }
 
@@ -70,7 +73,8 @@ function roundTotals(t: MacroTotals): MacroTotals {
 }
 
 /**
- * Rolls up a day's planned menu into macro totals and, when a daily target is
+ * Rolls up a day's planned menu into one person's macro intake (one portion
+ * per planned dish) and, when a daily target is
  * set, a signed delta (positive = over the target, negative = under). Recipes
  * without nutrition data are excluded and flagged via `partial`/`missingCount`
  * — never guessed. Pure and deterministic.
@@ -88,10 +92,10 @@ export function computeDayNutrition(
       missingCount++
       continue
     }
-    totals = addScaled(totals, entry.nutrition, entry.servings)
+    totals = addPortion(totals, entry.nutrition)
     if (entry.mealCategory) {
       const prev = mealAcc.get(entry.mealCategory) ?? { ...ZERO }
-      mealAcc.set(entry.mealCategory, addScaled(prev, entry.nutrition, entry.servings))
+      mealAcc.set(entry.mealCategory, addPortion(prev, entry.nutrition))
     }
   }
 

@@ -39,7 +39,7 @@ export function registerNutritionGoalTools(
   // getDayNutrition
   server.tool(
     'getDayNutrition',
-    "Roll up one day's planned menu into macro totals and, when a daily target is set, the signed delta vs it (positive = over the target, negative = under). Includes a per-meal breakdown and a partial flag when a planned recipe lacks nutrition data (those are excluded, never guessed). Use it to plan or adjust a day toward the user's goals.",
+    "Roll up one day's planned menu into one person's macro intake (one portion per planned dish, whatever servings the household cooks) and, when a daily target is set, the signed delta vs it (positive = over the target, negative = under). Includes a per-meal breakdown and a partial flag when a planned recipe lacks nutrition data (those are excluded, never guessed). Use it to plan or adjust a day toward the user's goals.",
     {
       date: z
         .string()

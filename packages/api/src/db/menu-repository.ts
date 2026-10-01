@@ -302,7 +302,7 @@ export class MenuRepository {
 
   /**
    * Everything the pure computeDayNutrition() needs for one day: each entry's
-   * recipe per-serving nutrition, planned servings and slot (household-shared,
+   * recipe per-serving nutrition and slot (household-shared,
    * same rule as the week view), plus the caller's daily nutrition target.
    * Kept in one method so the route never touches getDb directly.
    */
@@ -316,7 +316,6 @@ export class MenuRepository {
     const rows = await db
       .select({
         slot: schema.menuEntries.slot,
-        servings: schema.menuEntries.servings,
         nutrition: schema.recipes.nutrition,
       })
       .from(schema.menuEntries)
@@ -333,7 +332,6 @@ export class MenuRepository {
     const entries: DayNutritionEntry[] = rows.map((r) => ({
       mealCategory: r.slot,
       nutrition: (r.nutrition as Nutrition | null) ?? null,
-      servings: r.servings,
     }))
 
     // user_profiles.user_id is a uuid FK to users; API-key/legacy owners (non-uuid)

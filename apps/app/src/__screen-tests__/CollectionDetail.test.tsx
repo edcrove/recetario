@@ -2,16 +2,27 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
-const { mockCollectionRecipes, mockRemoveFromCollection, mockPush } = vi.hoisted(() => ({
+const {
+  mockCollectionRecipes,
+  mockRemoveFromCollection,
+  mockPush,
+  mockCollections,
+  params,
+  headerTitle,
+} = vi.hoisted(() => ({
   mockCollectionRecipes: vi.fn(),
   mockRemoveFromCollection: vi.fn().mockResolvedValue(undefined),
   mockPush: vi.fn(),
+  mockCollections: vi.fn(),
+  params: { current: {} as Record<string, string> },
+  headerTitle: { current: '' },
 }))
 
 vi.mock('../api/client', () => ({
   api: {
     taxonomy: {
       collectionRecipes: mockCollectionRecipes,
+      collections: mockCollections,
       removeFromCollection: mockRemoveFromCollection,
     },
   },
@@ -19,7 +30,13 @@ vi.mock('../api/client', () => ({
 
 vi.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPush, back: vi.fn(), replace: vi.fn() }),
-  useLocalSearchParams: () => ({ id: 'col-1', name: 'Postres', emoji: '🍰' }),
+  useLocalSearchParams: () => params.current,
+  Stack: {
+    Screen: ({ options }: { options: { title: string } }) => {
+      headerTitle.current = options.title
+      return null
+    },
+  },
 }))
 
 vi.mock('../utils/platformAlert', () => ({
@@ -36,6 +53,9 @@ function wrap(ui: React.ReactElement) {
 
 describe('CollectionDetailScreen', () => {
   beforeEach(() => {
+    params.current = { id: 'col-1', name: 'Postres', emoji: '🍰' }
+    headerTitle.current = ''
+    mockCollections.mockReset().mockResolvedValue([])
     mockCollectionRecipes.mockReset()
     mockRemoveFromCollection.mockReset().mockResolvedValue(undefined)
     mockPush.mockReset()
@@ -45,12 +65,36 @@ describe('CollectionDetailScreen', () => {
     mockCollectionRecipes.mockResolvedValue([])
     wrap(<CollectionDetailScreen />)
     expect(await screen.findByTestId('collection-detail-title')).toHaveTextContent('🍰 Postres')
+    expect(headerTitle.current).toBe('Postres')
+    expect(mockCollections).not.toHaveBeenCalled()
+  })
+
+  it('falls back to the collections list for the name when opened from a link', async () => {
+    params.current = { id: 'col-1' }
+    mockCollections.mockResolvedValue([
+      { id: 'col-1', name: 'Guisos', emoji: '🍲', description: null, recipeCount: 0 },
+    ])
+    mockCollectionRecipes.mockResolvedValue([])
+    wrap(<CollectionDetailScreen />)
+    await waitFor(() =>
+      expect(screen.getByTestId('collection-detail-title')).toHaveTextContent('🍲 Guisos'),
+    )
+    expect(headerTitle.current).toBe('Guisos')
+  })
+
+  it('uses a generic title when the collection is unknown', async () => {
+    params.current = { id: 'col-x' }
+    mockCollectionRecipes.mockResolvedValue([])
+    wrap(<CollectionDetailScreen />)
+    expect(await screen.findByTestId('collection-detail-title')).toHaveTextContent('📋 Colección')
   })
 
   it('shows an empty state when the collection has no recipes', async () => {
     mockCollectionRecipes.mockResolvedValue([])
     wrap(<CollectionDetailScreen />)
-    expect(await screen.findByTestId('collection-detail-empty')).toBeInTheDocument()
+    expect(await screen.findByTestId('collection-detail-empty')).toHaveTextContent(
+      'Guardar en colección',
+    )
   })
 
   it('renders each recipe in the collection', async () => {

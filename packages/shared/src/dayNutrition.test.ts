@@ -17,13 +17,13 @@ const target: NutritionTargets = {
 }
 
 describe('computeDayNutrition', () => {
-  it('sums per-serving nutrition times entry servings', () => {
+  it("sums one portion per planned dish (a person's intake, not the household's)", () => {
     const entries: DayNutritionEntry[] = [
-      { nutrition: N(400, 20, 40, 10), servings: 2 }, // 800/40/80/20
-      { nutrition: N(300, 15, 30, 5), servings: 1 }, // 300/15/30/5
+      { nutrition: N(400, 20, 40, 10) },
+      { nutrition: N(300, 15, 30, 5) },
     ]
     const r = computeDayNutrition(entries, null)
-    expect(r.totals).toEqual({ calories: 1100, protein_g: 55, carbs_g: 110, fat_g: 25 })
+    expect(r.totals).toEqual({ calories: 700, protein_g: 35, carbs_g: 70, fat_g: 15 })
     expect(r.target).toBeNull()
     expect(r.delta).toBeNull()
     expect(r.partial).toBe(false)
@@ -31,7 +31,7 @@ describe('computeDayNutrition', () => {
   })
 
   it('computes a signed delta vs the daily target (over positive, under negative)', () => {
-    const entries: DayNutritionEntry[] = [{ nutrition: N(2200, 90, 260, 80), servings: 1 }]
+    const entries: DayNutritionEntry[] = [{ nutrition: N(2200, 90, 260, 80) }]
     const r = computeDayNutrition(entries, target)
     expect(r.delta).toEqual({
       calories: 200, // over
@@ -44,9 +44,9 @@ describe('computeDayNutrition', () => {
 
   it('excludes recipes without nutrition and flags the day partial', () => {
     const entries: DayNutritionEntry[] = [
-      { nutrition: N(400, 20, 40, 10), servings: 1 },
-      { nutrition: null, servings: 2 },
-      { nutrition: null, servings: 1 },
+      { nutrition: N(400, 20, 40, 10) },
+      { nutrition: null },
+      { nutrition: null },
     ]
     const r = computeDayNutrition(entries, target)
     expect(r.totals).toEqual({ calories: 400, protein_g: 20, carbs_g: 40, fat_g: 10 })
@@ -56,9 +56,9 @@ describe('computeDayNutrition', () => {
 
   it('groups per-meal totals only for meals with entries', () => {
     const entries: DayNutritionEntry[] = [
-      { mealCategory: 'almuerzo', nutrition: N(400, 20, 40, 10), servings: 1 },
-      { mealCategory: 'almuerzo', nutrition: N(100, 5, 10, 2), servings: 1 },
-      { mealCategory: 'cena', nutrition: N(600, 30, 60, 15), servings: 1 },
+      { mealCategory: 'almuerzo', nutrition: N(400, 20, 40, 10) },
+      { mealCategory: 'almuerzo', nutrition: N(100, 5, 10, 2) },
+      { mealCategory: 'cena', nutrition: N(600, 30, 60, 15) },
     ]
     const r = computeDayNutrition(entries, null)
     expect(r.byMeal).toEqual([
@@ -71,7 +71,7 @@ describe('computeDayNutrition', () => {
   })
 
   it('leaves a macro delta null when that target is zero/unset', () => {
-    const r = computeDayNutrition([{ nutrition: N(400, 20, 40, 10), servings: 1 }], {
+    const r = computeDayNutrition([{ nutrition: N(400, 20, 40, 10) }], {
       daily_calories: 2000,
       daily_protein_g: 0,
       daily_carbs_g: 250,
@@ -81,7 +81,7 @@ describe('computeDayNutrition', () => {
   })
 
   it('leaves every delta null when all targets are zero', () => {
-    const r = computeDayNutrition([{ nutrition: N(400, 20, 40, 10), servings: 1 }], {
+    const r = computeDayNutrition([{ nutrition: N(400, 20, 40, 10) }], {
       daily_calories: 0,
       daily_protein_g: 0,
       daily_carbs_g: 0,
@@ -99,7 +99,10 @@ describe('computeDayNutrition', () => {
   })
 
   it('rounds calories to integers and macros to one decimal', () => {
-    const r = computeDayNutrition([{ nutrition: N(133.33, 7.77, 11.11, 3.33), servings: 3 }], null)
-    expect(r.totals).toEqual({ calories: 400, protein_g: 23.3, carbs_g: 33.3, fat_g: 10 })
+    const r = computeDayNutrition(
+      [{ nutrition: N(133.33, 7.77, 11.11, 3.33) }, { nutrition: N(133.33, 7.77, 11.11, 3.33) }],
+      null,
+    )
+    expect(r.totals).toEqual({ calories: 267, protein_g: 15.5, carbs_g: 22.2, fat_g: 6.7 })
   })
 })

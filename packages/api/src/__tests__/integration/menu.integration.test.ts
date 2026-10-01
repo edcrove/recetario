@@ -543,8 +543,10 @@ describe.skipIf(skip).sequential('Day nutrition rollup', () => {
     const res = await app.request(`/v1/menu/day-nutrition?date=${date}`, { headers: authFor() })
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.totals.calories).toBe(1500) // 500/serving × 3; no-nutrition Cena excluded
-    expect(body.delta.calories).toBe(-500)
+    // One person's portion (500/serving) even though 3 servings are planned;
+    // the no-nutrition Cena is excluded.
+    expect(body.totals.calories).toBe(500)
+    expect(body.delta.calories).toBe(-1500)
     expect(body.partial).toBe(true)
     expect(body.missingCount).toBe(1)
     expect(
