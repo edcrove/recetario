@@ -17,9 +17,9 @@ export function AllergenWarning({ recipe }: Props) {
 
   if (!profile) return null
 
-  const { matchedAllergens, unmetDietary } = checkAllergens(recipe, profile)
+  const { matchedAllergens, unmetDietary, unverifiedDietary } = checkAllergens(recipe, profile)
 
-  if (matchedAllergens.length === 0 && unmetDietary.length === 0) return null
+  if (matchedAllergens.length + unmetDietary.length + unverifiedDietary.length === 0) return null
 
   return (
     <View style={s.container}>
@@ -38,6 +38,16 @@ export function AllergenWarning({ recipe }: Props) {
           <Text style={s.text}>
             <Text style={s.bold}>No cumple: </Text>
             {unmetDietary.map((d) => DIETARY_LABELS[d] ?? d).join(', ')}
+          </Text>
+        </View>
+      )}
+      {unverifiedDietary.length > 0 && (
+        <View style={s.row}>
+          <Text style={s.icon}>ℹ️</Text>
+          <Text style={s.text}>
+            <Text style={s.bold}>Sin verificar: </Text>
+            {unverifiedDietary.map((d) => DIETARY_LABELS[d] ?? d).join(', ')} (la receta no lo
+            indica)
           </Text>
         </View>
       )}

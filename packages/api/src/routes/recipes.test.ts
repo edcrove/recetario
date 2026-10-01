@@ -222,6 +222,67 @@ describe('GET /v1/recipes/search', () => {
   })
 })
 
+describe('dietary tags vs ingredients', () => {
+  const URL = '/v1/recipes/550e8400-e29b-41d4-a716-446655440000'
+  const put = (body: unknown) =>
+    app.request(URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...AUTH_HEADERS },
+      body: JSON.stringify(body),
+    })
+
+  beforeEach(() => {
+    mockRepo.upsert.mockReset()
+    mockRepo.update.mockReset().mockResolvedValue(sampleRecipe)
+    mockRepo.findById.mockReset().mockResolvedValue(sampleRecipe)
+  })
+
+  it('POST rejects a vegano tag on a recipe with chorizo', async () => {
+    const res = await app.request('/v1/recipes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...AUTH_HEADERS },
+      body: JSON.stringify({
+        ...validCreateBody,
+        dietaryTags: ['vegano'],
+        ingredients: [{ name: 'Chorizo', quantity: 1, unit: 'unit' }],
+      }),
+    })
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body.details[0].message).toContain('vegano')
+    expect(body.details[0].message).toContain('Chorizo')
+    expect(mockRepo.upsert).not.toHaveBeenCalled()
+  })
+
+  it('PUT with both fields checks them without loading the recipe', async () => {
+    const res = await put({
+      dietaryTags: ['vegetariano'],
+      ingredients: [{ name: 'Pollo', quantity: 1, unit: 'unit' }],
+    })
+    expect(res.status).toBe(400)
+    expect(mockRepo.findById).not.toHaveBeenCalled()
+  })
+
+  it('PUT with only tags checks them against the stored ingredients', async () => {
+    // stored: Huevos → vegano conflicts, vegetariano is fine
+    expect((await put({ dietaryTags: ['vegano'] })).status).toBe(400)
+    expect((await put({ dietaryTags: ['vegetariano'] })).status).toBe(200)
+  })
+
+  it('PUT with only ingredients checks them against the stored tags', async () => {
+    mockRepo.findById.mockResolvedValue({ ...sampleRecipe, dietaryTags: ['sin-gluten'] })
+    expect((await put({ ingredients: [{ name: 'Fideos', quantity: 1, unit: 'g' }] })).status).toBe(
+      400,
+    )
+  })
+
+  it('PUT of a recipe that no longer exists falls through to 404', async () => {
+    mockRepo.findById.mockResolvedValue(null)
+    mockRepo.update.mockResolvedValue(null)
+    expect((await put({ dietaryTags: ['vegano'] })).status).toBe(404)
+  })
+})
+
 describe('PUT /v1/recipes/:id', () => {
   it('returns 200 with updated recipe', async () => {
     mockRepo.findById.mockResolvedValue(sampleRecipe)

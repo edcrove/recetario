@@ -52,11 +52,14 @@ async function deleteRecipeViaApi(page: import('@playwright/test').Page, id: str
 }
 
 test.describe('AllergenWarning banner (route interception)', () => {
-  test('renders both the matched-allergen and unmet-dietary blocks', async ({ page }) => {
-    // Recipe with a peanut ingredient and NO vegan tag → trips a maní allergy
-    // and fails a vegano restriction simultaneously.
+  test('renders the allergen, unmet-diet and unverified-diet blocks', async ({ page }) => {
+    // Peanuts trip a maní allergy; manteca (dairy) contradicts vegano; keto
+    // can't be decided from names, so the untagged recipe is "sin verificar".
     const recipe = await createRecipeViaApi(page, {
-      ingredients: [{ name: 'maní', quantity: 100, unit: 'g' }],
+      ingredients: [
+        { name: 'maní', quantity: 100, unit: 'g' },
+        { name: 'manteca', quantity: 50, unit: 'g' },
+      ],
     })
     try {
       await page.route('**/auth/profile', (route) =>
@@ -66,7 +69,7 @@ test.describe('AllergenWarning banner (route interception)', () => {
               contentType: 'application/json',
               body: JSON.stringify({
                 preferredServings: 2,
-                dietaryRestrictions: ['vegano'],
+                dietaryRestrictions: ['vegano', 'keto'],
                 allergens: ['maní'],
                 goals: [],
                 timezone: null,
@@ -78,6 +81,7 @@ test.describe('AllergenWarning banner (route interception)', () => {
       await page.goto(`/recipe/${recipe.id}`)
       await expect(page.getByText('Alérgenos:')).toBeVisible({ timeout: 10000 })
       await expect(page.getByText('No cumple:')).toBeVisible()
+      await expect(page.getByText('Sin verificar:')).toBeVisible()
     } finally {
       await page.unroute('**/auth/profile')
       await deleteRecipeViaApi(page, recipe.id)
