@@ -50,8 +50,8 @@ export const test = base.extend({
     }, token)
 
     await page.goto('/')
-    await page.waitForURL((url) => !url.pathname.startsWith('/auth'), { timeout: 10000 })
-    await page.waitForLoadState('networkidle', { timeout: 15000 })
+    await page.waitForURL((url) => !url.pathname.startsWith('/auth'))
+    await expect(page.getByTestId('home-profile-button')).toBeVisible()
 
     await use(page)
 

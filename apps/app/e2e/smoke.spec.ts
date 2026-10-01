@@ -8,7 +8,7 @@ import { test, expect } from './fixtures'
 
 test.describe('Smoke: home screen', () => {
   test('home loads with recipe list', async ({ page }) => {
-    await expect(page.getByText('Recetario').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Recetario').first()).toBeVisible()
   })
 
   test('search input is present', async ({ page }) => {
@@ -20,7 +20,7 @@ test.describe('Smoke: home screen', () => {
   })
 
   test('filter chips are visible', async ({ page }) => {
-    await expect(page.getByText('Todas')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Todas')).toBeVisible()
   })
 })
 
@@ -30,7 +30,7 @@ test.describe('Smoke: auth flow', () => {
     const ctx = await browser.newContext()
     const page = await ctx.newPage()
     await page.goto('/')
-    await expect(page).toHaveURL(/auth\/login/, { timeout: 10000 })
+    await expect(page).toHaveURL(/auth\/login/)
     await ctx.close()
   })
 
@@ -38,7 +38,7 @@ test.describe('Smoke: auth flow', () => {
     const ctx = await browser.newContext()
     const page = await ctx.newPage()
     await page.goto('/auth/login')
-    await expect(page.getByPlaceholder('Email')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByPlaceholder('Email')).toBeVisible()
     await expect(page.getByPlaceholder('Contraseña')).toBeVisible()
     await expect(page.getByText('Ingresar')).toBeVisible()
     await ctx.close()
@@ -49,9 +49,8 @@ test.describe('Smoke: recipe navigation', () => {
   test('clicking a recipe navigates to detail', async ({ page }) => {
     // Use testID for reliable RN Web interaction
     const firstCard = page.locator('[data-testid^="recipe-card-"]').first()
-    await expect(firstCard).toBeVisible({ timeout: 10000 })
+    await expect(firstCard).toBeVisible()
     await firstCard.click()
-    await page.waitForLoadState('networkidle', { timeout: 10000 })
     await expect(page.getByText('Iniciar cocina').first()).toBeVisible({ timeout: 12000 })
   })
 })

@@ -49,7 +49,7 @@ test.describe('AllergenWarning banner (route interception)', () => {
           : route.fallback(),
       )
       await page.goto(`/recipe/${recipe.id}`)
-      await expect(page.getByText('Alérgenos:')).toBeVisible({ timeout: 10000 })
+      await expect(page.getByText('Alérgenos:')).toBeVisible()
       await expect(page.getByText('No cumple:')).toBeVisible()
       await expect(page.getByText('Sin verificar:')).toBeVisible()
     } finally {
@@ -92,9 +92,7 @@ test.describe('DayNutritionSummary in the planner (route interception)', () => {
     )
     try {
       await page.getByText('Menú Semanal').click()
-      await expect(page.getByTestId(`day-nutrition-${today}`).first()).toBeVisible({
-        timeout: 10000,
-      })
+      await expect(page.getByTestId(`day-nutrition-${today}`).first()).toBeVisible()
       await expect(page.getByText('datos incompletos').first()).toBeVisible()
       // Per-meal goal from the profile: only meals with a calorie goal get a line
       await expect(page.getByTestId(`meal-delta-${today}-Cena`).first()).toHaveText(
@@ -131,12 +129,12 @@ test.describe('Stats: live top-recipe row and weekly chart', () => {
         }),
       )
       await page.goto('/stats')
-      await expect(page.getByText('#1')).toBeVisible({ timeout: 10000 })
+      await expect(page.getByText('#1')).toBeVisible()
       await expect(page.getByText('5×')).toBeVisible()
       // Tapping the live row navigates to the recipe detail (clickable branch).
       await expect(page.getByText(/sesiones de cocina desde el 1 abr/)).toBeVisible()
       await page.getByText('Receta top').click()
-      await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 10000 })
+      await expect(page.getByTestId('recipe-detail-cook')).toBeVisible()
     } finally {
       await page.unroute('**/v1/cook-sessions/stats*')
       await deleteRecipeViaApi(page, recipe.id)
@@ -147,9 +145,9 @@ test.describe('Stats: live top-recipe row and weekly chart', () => {
 test.describe('More reachable branches', () => {
   test('FoodTypePicker deselects a chip on a second tap', async ({ page }) => {
     await page.getByText('+ Nueva Receta').click()
-    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible()
     const chip = page.locator('[data-testid^="food-type-chip-"]').first()
-    await expect(chip).toBeVisible({ timeout: 8000 })
+    await expect(chip).toBeVisible()
     await chip.click() // select
     await chip.click() // deselect → the includes()→filter() branch
     // Form stays healthy; a third tap re-selects without error.
@@ -159,9 +157,9 @@ test.describe('More reachable branches', () => {
 
   test('library search with no matches shows the empty-with-search message', async ({ page }) => {
     await page.goto('/library')
-    await expect(page.getByTestId('library-search')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('library-search')).toBeVisible()
     await page.getByTestId('library-search').fill('zzzz-no-match-en-biblioteca-xq')
-    await expect(page.getByText('Sin resultados en la biblioteca')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Sin resultados en la biblioteca')).toBeVisible()
   })
 
   test('NutritionBar renders the fiber macro when the recipe carries fiber', async ({ page }) => {
@@ -170,8 +168,8 @@ test.describe('More reachable branches', () => {
     })
     try {
       await page.goto(`/recipe/${recipe.id}`)
-      await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 10000 })
-      await expect(page.getByText('Fibra').first()).toBeVisible({ timeout: 8000 })
+      await expect(page.getByTestId('recipe-detail-cook')).toBeVisible()
+      await expect(page.getByText('Fibra').first()).toBeVisible()
       await expect(page.getByText('6g').first()).toBeVisible()
     } finally {
       await deleteRecipeViaApi(page, recipe.id)
@@ -193,7 +191,7 @@ test.describe('Household empty state', () => {
     const name = `E2E Primer Hogar ${Date.now()}`
     try {
       await page.goto('/household')
-      await expect(page.getByTestId('household-create-name-input')).toBeVisible({ timeout: 10000 })
+      await expect(page.getByTestId('household-create-name-input')).toBeVisible()
       await expect(page.getByText('Creá tu hogar')).toBeVisible()
       await page.getByTestId('household-create-name-input').fill(name)
       const [createRes] = await Promise.all([
@@ -246,7 +244,7 @@ test.describe('Household member management', () => {
       await page.goto('/household')
       // Open the invite box (canManageMembers is true — current user is owner).
       const openBtn = page.getByTestId('household-invite-open').first()
-      await expect(openBtn).toBeVisible({ timeout: 10000 })
+      await expect(openBtn).toBeVisible()
       await openBtn.click()
       await page.getByTestId('household-invite-email-input').fill(inviteeEmail)
       // Exercise a role chip other than the default (member).
@@ -264,15 +262,15 @@ test.describe('Household member management', () => {
         const member = hh?.members?.find((m) => m.role !== 'owner')
         expect(member).toBeTruthy()
         inviteeUserId = member!.userId
-      }).toPass({ timeout: 10000 })
+      }).toPass()
 
       const removeBtn = page.getByTestId(`household-remove-member-${inviteeUserId}`)
-      await expect(removeBtn).toBeVisible({ timeout: 10000 })
+      await expect(removeBtn).toBeVisible()
 
       // removeMember goes through confirmAsync → window.confirm on web.
       page.on('dialog', (dialog) => void dialog.accept())
       await removeBtn.click()
-      await expect(removeBtn).not.toBeVisible({ timeout: 10000 })
+      await expect(removeBtn).not.toBeVisible()
       removedUserId = inviteeUserId
     } finally {
       // Belt-and-suspenders: if the UI removal did not land, strip the member

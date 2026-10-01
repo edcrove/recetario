@@ -23,7 +23,7 @@ test('a recipe with a source URL shows its provenance on the detail', async ({ p
   const recipe = (await res.json()) as { id: string }
   try {
     await page.goto(`/recipe/${recipe.id}`)
-    await expect(page.getByTestId('recipe-source')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('recipe-source')).toBeVisible()
     await expect(page.getByText('Fuente: cookpad.com')).toBeVisible()
   } finally {
     await page.request.delete(`${API_URL}/v1/recipes/${recipe.id}`, { headers })

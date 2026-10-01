@@ -15,7 +15,7 @@ test('a recipe can be deleted from its detail screen after confirming', async ({
   })
   const { id } = (await res.json()) as { id: string }
   await page.goto(`/recipe/${id}`)
-  await expect(page.getByTestId('recipe-delete')).toBeVisible({ timeout: 10000 })
+  await expect(page.getByTestId('recipe-delete')).toBeVisible()
 
   page.once('dialog', (d) => void d.dismiss())
   await page.getByTestId('recipe-delete').click()
@@ -23,7 +23,7 @@ test('a recipe can be deleted from its detail screen after confirming', async ({
 
   page.once('dialog', (d) => void d.accept())
   await page.getByTestId('recipe-delete').click()
-  await expect(page.getByPlaceholder(/buscar recetas/i)).toBeVisible({ timeout: 10000 })
+  await expect(page.getByPlaceholder(/buscar recetas/i)).toBeVisible()
   expect((await page.request.get(`${API_URL}/v1/recipes/${id}`, { headers })).status()).toBe(404)
 })
 
@@ -39,15 +39,15 @@ test('a failed load offers Reintentar, which recovers', async ({ page }) => {
   await expect(page.getByTestId('error-retry')).toBeVisible({ timeout: 15000 })
   failing = false
   await page.getByTestId('error-retry').click()
-  await expect(page.getByTestId('menu-week-label')).toBeVisible({ timeout: 10000 })
+  await expect(page.getByTestId('menu-week-label')).toBeVisible()
 })
 
 test('"Todas" clears the time and difficulty filters too', async ({ page }) => {
-  await expect(page.getByText('Milanesa de pollo').first()).toBeVisible({ timeout: 10000 })
+  await expect(page.getByText('Milanesa de pollo').first()).toBeVisible()
   await page.getByTestId('filter-time-20').click()
-  await expect(page.getByText('Milanesa de pollo')).toHaveCount(0, { timeout: 8000 })
+  await expect(page.getByText('Milanesa de pollo')).toHaveCount(0)
   await page.getByTestId('home-type-chip-all').click()
-  await expect(page.getByText('Milanesa de pollo').first()).toBeVisible({ timeout: 8000 })
+  await expect(page.getByText('Milanesa de pollo').first()).toBeVisible()
 })
 
 testUnauth('too many login attempts get a readable message', async ({ page }) => {
@@ -64,7 +64,5 @@ testUnauth('too many login attempts get a readable message', async ({ page }) =>
   await page.getByText('Ingresar', { exact: true }).last().click()
   await expect(
     page.getByText('Demasiados intentos. Esperá un minuto y probá de nuevo.'),
-  ).toBeVisible({
-    timeout: 8000,
-  })
+  ).toBeVisible()
 })

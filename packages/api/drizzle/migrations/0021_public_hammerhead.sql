@@ -1,0 +1,1 @@
+ALTER TABLE "pantry_items" ALTER COLUMN "expiry_date" SET DATA TYPE date;

@@ -34,7 +34,7 @@ test('add, toggle and delete a pantry item from the Despensa screen', async ({ p
     await page.goto('/')
     await page.getByTestId('home-profile-button').click()
     await page.getByText('Despensa').click()
-    await expect(page.getByTestId('pantry-new-name')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('pantry-new-name')).toBeVisible()
 
     // Expiry badges render for the seeded dated items.
     await expect(page.getByTestId(`pantry-expiry-${dated[0]}`)).toHaveText('Vencido')
@@ -44,7 +44,7 @@ test('add, toggle and delete a pantry item from the Despensa screen', async ({ p
     // Add
     await page.getByTestId('pantry-new-name').fill(name)
     await page.getByTestId('pantry-add').click()
-    await expect(page.getByText(name, { exact: true })).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText(name, { exact: true })).toBeVisible()
 
     // Toggle out of stock — it moves to "Se acabó"
     const list = (await (await page.request.get(`${API_URL}/v1/pantry`, { headers })).json()) as {
@@ -53,16 +53,16 @@ test('add, toggle and delete a pantry item from the Despensa screen', async ({ p
     }[]
     const created = list.find((i) => i.name === name)!
     await page.getByTestId(`pantry-toggle-${created.id}`).click()
-    await expect(page.getByText('Se acabó')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Se acabó')).toBeVisible()
 
     // Delete
     page.once('dialog', (d) => void d.accept())
     await page.getByTestId(`pantry-delete-${created.id}`).click()
-    await expect(page.getByText(name, { exact: true })).toBeHidden({ timeout: 10000 })
+    await expect(page.getByText(name, { exact: true })).toBeHidden()
 
     // Back link returns to the previous screen.
     await page.getByText('‹ Volver').click()
-    await expect(page.getByTestId('pantry-new-name')).toBeHidden({ timeout: 10000 })
+    await expect(page.getByTestId('pantry-new-name')).toBeHidden()
   } finally {
     const list = (await (await page.request.get(`${API_URL}/v1/pantry`, { headers })).json()) as {
       id: string
@@ -83,9 +83,9 @@ test('shows the error state and recovers with Reintentar', async ({ page }) => {
     return route.continue()
   })
   await page.goto('/pantry')
-  await expect(page.getByText('Error al cargar la despensa')).toBeVisible({ timeout: 10000 })
+  await expect(page.getByText('Error al cargar la despensa')).toBeVisible()
   fail = false
   await page.getByText('Reintentar').click()
-  await expect(page.getByTestId('pantry-new-name')).toBeVisible({ timeout: 10000 })
+  await expect(page.getByTestId('pantry-new-name')).toBeVisible()
   await page.unroute('**/v1/pantry')
 })

@@ -113,13 +113,14 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
 
 - **Decision**: every timestamp column is `timestamp with time zone` (existing values read as
   UTC, which is what `now()` wrote); `menu_entries.date` and `shopping_list_checks.week_start`
-  are `date` (still strings in code). The app stores the device's IANA zone on the profile
+  are `date` (still strings in code), and so is `pantry_items.expiry_date`. The app stores the device's IANA zone on the profile
   while it is the UTC default, never overwriting one set on purpose; the API rejects
   unknown zones.
 - **Why**: 2026-10-01 audit (Data) — naive timestamps and text dates are cheapest to fix
   before production data, and "today"/week math needs the user's zone.
 - **Where it lives**: migration `0017` (custom: drizzle can't cast text→date without
-  `USING`) + `0018` (generated, defaults), `useTimezoneSync`, `PATCH /auth/profile`.
+  `USING`) + `0018` (generated, defaults); `0020` (custom) + `0021` (generated) for the
+  pantry expiry date; `useTimezoneSync`, `PATCH /auth/profile`.
 - **Status**: active
 
 ### D-2026-10-01-10 · Planned dishes have a status
@@ -133,6 +134,17 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
 - **Where it lives**: migration `0019`, `MenuEntryStatusSchema`, `PATCH /v1/menu/{date}/{slot}/{recipeId}`
   (`servings` and/or `status`), MCP `updateMenuEntry`, the planner's edit modal.
 - **Status**: active — D-2026-10-01-8's note on menu-entry status is resolved by this.
+
+### D-2026-10-01-11 · E2E waits: one timeout budget, flakes fail CI
+
+- **Decision**: Playwright sets `expect`, `toPass`, action and navigation timeouts once in
+  `playwright.config.ts`; specs pass a timeout only for steps known to be slower. No
+  `networkidle` waits (the visual tour keeps one settle pause for screenshots). CI keeps one
+  retry but `failOnFlakyTests` fails the run when a test only passes on retry.
+- **Why**: 2026-10-01 audit (QA automation) — 375 per-call timeouts, `networkidle` (which an
+  SPA with polling never reaches reliably) and retries that turned flakes green.
+- **Where it lives**: `apps/app/playwright.config.ts`, `apps/app/e2e/*.spec.ts`.
+- **Status**: active
 
 ## 2026-09-30 — Dependency & maintenance session (PRs #125, #140, #147, #148, #124)
 

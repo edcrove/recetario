@@ -16,12 +16,12 @@ test('lists canonicals, creates one, and searches', async ({ page }) => {
   try {
     await page.goto('/config')
     await page.getByTestId('config-tab-ingredients').click()
-    await expect(page.getByTestId('ingredients-search')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('ingredients-search')).toBeVisible()
 
     // Create
     await page.getByTestId('ingredients-new-name').fill(name)
     await page.getByTestId('ingredients-new-create').click()
-    await expect(page.getByText(name)).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText(name)).toBeVisible()
 
     // Search filters down to the new canonical…
     await page.getByTestId('ingredients-search').fill(prefix)
@@ -80,7 +80,7 @@ test('moves a synonym from one canonical to another', async ({ page }) => {
       ).json()) as { id: string; synonyms: { synonym: string }[] }[]
       const bRow = list.find((c) => c.id === b.id)
       expect(bRow?.synonyms.some((s) => s.synonym === syn)).toBe(true)
-    }).toPass({ timeout: 10000 })
+    }).toPass()
   } finally {
     for (const id of created) {
       await page.request.delete(`${API_URL}/v1/ingredients/canonical/${id}`, { headers })

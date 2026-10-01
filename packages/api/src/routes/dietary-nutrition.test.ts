@@ -29,7 +29,9 @@ vi.mock('../db/index.js', () => ({
     }),
     insert: () => ({
       values: () => ({
-        onConflictDoUpdate: () => Promise.resolve(mockInsert()),
+        onConflictDoUpdate: () => ({
+          returning: () => Promise.resolve(mockSelect()),
+        }),
         onConflictDoNothing: () => Promise.resolve([]),
         returning: () => Promise.resolve(mockInsert()),
       }),
