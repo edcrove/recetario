@@ -36,9 +36,9 @@ test.describe('Stats screen with data', () => {
 
     try {
       await page.goto('/stats')
-      await expect(page.getByText('Recetas más cocinadas')).toBeVisible({ timeout: 8000 })
+      await expect(page.getByText('Recetas más cocinadas')).toBeVisible()
       // Non-empty branches: ranked row with count badge + weekly frequency bar
-      await expect(page.getByText('#1')).toBeVisible({ timeout: 8000 })
+      await expect(page.getByText('#1')).toBeVisible()
       await expect(page.getByText(/\d+×/).first()).toBeVisible()
       await expect(page.getByText('Frecuencia semanal')).toBeVisible()
 
@@ -46,7 +46,7 @@ test.describe('Stats screen with data', () => {
       // older, since-deleted session's row, which renders unclickable)
       // Rows are named by recipe title, not by id
       await page.getByText(statsTitle).click()
-      await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 10000 })
+      await expect(page.getByTestId('recipe-detail-cook')).toBeVisible()
     } finally {
       await page.request.delete(`${API_URL}/v1/recipes/${recipe.id}`, { headers })
     }
@@ -61,7 +61,7 @@ test.describe('Pick screen: actually picking a recipe', () => {
     const date = '2027-03-10'
     await page.goto(`/menu/pick?date=${date}&slot=Cena&weekStart=2027-03-08`)
     const firstRecipe = page.locator('[data-testid^="pick-recipe-"]').first()
-    await expect(firstRecipe).toBeVisible({ timeout: 10000 })
+    await expect(firstRecipe).toBeVisible()
     const pickedId = (await firstRecipe.getAttribute('data-testid'))!.replace('pick-recipe-', '')
 
     try {
@@ -109,9 +109,9 @@ test.describe('API error paths (route interception)', () => {
 
     await page.goto(`/menu/pick?date=2027-03-11&slot=Cena&weekStart=2027-03-08`)
     const firstRecipe = page.locator('[data-testid^="pick-recipe-"]').first()
-    await expect(firstRecipe).toBeVisible({ timeout: 10000 })
+    await expect(firstRecipe).toBeVisible()
     await firstRecipe.click()
-    await expect.poll(() => dialogMessage, { timeout: 8000 }).toContain('Error')
+    await expect.poll(() => dialogMessage).toContain('Error')
   })
 
   test('a 500 while deleting a taxonomy item surfaces the error notification', async ({ page }) => {
@@ -140,11 +140,11 @@ test.describe('API error paths (route interception)', () => {
       await page.goto('/config')
       await page.getByTestId('config-tab-food-types').click()
       const deleteBtn = page.getByTestId(`config-delete-${foodType.id}`)
-      await expect(deleteBtn).toBeVisible({ timeout: 8000 })
+      await expect(deleteBtn).toBeVisible()
       await deleteBtn.click()
-      await expect(page.getByTestId('config-delete-confirm')).toBeVisible({ timeout: 5000 })
+      await expect(page.getByTestId('config-delete-confirm')).toBeVisible()
       await page.getByTestId('config-delete-confirm').click()
-      await expect.poll(() => dialogMessage, { timeout: 8000 }).toContain('Error')
+      await expect.poll(() => dialogMessage).toContain('Error')
     } finally {
       await page.unroute(`**/v1/config/food-types/${foodType.id}*`)
       await page.request.delete(`${API_URL}/v1/config/food-types/${foodType.id}`, { headers })
@@ -163,11 +163,11 @@ test.describe('API error paths (route interception)', () => {
     await page.goto('/config')
     await page.getByTestId('config-tab-food-types').click()
     const deleteBtn = page.getByTestId(`config-delete-${foodType.id}`)
-    await expect(deleteBtn).toBeVisible({ timeout: 8000 })
+    await expect(deleteBtn).toBeVisible()
     await deleteBtn.click()
-    await expect(page.getByTestId('config-delete-confirm')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('config-delete-confirm')).toBeVisible()
     await page.getByTestId('config-delete-confirm').click()
-    await expect(deleteBtn).not.toBeVisible({ timeout: 8000 })
+    await expect(deleteBtn).not.toBeVisible()
   })
 })
 
@@ -180,7 +180,7 @@ test.describe('API error paths (route interception)', () => {
 test.describe('Recipe detail: deep flows', () => {
   test('unknown recipe id shows the not-found state', async ({ page }) => {
     await page.goto('/recipe/00000000-0000-4000-8000-000000000000')
-    await expect(page.getByText('Receta no encontrada')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Receta no encontrada')).toBeVisible()
   })
 
   test('servings stepper rescales ingredients and nutrition', async ({ page }) => {
@@ -189,15 +189,15 @@ test.describe('Recipe detail: deep flows', () => {
     })
     try {
       await page.goto(`/recipe/${recipe.id}`)
-      await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 10000 })
+      await expect(page.getByTestId('recipe-detail-cook')).toBeVisible()
       await expect(page.getByText(/1\s*l/).first()).toBeVisible()
 
       // + rescales: 2 → 3 servings means 1 l → 1.5 l
       await page.getByText('+', { exact: true }).first().click()
-      await expect(page.getByText(/1[.,]5\s*l/).first()).toBeVisible({ timeout: 5000 })
+      await expect(page.getByText(/1[.,]5\s*l/).first()).toBeVisible()
       // − returns to base
       await page.getByText('−', { exact: true }).first().click()
-      await expect(page.getByText(/1\s*l/).first()).toBeVisible({ timeout: 5000 })
+      await expect(page.getByText(/1\s*l/).first()).toBeVisible()
     } finally {
       await deleteRecipeViaApi(page, recipe.id)
     }
@@ -215,9 +215,9 @@ test.describe('Recipe detail: deep flows', () => {
       expect(relRes.ok()).toBe(true)
 
       await page.goto(`/recipe/${a.id}`)
-      await expect(page.getByText('Te puede gustar')).toBeVisible({ timeout: 10000 })
+      await expect(page.getByText('Te puede gustar')).toBeVisible()
       await page.locator('text=Te puede gustar').locator('xpath=following-sibling::*[1]').click()
-      await expect(page.getByText(b.title)).toBeVisible({ timeout: 10000 })
+      await expect(page.getByText(b.title)).toBeVisible()
     } finally {
       await deleteRecipeViaApi(page, a.id)
       await deleteRecipeViaApi(page, b.id)
@@ -237,7 +237,7 @@ test.describe('Menu planner: deep flows', () => {
     page: import('@playwright/test').Page,
   ): Promise<{ day: string; slot: string; recipeId: string } | null> {
     await page.getByText('Menú Semanal').click()
-    await expect(page.locator('[data-testid^="menu-add-"]').first()).toBeVisible({ timeout: 8000 })
+    await expect(page.locator('[data-testid^="menu-add-"]').first()).toBeVisible()
     const chip = page.locator('[data-testid^="menu-entry-"]').first()
     let created: { day: string; slot: string; recipeId: string } | null = null
     if ((await chip.count()) === 0) {
@@ -254,12 +254,10 @@ test.describe('Menu planner: deep flows', () => {
       const pickTestId = (await firstPickItem.getAttribute('data-testid'))!
       const recipeId = pickTestId.replace('pick-recipe-', '')
       await firstPickItem.click()
-      await page.waitForLoadState('networkidle', { timeout: 15000 })
+      await page.waitForURL((url) => !url.pathname.includes('/menu/pick'))
       created = { day, slot, recipeId }
     }
-    await expect(page.locator('[data-testid^="menu-entry-"]').first()).toBeVisible({
-      timeout: 8000,
-    })
+    await expect(page.locator('[data-testid^="menu-entry-"]').first()).toBeVisible()
     return created
   }
 
@@ -281,7 +279,7 @@ test.describe('Menu planner: deep flows', () => {
   test('the ✕ chip removes an entry directly from the grid', async ({ page }) => {
     await ensureRecipeInMenu(page)
     const removeBtn = page.locator('[data-testid^="menu-remove-"]').first()
-    await expect(removeBtn).toBeVisible({ timeout: 8000 })
+    await expect(removeBtn).toBeVisible()
     const before = await page.locator('[data-testid^="menu-entry-"]').count()
     // Cancelling the confirm keeps the entry; accepting removes it
     page.once('dialog', (d) => void d.dismiss())
@@ -289,9 +287,7 @@ test.describe('Menu planner: deep flows', () => {
     await expect(page.locator('[data-testid^="menu-entry-"]')).toHaveCount(before)
     page.once('dialog', (d) => void d.accept())
     await removeBtn.click()
-    await expect(page.locator('[data-testid^="menu-entry-"]')).toHaveCount(before - 1, {
-      timeout: 8000,
-    })
+    await expect(page.locator('[data-testid^="menu-entry-"]')).toHaveCount(before - 1)
   })
 
   test('the edit modal marks a dish cooked, and back to planned', async ({ page }) => {
@@ -300,12 +296,12 @@ test.describe('Menu planner: deep flows', () => {
       const chip = page.locator('[data-testid^="menu-entry-"]').first()
       await chip.click()
       await page.getByTestId('menu-modal-status-cooked').click()
-      await expect(page.getByTestId('menu-modal-save')).not.toBeVisible({ timeout: 8000 })
-      await expect(chip).toContainText('✓', { timeout: 8000 })
+      await expect(page.getByTestId('menu-modal-save')).not.toBeVisible()
+      await expect(chip).toContainText('✓')
       // Undo, so later tests find the entry planned again
       await chip.click()
       await page.getByTestId('menu-modal-status-planned').click()
-      await expect(chip).not.toContainText('✓', { timeout: 8000 })
+      await expect(chip).not.toContainText('✓')
     } finally {
       await cleanupCreatedEntry(page, created)
     }
@@ -315,17 +311,15 @@ test.describe('Menu planner: deep flows', () => {
     await ensureRecipeInMenu(page)
     const chip = page.locator('[data-testid^="menu-entry-"]').first()
     await chip.click()
-    await expect(page.getByTestId('menu-modal-save')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByTestId('menu-modal-save')).toBeVisible()
 
     // − branch inside the modal (clamps at 1)
     await page.getByText('−', { exact: true }).last().click()
 
     const before = await page.locator('[data-testid^="menu-entry-"]').count()
     await page.getByTestId('menu-modal-delete').click()
-    await expect(page.getByTestId('menu-modal-save')).not.toBeVisible({ timeout: 8000 })
-    await expect(page.locator('[data-testid^="menu-entry-"]')).toHaveCount(before - 1, {
-      timeout: 8000,
-    })
+    await expect(page.getByTestId('menu-modal-save')).not.toBeVisible()
+    await expect(page.locator('[data-testid^="menu-entry-"]')).toHaveCount(before - 1)
   })
 
   test('a 500 loading the week shows the planner error state', async ({ page }) => {
@@ -350,7 +344,7 @@ test.describe('Menu planner: deep flows', () => {
         void dialog.accept()
       })
       await page.locator('[data-testid^="menu-remove-"]').first().click()
-      await expect.poll(() => dialogMessage, { timeout: 8000 }).toContain('Error')
+      await expect.poll(() => dialogMessage).toContain('Error')
     } finally {
       // The mocked DELETE above never reaches the backend, so the entry
       // ensureRecipeInMenu created (if any) is still there — remove it via an
@@ -373,9 +367,9 @@ test.describe('Menu planner: deep flows', () => {
         void dialog.accept()
       })
       await page.locator('[data-testid^="menu-entry-"]').first().click()
-      await expect(page.getByTestId('menu-modal-save')).toBeVisible({ timeout: 8000 })
+      await expect(page.getByTestId('menu-modal-save')).toBeVisible()
       await page.getByTestId('menu-modal-save').click()
-      await expect.poll(() => dialogMessage, { timeout: 8000 }).toContain('Error')
+      await expect.poll(() => dialogMessage).toContain('Error')
     } finally {
       await cleanupCreatedEntry(page, created)
     }
@@ -385,7 +379,7 @@ test.describe('Menu planner: deep flows', () => {
 test.describe('New recipe form: row management and error branches', () => {
   test('add/remove ingredient and step rows work in the create form', async ({ page }) => {
     await page.getByText('+ Nueva Receta').click()
-    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible()
 
     const nameInputs = page.getByPlaceholder('Ingrediente')
     const initialIngredients = await nameInputs.count()
@@ -416,11 +410,11 @@ test.describe('New recipe form: row management and error branches', () => {
         : route.fallback(),
     )
     await page.getByText('+ Nueva Receta').click()
-    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible()
     await page.getByPlaceholder('Nombre de la receta').fill('Receta Que Falla')
     await page.getByPlaceholder('Ingrediente').first().fill('sal')
     await page.getByText('Guardar Receta').click()
-    await expect(page.getByText('boom').first()).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('boom').first()).toBeVisible()
   })
 
   test('a server error without a message shows a generic one; visibility toggles back', async ({
@@ -433,7 +427,7 @@ test.describe('New recipe form: row management and error branches', () => {
     )
     page.on('dialog', (d) => void d.accept())
     await page.getByText('+ Nueva Receta').click()
-    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible()
     await page.getByTestId('visibility-toggle').click()
     await expect(page.getByText('🌐 Pública')).toBeVisible()
     await page.getByTestId('visibility-toggle').click()
@@ -441,7 +435,7 @@ test.describe('New recipe form: row management and error branches', () => {
     await page.getByPlaceholder('Nombre de la receta').fill('Receta Que Falla')
     await page.getByPlaceholder('Ingrediente').first().fill('sal')
     await page.getByText('Guardar Receta').click()
-    await expect(page.getByText('Error del servidor (502)')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('Error del servidor (502)')).toBeVisible()
   })
 })
 
@@ -450,9 +444,9 @@ test.describe('Edit recipe form: validation and error branches', () => {
     const recipe = await createRecipeViaApi(page)
     try {
       await page.goto(`/recipe/${recipe.id}/edit`)
-      await expect(page.getByText('Editar Receta').first()).toBeVisible({ timeout: 10000 })
+      await expect(page.getByText('Editar Receta').first()).toBeVisible()
       const title = page.getByPlaceholder('Nombre de la receta')
-      await expect(title).toHaveValue(recipe.title, { timeout: 8000 })
+      await expect(title).toHaveValue(recipe.title)
       await title.fill('')
       // touch category + ingredient field branches while we're here
       await page.getByText('Almuerzo', { exact: true }).click()
@@ -461,9 +455,7 @@ test.describe('Edit recipe form: validation and error branches', () => {
       await page.getByTestId('unit-option-0-l').click()
       await page.getByPlaceholder('Picado, etc.').first().fill('fría')
       await page.getByText('Guardar Cambios').click()
-      await expect(page.getByText(/Too small|obligatorio|título/i).first()).toBeVisible({
-        timeout: 8000,
-      })
+      await expect(page.getByText(/Too small|obligatorio|título/i).first()).toBeVisible()
     } finally {
       await deleteRecipeViaApi(page, recipe.id)
     }
@@ -478,11 +470,9 @@ test.describe('Edit recipe form: validation and error branches', () => {
           : route.fallback(),
       )
       await page.goto(`/recipe/${recipe.id}/edit`)
-      await expect(page.getByPlaceholder('Nombre de la receta')).toHaveValue(recipe.title, {
-        timeout: 10000,
-      })
+      await expect(page.getByPlaceholder('Nombre de la receta')).toHaveValue(recipe.title)
       await page.getByText('Guardar Cambios').click()
-      await expect(page.getByText('boom').first()).toBeVisible({ timeout: 8000 })
+      await expect(page.getByText('boom').first()).toBeVisible()
     } finally {
       await page.unroute(`**/v1/recipes/${recipe.id}`)
       await deleteRecipeViaApi(page, recipe.id)
@@ -500,7 +490,7 @@ test.describe('Stats: empty state branches', () => {
       }),
     )
     await page.goto('/stats')
-    await expect(page.getByText(/¡Empezá a cocinar/)).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText(/¡Empezá a cocinar/)).toBeVisible()
     await expect(page.getByText('Todavía no hay sesiones de cocina registradas.')).toBeVisible()
   })
 })
@@ -529,8 +519,8 @@ test.describe('Screen error states (route interception)', () => {
     await expect(page.getByText('Error al cargar la lista')).toBeVisible({ timeout: 15000 })
     fail = false
     await page.getByText('Reintentar').click()
-    await expect(page.getByText('Lista de Compras').first()).toBeVisible({ timeout: 10000 })
-    await expect(page.getByText('Error al cargar la lista')).not.toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Lista de Compras').first()).toBeVisible()
+    await expect(page.getByText('Error al cargar la lista')).not.toBeVisible()
   })
 
   test('collection detail shows the error state on a 500', async ({ page }) => {
@@ -568,11 +558,11 @@ test.describe('Screen error states (route interception)', () => {
       })
       await page.goto(`/recipe/${recipe.id}`)
       await page.getByTestId('recipe-detail-cook').click()
-      await expect(page.getByText(/Paso 1 \/ /)).toBeVisible({ timeout: 8000 })
+      await expect(page.getByText(/Paso 1 \/ /)).toBeVisible()
       await page.getByTestId('cook-finish').click()
-      await expect(page.getByTestId('cook-rating-save')).toBeVisible({ timeout: 5000 })
+      await expect(page.getByTestId('cook-rating-save')).toBeVisible()
       await page.getByTestId('cook-rating-save').click()
-      await expect.poll(() => dialogMessage, { timeout: 8000 }).toContain('Error')
+      await expect.poll(() => dialogMessage).toContain('Error')
     } finally {
       await deleteRecipeViaApi(page, recipe.id)
     }
@@ -607,7 +597,7 @@ test.describe('Screen error states (route interception)', () => {
       }),
     )
     await page.goto('/stats')
-    await expect(page.getByText('Guiso viejo (eliminada)')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Guiso viejo (eliminada)')).toBeVisible()
     await expect(page.getByText('3×')).toBeVisible()
   })
 })
@@ -624,11 +614,11 @@ test.describe('Small interaction branches', () => {
     try {
       await page.getByText('Menú Semanal').click()
       const chip = page.locator('[data-testid^="menu-entry-"]').first()
-      await expect(chip).toBeVisible({ timeout: 8000 })
+      await expect(chip).toBeVisible()
       await chip.click()
-      await expect(page.getByTestId('menu-modal-save')).toBeVisible({ timeout: 8000 })
+      await expect(page.getByTestId('menu-modal-save')).toBeVisible()
       await page.getByText('Cancelar', { exact: true }).click()
-      await expect(page.getByTestId('menu-modal-save')).not.toBeVisible({ timeout: 5000 })
+      await expect(page.getByTestId('menu-modal-save')).not.toBeVisible()
     } finally {
       await page.request.delete(`${API_URL}/v1/menu/${today}/Cena/${recipe.id}`, { headers })
       await deleteRecipeViaApi(page, recipe.id)
@@ -648,9 +638,7 @@ test.describe('Small interaction branches', () => {
     }
     try {
       await page.getByText('Menú Semanal').click()
-      await expect(page.getByTestId(`menu-entry-${today}-Desayuno-${a.id}`)).toBeVisible({
-        timeout: 8000,
-      })
+      await expect(page.getByTestId(`menu-entry-${today}-Desayuno-${a.id}`)).toBeVisible()
       await expect(page.getByTestId(`menu-entry-${today}-Desayuno-${b.id}`)).toBeVisible()
     } finally {
       for (const r of [a, b]) {
@@ -662,7 +650,7 @@ test.describe('Small interaction branches', () => {
 
   test('pick screen servings − clamps at 1', async ({ page }) => {
     await page.goto('/menu/pick?date=2027-03-12&slot=Cena&weekStart=2027-03-08')
-    await expect(page.getByText('Porciones:')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Porciones:')).toBeVisible()
     await page.getByText('−', { exact: true }).click()
     await page.getByText('−', { exact: true }).click()
     await page.getByText('−', { exact: true }).click()
@@ -675,11 +663,11 @@ test.describe('Small interaction branches', () => {
       await page.goto('/')
       await page.getByPlaceholder(/buscar recetas/i).fill(recipe.title)
       await page.getByText(recipe.title).first().click()
-      await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 10000 })
+      await expect(page.getByTestId('recipe-detail-cook')).toBeVisible()
       await page.getByTestId('recipe-detail-cook').click()
-      await expect(page.getByText(/Paso 1 \/ /)).toBeVisible({ timeout: 8000 })
+      await expect(page.getByText(/Paso 1 \/ /)).toBeVisible()
       await page.getByText('✕').click()
-      await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 8000 })
+      await expect(page.getByTestId('recipe-detail-cook')).toBeVisible()
     } finally {
       await deleteRecipeViaApi(page, recipe.id)
     }
@@ -687,7 +675,7 @@ test.describe('Small interaction branches', () => {
 
   test('searching gibberish shows Sin resultados', async ({ page }) => {
     await page.getByPlaceholder(/buscar recetas/i).fill('zzzz-sin-match-xq')
-    await expect(page.getByText('Sin resultados')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('Sin resultados')).toBeVisible()
   })
 
   test('creating a second household works and can be cleaned up', async ({ page }) => {
@@ -702,11 +690,11 @@ test.describe('Small interaction branches', () => {
       })
     }
     await page.goto('/household')
-    await expect(page.getByPlaceholder('Nombre del nuevo hogar…')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByPlaceholder('Nombre del nuevo hogar…')).toBeVisible()
     const name = `E2E Segundo Hogar ${Date.now()}`
     await page.getByPlaceholder('Nombre del nuevo hogar…').fill(name)
     await page.getByText('Crear otro hogar').click()
-    await expect(page.getByText(name)).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText(name)).toBeVisible()
 
     const mine = (await (
       await page.request.get(`${API_URL}/v1/households/mine`, { headers })
@@ -718,15 +706,13 @@ test.describe('Small interaction branches', () => {
 
   test('profile rows navigate to config, stats and household', async ({ page }) => {
     await page.goto('/profile')
-    await expect(page.getByText('⚙️ Configuración de taxonomía')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('⚙️ Configuración de taxonomía')).toBeVisible()
     await page.getByText('⚙️ Configuración de taxonomía').click()
-    await expect(page.getByTestId('config-tab-food-types')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByTestId('config-tab-food-types')).toBeVisible()
 
     await page.goto('/profile')
     await page.getByText('📊 Estadísticas').click()
-    await expect(page.getByText(/sesiones de cocina|Recetas más cocinadas/).first()).toBeVisible({
-      timeout: 8000,
-    })
+    await expect(page.getByText(/sesiones de cocina|Recetas más cocinadas/).first()).toBeVisible()
 
     await page.goto('/profile')
     await page.getByText('🏠 Mi hogar').click()
@@ -734,17 +720,17 @@ test.describe('Small interaction branches', () => {
       page
         .getByTestId('household-create-name-input')
         .or(page.getByTestId('household-invite-open').first()),
-    ).toBeVisible({ timeout: 8000 })
+    ).toBeVisible()
   })
 
   test('submitting the name edit with Enter saves it', async ({ page }) => {
     await page.goto('/profile')
-    await expect(page.getByText('tocá para editar')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('tocá para editar')).toBeVisible()
     await page.getByText('tocá para editar').click()
     const input = page.locator('input').first()
     await input.fill('Demo Enter E2E')
     await input.press('Enter')
-    await expect(page.getByText('Demo Enter E2E')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('Demo Enter E2E')).toBeVisible()
   })
 
   test('collection remove confirm can be dismissed, keeping the recipe', async ({ page }) => {
@@ -762,7 +748,7 @@ test.describe('Small interaction branches', () => {
       })
       await page.goto(`/collections/${collection.id}`)
       const row = page.getByTestId(`collection-recipe-${recipe.id}`)
-      await expect(row).toBeVisible({ timeout: 10000 })
+      await expect(row).toBeVisible()
       page.once('dialog', (dialog) => void dialog.dismiss())
       await page.getByTestId(`collection-remove-${recipe.id}`).click()
       await expect(row).toBeVisible()
@@ -791,7 +777,7 @@ test.describe('Save to collection from recipe detail', () => {
       await page.goto(`/recipe/${recipe.id}`)
       // open + close without saving
       await page.getByTestId('recipe-save-to-collection').click()
-      await expect(page.getByTestId('collection-picker')).toBeVisible({ timeout: 8000 })
+      await expect(page.getByTestId('collection-picker')).toBeVisible()
       await page.getByTestId('recipe-save-to-collection').click()
       await expect(page.getByTestId('collection-picker')).toHaveCount(0)
 
@@ -842,9 +828,7 @@ test.describe('Save to collection from recipe detail', () => {
     })
     const col = (await colRes.json()) as { id: string }
     await page.goto(`/collections/${col.id}`)
-    await expect(page.getByTestId('collection-detail-title')).toContainText(`E2E Enlace ${stamp}`, {
-      timeout: 10000,
-    })
+    await expect(page.getByTestId('collection-detail-title')).toContainText(`E2E Enlace ${stamp}`)
     await expect(page.getByTestId('collection-detail-empty')).toContainText('Guardar en colección')
   })
 })
@@ -862,16 +846,14 @@ test.describe('Data-shape branches', () => {
     })
     try {
       await page.goto(`/recipe/${recipe.id}`)
-      await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 10000 })
+      await expect(page.getByTestId('recipe-detail-cook')).toBeVisible()
       await expect(page.getByText(/c\/n/).first()).toBeVisible()
       // scaled box multiplies the per-serving values by the current servings:
       // at 4 servings, 400 kcal/porción → 1600 total
       await page.getByText('+', { exact: true }).first().click()
       await page.getByText('+', { exact: true }).first().click()
-      await expect(page.getByText('Nutrición por cantidad de porciones')).toBeVisible({
-        timeout: 8000,
-      })
-      await expect(page.getByText('1600').first()).toBeVisible({ timeout: 8000 })
+      await expect(page.getByText('Nutrición por cantidad de porciones')).toBeVisible()
+      await expect(page.getByText('1600').first()).toBeVisible()
     } finally {
       await deleteRecipeViaApi(page, recipe.id)
     }
@@ -888,9 +870,7 @@ test.describe('Data-shape branches', () => {
     })
     try {
       await page.goto(`/recipe/${recipe.id}`)
-      await expect(page.getByText(/Contiene|alérgeno|maní/i).first()).toBeVisible({
-        timeout: 10000,
-      })
+      await expect(page.getByText(/Contiene|alérgeno|maní/i).first()).toBeVisible()
     } finally {
       await page.request.put(`${API_URL}/v1/profile`, { headers, data: { allergens: [] } })
       await deleteRecipeViaApi(page, recipe.id)
@@ -899,7 +879,7 @@ test.describe('Data-shape branches', () => {
 
   test('the food-type picker caps the selection at three', async ({ page }) => {
     await page.getByText('+ Nueva Receta').click()
-    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible()
     const chips = page.locator('[data-testid^="food-type-chip-"]')
     for (let i = 0; i < 4; i++) {
       await chips.nth(i).click()
@@ -912,9 +892,9 @@ test.describe('Data-shape branches', () => {
     // 2027-03-14 is a Sunday → getWeekStart's day===0 branch → Monday 2027-03-08
     await page.clock.install({ time: new Date('2027-03-14T15:00:00') })
     await page.goto('/menu')
-    await expect(page.getByText('Lista de compras')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Lista de compras')).toBeVisible()
     await page.getByText('Lista de compras').click()
-    await page.waitForURL(/weekStart=2027-03-08/, { timeout: 10000 })
+    await page.waitForURL(/weekStart=2027-03-08/)
   })
 })
 
@@ -935,13 +915,11 @@ test.describe('Collections: delete', () => {
       })
       await page.goto('/collections')
       await page.getByText(name).click()
-      await expect(page.getByTestId(`collection-recipe-${recipe.id}`)).toBeVisible({
-        timeout: 10000,
-      })
+      await expect(page.getByTestId(`collection-recipe-${recipe.id}`)).toBeVisible()
       page.once('dialog', (d) => void d.accept())
       await page.getByTestId('collection-delete').click()
       // Back on the list, the collection is gone; the recipe still exists
-      await expect(page.getByText(name)).toHaveCount(0, { timeout: 10000 })
+      await expect(page.getByText(name)).toHaveCount(0)
       const res = await page.request.get(`${API_URL}/v1/recipes/${recipe.id}`, { headers })
       expect(res.ok()).toBe(true)
     } finally {

@@ -24,9 +24,7 @@ test('the macro strip shows per-serving macros on the pick screen', async ({ pag
   try {
     await page.goto('/menu/pick?date=2027-05-10&slot=Cena&weekStart=2027-05-10')
     await page.getByPlaceholder('Buscar receta...').fill(recipe.title)
-    await expect(page.getByText('420 kcal · 28P · 52C · 12G').first()).toBeVisible({
-      timeout: 10000,
-    })
+    await expect(page.getByText('420 kcal · 28P · 52C · 12G').first()).toBeVisible()
   } finally {
     await page.request.delete(`${API_URL}/v1/recipes/${recipe.id}`, { headers })
   }
@@ -34,15 +32,15 @@ test('the macro strip shows per-serving macros on the pick screen', async ({ pag
 
 test('per-meal calorie goals stepper works in the profile', async ({ page }) => {
   await page.goto('/profile')
-  await expect(page.getByText('Objetivos por comida (calorías)')).toBeVisible({ timeout: 10000 })
+  await expect(page.getByText('Objetivos por comida (calorías)')).toBeVisible()
   const row = page.getByText('Almuerzo', { exact: true }).locator('xpath=..')
   const before = Number(
     (await row.locator('text=/\\d+/').first().textContent())?.match(/\d+/)?.[0] ?? 0,
   )
   await page.getByTestId('meal-target-Almuerzo-plus').click()
-  await expect(row.getByText(String(before + 50))).toBeVisible({ timeout: 8000 })
+  await expect(row.getByText(String(before + 50))).toBeVisible()
   await page.getByTestId('meal-target-Almuerzo-minus').click()
-  await expect(row.getByText(String(before))).toBeVisible({ timeout: 8000 })
+  await expect(row.getByText(String(before))).toBeVisible()
 })
 
 test('the planner shows a day nutrition summary with delta vs the goal', async ({ page }) => {
@@ -176,9 +174,7 @@ test('planning a dish from the app refreshes the day summary without a reload', 
     await page.getByPlaceholder('Buscar receta...').fill(recipe.title)
     await page.getByTestId(`pick-recipe-${recipe.id}`).click()
     // Back on the planner (client-side): the summary includes the new dish
-    await expect(page.getByTestId(`day-nutrition-${today}`)).toContainText(/kcal/, {
-      timeout: 10000,
-    })
+    await expect(page.getByTestId(`day-nutrition-${today}`)).toContainText(/kcal/)
     const day = (await (
       await page.request.get(`${API_URL}/v1/menu/day-nutrition?date=${today}`, { headers })
     ).json()) as { totals: { calories: number } }
@@ -219,7 +215,6 @@ test('recipe detail lists sugars, saturated fat and sodium when the recipe has t
     await page.goto(`/recipe/${recipe.id}`)
     await expect(page.getByTestId('nutrition-extras').first()).toHaveText(
       'Azúcares 12 g · Grasas sat. 3.5 g · Sodio 480 mg',
-      { timeout: 10000 },
     )
   } finally {
     await page.request.delete(`${API_URL}/v1/recipes/${recipe.id}`, { headers })
