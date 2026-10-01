@@ -1,9 +1,7 @@
 import { createRouter } from './router.js'
 import { createRoute as defineRoute, z } from '@hono/zod-openapi'
 import { HouseholdMemberSchema, HouseholdSchema } from '@recetario/shared'
-import { eq, and, inArray, isNull } from 'drizzle-orm'
-import { getDb, schema } from '../db/index.js'
-import { emailMatches } from '../db/email.js'
+import { accountRepository } from '../db/account-repository.js'
 import { householdRepository } from '../db/household-repository.js'
 import { authMiddleware } from '../middleware/auth.js'
 
@@ -36,29 +34,7 @@ const createRoute = defineRoute({
 householdsRoute.openapi(createRoute, async (c) => {
   const ownerId = c.get('ownerId')
   const { name } = c.req.valid('json')
-  const db = getDb()
-
-  // Household and owner membership land together or not at all
-  const household = await db.transaction(async (tx) => {
-    const [created] = await tx.insert(schema.households).values({ name, ownerId }).returning()
-    await tx.insert(schema.householdMembers).values({
-      householdId: created!.id,
-      userId: ownerId,
-      role: 'owner',
-      acceptedAt: new Date(),
-    })
-    return created
-  })
-
-  return c.json(
-    {
-      id: household!.id,
-      name: household!.name,
-      ownerId: household!.ownerId,
-      createdAt: household!.createdAt.toISOString(),
-    },
-    201,
-  )
+  return c.json(await householdRepository.create(ownerId, name), 201)
 })
 
 // GET /households/mine
@@ -117,47 +93,22 @@ householdsRoute.openapi(inviteRoute, async (c) => {
   const ownerId = c.get('ownerId')
   const { id } = c.req.valid('param')
   const { userId, email, role } = c.req.valid('json')
-  const db = getDb()
 
-  const [myMembership] = await db
-    .select()
-    .from(schema.householdMembers)
-    .where(
-      and(eq(schema.householdMembers.householdId, id), eq(schema.householdMembers.userId, ownerId)),
-    )
-    .limit(1)
-
-  if (!myMembership) return c.json({ error: 'Household not found' }, 404)
-  // A pending invite grants nothing, including management rights
-  if (!myMembership.acceptedAt || !['owner', 'admin'].includes(myMembership.role)) {
-    return c.json({ error: 'Forbidden' }, 403)
-  }
+  const access = await householdRepository.canManage(id, ownerId)
+  if (access === 'not_member') return c.json({ error: 'Household not found' }, 404)
+  if (access === 'no') return c.json({ error: 'Forbidden' }, 403)
 
   let invitedUserId = userId
   if (!invitedUserId) {
     // The body schema's refine guarantees an email whenever userId is absent
-    const [user] = await db.select().from(schema.users).where(emailMatches(email!)).limit(1)
+    const user = await accountRepository.findUserByEmail(email!)
     if (!user) return c.json({ error: 'No user found with that email' }, 404)
     invitedUserId = user.id
   }
 
-  const [member] = await db
-    .insert(schema.householdMembers)
-    .values({ householdId: id, userId: invitedUserId, role })
-    .onConflictDoNothing()
-    .returning()
-
+  const member = await householdRepository.invite(id, invitedUserId, role)
   if (!member) return c.json({ error: 'Already a member' }, 409)
-
-  return c.json(
-    {
-      userId: member.userId,
-      role: member.role,
-      invitedAt: member.invitedAt.toISOString(),
-      acceptedAt: null,
-    },
-    201,
-  )
+  return c.json(member, 201)
 })
 
 // POST /households/:id/accept
@@ -175,28 +126,9 @@ const acceptRoute = defineRoute({
 householdsRoute.openapi(acceptRoute, async (c) => {
   const ownerId = c.get('ownerId')
   const { id } = c.req.valid('param')
-  const db = getDb()
-
-  const [member] = await db
-    .update(schema.householdMembers)
-    .set({ acceptedAt: new Date() })
-    .where(
-      and(eq(schema.householdMembers.householdId, id), eq(schema.householdMembers.userId, ownerId)),
-    )
-    .returning()
-
+  const member = await householdRepository.accept(id, ownerId)
   if (!member) return c.json({ error: 'Invitation not found' }, 404)
-
-  return c.json(
-    {
-      userId: member.userId,
-      role: member.role,
-      invitedAt: member.invitedAt.toISOString(),
-      /* v8 ignore next -- just set by this update, never null */ acceptedAt:
-        member.acceptedAt?.toISOString() ?? null,
-    },
-    200,
-  )
+  return c.json(member, 200)
 })
 
 // DELETE /households/:id/members/:userId
@@ -215,35 +147,14 @@ const removeMemberRoute = defineRoute({
 householdsRoute.openapi(removeMemberRoute, async (c) => {
   const ownerId = c.get('ownerId')
   const { id, userId } = c.req.valid('param')
-  const db = getDb()
 
-  const [myMembership] = await db
-    .select()
-    .from(schema.householdMembers)
-    .where(
-      and(eq(schema.householdMembers.householdId, id), eq(schema.householdMembers.userId, ownerId)),
-    )
-    .limit(1)
+  const access = await householdRepository.canManage(id, ownerId)
+  if (access === 'not_member') return c.json({ error: 'Household not found' }, 404)
+  if (access === 'no') return c.json({ error: 'Forbidden' }, 403)
 
-  if (!myMembership) return c.json({ error: 'Household not found' }, 404)
-  if (!myMembership.acceptedAt || !['owner', 'admin'].includes(myMembership.role)) {
-    return c.json({ error: 'Forbidden' }, 403)
+  if (!(await householdRepository.removeMember(id, userId))) {
+    return c.json({ error: 'Member not found' }, 404)
   }
-
-  const deleted = await db
-    .delete(schema.householdMembers)
-    .where(
-      and(
-        eq(schema.householdMembers.householdId, id),
-        eq(schema.householdMembers.userId, userId),
-        // The owner can't be removed (the household would have no owner)
-        inArray(schema.householdMembers.role, ['admin', 'member', 'viewer']),
-      ),
-    )
-    .returning()
-
-  if (deleted.length === 0) return c.json({ error: 'Member not found' }, 404)
-
   return c.body(null, 204)
 })
 
@@ -262,16 +173,8 @@ const declineRoute = defineRoute({
 householdsRoute.openapi(declineRoute, async (c) => {
   const ownerId = c.get('ownerId')
   const { id } = c.req.valid('param')
-  const deleted = await getDb()
-    .delete(schema.householdMembers)
-    .where(
-      and(
-        eq(schema.householdMembers.householdId, id),
-        eq(schema.householdMembers.userId, ownerId),
-        isNull(schema.householdMembers.acceptedAt),
-      ),
-    )
-    .returning()
-  if (deleted.length === 0) return c.json({ error: 'Invitation not found' }, 404)
+  if (!(await householdRepository.decline(id, ownerId))) {
+    return c.json({ error: 'Invitation not found' }, 404)
+  }
   return c.body(null, 204)
 })

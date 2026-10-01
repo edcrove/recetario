@@ -1,8 +1,7 @@
 import { createRouter } from './router.js'
 import { createRoute as defineRoute, z } from '@hono/zod-openapi'
-import { eq, and, sql, or, isNull } from 'drizzle-orm'
 import { RecipeSchema } from '@recetario/shared'
-import { getDb, schema } from '../db/index.js'
+import { taxonomyRepository } from '../db/taxonomy-repository.js'
 import { authMiddleware } from '../middleware/auth.js'
 import { recipeRepository } from '../db/repository.js'
 
@@ -37,15 +36,7 @@ taxonomyRoute.openapi(
   }),
   async (c) => {
     const ownerId = c.get('ownerId')
-    const db = getDb()
-    const rows = await db
-      .select()
-      .from(schema.foodTypes)
-      .where(or(eq(schema.foodTypes.ownerId, ownerId), isNull(schema.foodTypes.ownerId)))
-      .orderBy(schema.foodTypes.name)
-    return c.json(
-      rows.map((r) => ({ id: r.id, name: r.name, slug: r.slug, isSystem: Boolean(r.isSystem) })),
-    )
+    return c.json(await taxonomyRepository.listFoodTypes(ownerId), 200)
   },
 )
 
@@ -68,16 +59,7 @@ taxonomyRoute.openapi(
   async (c) => {
     const ownerId = c.get('ownerId')
     const { name } = c.req.valid('json')
-    const db = getDb()
-    const slug = name
-      .toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-]/g, '')
-    const [row] = await db
-      .insert(schema.foodTypes)
-      .values({ name, slug, ownerId, isSystem: 0 })
-      .returning()
-    return c.json({ id: row!.id, name: row!.name, slug: row!.slug, isSystem: false }, 201)
+    return c.json(await taxonomyRepository.createFoodType(ownerId, name), 201)
   },
 )
 
@@ -105,25 +87,7 @@ taxonomyRoute.openapi(
   }),
   async (c) => {
     const ownerId = c.get('ownerId')
-    const db = getDb()
-    const rows = await db
-      .select({
-        id: schema.collections.id,
-        name: schema.collections.name,
-        emoji: schema.collections.emoji,
-        description: schema.collections.description,
-        recipeCount: sql<number>`cast(count(${schema.recipeCollections.recipeId}) as int)`,
-        createdAt: schema.collections.createdAt,
-      })
-      .from(schema.collections)
-      .leftJoin(
-        schema.recipeCollections,
-        eq(schema.recipeCollections.collectionId, schema.collections.id),
-      )
-      .where(eq(schema.collections.ownerId, ownerId))
-      .groupBy(schema.collections.id)
-      .orderBy(schema.collections.name)
-    return c.json(rows.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })))
+    return c.json(await taxonomyRepository.listCollections(ownerId), 200)
   },
 )
 
@@ -157,22 +121,7 @@ taxonomyRoute.openapi(
   async (c) => {
     const ownerId = c.get('ownerId')
     const body = c.req.valid('json')
-    const db = getDb()
-    const [row] = await db
-      .insert(schema.collections)
-      .values({ ...body, ownerId })
-      .returning()
-    return c.json(
-      {
-        id: row!.id,
-        name: row!.name,
-        emoji: row!.emoji ?? null,
-        description: row!.description ?? null,
-        recipeCount: 0,
-        createdAt: row!.createdAt.toISOString(),
-      },
-      201,
-    )
+    return c.json(await taxonomyRepository.createCollection(ownerId, body), 201)
   },
 )
 
@@ -191,11 +140,8 @@ taxonomyRoute.openapi(
   async (c) => {
     const ownerId = c.get('ownerId')
     const { id } = c.req.valid('param')
-    const deleted = await getDb()
-      .delete(schema.collections)
-      .where(and(eq(schema.collections.id, id), eq(schema.collections.ownerId, ownerId)))
-      .returning({ id: schema.collections.id })
-    if (deleted.length === 0) return c.json({ error: 'Collection not found' }, 404)
+    if (!(await taxonomyRepository.deleteCollection(ownerId, id)))
+      return c.json({ error: 'Collection not found' }, 404)
     return c.body(null, 204)
   },
 )
@@ -229,21 +175,13 @@ taxonomyRoute.openapi(
     const ownerId = c.get('ownerId')
     const { id } = c.req.valid('param')
     const { recipeId } = c.req.valid('json')
-    const db = getDb()
-    const [col] = await db
-      .select()
-      .from(schema.collections)
-      .where(and(eq(schema.collections.id, id), eq(schema.collections.ownerId, ownerId)))
-      .limit(1)
-    if (!col) return c.json({ error: 'Collection not found' }, 404)
+    if (!(await taxonomyRepository.ownsCollection(ownerId, id)))
+      return c.json({ error: 'Collection not found' }, 404)
     // The recipe must be readable by the caller (own or household-shared);
     // without this any recipeId could be linked into a collection (IDOR).
     const recipe = await recipeRepository.findById(recipeId, { visibleTo: ownerId })
     if (!recipe) return c.json({ error: 'Recipe not found' }, 404)
-    await db
-      .insert(schema.recipeCollections)
-      .values({ collectionId: id, recipeId })
-      .onConflictDoNothing()
+    await taxonomyRepository.addRecipeToCollection(id, recipeId)
     return c.json({ collectionId: id, recipeId }, 201)
   },
 )
@@ -266,24 +204,14 @@ const collectionRecipesRoute = defineRoute({
 taxonomyRoute.openapi(collectionRecipesRoute, async (c) => {
   const ownerId = c.get('ownerId')
   const { id } = c.req.valid('param')
-  const db = getDb()
-  const [col] = await db
-    .select()
-    .from(schema.collections)
-    .where(and(eq(schema.collections.id, id), eq(schema.collections.ownerId, ownerId)))
-    .limit(1)
-  if (!col) return c.json({ error: 'Collection not found' }, 404)
-
-  const links = await db
-    .select({ recipeId: schema.recipeCollections.recipeId })
-    .from(schema.recipeCollections)
-    .where(eq(schema.recipeCollections.collectionId, id))
+  if (!(await taxonomyRepository.ownsCollection(ownerId, id)))
+    return c.json({ error: 'Collection not found' }, 404)
 
   // Recipes are household-shared, so a collection listing must resolve each
   // linked recipe against the caller's full visible-owner set — otherwise a
   // housemate's recipe added to the collection silently vanishes from the list.
   const recipes = await recipeRepository.findByIds(
-    links.map((link) => link.recipeId),
+    await taxonomyRepository.collectionRecipeIds(id),
     { visibleTo: ownerId },
   )
   return c.json(recipes, 200)
@@ -304,21 +232,9 @@ taxonomyRoute.openapi(
   async (c) => {
     const ownerId = c.get('ownerId')
     const { id, recipeId } = c.req.valid('param')
-    const db = getDb()
-    const [col] = await db
-      .select()
-      .from(schema.collections)
-      .where(and(eq(schema.collections.id, id), eq(schema.collections.ownerId, ownerId)))
-      .limit(1)
-    if (!col) return c.json({ error: 'Collection not found' }, 404)
-    await db
-      .delete(schema.recipeCollections)
-      .where(
-        and(
-          eq(schema.recipeCollections.collectionId, id),
-          eq(schema.recipeCollections.recipeId, recipeId),
-        ),
-      )
+    if (!(await taxonomyRepository.ownsCollection(ownerId, id)))
+      return c.json({ error: 'Collection not found' }, 404)
+    await taxonomyRepository.removeRecipeFromCollection(id, recipeId)
     return c.body(null, 204)
   },
 )
@@ -362,11 +278,7 @@ taxonomyRoute.openapi(
     const { toId, relationType, createdBy = 'user' } = c.req.valid('json')
     const recipe = await recipeRepository.findById(id, { ownedBy: ownerId })
     if (!recipe) return c.json({ error: 'Recipe not found' }, 404)
-    const db = getDb()
-    await db
-      .insert(schema.recipeRelations)
-      .values({ fromId: id, toId, relationType, createdBy })
-      .onConflictDoNothing()
+    await taxonomyRepository.addRelation({ fromId: id, toId, relationType, createdBy })
     return c.json({ fromId: id, toId, relationType, createdBy }, 201)
   },
 )
@@ -391,19 +303,6 @@ taxonomyRoute.openapi(
     const { id } = c.req.valid('param')
     const recipe = await recipeRepository.findById(id, { ownedBy: ownerId })
     if (!recipe) return c.json({ error: 'Recipe not found' }, 404)
-    const db = getDb()
-    const rows = await db
-      .select()
-      .from(schema.recipeRelations)
-      .where(eq(schema.recipeRelations.fromId, id))
-    return c.json(
-      rows.map((r) => ({
-        fromId: r.fromId,
-        toId: r.toId,
-        relationType: r.relationType as 'similar' | 'variation' | 'inspiration',
-        createdBy: r.createdBy,
-      })),
-      200,
-    )
+    return c.json(await taxonomyRepository.listRelations(id), 200)
   },
 )
