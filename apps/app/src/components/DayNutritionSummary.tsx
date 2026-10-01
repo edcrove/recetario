@@ -33,8 +33,8 @@ export function DayNutritionSummary({ date }: { date: string }) {
   return (
     <View testID={`day-nutrition-${date}`} style={s.row}>
       <Text style={s.totals}>
-        {data.totals.calories} kcal · {data.totals.protein_g}P · {data.totals.carbs_g}C ·{' '}
-        {data.totals.fat_g}G
+        Por persona: {data.totals.calories} kcal · {data.totals.protein_g}P · {data.totals.carbs_g}C
+        · {data.totals.fat_g}G
       </Text>
       {label ? <Text style={[s.delta, { color: STATUS_COLOR[status] }]}>{label}</Text> : null}
       {data.partial ? <Text style={s.partial}>datos incompletos</Text> : null}

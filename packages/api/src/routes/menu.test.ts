@@ -509,12 +509,10 @@ describe('GET /v1/menu/day-nutrition', () => {
         {
           mealCategory: 'Almuerzo',
           nutrition: { calories: 500, protein_g: 30, carbs_g: 50, fat_g: 15 },
-          servings: 2,
         },
         {
           mealCategory: 'Cena',
           nutrition: { calories: 700, protein_g: 40, carbs_g: 70, fat_g: 20 },
-          servings: 1,
         },
       ],
       target,
@@ -523,8 +521,8 @@ describe('GET /v1/menu/day-nutrition', () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.date).toBe('2026-07-06')
-    expect(body.totals.calories).toBe(1700)
-    expect(body.delta.calories).toBe(-300)
+    expect(body.totals.calories).toBe(1200)
+    expect(body.delta.calories).toBe(-800)
     expect(body.byMeal).toHaveLength(2)
     expect(body.partial).toBe(false)
   })
@@ -532,7 +530,7 @@ describe('GET /v1/menu/day-nutrition', () => {
   it('flags partial and returns no delta without a target', async () => {
     mockRepo.getDayNutritionInputs.mockResolvedValue({
       entries: [
-        { mealCategory: 'Cena', nutrition: null, servings: 1 },
+        { mealCategory: 'Cena', nutrition: null },
         {
           mealCategory: 'Cena',
           nutrition: { calories: 400, protein_g: 20, carbs_g: 40, fat_g: 10 },

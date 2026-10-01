@@ -86,7 +86,8 @@ test('the planner shows a day nutrition summary with delta vs the goal', async (
     await page.goto('/menu')
     const summary = page.getByTestId(`day-nutrition-${date}`)
     await expect(summary).toBeVisible({ timeout: 12000 })
-    await expect(summary.getByText(/1000 kcal/)).toBeVisible()
+    // Per person: one 500 kcal portion, although 2 servings are planned
+    await expect(summary.getByText(/Por persona: 500 kcal/)).toBeVisible()
     await expect(summary.getByText(/faltan/)).toBeVisible()
   } finally {
     await page.request.delete(`${API_URL}/v1/menu/${date}/Almuerzo/${recipe.id}`, { headers })

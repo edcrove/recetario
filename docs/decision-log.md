@@ -55,6 +55,19 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
 - **Where it lives**: `UpdateRecipeSchema` (no defaults), `RecipeRepository.update`.
 - **Status**: active
 
+### D-2026-10-01-5 · Day and week nutrition are per-person intake
+
+- **Decision**: the day rollup (`computeDayNutrition`), the week view
+  (`GET /v1/menu/nutrition`) and suggestion `goalFit` count **one portion per planned
+  dish** — the intake of the person whose targets they are compared against — instead of
+  per-serving nutrition × planned servings.
+- **Why**: targets are personal; a family of 4 planning a 600 kcal dinner showed 2400 kcal
+  against one adult's goal, so deltas and `goalFit` were inflated ~N×. Planned servings
+  still drive the shopping list and scaling, not intake.
+- **Where it lives**: `packages/shared/src/dayNutrition.ts`, `routes/menu.ts`,
+  `DayNutritionSummary` ("Por persona"), MCP `getDayNutrition` description.
+- **Status**: active — revisit when households track per-member portions.
+
 ## 2026-09-30 — Dependency & maintenance session (PRs #125, #140, #147, #148, #124)
 
 ### D-2026-09-30-12 · Production startup guard, closed sign-up and release step

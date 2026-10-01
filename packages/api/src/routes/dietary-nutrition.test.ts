@@ -110,14 +110,16 @@ describe('GET /v1/menu/nutrition', () => {
     expect(body.targets?.daily_calories).toBe(2000)
   })
 
-  it('aggregates nutrition from menu entries with scaling', async () => {
+  it('aggregates one portion per planned dish per day', async () => {
     mockSelect
       .mockReturnValueOnce([
         {
           date: '2026-07-06',
-          servings: 4,
-          recipeServings: 2,
           nutrition: { calories: 500, protein_g: 30, carbs_g: 60, fat_g: 20 },
+        },
+        {
+          date: '2026-07-06',
+          nutrition: { calories: 300, protein_g: 10, carbs_g: 40, fat_g: 5 },
         },
       ])
       .mockReturnValueOnce([{ nutritionTargets: null }])
@@ -127,17 +129,15 @@ describe('GET /v1/menu/nutrition', () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     const monday = body.days.find((d: { date: string }) => d.date === '2026-07-06')
-    expect(monday?.calories).toBe(2000) // per-serving 500 × 4 planned servings
+    expect(monday?.calories).toBe(800) // 500 + 300: one portion each
     expect(body.targets).toBeNull()
   })
 
-  it('scales by planned servings only (nutrition is per serving)', async () => {
+  it('reports per-person intake, not the household batch (nutrition is per serving)', async () => {
     mockSelect
       .mockReturnValueOnce([
         {
           date: '2026-07-06',
-          servings: 2,
-          recipeServings: 0,
           nutrition: { calories: 500, protein_g: 20, carbs_g: 50, fat_g: 15 },
         },
       ])
@@ -147,7 +147,7 @@ describe('GET /v1/menu/nutrition', () => {
     })
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.days[0].calories).toBe(1000) // per-serving 500 × 2 planned servings
+    expect(body.days[0].calories).toBe(500) // one person's portion, whatever servings were planned
   })
 
   it('skips entries with no nutrition data', async () => {
