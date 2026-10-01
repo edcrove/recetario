@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import { useStepTimer } from '../hooks/useStepTimer'
+import { useCookTimers } from '../hooks/useStepTimer'
 
 beforeEach(() => {
   vi.useFakeTimers()
@@ -11,143 +11,101 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-describe('useStepTimer hook', () => {
-  it('pre-loads paused with the given seconds (tap-to-start)', () => {
-    const { result } = renderHook(() => useStepTimer(60))
-    expect(result.current.secondsLeft).toBe(60)
-    expect(result.current.isRunning).toBe(false)
+describe('useCookTimers', () => {
+  it('pre-loads each step paused with its full duration (tap-to-start)', () => {
+    const { result } = renderHook(() => useCookTimers())
+    expect(result.current.view(0, 60)).toEqual({
+      secondsLeft: 60,
+      isRunning: false,
+      started: false,
+    })
+    expect(result.current.view(1, null)).toEqual({
+      secondsLeft: 0,
+      isRunning: false,
+      started: false,
+    })
+    expect(result.current.running).toEqual([])
   })
 
-  it('initializes idle for null duration', () => {
-    const { result } = renderHook(() => useStepTimer(null))
-    expect(result.current.secondsLeft).toBe(0)
-    expect(result.current.isRunning).toBe(false)
+  it('counts down from an absolute deadline once started', () => {
+    const { result } = renderHook(() => useCookTimers())
+    act(() => result.current.toggle(0, 3))
+    expect(result.current.view(0, 3)).toMatchObject({ isRunning: true, started: true })
+
+    act(() => vi.advanceTimersByTime(1000))
+    expect(result.current.view(0, 3).secondsLeft).toBe(2)
+    act(() => vi.advanceTimersByTime(1000))
+    expect(result.current.view(0, 3).secondsLeft).toBe(1)
   })
 
-  it('counts down each second once started', () => {
-    const { result } = renderHook(() => useStepTimer(3))
-    expect(result.current.secondsLeft).toBe(3)
-
-    act(() => {
-      result.current.toggle()
-    })
-    act(() => {
-      vi.advanceTimersByTime(1000)
-    })
-    expect(result.current.secondsLeft).toBe(2)
-
-    act(() => {
-      vi.advanceTimersByTime(1000)
-    })
-    expect(result.current.secondsLeft).toBe(1)
+  it('stays correct when the interval is throttled (backgrounded tab)', () => {
+    const { result } = renderHook(() => useCookTimers())
+    act(() => result.current.toggle(0, 120))
+    // Wall clock jumps 90s without any interval ticks firing.
+    vi.setSystemTime(Date.now() + 90_000)
+    act(() => vi.advanceTimersByTime(250))
+    expect(result.current.view(0, 120).secondsLeft).toBe(30)
   })
 
-  it('fires onComplete exactly once when reaching 0', () => {
+  it('pauses and resumes keeping the remaining time', () => {
+    const { result } = renderHook(() => useCookTimers())
+    act(() => result.current.toggle(0, 10))
+    act(() => vi.advanceTimersByTime(4000))
+    act(() => result.current.toggle(0, 10))
+    expect(result.current.view(0, 10)).toEqual({ secondsLeft: 6, isRunning: false, started: true })
+
+    act(() => vi.advanceTimersByTime(5000))
+    expect(result.current.view(0, 10).secondsLeft).toBe(6)
+
+    act(() => result.current.toggle(0, 10))
+    act(() => vi.advanceTimersByTime(2000))
+    expect(result.current.view(0, 10).secondsLeft).toBe(4)
+  })
+
+  it('keeps a running timer going while another step is viewed, and lists it', () => {
+    const { result } = renderHook(() => useCookTimers())
+    act(() => result.current.toggle(1, 300))
+    act(() => vi.advanceTimersByTime(60_000))
+
+    // A different step with the same duration starts fresh — timers are keyed by step.
+    expect(result.current.view(2, 300)).toEqual({
+      secondsLeft: 300,
+      isRunning: false,
+      started: false,
+    })
+    expect(result.current.running).toEqual([{ step: 1, secondsLeft: 240 }])
+  })
+
+  it('fires onComplete once per step at zero and stops', () => {
     const onComplete = vi.fn()
-    const { result } = renderHook(() => useStepTimer(3, onComplete))
+    const { result } = renderHook(() => useCookTimers(onComplete))
+    act(() => result.current.toggle(0, 2))
+    act(() => vi.advanceTimersByTime(2250))
 
-    act(() => {
-      result.current.toggle()
-    })
-    act(() => {
-      vi.advanceTimersByTime(3000)
-    })
-    expect(result.current.secondsLeft).toBe(0)
-    expect(result.current.isRunning).toBe(false)
     expect(onComplete).toHaveBeenCalledTimes(1)
+    expect(onComplete).toHaveBeenCalledWith(0)
+    expect(result.current.view(0, 2)).toEqual({ secondsLeft: 0, isRunning: false, started: true })
+    expect(result.current.running).toEqual([])
 
-    act(() => {
-      vi.advanceTimersByTime(2000)
-    })
+    act(() => vi.advanceTimersByTime(5000))
     expect(onComplete).toHaveBeenCalledTimes(1)
   })
 
-  it('tracks the started flag for the Iniciar/Reanudar label', () => {
-    const { result } = renderHook(() => useStepTimer(60))
-    expect(result.current.started).toBe(false) // shows "Iniciar"
+  it('does not restart a finished timer until it is reset', () => {
+    const { result } = renderHook(() => useCookTimers())
+    act(() => result.current.toggle(0, 1))
+    act(() => vi.advanceTimersByTime(1250))
+    act(() => result.current.toggle(0, 1))
+    expect(result.current.view(0, 1).isRunning).toBe(false)
 
-    act(() => {
-      result.current.toggle()
-    })
-    expect(result.current.started).toBe(true) // now "Pausar"/"Reanudar"
-
-    act(() => {
-      result.current.reset()
-    })
-    expect(result.current.started).toBe(false) // back to "Iniciar"
+    act(() => result.current.reset(0))
+    expect(result.current.view(0, 1)).toEqual({ secondsLeft: 1, isRunning: false, started: false })
   })
 
-  it('clears started when durationSeconds changes', () => {
-    let duration: number | null = 3
-    const { result, rerender } = renderHook(() => useStepTimer(duration))
-    act(() => {
-      result.current.toggle()
-    })
-    expect(result.current.started).toBe(true)
-    duration = 60
-    rerender()
-    expect(result.current.started).toBe(false)
-  })
-
-  it('toggle starts, pauses and resumes', () => {
-    const { result } = renderHook(() => useStepTimer(60))
-    expect(result.current.isRunning).toBe(false) // tap-to-start: paused initially
-
-    act(() => {
-      result.current.toggle()
-    })
-    expect(result.current.isRunning).toBe(true)
-
-    act(() => {
-      result.current.toggle()
-    })
-    expect(result.current.isRunning).toBe(false)
-
-    const frozenSeconds = result.current.secondsLeft
-    act(() => {
-      vi.advanceTimersByTime(3000)
-    })
-    expect(result.current.secondsLeft).toBe(frozenSeconds)
-
-    act(() => {
-      result.current.toggle()
-    })
-    expect(result.current.isRunning).toBe(true)
-  })
-
-  it('reset returns to the full duration, paused', () => {
-    const { result } = renderHook(() => useStepTimer(3))
-
-    act(() => {
-      result.current.toggle()
-    })
-    act(() => {
-      vi.advanceTimersByTime(2000)
-    })
-    expect(result.current.secondsLeft).toBe(1)
-
-    act(() => {
-      result.current.reset()
-    })
-    expect(result.current.secondsLeft).toBe(3)
-    expect(result.current.isRunning).toBe(false)
-  })
-
-  it('resets to paused when durationSeconds changes', () => {
-    let duration: number | null = 3
-    const { result, rerender } = renderHook(() => useStepTimer(duration))
-
-    act(() => {
-      result.current.toggle()
-    })
-    act(() => {
-      vi.advanceTimersByTime(2000)
-    })
-    expect(result.current.secondsLeft).toBe(1)
-
-    duration = 60
-    rerender()
-    expect(result.current.secondsLeft).toBe(60)
-    expect(result.current.isRunning).toBe(false)
+  it('works without an onComplete callback', () => {
+    const { result } = renderHook(() => useCookTimers())
+    act(() => result.current.toggle(0, 1))
+    act(() => vi.advanceTimersByTime(1250))
+    expect(result.current.view(0, 1).secondsLeft).toBe(0)
   })
 })
