@@ -99,6 +99,34 @@ export const cookSessionsRepository = {
       .offset(offset)
   },
 
+  /**
+   * Per-recipe signals for suggestions: the caller's average rating and
+   * whether they cooked it on or after `recentSince` (variety).
+   */
+  async recipeSignals(
+    ownerId: string,
+    recentSince: Date,
+  ): Promise<Map<string, { avgRating: number | null; recentlyCooked: boolean }>> {
+    const rows = await getDb()
+      .select({
+        recipeId: schema.cookSessions.recipeId,
+        avgRating: sql<number | null>`avg(${schema.cookSessions.rating})::float`,
+        lastCookedAt: sql<Date>`max(${schema.cookSessions.cookedAt})`,
+      })
+      .from(schema.cookSessions)
+      .where(eq(schema.cookSessions.ownerId, ownerId))
+      .groupBy(schema.cookSessions.recipeId)
+    const map = new Map<string, { avgRating: number | null; recentlyCooked: boolean }>()
+    for (const r of rows) {
+      if (!r.recipeId) continue // sessions of deleted recipes
+      map.set(r.recipeId, {
+        avgRating: r.avgRating === null ? null : Math.round(r.avgRating * 10) / 10,
+        recentlyCooked: new Date(r.lastCookedAt) >= recentSince,
+      })
+    }
+    return map
+  },
+
   async getStats(ownerId: string, since?: Date): Promise<CookStats> {
     const db = getDb()
     const windowStart = since ?? new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) // 90 days

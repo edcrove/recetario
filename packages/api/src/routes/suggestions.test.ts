@@ -3,8 +3,12 @@ import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from 'vites
 vi.mock('../db/pantry-repository.js', () => ({
   pantryRepository: {
     listInStockNames: vi.fn(async () => [] as string[]),
+    listExpiringNames: vi.fn(async () => [] as string[]),
     listHouseholdRecipesWithIngredients: vi.fn(async () => []),
   },
+}))
+vi.mock('../db/cook-sessions-repository.js', () => ({
+  cookSessionsRepository: { recipeSignals: vi.fn(async () => new Map()) },
 }))
 vi.mock('../db/ingredient-repository.js', () => ({
   ingredientRepository: {
@@ -29,9 +33,11 @@ vi.mock('../db/index.js', () => ({
 import { app } from '../index.js'
 import { pantryRepository } from '../db/pantry-repository.js'
 import { menuRepository } from '../db/menu-repository.js'
+import { cookSessionsRepository } from '../db/cook-sessions-repository.js'
 
 const mockPantry = pantryRepository as unknown as {
   listInStockNames: ReturnType<typeof vi.fn>
+  listExpiringNames: ReturnType<typeof vi.fn>
   listHouseholdRecipesWithIngredients: ReturnType<typeof vi.fn>
 }
 const mockMenu = menuRepository as unknown as { getDayNutritionInputs: ReturnType<typeof vi.fn> }
@@ -111,5 +117,40 @@ describe('POST /v1/suggestions/from-ingredients', () => {
       body: JSON.stringify({ ingredients: ['pollo'] }),
     })
     expect(res.status).toBe(401)
+  })
+})
+
+describe('POST /v1/suggestions/from-ingredients — secondary signals', () => {
+  it('passes expiring pantry items and cook history into the ranking', async () => {
+    mockPantry.listHouseholdRecipesWithIngredients.mockResolvedValueOnce([
+      recipe('550e8400-e29b-41d4-a716-446655440001', 'Arroz con leche', ['arroz', 'leche']),
+      recipe('550e8400-e29b-41d4-a716-446655440002', 'Arroz con pollo', ['arroz', 'pollo']),
+    ])
+    mockPantry.listExpiringNames.mockResolvedValueOnce(['leche'])
+    // A date with no nutrition target: no goal context, signals still apply
+    mockMenu.getDayNutritionInputs.mockResolvedValueOnce({ entries: [], target: null })
+    vi.mocked(cookSessionsRepository.recipeSignals).mockResolvedValueOnce(
+      new Map([['550e8400-e29b-41d4-a716-446655440002', { avgRating: 4.5, recentlyCooked: true }]]),
+    )
+    const res = await app.request('/v1/suggestions/from-ingredients', {
+      method: 'POST',
+      headers: AUTH,
+      body: JSON.stringify({ ingredients: ['arroz', 'leche', 'pollo'], date: '2026-07-06' }),
+    })
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as {
+      title: string
+      usesExpiring: string[]
+      recentlyCooked: boolean
+      avgRating: number | null
+    }[]
+    expect(body[0]).toMatchObject({ title: 'Arroz con leche', usesExpiring: ['leche'] })
+    expect(body[1]).toMatchObject({ recentlyCooked: true, avgRating: 4.5 })
+    // Expiring window: today + 3 days; recency window: the 3 days before
+    expect(mockPantry.listExpiringNames).toHaveBeenCalledWith('dev', '2026-07-09')
+    expect(cookSessionsRepository.recipeSignals).toHaveBeenCalledWith(
+      'dev',
+      new Date('2026-07-03T00:00:00Z'),
+    )
   })
 })

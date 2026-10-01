@@ -1,4 +1,4 @@
-import { eq, inArray, and } from 'drizzle-orm'
+import { eq, inArray, and, isNotNull, lte } from 'drizzle-orm'
 import { normalizeIngredientKey, type Nutrition } from '@recetario/shared'
 import { getDb, schema } from './index.js'
 import { getVisibleOwnerIds } from './household-visibility.js'
@@ -62,6 +62,23 @@ export class PantryRepository {
         and(
           inArray(schema.pantryItems.ownerId, visibleOwners),
           eq(schema.pantryItems.inStock, true),
+        ),
+      )
+    return rows.map((r) => r.name)
+  }
+
+  /** In-stock household pantry items whose expiry date is on or before `until` (YYYY-MM-DD). */
+  async listExpiringNames(ownerId: string, until: string): Promise<string[]> {
+    const visibleOwners = await getVisibleOwnerIds(ownerId)
+    const rows = await this.db
+      .select({ name: schema.pantryItems.name })
+      .from(schema.pantryItems)
+      .where(
+        and(
+          inArray(schema.pantryItems.ownerId, visibleOwners),
+          eq(schema.pantryItems.inStock, true),
+          isNotNull(schema.pantryItems.expiryDate),
+          lte(schema.pantryItems.expiryDate, until),
         ),
       )
     return rows.map((r) => r.name)

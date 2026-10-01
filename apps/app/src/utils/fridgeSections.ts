@@ -7,6 +7,9 @@ export interface Suggestion {
   missingIngredients: string[]
   goalFit: 'dentro' | 'cerca' | 'lejos' | null
   nutrition: { calories: number; protein_g: number; carbs_g: number; fat_g: number } | null
+  usesExpiring?: string[]
+  recentlyCooked?: boolean
+  avgRating?: number | null
 }
 
 export interface SuggestionSections {
