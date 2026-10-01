@@ -12,6 +12,7 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { api } from '../src/api/client'
+import { ErrorState } from '../src/components/ErrorState'
 import type { Recipe, RecipeDifficulty } from '@recetario/shared'
 import { macroStrip } from '../src/utils/macroStrip'
 import {
@@ -56,6 +57,7 @@ export default function HomeScreen() {
     isLoading,
     isFetching,
     error,
+    refetch,
   } = useQuery({
     queryKey: ['recipes', query, activeType],
     queryFn: () =>
@@ -83,12 +85,7 @@ export default function HomeScreen() {
       </View>
     )
 
-  if (error)
-    return (
-      <View style={styles.center}>
-        <Text style={styles.error}>Error al cargar recetas</Text>
-      </View>
-    )
+  if (error) return <ErrorState message="Error al cargar recetas" onRetry={() => void refetch()} />
 
   return (
     <View style={styles.container}>
@@ -135,7 +132,12 @@ export default function HomeScreen() {
             <TouchableOpacity
               testID="home-type-chip-all"
               style={[styles.filterChip, activeType === null && styles.filterChipActive]}
-              onPress={() => setActiveType(null)}
+              onPress={() => {
+                // "Todas" clears every filter, not just the food type
+                setActiveType(null)
+                setMaxTotalTime(null)
+                setDifficulty(null)
+              }}
             >
               <Text
                 style={[styles.filterChipText, activeType === null && styles.filterChipTextActive]}
