@@ -1,6 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native'
-import { useQuery } from '@tanstack/react-query'
-import { api } from '../api/client'
+import { useProfile } from '../hooks/useProfile'
 import type { Recipe } from '@recetario/shared'
 import { checkAllergens } from '../utils/allergenCheck'
 import { useThemeColors } from '../theme/tokens'
@@ -16,10 +15,7 @@ interface Props {
 // actually happens.
 export function AllergenBadge({ recipe }: Props) {
   const c = useThemeColors()
-  const { data: profile } = useQuery({
-    queryKey: ['profile'],
-    queryFn: () => api.auth.getProfile(),
-  })
+  const { data: profile } = useProfile()
 
   if (!profile) return null
 

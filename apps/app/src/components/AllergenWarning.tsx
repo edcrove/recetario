@@ -1,6 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native'
-import { useQuery } from '@tanstack/react-query'
-import { api } from '../api/client'
+import { useProfile } from '../hooks/useProfile'
 import { allergenLabel, type Recipe } from '@recetario/shared'
 import { checkAllergens, DIETARY_LABELS } from '../utils/allergenCheck'
 import { useThemeColors, type ThemeColors } from '../theme/tokens'
@@ -12,10 +11,7 @@ interface Props {
 
 export function AllergenWarning({ recipe }: Props) {
   const s = makeStyles(useThemeColors())
-  const { data: profile } = useQuery({
-    queryKey: ['profile'],
-    queryFn: () => api.auth.getProfile(),
-  })
+  const { data: profile } = useProfile()
 
   if (!profile) return null
 
