@@ -23,6 +23,26 @@ async function saveCoverage(page: import('@playwright/test').Page, title: string
 }
 
 /**
+ * A full page load (goto/reload) starts window.__coverage__ from zero, so a
+ * test that switches users or reloads mid-way used to lose everything it
+ * covered before the navigation. Snapshot first; nyc merge sums the parts.
+ */
+function keepCoverageAcrossNavigations(page: import('@playwright/test').Page, title: string) {
+  if (!COLLECT_COVERAGE) return
+  let part = 0
+  const goto = page.goto.bind(page)
+  const reload = page.reload.bind(page)
+  page.goto = async (...args: Parameters<typeof goto>) => {
+    await saveCoverage(page, `${title}-part${part++}`).catch(() => undefined)
+    return goto(...args)
+  }
+  page.reload = async (...args: Parameters<typeof reload>) => {
+    await saveCoverage(page, `${title}-part${part++}`).catch(() => undefined)
+    return reload(...args)
+  }
+}
+
+/**
  * Authenticated test fixture:
  * 1. Logs in before each test (JWT → localStorage)
  * 2. Optionally collects Istanbul coverage from window.__coverage__
@@ -53,6 +73,7 @@ export const test = base.extend({
     await page.waitForURL((url) => !url.pathname.startsWith('/auth'))
     await expect(page.getByTestId('home-profile-button')).toBeVisible()
 
+    keepCoverageAcrossNavigations(page, testInfo.title)
     await use(page)
 
     await saveCoverage(page, testInfo.title)
@@ -65,6 +86,7 @@ export const test = base.extend({
  */
 export const testUnauth = base.extend({
   page: async ({ page }, use, testInfo) => {
+    keepCoverageAcrossNavigations(page, testInfo.title)
     await use(page)
     await saveCoverage(page, testInfo.title)
   },

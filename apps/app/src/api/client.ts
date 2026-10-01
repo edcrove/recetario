@@ -333,5 +333,12 @@ export const api = {
       request<void>(`/v1/households/${householdId}/decline`, { method: 'POST' }),
     removeMember: (householdId: string, userId: string) =>
       request<void>(`/v1/households/${householdId}/members/${userId}`, { method: 'DELETE' }),
+    changeRole: (householdId: string, userId: string, role: Exclude<HouseholdRole, 'owner'>) =>
+      request<HouseholdMember>(`/v1/households/${householdId}/members/${userId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ role }),
+      }),
+    leave: (householdId: string) =>
+      request<void>(`/v1/households/${householdId}/leave`, { method: 'POST' }),
   },
 }

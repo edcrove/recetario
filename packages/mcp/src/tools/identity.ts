@@ -88,4 +88,35 @@ export function registerIdentityTools(server: McpServer, api: ReturnType<typeof 
       }
     },
   )
+
+  server.tool(
+    'changeHouseholdMemberRole',
+    "Change a household member's role (admin, member or viewer). Only the household owner or an admin can do it, and the owner's own role never changes. Viewers are read-only on the shared menu, shopping list and pantry. Get householdId and userId from listHouseholdMembers.",
+    {
+      householdId: z.string().uuid().describe('Household the member belongs to'),
+      userId: z.string().uuid().describe('Member whose role changes'),
+      role: z.enum(['admin', 'member', 'viewer']).describe('New role'),
+    },
+    async ({ householdId, userId, role }) => {
+      const member = await api.request(`/v1/households/${householdId}/members/${userId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ role }),
+      })
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify(member, null, 2) }],
+      }
+    },
+  )
+
+  server.tool(
+    'leaveHousehold',
+    'The current user leaves a household they joined; sharing (recipes, weekly menu, shopping list) stops right away. The owner cannot leave. For a pending invitation use respondToHouseholdInvitation with accept=false instead.',
+    {
+      householdId: z.string().uuid().describe('Household to leave'),
+    },
+    async ({ householdId }) => {
+      await api.request(`/v1/households/${householdId}/leave`, { method: 'POST' })
+      return { content: [{ type: 'text' as const, text: 'Left the household.' }] }
+    },
+  )
 }

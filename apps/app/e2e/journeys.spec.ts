@@ -165,3 +165,71 @@ test.describe('Journey: two people share a household', () => {
     }
   })
 })
+
+// Story "App: gestión de household (invitar, roles)": "Owner puede cambiar rol
+// o remover miembro. Miembro puede ver y abandonar el hogar." Fresh accounts,
+// so the seeded demo households are untouched.
+test.describe('Journey: the owner changes a role, then the member leaves', () => {
+  test('owner makes the member a viewer → member leaves → the household is gone for them', async ({
+    page,
+  }) => {
+    await page.setViewportSize(PHONE)
+    const owner = await register(page.request, 'role-owner')
+    const member = await register(page.request, 'role-member')
+    const name = `Casa roles ${Date.now()}`
+    const hh = (await (
+      await page.request.post(`${API_URL}/v1/households`, {
+        headers: json(owner.token),
+        data: { name },
+      })
+    ).json()) as { id: string }
+    await page.request.post(`${API_URL}/v1/households/${hh.id}/invite`, {
+      headers: json(owner.token),
+      data: { userId: member.id, role: 'member' },
+    })
+    await page.request.post(`${API_URL}/v1/households/${hh.id}/accept`, {
+      headers: json(member.token),
+    })
+    const roleOf = async (userId: string) => {
+      const list = (await (
+        await page.request.get(`${API_URL}/v1/households/mine`, { headers: json(owner.token) })
+      ).json()) as { id: string; members: { userId: string; role: string }[] }[]
+      return list.find((h) => h.id === hh.id)?.members.find((m) => m.userId === userId)?.role
+    }
+
+    // The owner changes the member's role from Mi hogar.
+    await signInAs(page, owner.token)
+    await page.goto('/household')
+    await page.getByTestId(`household-change-role-${member.id}`).click()
+    // The current role is highlighted (background and text), the others are not
+    const look = (r: string) =>
+      page.getByTestId(`household-role-option-${member.id}-${r}`).evaluate((el) => {
+        const text = el.querySelector('div') ?? el
+        return `${getComputedStyle(el).backgroundColor}|${getComputedStyle(text).color}`
+      })
+    const [current, other] = await Promise.all([look('member'), look('viewer')])
+    expect(current.split('|')[0]).not.toBe(other.split('|')[0])
+    expect(current.split('|')[1]).not.toBe(other.split('|')[1])
+    await page.getByTestId(`household-role-option-${member.id}-viewer`).click()
+    await expect(page.getByTestId(`household-role-picker-${member.id}`)).toHaveCount(0)
+    await expect.poll(() => roleOf(member.id)).toBe('viewer')
+    await expect(page.getByText('Espectador')).toBeVisible()
+    // The owner can neither re-role nor leave their own household.
+    await expect(page.getByTestId(`household-change-role-${owner.id}`)).toHaveCount(0)
+    await expect(page.getByTestId(`household-leave-${hh.id}`)).toHaveCount(0)
+
+    // The member leaves after confirming.
+    await signInAs(page, member.token)
+    await page.goto('/household')
+    await expect(page.getByText(`🏠 ${name}`)).toBeVisible()
+    page.once('dialog', (d) => void d.accept())
+    await page.getByTestId(`household-leave-${hh.id}`).click()
+    await expect(page.getByText(`🏠 ${name}`)).toHaveCount(0)
+    await expect(page.getByText('Creá tu hogar')).toBeVisible()
+    const theirs = (await (
+      await page.request.get(`${API_URL}/v1/households/mine`, { headers: json(member.token) })
+    ).json()) as unknown[]
+    expect(theirs).toEqual([])
+    expect(await roleOf(member.id)).toBeUndefined()
+  })
+})
