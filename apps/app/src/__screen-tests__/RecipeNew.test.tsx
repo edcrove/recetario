@@ -13,6 +13,7 @@ vi.mock('../api/client', () => ({
   },
 }))
 
+import { useRouter } from 'expo-router'
 import NewRecipeScreen from '../../app/recipe/new'
 
 function wrap(ui: React.ReactElement) {
@@ -21,7 +22,9 @@ function wrap(ui: React.ReactElement) {
 }
 
 describe('NewRecipeScreen', () => {
-  beforeEach(() => mockCreate.mockReset())
+  beforeEach(() => {
+    mockCreate.mockReset()
+  })
 
   it('renders all required sections (the title lives in the stack header)', () => {
     wrap(<NewRecipeScreen />)
@@ -170,5 +173,69 @@ describe('NewRecipeScreen', () => {
 
     await waitFor(() => expect(mockCreate).toHaveBeenCalled())
     expect(mockCreate.mock.calls[0]?.[0].difficulty).toBeNull()
+  })
+
+  it('opens the new recipe with a saved notice instead of going back', async () => {
+    const router = { push: vi.fn(), back: vi.fn(), replace: vi.fn(), canGoBack: () => false }
+    vi.mocked(useRouter).mockReturnValue(router as never)
+    mockCreate.mockResolvedValue({ id: 'new-id' })
+    wrap(<NewRecipeScreen />)
+
+    fireEvent.change(screen.getByPlaceholderText('Nombre de la receta'), { target: { value: 'X' } })
+    fireEvent.change(screen.getByPlaceholderText('Ingrediente'), { target: { value: 'Y' } })
+    fireEvent.click(screen.getByText('Guardar Receta'))
+
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/recipe/new-id?saved=1'))
+    expect(router.back).not.toHaveBeenCalled()
+  })
+
+  it('shows the API error and keeps the form', async () => {
+    mockCreate.mockRejectedValue(new Error('Sin conexión'))
+    wrap(<NewRecipeScreen />)
+    fireEvent.change(screen.getByPlaceholderText('Nombre de la receta'), { target: { value: 'X' } })
+    fireEvent.change(screen.getByPlaceholderText('Ingrediente'), { target: { value: 'Y' } })
+    fireEvent.click(screen.getByText('Guardar Receta'))
+    expect(await screen.findByText('Sin conexión')).toBeInTheDocument()
+  })
+
+  it('offers every unit with Spanish labels and sends the chosen one', async () => {
+    mockCreate.mockResolvedValue({ id: 'x' })
+    wrap(<NewRecipeScreen />)
+    fireEvent.change(screen.getByPlaceholderText('Nombre de la receta'), { target: { value: 'X' } })
+    fireEvent.change(screen.getByPlaceholderText('Ingrediente'), { target: { value: 'Ajo' } })
+
+    expect(screen.queryByTestId('unit-option-0-clove')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('ingredient-unit-0'))
+    for (const label of ['cdta', 'cda', 'taza', 'u', 'pizca', 'rodaja', 'diente', 'sin unidad']) {
+      expect(screen.getByText(label)).toBeInTheDocument()
+    }
+    fireEvent.click(screen.getByTestId('unit-option-0-clove'))
+    expect(screen.queryByTestId('unit-option-0-clove')).not.toBeInTheDocument()
+    expect(screen.getByTestId('ingredient-unit-0')).toHaveTextContent('diente')
+
+    fireEvent.click(screen.getByText('Guardar Receta'))
+    await waitFor(() => expect(mockCreate).toHaveBeenCalled())
+    expect(mockCreate.mock.calls[0]?.[0].ingredients[0].unit).toBe('clove')
+  })
+
+  it('toggles the unit list closed and removes an ingredient row', () => {
+    wrap(<NewRecipeScreen />)
+    fireEvent.click(screen.getByTestId('ingredient-unit-0'))
+    expect(screen.getByTestId('unit-option-0-g')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('ingredient-unit-0'))
+    expect(screen.queryByTestId('unit-option-0-g')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('+ Agregar ingrediente'))
+    expect(screen.getAllByPlaceholderText('Ingrediente')).toHaveLength(2)
+    fireEvent.click(screen.getByTestId('ingredient-remove-1'))
+    expect(screen.getAllByPlaceholderText('Ingrediente')).toHaveLength(1)
+  })
+
+  it('removes a step row', () => {
+    wrap(<NewRecipeScreen />)
+    fireEvent.click(screen.getByText('+ Agregar paso'))
+    expect(screen.getAllByPlaceholderText(/Paso \d+/)).toHaveLength(2)
+    fireEvent.click(screen.getAllByText('✕')[0]!)
+    expect(screen.getAllByPlaceholderText(/Paso \d+/)).toHaveLength(1)
   })
 })

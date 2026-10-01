@@ -30,6 +30,10 @@ describe('HomeScreen logic', () => {
     expect(getEmptyMessage('', [])).toBe('No hay recetas aún')
   })
 
+  it('shows "Sin resultados" when a filter is active and the list is empty', () => {
+    expect(getEmptyMessage('', [], true)).toBe('Sin resultados')
+  })
+
   it('returns empty string when recipes are present', () => {
     expect(getEmptyMessage('pasta', [baseRecipe])).toBe('')
     expect(getEmptyMessage('', [baseRecipe])).toBe('')
@@ -43,5 +47,11 @@ describe('HomeScreen logic', () => {
   it('calls list when query is empty or whitespace', () => {
     expect(getQueryFnKey('')).toBe('list')
     expect(getQueryFnKey('   ')).toBe('list')
+    expect(getQueryFnKey('', null)).toBe('list')
+  })
+
+  it('calls search when a food type is selected, even without a query', () => {
+    expect(getQueryFnKey('', 'ft-1')).toBe('search')
+    expect(getQueryFnKey('pasta', 'ft-1')).toBe('search')
   })
 })

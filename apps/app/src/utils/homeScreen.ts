@@ -1,10 +1,11 @@
 import type { Recipe } from '@recetario/shared'
 
-export function getEmptyMessage(query: string, recipes: Recipe[]): string {
+export function getEmptyMessage(query: string, recipes: Recipe[], hasFilters = false): string {
   if (recipes.length > 0) return ''
-  return query ? 'Sin resultados' : 'No hay recetas aún'
+  return query || hasFilters ? 'Sin resultados' : 'No hay recetas aún'
 }
 
-export function getQueryFnKey(query: string): 'search' | 'list' {
-  return query.trim() ? 'search' : 'list'
+/** The list endpoint has no food-type filter, so a selected chip also goes through search. */
+export function getQueryFnKey(query: string, foodTypeId: string | null = null): 'search' | 'list' {
+  return query.trim() || foodTypeId ? 'search' : 'list'
 }

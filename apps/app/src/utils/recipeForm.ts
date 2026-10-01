@@ -105,7 +105,7 @@ export function validatePayload(payload: ReturnType<typeof buildPayload>): {
   return { valid: false, errors }
 }
 
-export function recipeToFormState(recipe: Recipe): {
+export interface RecipeFormState {
   title: string
   servings: string
   category: Category
@@ -116,7 +116,11 @@ export function recipeToFormState(recipe: Recipe): {
   prepTimeMin: string
   cookTimeMin: string
   difficulty: RecipeDifficulty | null
-} {
+  foodTypeIds: string[]
+  visibility: 'private' | 'public'
+}
+
+export function recipeToFormState(recipe: Recipe): RecipeFormState {
   return {
     title: recipe.title,
     servings: String(recipe.servings),
@@ -133,5 +137,7 @@ export function recipeToFormState(recipe: Recipe): {
     prepTimeMin: recipe.prepTimeMin != null ? String(recipe.prepTimeMin) : '',
     cookTimeMin: recipe.cookTimeMin != null ? String(recipe.cookTimeMin) : '',
     difficulty: recipe.difficulty ?? null,
+    foodTypeIds: recipe.foodTypeIds ?? [],
+    visibility: recipe.visibility ?? 'private',
   }
 }
