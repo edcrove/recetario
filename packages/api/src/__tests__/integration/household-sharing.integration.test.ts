@@ -232,6 +232,42 @@ describe.skipIf(skip).sequential('Household sharing: reads and viewer enforcemen
       expect(patchRes.status).toBe(403)
     })
 
+    it('a viewer cannot write the shared pantry or check off the shopping list (403)', async () => {
+      const pantryRes = await app.request('/v1/pantry', {
+        method: 'POST',
+        headers: auth(viewer.token),
+        body: JSON.stringify({ name: 'Sal' }),
+      })
+      expect(pantryRes.status).toBe(403)
+
+      const checkRes = await app.request('/v1/menu/shopping-list/check', {
+        method: 'PUT',
+        headers: auth(viewer.token),
+        body: JSON.stringify({ weekStart: '2026-07-06', key: 'sal', checked: true }),
+      })
+      expect(checkRes.status).toBe(403)
+    })
+
+    it("a viewer's own recipe stays private to them", async () => {
+      const createRes = await app.request('/v1/recipes', {
+        method: 'POST',
+        headers: auth(viewer.token),
+        body: JSON.stringify({ ...baseRecipe, title: 'Receta del viewer' }),
+      })
+      expect(createRes.status).toBe(201)
+      const viewerRecipeId = (await createRes.json()).id
+
+      const ownRes = await app.request(`/v1/recipes/${viewerRecipeId}`, {
+        headers: auth(viewer.token),
+      })
+      expect(ownRes.status).toBe(200)
+
+      const ownerRes = await app.request(`/v1/recipes/${viewerRecipeId}`, {
+        headers: auth(owner.token),
+      })
+      expect(ownerRes.status).toBe(404)
+    })
+
     it('a member (non-viewer) can still modify the menu', async () => {
       const res = await app.request(`/v1/menu/2026-07-07/Cena/${ownerRecipeId}`, {
         method: 'PATCH',

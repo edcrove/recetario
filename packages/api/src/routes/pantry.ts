@@ -4,6 +4,7 @@ import { resolveCanonical, rankCookable } from '@recetario/shared'
 import { pantryRepository } from '../db/pantry-repository.js'
 import { ingredientRepository } from '../db/ingredient-repository.js'
 import { authMiddleware } from '../middleware/auth.js'
+import { isViewerAnywhere } from '../db/household-visibility.js'
 import '../types.js'
 
 export const pantryRoute = createRouter()
@@ -59,11 +60,17 @@ const createRoute = defineRoute({
       content: { 'application/json': { schema: pantryItemSchema } },
       description: 'Item added',
     },
+    403: {
+      content: { 'application/json': { schema: errorSchema } },
+      description: 'Household viewers cannot modify the shared pantry',
+    },
   },
 })
 
 pantryRoute.openapi(createRoute, async (c) => {
   const ownerId = c.get('ownerId')
+  // The pantry is shared with the household; viewers are read-only.
+  if (await isViewerAnywhere(ownerId)) return c.json({ error: 'Forbidden' }, 403)
   const item = await pantryRepository.create(ownerId, c.req.valid('json'))
   return c.json(item, 201)
 })
@@ -84,11 +91,17 @@ const bulkRoute = defineRoute({
       content: { 'application/json': { schema: z.array(pantryItemSchema) } },
       description: 'Items upserted',
     },
+    403: {
+      content: { 'application/json': { schema: errorSchema } },
+      description: 'Household viewers cannot modify the shared pantry',
+    },
   },
 })
 
 pantryRoute.openapi(bulkRoute, async (c) => {
   const ownerId = c.get('ownerId')
+  // The pantry is shared with the household; viewers are read-only.
+  if (await isViewerAnywhere(ownerId)) return c.json({ error: 'Forbidden' }, 403)
   const { items } = c.req.valid('json')
   return c.json(await pantryRepository.upsert(ownerId, items), 200)
 })
@@ -150,6 +163,10 @@ const updateRoute = defineRoute({
       content: { 'application/json': { schema: pantryItemSchema } },
       description: 'Item updated',
     },
+    403: {
+      content: { 'application/json': { schema: errorSchema } },
+      description: 'Household viewers cannot modify the shared pantry',
+    },
     404: {
       content: { 'application/json': { schema: errorSchema } },
       description: 'Not found or not visible',
@@ -159,6 +176,8 @@ const updateRoute = defineRoute({
 
 pantryRoute.openapi(updateRoute, async (c) => {
   const ownerId = c.get('ownerId')
+  // The pantry is shared with the household; viewers are read-only.
+  if (await isViewerAnywhere(ownerId)) return c.json({ error: 'Forbidden' }, 403)
   const { id } = c.req.valid('param')
   const updated = await pantryRepository.update(ownerId, id, c.req.valid('json'))
   if (!updated) return c.json({ error: 'Pantry item not found' }, 404)
@@ -173,6 +192,10 @@ const deleteRoute = defineRoute({
   request: { params: z.object({ id: z.uuid() }) },
   responses: {
     204: { description: 'Deleted' },
+    403: {
+      content: { 'application/json': { schema: errorSchema } },
+      description: 'Household viewers cannot modify the shared pantry',
+    },
     404: {
       content: { 'application/json': { schema: errorSchema } },
       description: 'Not found or not visible',
@@ -182,6 +205,8 @@ const deleteRoute = defineRoute({
 
 pantryRoute.openapi(deleteRoute, async (c) => {
   const ownerId = c.get('ownerId')
+  // The pantry is shared with the household; viewers are read-only.
+  if (await isViewerAnywhere(ownerId)) return c.json({ error: 'Forbidden' }, 403)
   const { id } = c.req.valid('param')
   const ok = await pantryRepository.remove(ownerId, id)
   if (!ok) return c.json({ error: 'Pantry item not found' }, 404)

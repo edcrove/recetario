@@ -18,6 +18,9 @@ vi.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ weekStart: '2026-07-06' }),
 }))
 
+const { mockIsViewer } = vi.hoisted(() => ({ mockIsViewer: vi.fn(() => false) }))
+vi.mock('../hooks/useIsViewer', () => ({ useIsViewer: mockIsViewer }))
+
 import ShoppingListScreen from '../../app/menu/shopping-list'
 
 const entry = (over: Partial<ShoppingListEntry>): ShoppingListEntry => ({
@@ -73,6 +76,18 @@ describe('ShoppingListScreen', () => {
     await waitFor(() => expect(mockSetCheck).toHaveBeenCalledWith('2026-07-06', 'harina', true))
     // Optimistic update moves progress to 1 / 1
     await waitFor(() => expect(screen.getByTestId('shopping-progress')).toHaveTextContent('1 / 1'))
+  })
+
+  it('viewers see a read-only notice and cannot check items off', async () => {
+    mockIsViewer.mockReturnValue(true)
+    mockShoppingList.mockResolvedValue([
+      entry({ ingredient: 'Harina', key: 'harina', aisle: 'almacen' }),
+    ])
+    wrap(<ShoppingListScreen />)
+    fireEvent.click(await screen.findByTestId('shopping-item-harina'))
+    expect(screen.getByTestId('viewer-notice')).toBeInTheDocument()
+    expect(mockSetCheck).not.toHaveBeenCalled()
+    mockIsViewer.mockReturnValue(false)
   })
 
   it('rolls back the optimistic tick when the request fails', async () => {
