@@ -12,6 +12,39 @@ declare module 'hono' {
   }
 }
 
+/**
+ * A JWT issued before the user's last password reset is no longer valid. Only a
+ * positive match revokes: a lookup error is left to fail the request later.
+ */
+async function isRevoked(userId: string, iat: number): Promise<boolean> {
+  try {
+    const [user] = await getDb()
+      .select({ passwordChangedAt: schema.users.passwordChangedAt })
+      .from(schema.users)
+      .where(eq(schema.users.id, userId))
+      .limit(1)
+    const changedAt = user?.passwordChangedAt
+    return !!changedAt && iat * 1000 < changedAt.getTime() - 1000
+  } catch {
+    return false
+  }
+}
+
+const API_KEY_TOUCH_MS = 60 * 60 * 1000
+
+/** Records API key use (at most hourly, fire-and-forget) so stale keys can be found. */
+function touchApiKey(id: string, lastUsedAt: Date | null): void {
+  if (lastUsedAt && Date.now() - lastUsedAt.getTime() < API_KEY_TOUCH_MS) return
+  void getDb()
+    .update(schema.apiKeys)
+    .set({ lastUsedAt: new Date() })
+    .where(eq(schema.apiKeys.id, id))
+    .then(
+      () => undefined,
+      () => undefined,
+    )
+}
+
 export const authMiddleware = createMiddleware(async (c: Context, next: Next) => {
   const authHeader = c.req.header('Authorization')
   if (!authHeader?.startsWith('Bearer ')) {
@@ -25,6 +58,9 @@ export const authMiddleware = createMiddleware(async (c: Context, next: Next) =>
     // 1. Try JWT first (app users)
     const jwtPayload = await verifyJwt(token)
     if (jwtPayload) {
+      if (await isRevoked(jwtPayload.sub, jwtPayload.iat)) {
+        return c.json({ error: 'Session expired, please sign in again' }, 401)
+      }
       c.set('ownerId', jwtPayload.sub)
       await next()
       return
@@ -39,6 +75,7 @@ export const authMiddleware = createMiddleware(async (c: Context, next: Next) =>
       .limit(1)
 
     if (apiKey) {
+      touchApiKey(apiKey.id, apiKey.lastUsedAt)
       c.set('ownerId', apiKey.ownerId)
       await next()
       return

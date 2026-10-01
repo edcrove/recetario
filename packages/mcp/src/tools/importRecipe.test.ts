@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+const { mockLookup } = vi.hoisted(() => ({ mockLookup: vi.fn() }))
+vi.mock('node:dns/promises', () => ({ lookup: mockLookup }))
+
 import { createMcpServer } from '../index.js'
-import { registerImportTools, isSafeImportUrl } from './importRecipe.js'
+import { registerImportTools, isSafeImportUrl, isPrivateIp } from './importRecipe.js'
 
 function getToolHandler(server: ReturnType<typeof createMcpServer>, name: string) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -43,8 +46,53 @@ describe('isSafeImportUrl', () => {
   })
 })
 
+describe('isPrivateIp', () => {
+  it('flags non-public IPv4 ranges', () => {
+    for (const ip of [
+      '0.0.0.0',
+      '10.1.2.3',
+      '127.0.0.1',
+      '100.64.0.1',
+      '169.254.169.254',
+      '172.16.0.1',
+      '192.168.1.1',
+      '192.0.0.8',
+      '198.18.0.1',
+      '224.0.0.1',
+    ])
+      expect(isPrivateIp(ip)).toBe(true)
+    expect(isPrivateIp('93.184.216.34')).toBe(false)
+    expect(isPrivateIp('100.128.0.1')).toBe(false)
+    expect(isPrivateIp('100.63.0.1')).toBe(false)
+    expect(isPrivateIp('172.32.0.1')).toBe(false)
+    expect(isPrivateIp('198.20.0.1')).toBe(false)
+    expect(isPrivateIp('192.169.0.1')).toBe(false)
+    expect(isPrivateIp('169.253.0.1')).toBe(false)
+  })
+
+  it('flags IPv6 loopback, unspecified, ULA, link-local, multicast and v4-mapped privates', () => {
+    for (const ip of [
+      '::',
+      '::1',
+      'fd00::1',
+      'fe80::1',
+      'ff02::1',
+      '::ffff:127.0.0.1',
+      '[::ffff:7f00:1]',
+      '::ffff:a9fe:a9fe',
+    ])
+      expect(isPrivateIp(ip)).toBe(true)
+    expect(isPrivateIp('2606:4700::1111')).toBe(false)
+    expect(isPrivateIp('::ffff:5db8:d822')).toBe(false)
+    expect(isPrivateIp('::ffff:zz')).toBe(false)
+  })
+})
+
 describe('fetchRecipePage tool', () => {
-  beforeEach(() => vi.stubGlobal('fetch', vi.fn()))
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn())
+    mockLookup.mockReset().mockResolvedValue([{ address: '93.184.216.34', family: 4 }])
+  })
   afterEach(() => vi.unstubAllGlobals())
 
   it('registers the tool', () => {
@@ -99,6 +147,56 @@ describe('fetchRecipePage tool', () => {
     registerImportTools(server)
     const handler = getToolHandler(server, 'fetchRecipePage')
     await expect(handler({ url: 'https://192.168.0.1/x' }, {})).rejects.toThrow(/public https/)
+  })
+
+  it('refuses a public-looking name that resolves to a private address (DNS rebinding)', async () => {
+    mockLookup.mockResolvedValue([{ address: '127.0.0.1', family: 4 }])
+    const server = createMcpServer()
+    registerImportTools(server)
+    const handler = getToolHandler(server, 'fetchRecipePage')
+    await expect(handler({ url: 'https://127.0.0.1.nip.io/x' }, {})).rejects.toThrow(/public https/)
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('refuses when the name does not resolve', async () => {
+    mockLookup.mockRejectedValue(new Error('ENOTFOUND'))
+    const server = createMcpServer()
+    registerImportTools(server)
+    const handler = getToolHandler(server, 'fetchRecipePage')
+    await expect(handler({ url: 'https://nope.invalid/x' }, {})).rejects.toThrow(/public https/)
+  })
+
+  it('follows redirects by hand and refuses one that points inside', async () => {
+    const redirect = (to: string) => ({
+      ok: false,
+      status: 302,
+      headers: new Headers({ location: to }),
+    })
+    const page = {
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      arrayBuffer: () => Promise.resolve(new TextEncoder().encode(recipeHtml).buffer),
+    }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValueOnce(redirect('/r2')).mockResolvedValueOnce(page),
+    )
+    const server = createMcpServer()
+    registerImportTools(server)
+    const handler = getToolHandler(server, 'fetchRecipePage')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ok = (await handler({ url: 'https://cookpad.com/r' }, {})) as any
+    expect(JSON.parse(ok.content[0].text).structured.title).toBe('Guiso')
+    expect(vi.mocked(fetch).mock.calls[1]?.[0]).toBe('https://cookpad.com/r2')
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(redirect('https://169.254.169.254/latest')))
+    await expect(handler({ url: 'https://cookpad.com/r' }, {})).rejects.toThrow(/public https/)
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(redirect('/again')))
+    await expect(handler({ url: 'https://cookpad.com/r' }, {})).rejects.toThrow(
+      /Too many redirects/,
+    )
   })
 
   it('throws on a non-ok response and on an oversized body', async () => {

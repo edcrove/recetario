@@ -5,9 +5,13 @@ const TEST_KEY = 'my-secret-api-key'
 const TEST_HASH = createHash('sha256').update(TEST_KEY).digest('hex')
 
 let mockDbResult: unknown[] = []
+const { mockUpdateSet } = vi.hoisted(() => ({ mockUpdateSet: vi.fn() }))
 
 vi.mock('../db/index.js', () => ({
   getDb: vi.fn(() => ({
+    update: () => ({
+      set: (v: unknown) => ({ where: () => mockUpdateSet(v) }),
+    }),
     select: () => ({
       from: () => ({
         where: () => ({
@@ -17,7 +21,7 @@ vi.mock('../db/index.js', () => ({
     }),
   })),
   schema: {
-    apiKeys: { keyHash: 'key_hash' },
+    apiKeys: { keyHash: 'key_hash', id: 'id' },
   },
 }))
 
@@ -48,6 +52,7 @@ import { signJwt } from '../auth/service.js'
 
 describe('auth middleware — DB hash path', () => {
   beforeEach(() => {
+    mockUpdateSet.mockReset().mockResolvedValue(undefined)
     delete process.env['DEV_API_KEY']
     rateLimitStore.clear()
     mockDbResult = []
@@ -60,6 +65,26 @@ describe('auth middleware — DB hash path', () => {
   it('authenticates when DB returns matching keyHash', async () => {
     mockDbResult = [{ id: 'key-1', keyHash: TEST_HASH, ownerId: 'user-42' }]
 
+    const res = await app.request('/v1/recipes', {
+      headers: { Authorization: `Bearer ${TEST_KEY}` },
+    })
+    expect(res.status).toBe(200)
+  })
+
+  it('records the key use when it was never or not recently used', async () => {
+    mockDbResult = [{ id: 'key-1', keyHash: TEST_HASH, ownerId: 'user-42', lastUsedAt: null }]
+    await app.request('/v1/recipes', { headers: { Authorization: `Bearer ${TEST_KEY}` } })
+    expect(mockUpdateSet).toHaveBeenCalledWith({ lastUsedAt: expect.any(Date) })
+
+    mockUpdateSet.mockClear()
+    mockDbResult = [{ id: 'key-1', keyHash: TEST_HASH, ownerId: 'user-42', lastUsedAt: new Date() }]
+    await app.request('/v1/recipes', { headers: { Authorization: `Bearer ${TEST_KEY}` } })
+    expect(mockUpdateSet).not.toHaveBeenCalled()
+  })
+
+  it('a failed lastUsedAt write never fails the request', async () => {
+    mockUpdateSet.mockRejectedValue(new Error('db down'))
+    mockDbResult = [{ id: 'key-1', keyHash: TEST_HASH, ownerId: 'user-42', lastUsedAt: null }]
     const res = await app.request('/v1/recipes', {
       headers: { Authorization: `Bearer ${TEST_KEY}` },
     })

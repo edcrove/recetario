@@ -30,7 +30,11 @@ export async function resetPassword(email: string, db: Db = getDb()): Promise<st
   const temp = generateTempPassword()
   const updated = await db
     .update(schema.users)
-    .set({ passwordHash: await hashPassword(temp), updatedAt: new Date() })
+    .set({
+      passwordHash: await hashPassword(temp),
+      passwordChangedAt: new Date(),
+      updatedAt: new Date(),
+    })
     .where(emailMatches(email))
     .returning({ id: schema.users.id })
   return updated.length > 0 ? temp : null
