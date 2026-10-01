@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { cookModeNav } from '../utils/cookModeNav'
+import { addFinishedStep, cookModeNav, dismissFinishedStep } from '../utils/cookModeNav'
 
 describe('cook mode step navigation', () => {
   it('first step: prev disabled, action is Siguiente', () => {
@@ -45,5 +45,18 @@ describe('cook mode step navigation', () => {
       idx = cookModeNav(total, idx).next
     }
     expect(idx).toBe(total - 1)
+  })
+})
+
+describe('finished-step banners', () => {
+  it('adds a finished step once, keeping the oldest first', () => {
+    expect(addFinishedStep([], 2)).toEqual([2])
+    expect(addFinishedStep([2], 0)).toEqual([2, 0])
+    expect(addFinishedStep([2, 0], 2)).toEqual([2, 0])
+  })
+
+  it('dismisses only the given step', () => {
+    expect(dismissFinishedStep([2, 0, 1], 0)).toEqual([2, 1])
+    expect(dismissFinishedStep([2], 5)).toEqual([2])
   })
 })

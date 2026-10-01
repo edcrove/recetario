@@ -1,9 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
+const platform = vi.hoisted(() => ({ OS: 'web' }))
 vi.mock('react-native', () => ({
   Vibration: { vibrate: vi.fn() },
   Alert: { alert: vi.fn() },
-  Platform: { OS: 'ios' },
+  Platform: platform,
 }))
 
 vi.mock('expo-speech', () => ({
@@ -11,7 +12,14 @@ vi.mock('expo-speech', () => ({
   stop: vi.fn(),
 }))
 
-import { onStepTimerComplete, startSpeech, stopSpeech } from '../utils/cookEffects'
+import {
+  onStepTimerComplete,
+  playChime,
+  speechAvailable,
+  startSpeech,
+  stopSpeech,
+  timerDoneMessage,
+} from '../utils/cookEffects'
 import { Vibration, Alert } from 'react-native'
 import * as Speech from 'expo-speech'
 
@@ -20,25 +28,162 @@ const mockAlert = vi.mocked(Alert.alert)
 const mockSpeak = vi.mocked(Speech.speak)
 const mockStop = vi.mocked(Speech.stop)
 
+// Records every oscillator the chime schedules, so a test can assert what the
+// cook hears rather than that "something" ran.
+interface FakeOsc {
+  type: string
+  frequency: { value: number }
+  connect: ReturnType<typeof vi.fn>
+  start: ReturnType<typeof vi.fn>
+  stop: ReturnType<typeof vi.fn>
+}
+let oscillators: FakeOsc[] = []
+let gains: { gain: { value: number }; connect: ReturnType<typeof vi.fn> }[] = []
+class FakeAudioContext {
+  currentTime = 10
+  destination = { kind: 'speakers' }
+  createOscillator() {
+    const o: FakeOsc = {
+      type: '',
+      frequency: { value: 0 },
+      connect: vi.fn(),
+      start: vi.fn(),
+      stop: vi.fn(),
+    }
+    oscillators.push(o)
+    return o
+  }
+  createGain() {
+    const g = { gain: { value: 1 }, connect: vi.fn() }
+    gains.push(g)
+    return g
+  }
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
+  platform.OS = 'web'
+  oscillators = []
+  gains = []
+  vi.stubGlobal('AudioContext', FakeAudioContext)
+  // A browser with the Web Speech API (each test can take it away)
+  vi.stubGlobal('speechSynthesis', {})
+  vi.stubGlobal('SpeechSynthesisUtterance', class {})
 })
 
-describe('onStepTimerComplete', () => {
-  it('vibrates with the correct pattern', () => {
-    onStepTimerComplete()
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
+describe('timerDoneMessage', () => {
+  it('names the finished step 1-based', () => {
+    expect(timerDoneMessage(0)).toBe('¡Tiempo! Terminó el paso 1.')
+    expect(timerDoneMessage(3)).toBe('¡Tiempo! Terminó el paso 4.')
+  })
+})
+
+describe('playChime (audible cue on web)', () => {
+  it('schedules two audible 880 Hz beeps through the speakers', () => {
+    expect(playChime()).toBe(true)
+    expect(oscillators).toHaveLength(2)
+    for (const o of oscillators) {
+      expect(o.type).toBe('sine')
+      expect(o.frequency.value).toBe(880)
+      expect(o.connect).toHaveBeenCalledWith(gains[0])
+    }
+    expect(gains[0]!.gain.value).toBeGreaterThan(0)
+    expect(gains[0]!.connect).toHaveBeenCalledWith({ kind: 'speakers' })
+  })
+
+  it('plays the beeps one after the other, each one short', () => {
+    playChime()
+    const [a, b] = oscillators as [FakeOsc, FakeOsc]
+    expect(a.start).toHaveBeenCalledWith(10)
+    expect(a.stop).toHaveBeenCalledWith(10.25)
+    expect(b.start).toHaveBeenCalledWith(10.35)
+    expect(b.stop).toHaveBeenCalledWith(10.6)
+  })
+
+  it('falls back to the prefixed webkitAudioContext (older Safari)', () => {
+    vi.stubGlobal('AudioContext', undefined)
+    vi.stubGlobal('webkitAudioContext', FakeAudioContext)
+    expect(playChime()).toBe(true)
+    expect(oscillators).toHaveLength(2)
+  })
+
+  it('returns false without Web Audio instead of throwing', () => {
+    vi.stubGlobal('AudioContext', undefined)
+    expect(playChime()).toBe(false)
+  })
+
+  it('returns false when the browser refuses to create the context', () => {
+    vi.stubGlobal(
+      'AudioContext',
+      class {
+        constructor() {
+          throw new Error('NotAllowedError')
+        }
+      },
+    )
+    expect(playChime()).toBe(false)
+  })
+
+  it('does nothing on native (no Web Audio there)', () => {
+    platform.OS = 'ios'
+    expect(playChime()).toBe(false)
+    expect(oscillators).toHaveLength(0)
+  })
+})
+
+describe('onStepTimerComplete (AC: audible notification at 0:00)', () => {
+  it('beeps, announces the finished step in Spanish and vibrates', () => {
+    onStepTimerComplete(2)
+    expect(oscillators).toHaveLength(2)
+    expect(mockSpeak).toHaveBeenCalledWith('¡Tiempo! Terminó el paso 3.', { language: 'es' })
     expect(mockVibrate).toHaveBeenCalledWith([0, 400, 200, 400])
   })
 
-  it('shows alert with correct title and message', () => {
-    onStepTimerComplete()
-    expect(mockAlert).toHaveBeenCalledWith('¡Tiempo!', 'El tiempo de este paso ha terminado.')
+  it('never opens a blocking alert (it would freeze the other timers on web)', () => {
+    onStepTimerComplete(0)
+    expect(mockAlert).not.toHaveBeenCalled()
   })
 
-  it('fires both vibration and alert', () => {
-    onStepTimerComplete()
+  it('still beeps and vibrates when no speech engine is available, without speaking', () => {
+    vi.stubGlobal('speechSynthesis', undefined)
+    onStepTimerComplete(0)
+    expect(mockSpeak).not.toHaveBeenCalled()
+    expect(oscillators).toHaveLength(2)
     expect(mockVibrate).toHaveBeenCalledTimes(1)
-    expect(mockAlert).toHaveBeenCalledTimes(1)
+  })
+
+  it('on native the spoken announcement is the audible cue', () => {
+    platform.OS = 'android'
+    onStepTimerComplete(1)
+    expect(oscillators).toHaveLength(0)
+    expect(mockSpeak).toHaveBeenCalledWith('¡Tiempo! Terminó el paso 2.', { language: 'es' })
+    expect(mockVibrate).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('speechAvailable', () => {
+  it('is true in a browser with speechSynthesis and SpeechSynthesisUtterance', () => {
+    expect(speechAvailable()).toBe(true)
+  })
+
+  it('is false when the browser has no speechSynthesis', () => {
+    vi.stubGlobal('speechSynthesis', undefined)
+    expect(speechAvailable()).toBe(false)
+  })
+
+  it('is false when SpeechSynthesisUtterance is missing (expo-speech needs it)', () => {
+    vi.stubGlobal('SpeechSynthesisUtterance', undefined)
+    expect(speechAvailable()).toBe(false)
+  })
+
+  it('is always true on native', () => {
+    platform.OS = 'ios'
+    vi.stubGlobal('speechSynthesis', undefined)
+    expect(speechAvailable()).toBe(true)
   })
 })
 
@@ -56,11 +201,10 @@ describe('startSpeech', () => {
     expect(startSpeech('Texto', vi.fn(), vi.fn(), vi.fn())).toBe(true)
   })
 
-  it('returns false when speak throws (Web Speech API unavailable)', () => {
-    mockSpeak.mockImplementationOnce(() => {
-      throw new Error('speechSynthesis is not defined')
-    })
+  it('returns false without the Web Speech API and does not call speak', () => {
+    vi.stubGlobal('speechSynthesis', undefined)
     expect(startSpeech('Texto', vi.fn(), vi.fn(), vi.fn())).toBe(false)
+    expect(mockSpeak).not.toHaveBeenCalled()
   })
 
   it('passes callbacks to Speech.speak options', () => {

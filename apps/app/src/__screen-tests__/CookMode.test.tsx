@@ -23,13 +23,14 @@ vi.mock('expo-keep-awake', () => ({
   deactivateKeepAwake: vi.fn(),
 }))
 vi.mock('../utils/cookEffects', () => ({
+  timerDoneMessage: (i: number) => `¡Tiempo! Terminó el paso ${i + 1}.`,
   onStepTimerComplete: vi.fn(),
   startSpeech: vi.fn().mockReturnValue(false),
   stopSpeech: vi.fn(),
 }))
 
 import CookModeScreen from '../../app/recipe/[id]/cook'
-import { stopSpeech } from '../utils/cookEffects'
+import { onStepTimerComplete, stopSpeech } from '../utils/cookEffects'
 
 function wrap() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -191,5 +192,85 @@ describe('CookModeScreen step timer (tap-to-start)', () => {
         source: 'app',
       }),
     )
+  })
+})
+
+// AC (story "Cook mode: per-step countdown timers"): when the timer reaches
+// 0:00 a visible alert and an audible notification are triggered. A 1-second
+// step runs to completion on the real clock.
+describe('CookModeScreen timer reaching 0:00', () => {
+  beforeEach(() => {
+    params.current = { id: 'r1' }
+    vi.mocked(onStepTimerComplete).mockClear()
+    mockGet.mockReset().mockResolvedValue({
+      id: 'r1',
+      title: 'Guiso',
+      servings: 2,
+      category: 'Cena',
+      tags: [],
+      images: [],
+      ingredients: [],
+      steps: [
+        { text: 'Hervir.', durationSeconds: 1 },
+        { text: 'Reposar.', durationSeconds: 1 },
+        { text: 'Servir.' },
+      ],
+    })
+  })
+
+  async function runStepOneToZero() {
+    wrap()
+    fireEvent.click(await screen.findByTestId('cook-timer-toggle'))
+    return screen.findByTestId('cook-timer-done-0', {}, { timeout: 3000 })
+  }
+
+  it('shows a visible alert naming the step and fires the audible cue once', async () => {
+    const banner = await runStepOneToZero()
+    expect(banner).toHaveTextContent('¡Tiempo! Terminó el paso 1.')
+    expect(banner).toHaveAttribute('role', 'alert')
+    expect(screen.getByTestId('cook-timer')).toHaveTextContent('00:00')
+    expect(onStepTimerComplete).toHaveBeenCalledTimes(1)
+    expect(onStepTimerComplete).toHaveBeenCalledWith(0)
+  })
+
+  it('no alert before the timer reaches 0:00', async () => {
+    wrap()
+    fireEvent.click(await screen.findByTestId('cook-timer-toggle'))
+    expect(screen.queryByTestId('cook-timer-done-0')).not.toBeInTheDocument()
+    expect(onStepTimerComplete).not.toHaveBeenCalled()
+  })
+
+  it('OK dismisses the alert', async () => {
+    await runStepOneToZero()
+    fireEvent.click(screen.getByTestId('cook-timer-done-dismiss-0'))
+    await waitFor(() => expect(screen.queryByTestId('cook-timer-done-0')).not.toBeInTheDocument())
+  })
+
+  it('a timer finishing on another step alerts there too, and "Ver paso" jumps back to it', async () => {
+    wrap()
+    fireEvent.click(await screen.findByTestId('cook-timer-toggle'))
+    fireEvent.click(screen.getByTestId('cook-next'))
+    expect(await screen.findByText(/Paso 2 \/ 3/)).toBeInTheDocument()
+    const banner = await screen.findByTestId('cook-timer-done-0', {}, { timeout: 3000 })
+    expect(banner).toHaveTextContent('Terminó el paso 1')
+    fireEvent.click(screen.getByTestId('cook-timer-done-goto-0'))
+    expect(await screen.findByText(/Paso 1 \/ 3/)).toBeInTheDocument()
+    expect(screen.queryByTestId('cook-timer-done-0')).not.toBeInTheDocument()
+  })
+
+  it('on the finished step itself there is no "Ver paso" button', async () => {
+    await runStepOneToZero()
+    expect(screen.queryByTestId('cook-timer-done-goto-0')).not.toBeInTheDocument()
+  })
+
+  it('two finished timers show two alerts', async () => {
+    wrap()
+    fireEvent.click(await screen.findByTestId('cook-timer-toggle'))
+    fireEvent.click(screen.getByTestId('cook-next'))
+    fireEvent.click(await screen.findByTestId('cook-timer-toggle'))
+    await screen.findByTestId('cook-timer-done-1', {}, { timeout: 3000 })
+    expect(screen.getByTestId('cook-timer-done-0')).toBeInTheDocument()
+    expect(onStepTimerComplete).toHaveBeenCalledWith(1)
+    expect(onStepTimerComplete).toHaveBeenCalledTimes(2)
   })
 })
