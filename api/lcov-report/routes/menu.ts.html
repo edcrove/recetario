@@ -32,14 +32,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>26/26</span>
+                <span class='fraction'>28/28</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>20/20</span>
+                <span class='fraction'>21/21</span>
             </div>
         
             
@@ -539,7 +539,19 @@
 <a name='L474'></a><a href='#L474'>474</a>
 <a name='L475'></a><a href='#L475'>475</a>
 <a name='L476'></a><a href='#L476'>476</a>
-<a name='L477'></a><a href='#L477'>477</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L477'></a><a href='#L477'>477</a>
+<a name='L478'></a><a href='#L478'>478</a>
+<a name='L479'></a><a href='#L479'>479</a>
+<a name='L480'></a><a href='#L480'>480</a>
+<a name='L481'></a><a href='#L481'>481</a>
+<a name='L482'></a><a href='#L482'>482</a>
+<a name='L483'></a><a href='#L483'>483</a>
+<a name='L484'></a><a href='#L484'>484</a>
+<a name='L485'></a><a href='#L485'>485</a>
+<a name='L486'></a><a href='#L486'>486</a>
+<a name='L487'></a><a href='#L487'>487</a>
+<a name='L488'></a><a href='#L488'>488</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -689,6 +701,17 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -703,13 +726,12 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">16x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1020,6 +1042,7 @@ import { createRoute as defineRoute, z } from '@hono/zod-openapi'
 import {
   MenuEntrySchema,
   MenuSlotSchema,
+  MenuEntryStatusSchema,
   CreateMenuEntrySchema,
   aggregateIngredients,
   enrichShoppingList,
@@ -1146,7 +1169,7 @@ menuRoute.openapi(deleteMenuSlotRoute, async (c) =&gt; {
   return c.body(null, 204)
 })
 &nbsp;
-// PATCH /v1/menu/:date/:slot/:recipeId — update servings for a specific recipe
+// PATCH /v1/menu/:date/:slot/:recipeId — update servings and/or status of one planned recipe
 const patchMenuEntryRoute = defineRoute({
   method: 'patch',
   path: '/menu/{date}/{slot}/{recipeId}',
@@ -1158,7 +1181,18 @@ const patchMenuEntryRoute = defineRoute({
       recipeId: z.uuid(),
     }),
     body: {
-      content: { 'application/json': { schema: z.object({ servings: z.number().int().min(1) }) } },
+      content: {
+        'application/json': {
+          schema: z
+            .object({
+              servings: z.number().int().min(1).optional(),
+              status: MenuEntryStatusSchema.optional(),
+            })
+            .refine((b) =&gt; b.servings !== undefined || b.status !== undefined, {
+              message: 'Send servings and/or status',
+            }),
+        },
+      },
       required: true,
     },
   },
@@ -1182,8 +1216,7 @@ menuRoute.openapi(patchMenuEntryRoute, async (c) =&gt; {
   const ownerId = c.get('ownerId')
   if (await isViewerAnywhere(ownerId)) return c.json({ error: 'Forbidden' }, 403)
   const { date, slot, recipeId } = c.req.valid('param')
-  const { servings } = c.req.valid('json')
-  const entry = await menuRepository.updateServings(ownerId, date, slot, recipeId, servings)
+  const entry = await menuRepository.updateEntry(ownerId, date, slot, recipeId, c.req.valid('json'))
   if (!entry) return c.json({ error: 'Menu entry not found' }, 404)
   return c.json(entry, 200)
 })
@@ -1498,7 +1531,7 @@ menuRoute.openapi(getDayNutritionRoute, async (c) =&gt; {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-10-01T07:20:39.346Z
+                at 2026-10-01T07:32:58.902Z
             </div>
         <script src="../prettify.js"></script>
         <script>
