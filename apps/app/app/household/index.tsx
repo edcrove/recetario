@@ -22,11 +22,11 @@ const ROLE_LABELS: Record<string, string> = {
   viewer: 'Espectador',
 }
 
-const ROLE_COLORS: Record<string, string> = {
-  owner: '#7c3aed',
-  admin: '#2563eb',
-  member: '#16a34a',
-  viewer: '#6b7280',
+/** Role badge backgrounds from the palette (text uses terracottaInk/ink). */
+function roleColor(role: string, c: ThemeColors): string {
+  if (role === 'owner') return c.terracotta
+  if (role === 'admin') return c.sage
+  return c.inkSoft
 }
 
 export default function HouseholdScreen() {
@@ -187,9 +187,7 @@ export default function HouseholdScreen() {
             {(hh.members ?? []).map((m) => (
               <View key={m.userId} style={s.memberRow}>
                 <View style={s.memberInfo}>
-                  <View
-                    style={[s.roleBadge, { backgroundColor: ROLE_COLORS[m.role] ?? '#6b7280' }]}
-                  >
+                  <View style={[s.roleBadge, { backgroundColor: roleColor(m.role, colors) }]}>
                     <Text style={s.roleBadgeText}>{ROLE_LABELS[m.role] ?? m.role}</Text>
                   </View>
                   <Text style={s.memberUserId} numberOfLines={1}>
@@ -349,7 +347,7 @@ const makeStyles = (c: ThemeColors) =>
     roleBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
     roleBadgeText: { color: c.surface, fontSize: 11, fontWeight: '700' },
     memberUserId: { fontSize: 14, color: c.ink, flex: 1 },
-    pending: { fontSize: 11, color: '#f59e0b', fontWeight: '600' },
+    pending: { fontSize: 11, color: c.warning, fontWeight: '600' },
     removeText: { color: c.danger, fontSize: 16, paddingHorizontal: 8 },
     inviteBox: { marginTop: 12, borderTopWidth: 1, borderColor: c.line, paddingTop: 12 },
     hint: { fontSize: 12, color: c.inkSoft, marginBottom: 8, lineHeight: 17 },

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
 import type { Recipe } from '@recetario/shared'
 import { checkAllergens } from '../utils/allergenCheck'
+import { useThemeColors } from '../theme/tokens'
 
 interface Props {
   recipe: Pick<Recipe, 'ingredients' | 'dietaryTags'>
@@ -14,6 +15,7 @@ interface Props {
 // showed up on the recipe detail page, three taps deep from where planning
 // actually happens.
 export function AllergenBadge({ recipe }: Props) {
+  const c = useThemeColors()
   const { data: profile } = useQuery({
     queryKey: ['profile'],
     queryFn: () => api.auth.getProfile(),
@@ -25,7 +27,7 @@ export function AllergenBadge({ recipe }: Props) {
   if (matchedAllergens.length === 0 && unmetDietary.length === 0) return null
 
   return (
-    <View testID="allergen-badge" style={s.badge}>
+    <View testID="allergen-badge" style={[s.badge, { backgroundColor: c.warningSoft }]}>
       <Text style={s.icon}>{matchedAllergens.length > 0 ? '⚠️' : '🚫'}</Text>
     </View>
   )
@@ -33,7 +35,6 @@ export function AllergenBadge({ recipe }: Props) {
 
 const s = StyleSheet.create({
   badge: {
-    backgroundColor: '#fef9c3',
     borderRadius: 10,
     width: 20,
     height: 20,

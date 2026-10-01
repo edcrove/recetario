@@ -191,7 +191,7 @@ const makeStyles = (c: ThemeColors) =>
     cardTitle: { fontSize: 16, fontWeight: '600', color: c.ink, fontFamily: fonts.display },
     cardMeta: { fontSize: 13, color: c.inkSoft, marginTop: 2 },
     removeBtn: {
-      backgroundColor: '#fee2e2',
+      backgroundColor: c.dangerSoft,
       borderRadius: 8,
       paddingVertical: 8,
       paddingHorizontal: 12,

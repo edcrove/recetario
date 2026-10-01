@@ -26,6 +26,10 @@ export interface ThemeColors {
   sageSoft: string
   danger: string
   dangerSoft: string
+  /** Amber for cautions (allergens, pending states) and rating stars. */
+  warning: string
+  warningSoft: string
+  warningInk: string
 }
 
 export const lightColors: ThemeColors = {
@@ -42,6 +46,9 @@ export const lightColors: ThemeColors = {
   sageSoft: '#E4EAE0',
   danger: '#B3261E',
   dangerSoft: '#F7DCDA',
+  warning: '#B7791F',
+  warningSoft: '#FBF0D9',
+  warningInk: '#5C3D0E',
 }
 
 // Mirrored, not naively inverted: warm charcoal grounds and a brighter
@@ -60,6 +67,9 @@ export const darkColors: ThemeColors = {
   sageSoft: '#26301F',
   danger: '#F2B8B5',
   dangerSoft: '#3A1D1B',
+  warning: '#E0B25C',
+  warningSoft: '#3A2E17',
+  warningInk: '#F6E3B8',
 }
 
 /** Warm serif display stack for recipe/section titles. */
