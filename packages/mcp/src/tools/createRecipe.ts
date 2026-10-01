@@ -2,54 +2,32 @@ import { z } from 'zod'
 import { HTTP_URL_PROTOCOL } from '@recetario/shared'
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { createApiClient } from '../index.js'
+import {
+  CATEGORY_LIST,
+  CategoryInput,
+  DietaryTagsInput,
+  DifficultyInput,
+  FoodTypeIdsInput,
+  IngredientInput,
+  NutritionInput,
+  StepInput,
+  UNIT_LIST,
+  VisibilityInput,
+} from './recipeInputs.js'
 
 // Simplified input schema for the MCP tool (agent-friendly)
 // The server does full validation; we give rich descriptions here
 const CreateRecipeInput = z.object({
   title: z.string().describe('Recipe title'),
   servings: z.number().int().positive().describe('Number of servings this recipe makes'),
-  category: z
-    .enum(['Desayuno', 'Almuerzo', 'Cena', 'Postre', 'Snack', 'Bebida', 'Otro'])
-    .describe('Meal category'),
+  category: CategoryInput,
   tags: z.array(z.string()).optional().default([]).describe('Free-form tags'),
   prepTimeMin: z.number().int().positive().optional().describe('Prep time in minutes'),
   cookTimeMin: z.number().int().positive().optional().describe('Cook time in minutes'),
   totalTimeMin: z.number().int().positive().optional().describe('Total time in minutes'),
   notes: z.string().optional().describe('Recipe notes or description'),
-  ingredients: z
-    .array(
-      z.object({
-        name: z.string().describe('Ingredient name'),
-        quantity: z.number().nullable().describe('Amount (null for "to taste")'),
-        unit: z
-          .enum(['tsp', 'tbsp', 'cup', 'ml', 'l', 'g', 'kg', 'unit', 'pinch', 'slice', 'clove'])
-          .nullable()
-          .describe('Unit of measurement (null for countable items or "to taste")'),
-        presentation: z.string().optional().describe('How prepared: "diced", "melted", etc.'),
-        group: z.string().optional().describe('Ingredient group: "For the sauce"'),
-        note: z.string().optional(),
-      }),
-    )
-    .min(1)
-    .describe('List of ingredients (minimum 1)'),
-  steps: z
-    .array(
-      z.object({
-        text: z.string().describe('Step instructions'),
-        durationSeconds: z
-          .number()
-          .int()
-          .positive()
-          .optional()
-          .describe(
-            'Timer duration for this step in SECONDS (e.g. 40 min → 2400). Set it when the step has a clear time so cook mode can offer a tap-to-start timer. If omitted, the API auto-detects it from the step text.',
-          ),
-        ovenTempC: z.number().optional(),
-      }),
-    )
-    .optional()
-    .default([])
-    .describe('Cooking steps in order'),
+  ingredients: z.array(IngredientInput).min(1).describe('List of ingredients (minimum 1)'),
+  steps: z.array(StepInput).optional().default([]).describe('Cooking steps in order'),
   sourceUrl: z
     .url({ protocol: HTTP_URL_PROTOCOL })
     .optional()
@@ -57,33 +35,13 @@ const CreateRecipeInput = z.object({
   sourceType: z.enum(['url', 'photo', 'manual', 'mcp']).optional().default('mcp'),
   externalId: z.string().optional().describe('External ID for deduplication'),
   originalLanguage: z.string().optional().default('es'),
-  dietaryTags: z
-    .array(z.enum(['vegano', 'vegetariano', 'sin-gluten', 'sin-lactosa', 'keto', 'paleo']))
-    .optional()
-    .describe(
-      'Diets this recipe satisfies. Only tag what the ingredients allow: the API rejects a tag an ingredient contradicts (e.g. vegano with chorizo, sin-gluten with harina de trigo).',
-    ),
-  nutrition: z
-    .object({
-      calories: z.number().min(0).describe('Calories per serving'),
-      protein_g: z.number().min(0).describe('Protein grams per serving'),
-      carbs_g: z.number().min(0).describe('Carbohydrate grams per serving'),
-      fat_g: z.number().min(0).describe('Fat grams per serving'),
-      fiber_g: z.number().min(0).optional().describe('Fiber grams per serving'),
-    })
-    .optional()
-    .describe('Nutrition facts per serving (not per whole recipe)'),
-  foodTypeIds: z
-    .array(z.uuid())
-    .max(3)
-    .optional()
-    .describe('Up to 3 food type IDs from getFoodTypes (e.g. guiso, sopa, carne)'),
-  visibility: z
-    .enum(['private', 'public'])
-    .optional()
-    .describe(
-      "Defaults to 'private' (owner + their household). 'public' also lists the recipe in the shared library where anyone can copy it as an independent fork.",
-    ),
+  dietaryTags: DietaryTagsInput.optional(),
+  nutrition: NutritionInput.optional(),
+  foodTypeIds: FoodTypeIdsInput.optional(),
+  difficulty: DifficultyInput,
+  visibility: VisibilityInput.optional().describe(
+    "Defaults to 'private' (owner + their household). 'public' also lists the recipe in the shared library where anyone can copy it as an independent fork.",
+  ),
 })
 
 export function registerCreateRecipe(server: McpServer, api: ReturnType<typeof createApiClient>) {
@@ -148,8 +106,8 @@ export function registerCreateRecipe(server: McpServer, api: ReturnType<typeof c
                   suggestions: [
                     'Ensure title is provided',
                     'Ensure at least one ingredient is included',
-                    'Check that category is one of: Desayuno, Almuerzo, Cena, Postre, Snack, Bebida, Otro',
-                    'Check that units are valid: tsp, tbsp, cup, ml, l, g, kg, unit, pinch, slice, clove',
+                    `Check that category is one of: ${CATEGORY_LIST}`,
+                    `Check that units are valid: ${UNIT_LIST}`,
                   ],
                 },
                 null,
