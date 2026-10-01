@@ -538,7 +538,8 @@
 <a name='L473'></a><a href='#L473'>473</a>
 <a name='L474'></a><a href='#L474'>474</a>
 <a name='L475'></a><a href='#L475'>475</a>
-<a name='L476'></a><a href='#L476'>476</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L476'></a><a href='#L476'>476</a>
+<a name='L477'></a><a href='#L477'>477</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -928,7 +929,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">16x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
@@ -963,31 +963,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">16x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">16x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -995,6 +974,29 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">16x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">16x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1403,8 +1405,7 @@ const getMenuNutritionRoute = defineRoute({
   },
 })
 &nbsp;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-menuRoute.openapi(getMenuNutritionRoute as any, async (c: any) =&gt; {
+menuRoute.openapi(getMenuNutritionRoute, async (c) =&gt; {
   const ownerId = c.get('ownerId')
   const { weekStart } = c.req.valid('query')
   const weekEnd = addIsoDays(weekStart, 6)
@@ -1421,18 +1422,21 @@ menuRoute.openapi(getMenuNutritionRoute as any, async (c: any) =&gt; {
     return { date, ...totals }
   })
 &nbsp;
-  return c.json({
-    weekStart,
-    days,
-    targets: target
-      ? {
-          daily_calories: target.daily_calories,
-          daily_protein_g: target.daily_protein_g,
-          daily_carbs_g: target.daily_carbs_g,
-          daily_fat_g: target.daily_fat_g,
-        }
-      : null,
-  })
+  return c.json(
+    {
+      weekStart,
+      days,
+      targets: target
+        ? {
+            daily_calories: target.daily_calories,
+            daily_protein_g: target.daily_protein_g,
+            daily_carbs_g: target.daily_carbs_g,
+            daily_fat_g: target.daily_fat_g,
+          }
+        : null,
+    },
+    200,
+  )
 })
 &nbsp;
 // GET /v1/menu/day-nutrition — one day's macro rollup with signed delta vs the
@@ -1481,12 +1485,11 @@ const getDayNutritionRoute = defineRoute({
   },
 })
 &nbsp;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-menuRoute.openapi(getDayNutritionRoute as any, async (c: any) =&gt; {
+menuRoute.openapi(getDayNutritionRoute, async (c) =&gt; {
   const ownerId = c.get('ownerId')
   const { date } = c.req.valid('query')
   const { entries, target } = await menuRepository.getDayNutritionInputs(ownerId, date)
-  return c.json({ date, ...computeDayNutrition(entries, target) })
+  return c.json({ date, ...computeDayNutrition(entries, target) }, 200)
 })
 &nbsp;</pre></td></tr></table></pre>
 
@@ -1495,7 +1498,7 @@ menuRoute.openapi(getDayNutritionRoute as any, async (c: any) =&gt; {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-10-01T06:07:14.836Z
+                at 2026-10-01T06:23:31.776Z
             </div>
         <script src="../prettify.js"></script>
         <script>

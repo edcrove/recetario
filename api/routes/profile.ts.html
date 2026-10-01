@@ -281,7 +281,11 @@
 <a name='L216'></a><a href='#L216'>216</a>
 <a name='L217'></a><a href='#L217'>217</a>
 <a name='L218'></a><a href='#L218'>218</a>
-<a name='L219'></a><a href='#L219'>219</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L219'></a><a href='#L219'>219</a>
+<a name='L220'></a><a href='#L220'>220</a>
+<a name='L221'></a><a href='#L221'>221</a>
+<a name='L222'></a><a href='#L222'>222</a>
+<a name='L223'></a><a href='#L223'>223</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -328,7 +332,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">16x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -370,8 +373,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">16x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">16x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -394,6 +399,9 @@
 <span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -564,8 +572,7 @@ const patchMeRoute = defineRoute({
   },
 })
 &nbsp;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-profileRoute.openapi(patchMeRoute as any, async (c: any) =&gt; {
+profileRoute.openapi(patchMeRoute, async (c) =&gt; {
   const ownerId = c.get('ownerId')
   const updates = c.req.valid('json')
   const db = getDb()
@@ -576,15 +583,18 @@ profileRoute.openapi(patchMeRoute as any, async (c: any) =&gt; {
     .where(eq(schema.users.id, ownerId))
     .returning()
 &nbsp;
-  if (!user) return c.json({ error: 'User not found' } as never, 404)
+  if (!user) return c.json({ error: 'User not found' }, 404)
 &nbsp;
-  return c.json({
-    id: user.id,
-    email: user.email,
-    displayName: user.displayName,
-    avatarUrl: user.avatarUrl,
-    createdAt: user.createdAt.toISOString(),
-  })
+  return c.json(
+    {
+      id: user.id,
+      email: user.email,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+      createdAt: user.createdAt.toISOString(),
+    },
+    200,
+  )
 })
 &nbsp;
 // GET /auth/profile
@@ -598,8 +608,7 @@ const getProfileRoute = defineRoute({
   },
 })
 &nbsp;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-profileRoute.openapi(getProfileRoute as any, async (c: any) =&gt; {
+profileRoute.openapi(getProfileRoute, async (c) =&gt; {
   const ownerId = c.get('ownerId')
   const db = getDb()
 &nbsp;
@@ -609,22 +618,25 @@ profileRoute.openapi(getProfileRoute as any, async (c: any) =&gt; {
     .where(eq(schema.userProfiles.userId, ownerId))
     .limit(1)
 &nbsp;
-  if (!profile) return c.json({ error: 'Profile not found' } as never, 404)
+  if (!profile) return c.json({ error: 'Profile not found' }, 404)
 &nbsp;
-  return c.json({
-    preferredServings: profile.preferredServings,
-    dietaryRestrictions: (profile.dietaryRestrictions as string[]) ?? [],
-    allergens: normalizeAllergens((profile.allergens as string[]) ?? []),
-    goals: (profile.goals as string[]) ?? [],
-    timezone: profile.timezone,
-    nutritionTargets:
-      (profile.nutritionTargets as {
-        daily_calories: number
-        daily_protein_g: number
-        daily_carbs_g: number
-        daily_fat_g: number
-      } | null) ?? null,
-  })
+  return c.json(
+    {
+      preferredServings: profile.preferredServings,
+      dietaryRestrictions: (profile.dietaryRestrictions as string[]) ?? [],
+      allergens: normalizeAllergens((profile.allergens as string[]) ?? []),
+      goals: (profile.goals as string[]) ?? [],
+      timezone: profile.timezone,
+      nutritionTargets:
+        (profile.nutritionTargets as {
+          daily_calories: number
+          daily_protein_g: number
+          daily_carbs_g: number
+          daily_fat_g: number
+        } | null) ?? null,
+    },
+    200,
+  )
 })
 &nbsp;
 // PATCH /auth/profile
@@ -724,7 +736,7 @@ profileRoute.openapi(patchProfileRoute, async (c) =&gt; {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-10-01T06:07:14.836Z
+                at 2026-10-01T06:23:31.776Z
             </div>
         <script src="../prettify.js"></script>
         <script>

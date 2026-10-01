@@ -407,9 +407,7 @@
 <a name='L342'></a><a href='#L342'>342</a>
 <a name='L343'></a><a href='#L343'>343</a>
 <a name='L344'></a><a href='#L344'>344</a>
-<a name='L345'></a><a href='#L345'>345</a>
-<a name='L346'></a><a href='#L346'>346</a>
-<a name='L347'></a><a href='#L347'>347</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L345'></a><a href='#L345'>345</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -526,7 +524,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">16x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -698,7 +695,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">16x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -894,8 +890,7 @@ configRoute.openapi(
       404: { content: { 'application/json': { schema: errorSchema } }, description: 'Not found' },
     },
   }),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async (c: any) =&gt; {
+  async (c) =&gt; {
     const ownerId = c.get('ownerId')
     const { type, id } = c.req.valid('param')
     const { name } = c.req.valid('json')
@@ -911,8 +906,8 @@ configRoute.openapi(
         .set({ name, slug })
         .where(and(eq(schema.mealCategories.id, id), eq(schema.mealCategories.ownerId, ownerId)))
         .returning()
-      if (!row) return c.json({ error: 'Not found' } as never, 404)
-      return c.json({ id: row.id, name: row.name })
+      if (!row) return c.json({ error: 'Not found' }, 404)
+      return c.json({ id: row.id, name: row.name }, 200)
     }
     if (type === 'food-types') {
       const [row] = await db
@@ -920,8 +915,8 @@ configRoute.openapi(
         .set({ name, slug })
         .where(and(eq(schema.foodTypes.id, id), eq(schema.foodTypes.ownerId, ownerId)))
         .returning()
-      if (!row) return c.json({ error: 'Not found' } as never, 404)
-      return c.json({ id: row.id, name: row.name })
+      if (!row) return c.json({ error: 'Not found' }, 404)
+      return c.json({ id: row.id, name: row.name }, 200)
     }
     // tags
     const [row] = await db
@@ -929,8 +924,8 @@ configRoute.openapi(
       .set({ name, slug })
       .where(and(eq(schema.tags.id, id), eq(schema.tags.ownerId, ownerId)))
       .returning()
-    if (!row) return c.json({ error: 'Not found' } as never, 404)
-    return c.json({ id: row.id, name: row.name })
+    if (!row) return c.json({ error: 'Not found' }, 404)
+    return c.json({ id: row.id, name: row.name }, 200)
   },
 )
 &nbsp;
@@ -971,7 +966,7 @@ configRoute.openapi(
           ),
         )
         .limit(1)
-      if (!owned) return c.json({ error: 'Not found or system type' } as never, 400)
+      if (!owned) return c.json({ error: 'Not found or system type' }, 400)
 &nbsp;
       const usageCount = await db
         .select({ count: sql&lt;number&gt;`cast(count(*) as int)` })
@@ -994,7 +989,7 @@ configRoute.openapi(
         .from(schema.tags)
         .where(and(eq(schema.tags.id, id), eq(schema.tags.ownerId, ownerId)))
         .limit(1)
-      if (!owned) return c.json({ error: 'Not found' } as never, 404)
+      if (!owned) return c.json({ error: 'Not found' }, 404)
 &nbsp;
       if (reassignTo) {
         await db
@@ -1017,7 +1012,7 @@ configRoute.openapi(
           ),
         )
         .limit(1)
-      if (!owned) return c.json({ error: 'Not found or system category' } as never, 400)
+      if (!owned) return c.json({ error: 'Not found or system category' }, 400)
 &nbsp;
       // Categories link to recipes via a case-insensitive slug/text match
       // (recipes.category), not a foreign key — reassignment means updating
@@ -1066,8 +1061,7 @@ configRoute.openapi(
       404: { content: { 'application/json': { schema: errorSchema } }, description: 'Not found' },
     },
   }),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async (c: any) =&gt; {
+  async (c) =&gt; {
     const ownerId = c.get('ownerId')
     const { sourceId, targetId } = c.req.valid('json')
     const db = getDb()
@@ -1081,7 +1075,7 @@ configRoute.openapi(
           or(eq(schema.tags.id, sourceId), eq(schema.tags.id, targetId)),
         ),
       )
-    if (owned.length &lt; 2) return c.json({ error: 'Tag not found' } as never, 404)
+    if (owned.length &lt; 2) return c.json({ error: 'Tag not found' }, 404)
 &nbsp;
     // Reassign all recipe_tags from source to target (ignore duplicates)
     const rows = await db
@@ -1098,7 +1092,7 @@ configRoute.openapi(
     }
     await db.delete(schema.recipeTags).where(eq(schema.recipeTags.tagId, sourceId))
     await db.delete(schema.tags).where(eq(schema.tags.id, sourceId))
-    return c.json({ merged })
+    return c.json({ merged }, 200)
   },
 )
 &nbsp;</pre></td></tr></table></pre>
@@ -1108,7 +1102,7 @@ configRoute.openapi(
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-10-01T06:07:14.814Z
+                at 2026-10-01T06:23:31.749Z
             </div>
         <script src="../prettify.js"></script>
         <script>
