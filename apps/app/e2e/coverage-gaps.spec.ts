@@ -426,7 +426,7 @@ test.describe('New recipe form: row management and error branches', () => {
     await page.getByPlaceholder('Nombre de la receta').fill('Receta Que Falla')
     await page.getByPlaceholder('Ingrediente').first().fill('sal')
     await page.getByText('Guardar Receta').click()
-    await expect(page.getByText(/API 500/).first()).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('boom').first()).toBeVisible({ timeout: 8000 })
   })
 })
 
@@ -467,7 +467,7 @@ test.describe('Edit recipe form: validation and error branches', () => {
         timeout: 10000,
       })
       await page.getByText('Guardar Cambios').click()
-      await expect(page.getByText(/API 500/).first()).toBeVisible({ timeout: 8000 })
+      await expect(page.getByText('boom').first()).toBeVisible({ timeout: 8000 })
     } finally {
       await page.unroute(`**/v1/recipes/${recipe.id}`)
       await deleteRecipeViaApi(page, recipe.id)

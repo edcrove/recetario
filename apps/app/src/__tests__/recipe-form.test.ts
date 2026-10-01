@@ -407,6 +407,13 @@ describe('recipeToFormState', () => {
     expect(form.steps).toEqual([{ text: 'Hervir' }, { text: 'Escurrir' }])
   })
 
+  it('maps diet tags, defaulting to none', () => {
+    expect(recipeToFormState(recipe).dietaryTags).toEqual([])
+    expect(recipeToFormState({ ...recipe, dietaryTags: ['vegano'] }).dietaryTags).toEqual([
+      'vegano',
+    ])
+  })
+
   it('maps food types and visibility, defaulting to none and private', () => {
     expect(recipeToFormState(recipe).foodTypeIds).toEqual([])
     expect(recipeToFormState(recipe).visibility).toBe('private')

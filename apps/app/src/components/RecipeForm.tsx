@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native'
-import { UnitSchema } from '@recetario/shared'
+import { DIETARY_TAGS, UnitSchema } from '@recetario/shared'
 import type { Category, CreateRecipe, RecipeDifficulty } from '@recetario/shared'
 import {
   buildPayload,
@@ -11,6 +11,8 @@ import {
   type RecipeFormState,
 } from '../utils/recipeForm'
 import { DIFFICULTIES } from '../utils/recipeMeta'
+import { DIETARY_LABELS } from '../utils/allergenCheck'
+import { apiErrorMessage } from '../utils/apiError'
 import { unitLabel } from '../utils/displayIngredient'
 import { FoodTypePicker } from './FoodTypePicker'
 import { confirmAsync } from '../utils/platformAlert'
@@ -32,6 +34,7 @@ export const EMPTY_FORM: RecipeFormState = {
   cookTimeMin: '',
   difficulty: null,
   foodTypeIds: [],
+  dietaryTags: [],
   visibility: 'private',
 }
 
@@ -54,6 +57,7 @@ export function RecipeForm({ initial, submitLabel, isPending, submitError, onSub
   const [tags, setTags] = useState(initial.tags)
   const [notes, setNotes] = useState(initial.notes)
   const [foodTypeIds, setFoodTypeIds] = useState<string[]>(initial.foodTypeIds)
+  const [dietaryTags, setDietaryTags] = useState<string[]>(initial.dietaryTags)
   const [ingredients, setIngredients] = useState<IngredientRow[]>(initial.ingredients)
   const [steps, setSteps] = useState<StepRow[]>(initial.steps)
   const [errors, setErrors] = useState<FieldErrors>({})
@@ -83,8 +87,8 @@ export function RecipeForm({ initial, submitLabel, isPending, submitError, onSub
       return
     }
     setErrors({})
-    // Always send the selection so an edit can clear every food type.
-    onSubmit({ ...payload, foodTypeIds, visibility } as CreateRecipe)
+    // Always send the selections so an edit can clear every food type / diet tag.
+    onSubmit({ ...payload, foodTypeIds, dietaryTags, visibility } as CreateRecipe)
   }
 
   function updateIngredient(index: number, field: keyof IngredientRow, value: string) {
@@ -117,7 +121,7 @@ export function RecipeForm({ initial, submitLabel, isPending, submitError, onSub
     }
   }
 
-  const generalError = errors.general ?? submitError
+  const generalError = errors.general ?? (submitError ? apiErrorMessage(submitError) : undefined)
 
   return (
     <ScrollView style={st.container} contentContainerStyle={st.content}>
@@ -196,6 +200,25 @@ export function RecipeForm({ initial, submitLabel, isPending, submitError, onSub
             <Text style={[st.chipText, difficulty === d && st.chipTextActive]}>{d}</Text>
           </TouchableOpacity>
         ))}
+      </View>
+
+      <Text style={st.label}>Apta para</Text>
+      <View style={st.chipRow}>
+        {DIETARY_TAGS.map((tag) => {
+          const on = dietaryTags.includes(tag)
+          return (
+            <TouchableOpacity
+              key={tag}
+              testID={`diet-chip-${tag}`}
+              style={[st.chip, on && st.chipActive]}
+              onPress={() =>
+                setDietaryTags(on ? dietaryTags.filter((t) => t !== tag) : [...dietaryTags, tag])
+              }
+            >
+              <Text style={[st.chipText, on && st.chipTextActive]}>{DIETARY_LABELS[tag]}</Text>
+            </TouchableOpacity>
+          )
+        })}
       </View>
 
       <Text style={st.label}>Visibilidad</Text>

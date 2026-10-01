@@ -262,6 +262,20 @@ test.describe('Recipes: form on a phone and save feedback', () => {
   })
 })
 
+test.describe('Recipes: diet tags', () => {
+  test('a tag the ingredients contradict is refused with the reason', async ({ page }) => {
+    await page.getByText('+ Nueva Receta').click()
+    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible({ timeout: 10000 })
+    await page.getByPlaceholder('Nombre de la receta').fill(`E2E Falso vegano ${Date.now()}`)
+    await page.getByPlaceholder('Ingrediente').first().fill('Chorizo')
+    await page.getByTestId('diet-chip-vegano').click()
+    await page.getByText('Guardar Receta').click()
+    await expect(page.getByText(/"vegano" no se cumple: contiene Chorizo/)).toBeVisible({
+      timeout: 8000,
+    })
+  })
+})
+
 test.describe('Recipes: detail view', () => {
   test('recipe detail shows title and cook button', async ({ page }) => {
     const firstRecipe = page

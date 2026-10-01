@@ -105,6 +105,16 @@ describe('EditRecipeScreen', () => {
     )
   })
 
+  it('loads and resends the stored diet tags', async () => {
+    mockGet.mockReset().mockResolvedValue({ ...original, dietaryTags: ['vegetariano'] })
+    mockUpdate.mockResolvedValue({})
+    wrap(<EditRecipeScreen />)
+    await screen.findByDisplayValue('Receta Original')
+    fireEvent.click(screen.getByText('Guardar Cambios'))
+    await waitFor(() => expect(mockUpdate).toHaveBeenCalled())
+    expect(mockUpdate.mock.calls[0]?.[1].dietaryTags).toEqual(['vegetariano'])
+  })
+
   it('shows the API error under the form', async () => {
     mockUpdate.mockRejectedValue(new Error('Servidor caído'))
     wrap(<EditRecipeScreen />)

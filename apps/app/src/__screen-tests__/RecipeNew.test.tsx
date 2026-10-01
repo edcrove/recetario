@@ -238,4 +238,25 @@ describe('NewRecipeScreen', () => {
     fireEvent.click(screen.getAllByText('✕')[0]!)
     expect(screen.getAllByPlaceholderText(/Paso \d+/)).toHaveLength(1)
   })
+
+  it('sends the chosen diet tags and shows the API reason when they conflict', async () => {
+    mockCreate.mockRejectedValue(
+      new Error(
+        `API 400: ${JSON.stringify({
+          error: 'Validation error',
+          details: [{ path: 'dietaryTags', message: '"vegano" no se cumple: contiene Chorizo' }],
+        })}`,
+      ),
+    )
+    wrap(<NewRecipeScreen />)
+    fireEvent.change(screen.getByPlaceholderText('Nombre de la receta'), { target: { value: 'X' } })
+    fireEvent.change(screen.getByPlaceholderText('Ingrediente'), { target: { value: 'Chorizo' } })
+    fireEvent.click(screen.getByTestId('diet-chip-vegano'))
+    fireEvent.click(screen.getByTestId('diet-chip-keto'))
+    fireEvent.click(screen.getByTestId('diet-chip-keto'))
+    fireEvent.click(screen.getByText('Guardar Receta'))
+    await waitFor(() => expect(mockCreate).toHaveBeenCalled())
+    expect(mockCreate.mock.calls[0]?.[0].dietaryTags).toEqual(['vegano'])
+    expect(await screen.findByText('"vegano" no se cumple: contiene Chorizo')).toBeInTheDocument()
+  })
 })
