@@ -1,12 +1,13 @@
-import { createRoute as defineRoute, OpenAPIHono, z } from '@hono/zod-openapi'
-import { ingredientRepository } from '../db/ingredient-repository.js'
+import { createRouter } from './router.js'
+import { createRoute as defineRoute, z } from '@hono/zod-openapi'
+import { ingredientRepository, SystemSynonymError } from '../db/ingredient-repository.js'
 import { authMiddleware } from '../middleware/auth.js'
 import '../types.js'
 
 // so /ingredients/unmatched isn't shadowed by /ingredients/{...} param routes,
 // static routes are declared before dynamic ones below.
 
-export const ingredientsRoute = new OpenAPIHono()
+export const ingredientsRoute = createRouter()
 ingredientsRoute.use('/ingredients', authMiddleware)
 ingredientsRoute.use('/ingredients/*', authMiddleware)
 
@@ -148,6 +149,10 @@ const setSynonymRoute = defineRoute({
       content: { 'application/json': { schema: errorSchema } },
       description: 'Canonical not found',
     },
+    409: {
+      content: { 'application/json': { schema: errorSchema } },
+      description: 'System synonym (curated, shared) — not remappable',
+    },
   },
 })
 
@@ -157,9 +162,14 @@ ingredientsRoute.openapi(setSynonymRoute, async (c) => {
     ? (await ingredientRepository.findCanonicalByName(canonicalName))?.id
     : (await ingredientRepository.getCanonicalById(canonicalId!))?.id
   if (!resolvedId) return c.json({ error: 'Canonical not found' }, 404)
-  const result = await ingredientRepository.setSynonym(surface, resolvedId)
-  if (!result) return c.json({ error: 'Surface normalizes to empty' }, 400)
-  return c.json(result, 200)
+  try {
+    const result = await ingredientRepository.setSynonym(surface, resolvedId)
+    if (!result) return c.json({ error: 'Surface normalizes to empty' }, 400)
+    return c.json(result, 200)
+  } catch (err) {
+    if (err instanceof SystemSynonymError) return c.json({ error: err.message }, 409)
+    throw err
+  }
 })
 
 // DELETE /v1/ingredients/canonical/{id} — remove a non-system canonical

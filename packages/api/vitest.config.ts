@@ -42,6 +42,7 @@ export default defineConfig({
         'src/db/seed-ingredients.ts',
         'src/db/pantry-repository.ts',
         'src/db/household-visibility.ts',
+        'src/db/transaction.ts',
       ],
       thresholds: {
         statements: 100,

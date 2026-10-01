@@ -12,7 +12,12 @@ vi.mock('../db/ingredient-repository.js', () => {
     deleteCanonical: vi.fn(),
     deleteSynonym: vi.fn(),
   }
-  return { ingredientRepository: mockRepo, IngredientRepository: vi.fn(() => mockRepo) }
+  class SystemSynonymError extends Error {}
+  return {
+    ingredientRepository: mockRepo,
+    IngredientRepository: vi.fn(() => mockRepo),
+    SystemSynonymError,
+  }
 })
 
 // Make getDb throw so the auth middleware falls back to DEV_API_KEY (matches the
@@ -25,7 +30,7 @@ vi.mock('../db/index.js', () => ({
 }))
 
 import { app } from '../index.js'
-import { ingredientRepository } from '../db/ingredient-repository.js'
+import { ingredientRepository, SystemSynonymError } from '../db/ingredient-repository.js'
 
 const mockRepo = ingredientRepository as unknown as {
   listCanonicals: ReturnType<typeof vi.fn>
@@ -134,6 +139,30 @@ describe('POST /v1/ingredients/canonical', () => {
 })
 
 describe('POST /v1/ingredients/synonym', () => {
+  it('returns 409 when the surface is a curated system synonym', async () => {
+    mockRepo.getCanonicalById.mockResolvedValue({ id: CANON_ID })
+    mockRepo.setSynonym.mockRejectedValue(new SystemSynonymError('"pechuga" is a system synonym'))
+    const res = await app.request('/v1/ingredients/synonym', {
+      method: 'POST',
+      headers: JSON_AUTH,
+      body: JSON.stringify({ surface: 'pechuga', canonicalId: CANON_ID }),
+    })
+    expect(res.status).toBe(409)
+    expect((await res.json()).error).toMatch(/system synonym/)
+  })
+
+  it('rethrows unexpected repository errors (→ 500 JSON)', async () => {
+    mockRepo.getCanonicalById.mockResolvedValue({ id: CANON_ID })
+    mockRepo.setSynonym.mockRejectedValue(new Error('boom'))
+    const res = await app.request('/v1/ingredients/synonym', {
+      method: 'POST',
+      headers: JSON_AUTH,
+      body: JSON.stringify({ surface: 'x', canonicalId: CANON_ID }),
+    })
+    expect(res.status).toBe(500)
+    expect(await res.json()).toEqual({ error: 'Internal server error' })
+  })
+
   it('maps a synonym to a canonical by id', async () => {
     mockRepo.getCanonicalById.mockResolvedValue({ id: CANON_ID, name: 'Kale' })
     mockRepo.setSynonym.mockResolvedValue({ id: 'syn-1', synonym: 'col rizada' })

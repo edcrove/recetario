@@ -1,11 +1,12 @@
-import { createRoute as defineRoute, OpenAPIHono, z } from '@hono/zod-openapi'
+import { createRouter } from './router.js'
+import { createRoute as defineRoute, z } from '@hono/zod-openapi'
 import { resolveCanonical, rankCookable } from '@recetario/shared'
 import { pantryRepository } from '../db/pantry-repository.js'
 import { ingredientRepository } from '../db/ingredient-repository.js'
 import { authMiddleware } from '../middleware/auth.js'
 import '../types.js'
 
-export const pantryRoute = new OpenAPIHono()
+export const pantryRoute = createRouter()
 pantryRoute.use('/pantry', authMiddleware)
 pantryRoute.use('/pantry/*', authMiddleware)
 
@@ -25,11 +26,7 @@ const createBody = z.object({
   name: z.string().min(1),
   quantity: z.string().nullable().optional(),
   unit: z.string().nullable().optional(),
-  expiryDate: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .nullable()
-    .optional(),
+  expiryDate: z.iso.date().nullable().optional(),
   inStock: z.boolean().optional(),
 })
 

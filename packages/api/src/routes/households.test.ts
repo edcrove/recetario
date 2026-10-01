@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockInsert, mockSelect, mockUpdate, mockDelete } = vi.hoisted(() => ({
+const { mockInsert, mockSelect, mockUpdate, mockDelete, withTransaction } = vi.hoisted(() => ({
+  // db.transaction(fn) runs fn against the same mocked handle
+  withTransaction: <T extends object>(db: T) =>
+    Object.assign(db, { transaction: (fn: (tx: T) => unknown) => fn(db) }),
   mockInsert: vi.fn(),
   mockSelect: vi.fn(),
   mockUpdate: vi.fn(),
@@ -8,27 +11,29 @@ const { mockInsert, mockSelect, mockUpdate, mockDelete } = vi.hoisted(() => ({
 }))
 
 vi.mock('../db/index.js', () => ({
-  getDb: vi.fn(() => ({
-    insert: () => ({
-      values: () => ({
-        returning: () => Promise.resolve(mockInsert()),
-        onConflictDoNothing: () => ({ returning: () => Promise.resolve(mockInsert()) }),
-      }),
-    }),
-    select: () => ({
-      from: () => ({
-        innerJoin: () => ({ where: () => Promise.resolve(mockSelect()) }),
-        where: () => ({
-          limit: () => Promise.resolve(mockSelect()),
-          where: () => Promise.resolve(mockSelect()),
+  getDb: vi.fn(() =>
+    withTransaction({
+      insert: () => ({
+        values: () => ({
+          returning: () => Promise.resolve(mockInsert()),
+          onConflictDoNothing: () => ({ returning: () => Promise.resolve(mockInsert()) }),
         }),
       }),
+      select: () => ({
+        from: () => ({
+          innerJoin: () => ({ where: () => Promise.resolve(mockSelect()) }),
+          where: () => ({
+            limit: () => Promise.resolve(mockSelect()),
+            where: () => Promise.resolve(mockSelect()),
+          }),
+        }),
+      }),
+      update: () => ({
+        set: () => ({ where: () => ({ returning: () => Promise.resolve(mockUpdate()) }) }),
+      }),
+      delete: () => ({ where: () => ({ returning: () => Promise.resolve(mockDelete()) }) }),
     }),
-    update: () => ({
-      set: () => ({ where: () => ({ returning: () => Promise.resolve(mockUpdate()) }) }),
-    }),
-    delete: () => ({ where: () => ({ returning: () => Promise.resolve(mockDelete()) }) }),
-  })),
+  ),
   schema: {
     households: {},
     householdMembers: { householdId: 'hh', userId: 'uid', role: 'role', acceptedAt: 'acc' },

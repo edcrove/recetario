@@ -1,4 +1,5 @@
-import { createRoute as defineRoute, OpenAPIHono, z } from '@hono/zod-openapi'
+import { createRouter } from './router.js'
+import { createRoute as defineRoute, z } from '@hono/zod-openapi'
 import {
   MenuEntrySchema,
   MenuSlotSchema,
@@ -18,7 +19,7 @@ import { getDb, schema as dbSchema } from '../db/index.js'
 import { eq, and, gte, lte, inArray } from 'drizzle-orm'
 import '../types.js'
 
-export const menuRoute = new OpenAPIHono()
+export const menuRoute = createRouter()
 
 menuRoute.use('/menu', authMiddleware)
 menuRoute.use('/menu/*', authMiddleware)
@@ -69,7 +70,7 @@ const deleteMenuEntryRoute = defineRoute({
   security: [{ ApiKeyAuth: [] }],
   request: {
     params: z.object({
-      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      date: z.iso.date(),
       slot: MenuSlotSchema,
       recipeId: z.uuid(),
     }),
@@ -103,7 +104,7 @@ const deleteMenuSlotRoute = defineRoute({
   security: [{ ApiKeyAuth: [] }],
   request: {
     params: z.object({
-      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      date: z.iso.date(),
       slot: MenuSlotSchema,
     }),
   },
@@ -136,7 +137,7 @@ const patchMenuEntryRoute = defineRoute({
   security: [{ ApiKeyAuth: [] }],
   request: {
     params: z.object({
-      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      date: z.iso.date(),
       slot: MenuSlotSchema,
       recipeId: z.uuid(),
     }),
@@ -178,7 +179,7 @@ const getMenuRoute = defineRoute({
   security: [{ ApiKeyAuth: [] }],
   request: {
     query: z.object({
-      weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      weekStart: z.iso.date(),
     }),
   },
   responses: {
@@ -213,7 +214,7 @@ const getShoppingListRoute = defineRoute({
   security: [{ ApiKeyAuth: [] }],
   request: {
     query: z.object({
-      weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      weekStart: z.iso.date(),
     }),
   },
   responses: {
@@ -257,7 +258,7 @@ const putShoppingCheckRoute = defineRoute({
       content: {
         'application/json': {
           schema: z.object({
-            weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+            weekStart: z.iso.date(),
             key: z.string().min(1),
             checked: z.boolean(),
           }),
@@ -295,7 +296,7 @@ const getMissingRoute = defineRoute({
   method: 'get',
   path: '/menu/missing-ingredients',
   security: [{ ApiKeyAuth: [] }],
-  request: { query: z.object({ weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }) },
+  request: { query: z.object({ weekStart: z.iso.date() }) },
   responses: {
     200: {
       content: {
@@ -373,7 +374,7 @@ const getMenuNutritionRoute = defineRoute({
   method: 'get',
   path: '/menu/nutrition',
   security: [{ ApiKeyAuth: [] }],
-  request: { query: z.object({ weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }) },
+  request: { query: z.object({ weekStart: z.iso.date() }) },
   responses: {
     200: { content: { 'application/json': { schema: nutritionWeekSchema } }, description: 'OK' },
     400: {
@@ -498,7 +499,7 @@ const getDayNutritionRoute = defineRoute({
   method: 'get',
   path: '/menu/day-nutrition',
   security: [{ ApiKeyAuth: [] }],
-  request: { query: z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }) },
+  request: { query: z.object({ date: z.iso.date() }) },
   responses: {
     200: {
       content: { 'application/json': { schema: dayNutritionResponseSchema } },
