@@ -1,7 +1,7 @@
 import { createRoute as defineRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { eq } from 'drizzle-orm'
 import { getDb, schema } from '../db/index.js'
-import { hashPassword, verifyPassword, signJwt, verifyJwt } from '../auth/service.js'
+import { hashPassword, verifyPassword, signJwt } from '../auth/service.js'
 import { authRateLimitMiddleware } from '../middleware/rateLimit.js'
 import { registrationOpen } from '../config/production.js'
 import { authMiddleware } from '../middleware/auth.js'

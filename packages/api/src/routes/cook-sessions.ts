@@ -6,8 +6,6 @@ export const cookSessionsRoute = new OpenAPIHono()
 
 cookSessionsRoute.use('*', authMiddleware)
 
-const errorSchema = z.object({ error: z.string() })
-
 const sessionSchema = z.object({
   id: z.uuid(),
   recipeId: z.uuid().nullable(),

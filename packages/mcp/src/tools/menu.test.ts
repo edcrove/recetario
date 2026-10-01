@@ -112,7 +112,7 @@ describe('menu tools', () => {
       const result = (await getToolHandler(server, 'removeFromMenu')(
         { date: '2026-07-07', slot: 'Cena', recipeId: rid },
         {},
-      )) as any
+      )) as { content: Array<{ text: string }> }
 
       const [url] = mockFetch.mock.calls[0] as [string, RequestInit]
       expect(url).toMatch(new RegExp(`/v1/menu/2026-07-07/Cena/${rid}$`))
