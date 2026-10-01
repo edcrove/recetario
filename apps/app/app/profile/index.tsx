@@ -18,6 +18,7 @@ import {
 } from '@recetario/shared'
 import { api } from '../../src/api/client'
 import { useAuth } from '../../src/providers/AuthProvider'
+import { useProfile, PROFILE_QUERY_KEY } from '../../src/hooks/useProfile'
 import { confirmAsync } from '../../src/utils/platformAlert'
 import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 import { useThemeContext } from '../../src/theme/themeContext'
@@ -55,10 +56,7 @@ export default function ProfileScreen() {
     queryFn: () => api.auth.me(),
   })
 
-  const { data: profile, isLoading: profileLoading } = useQuery({
-    queryKey: ['profile'],
-    queryFn: () => api.auth.getProfile(),
-  })
+  const { data: profile, isLoading: profileLoading } = useProfile()
 
   const [editingName, setEditingName] = useState(false)
   const [displayName, setDisplayName] = useState('')
@@ -73,7 +71,7 @@ export default function ProfileScreen() {
 
   const updateProfile = useMutation({
     mutationFn: api.auth.updateProfile,
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['profile'] }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY }),
   })
 
   function toggleDiet(option: DietaryOption) {
