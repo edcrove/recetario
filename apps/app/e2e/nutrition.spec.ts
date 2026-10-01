@@ -1,15 +1,11 @@
 import { test, expect } from './fixtures'
 import { API_URL } from './env'
+import { authHeaders } from './api'
 
 /**
  * Nutrition goals E2E (nutrition epic stories 3+4). Everything created is
  * cleaned up so seeded data stays stable.
  */
-
-async function authHeaders(page: import('@playwright/test').Page) {
-  const token = await page.evaluate(() => localStorage.getItem('auth_token'))
-  return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
-}
 
 test('the macro strip shows per-serving macros on the pick screen', async ({ page }) => {
   const headers = await authHeaders(page)

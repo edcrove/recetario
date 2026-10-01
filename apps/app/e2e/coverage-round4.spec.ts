@@ -1,5 +1,6 @@
 import { test, expect } from './fixtures'
 import { API_URL } from './env'
+import { authHeaders, createRecipeViaApi, deleteRecipeViaApi } from './api'
 
 /**
  * Round 4 — closing the remaining browser-reachable gaps the earlier rounds
@@ -19,36 +20,6 @@ import { API_URL } from './env'
  * Everything created is cleaned up; interceptions are page-scoped and set
  * before the navigation that triggers the fetch.
  */
-
-async function authHeaders(page: import('@playwright/test').Page) {
-  const token = await page.evaluate(() => localStorage.getItem('auth_token'))
-  return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
-}
-
-async function createRecipeViaApi(
-  page: import('@playwright/test').Page,
-  overrides: Record<string, unknown> = {},
-) {
-  const headers = await authHeaders(page)
-  const res = await page.request.post(`${API_URL}/v1/recipes`, {
-    headers,
-    data: {
-      title: `E2E R4 ${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      servings: 2,
-      category: 'Cena',
-      ingredients: [{ name: 'agua', quantity: 1, unit: 'l' }],
-      steps: [{ text: 'Paso único.' }],
-      ...overrides,
-    },
-  })
-  expect(res.ok()).toBe(true)
-  return (await res.json()) as { id: string; title: string }
-}
-
-async function deleteRecipeViaApi(page: import('@playwright/test').Page, id: string) {
-  const headers = await authHeaders(page)
-  await page.request.delete(`${API_URL}/v1/recipes/${id}`, { headers })
-}
 
 test.describe('AllergenWarning banner (route interception)', () => {
   test('renders the allergen, unmet-diet and unverified-diet blocks', async ({ page }) => {
