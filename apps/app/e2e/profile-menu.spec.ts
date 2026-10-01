@@ -27,7 +27,7 @@ test.describe('UserMenu: open and navigate', () => {
   test('navigates to profile screen', async ({ page }) => {
     await page.getByTestId('home-profile-button').click()
     await page.getByTestId('usermenu-item-0').click()
-    await expect(page.getByText('Porciones por defecto')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('Porciones por defecto')).toBeVisible()
   })
 
   test('backdrop tap closes the menu', async ({ page }) => {
@@ -42,14 +42,14 @@ test.describe('Profile screen', () => {
   test('shows default servings stepper', async ({ page }) => {
     await page.getByTestId('home-profile-button').click()
     await page.getByTestId('usermenu-item-0').click()
-    await expect(page.getByText('Porciones por defecto')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('Porciones por defecto')).toBeVisible()
     await expect(page.getByText('−').first()).toBeVisible()
   })
 
   test('increments default servings', async ({ page }) => {
     await page.getByTestId('home-profile-button').click()
     await page.getByTestId('usermenu-item-0').click()
-    await expect(page.getByText('Porciones por defecto')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('Porciones por defecto')).toBeVisible()
     const plusBtn = page.getByText('+', { exact: true }).first()
     await plusBtn.click()
     // Value updates — screen still functional
@@ -59,7 +59,7 @@ test.describe('Profile screen', () => {
   test('toggles a dietary restriction chip', async ({ page }) => {
     await page.getByTestId('home-profile-button').click()
     await page.getByTestId('usermenu-item-0').click()
-    await expect(page.getByText('Preferencias dietéticas').first()).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('Preferencias dietéticas').first()).toBeVisible()
     await page.getByText('vegano').click()
     // Toggling doesn't crash the screen
     await expect(page.getByText('Preferencias dietéticas').first()).toBeVisible()
@@ -68,14 +68,14 @@ test.describe('Profile screen', () => {
   test('nutrition targets steppers are visible', async ({ page }) => {
     await page.getByTestId('home-profile-button').click()
     await page.getByTestId('usermenu-item-0').click()
-    await expect(page.getByText('Objetivos nutricionales diarios')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('Objetivos nutricionales diarios')).toBeVisible()
     await expect(page.getByText('Calorías', { exact: true })).toBeVisible()
   })
 
   test('name edit flow — tap, type, save', async ({ page }) => {
     await page.getByTestId('home-profile-button').click()
     await page.getByTestId('usermenu-item-0').click()
-    await expect(page.getByText('Porciones por defecto')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('Porciones por defecto')).toBeVisible()
     await page
       .getByText(/Agregá tu nombre|tocá para editar/)
       .first()
@@ -95,22 +95,22 @@ test.describe('Profile screen', () => {
 test.describe('Collections screen', () => {
   test('navigates from home and shows empty or list state', async ({ page }) => {
     await page.getByTestId('home-collections-button').click()
-    await expect(page.getByPlaceholder('Nueva colección…')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByPlaceholder('Nueva colección…')).toBeVisible()
   })
 
   test('creates a new collection', async ({ page }) => {
     await page.getByTestId('home-collections-button').click()
-    await expect(page.getByPlaceholder('Nueva colección…')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByPlaceholder('Nueva colección…')).toBeVisible()
     const name = `E2E Colección ${Date.now()}`
     await page.getByPlaceholder('Nueva colección…').fill(name)
     await page.getByText('+', { exact: true }).click()
-    await expect(page.getByText(name)).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText(name)).toBeVisible()
   })
 
   test('navigating to menu via profile menu item works', async ({ page }) => {
     await page.getByTestId('home-profile-button').click()
     await page.getByText('Colecciones').click()
-    await expect(page.getByPlaceholder('Nueva colección…')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByPlaceholder('Nueva colección…')).toBeVisible()
   })
 
   // Regression test for the 2026-07-03 audit finding: tapping a collection
@@ -144,21 +144,15 @@ test.describe('Collections screen', () => {
     })
 
     await page.getByTestId('home-collections-button').click()
-    await expect(page.getByPlaceholder('Nueva colección…')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByPlaceholder('Nueva colección…')).toBeVisible()
     await page.getByText(collection.name).click()
 
-    await expect(page.getByTestId('collection-detail-title')).toContainText(collection.name, {
-      timeout: 8000,
-    })
-    await expect(page.getByTestId(`collection-recipe-${recipe.id}`)).toBeVisible({
-      timeout: 8000,
-    })
+    await expect(page.getByTestId('collection-detail-title')).toContainText(collection.name)
+    await expect(page.getByTestId(`collection-recipe-${recipe.id}`)).toBeVisible()
 
     page.once('dialog', (dialog) => void dialog.accept())
     await page.getByTestId(`collection-remove-${recipe.id}`).click()
-    await expect(page.getByTestId(`collection-recipe-${recipe.id}`)).not.toBeVisible({
-      timeout: 8000,
-    })
+    await expect(page.getByTestId(`collection-recipe-${recipe.id}`)).not.toBeVisible()
   })
 })
 
@@ -166,7 +160,7 @@ test.describe('Config (taxonomy) screen', () => {
   test('navigates and shows tabs', async ({ page }) => {
     await page.getByTestId('home-profile-button').click()
     await page.getByText('Configuración de taxonomía').click()
-    await expect(page.getByTestId('config-tab-categories')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByTestId('config-tab-categories')).toBeVisible()
     await expect(page.getByTestId('config-tab-food-types')).toBeVisible()
     await expect(page.getByTestId('config-tab-tags')).toBeVisible()
   })
@@ -174,23 +168,19 @@ test.describe('Config (taxonomy) screen', () => {
   test('switching to food-types tab shows food type items', async ({ page }) => {
     await page.getByTestId('home-profile-button').click()
     await page.getByText('Configuración de taxonomía').click()
-    await expect(page.getByTestId('config-tab-food-types')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByTestId('config-tab-food-types')).toBeVisible()
     await page.getByTestId('config-tab-food-types').click()
-    await expect(page.locator('[data-testid^="config-item-"]').first()).toBeVisible({
-      timeout: 8000,
-    })
+    await expect(page.locator('[data-testid^="config-item-"]').first()).toBeVisible()
   })
 
   test('switching to tags tab works and back to categories', async ({ page }) => {
     await page.getByTestId('home-profile-button').click()
     await page.getByText('Configuración de taxonomía').click()
-    await expect(page.getByTestId('config-tab-tags')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByTestId('config-tab-tags')).toBeVisible()
     await page.getByTestId('config-tab-tags').click()
     await page.waitForTimeout(300)
     await page.getByTestId('config-tab-categories').click()
-    await expect(page.locator('[data-testid^="config-item-"]').first()).toBeVisible({
-      timeout: 8000,
-    })
+    await expect(page.locator('[data-testid^="config-item-"]').first()).toBeVisible()
   })
 
   // Meal categories have no creation endpoint — only system-seeded ones exist,
@@ -209,23 +199,23 @@ test.describe('Config (taxonomy) screen', () => {
 
     await page.getByTestId('home-profile-button').click()
     await page.getByText('Configuración de taxonomía').click()
-    await expect(page.getByTestId('config-tab-food-types')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByTestId('config-tab-food-types')).toBeVisible()
     await page.getByTestId('config-tab-food-types').click()
     const item = page.getByTestId(`config-item-${created.id}`)
-    await expect(item).toBeVisible({ timeout: 8000 })
+    await expect(item).toBeVisible()
     await item.getByTestId(`config-edit-${created.id}`).click()
     await expect(page.getByTestId('config-rename-save')).toBeVisible({ timeout: 5000 })
     const newName = `E2E Editado ${Date.now()}`
     const input = page.locator('input').last()
     await input.fill(newName)
     await page.getByTestId('config-rename-save').click()
-    await expect(page.getByText(newName)).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText(newName)).toBeVisible()
   })
 
   test('cancel on rename modal discards the change', async ({ page }) => {
     await page.getByTestId('home-profile-button').click()
     await page.getByText('Configuración de taxonomía').click()
-    await expect(page.getByTestId('config-tab-categories')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByTestId('config-tab-categories')).toBeVisible()
     const firstItem = page.locator('[data-testid^="config-item-"]').first()
     await firstItem.locator('[data-testid^="config-edit-"]').click()
     await expect(page.getByTestId('config-rename-cancel')).toBeVisible({ timeout: 5000 })
@@ -272,7 +262,7 @@ test.describe('Config (taxonomy) screen', () => {
       await page.getByTestId(`config-reassign-${to.id}`).click()
       await expect(page.getByText('Reasignar y eliminar')).toBeVisible()
       await page.getByTestId('config-delete-confirm').click()
-      await expect(page.getByTestId(`config-delete-${from.id}`)).toHaveCount(0, { timeout: 8000 })
+      await expect(page.getByTestId(`config-delete-${from.id}`)).toHaveCount(0)
 
       const after = (await (
         await page.request.get(`${API}/v1/recipes/${recipe.id}`, { headers })
@@ -300,14 +290,14 @@ test.describe('Household screen', () => {
       page
         .getByTestId('household-create-name-input')
         .or(page.getByTestId('household-invite-open').first()),
-    ).toBeVisible({ timeout: 8000 })
+    ).toBeVisible()
     if ((await page.getByTestId('household-create-name-input').count()) > 0) {
       const name = `E2E Familia ${Date.now()}`
       await page.getByTestId('household-create-name-input').fill(name)
       await page.getByTestId('household-create-submit').click()
-      await expect(page.getByText(name)).toBeVisible({ timeout: 8000 })
+      await expect(page.getByText(name)).toBeVisible()
     }
-    await expect(page.getByTestId('household-invite-open').first()).toBeVisible({ timeout: 8000 })
+    await expect(page.getByTestId('household-invite-open').first()).toBeVisible()
   }
 
   test('navigates and shows create or existing household', async ({ page }) => {
@@ -317,7 +307,7 @@ test.describe('Household screen', () => {
       page
         .getByTestId('household-create-name-input')
         .or(page.getByTestId('household-invite-open').first()),
-    ).toBeVisible({ timeout: 8000 })
+    ).toBeVisible()
   })
 
   test('creates a household when none exists and shows its members', async ({ page }) => {
@@ -360,14 +350,12 @@ test.describe('Household screen', () => {
     await page.getByTestId('household-invite-email-input').fill(inviteeEmail)
     await page.getByTestId('household-invite-submit').click()
     // Form closes on success (no error dialog, invite box disappears)
-    await expect(page.getByTestId('household-invite-email-input')).not.toBeVisible({
-      timeout: 8000,
-    })
+    await expect(page.getByTestId('household-invite-email-input')).not.toBeVisible()
 
     // The new member shows up in the list; remove them again so the demo
     // account's household returns to its single-owner state (repeatable runs).
     const removeBtn = page.getByTestId(`household-remove-member-${inviteeUserId}`)
-    await expect(removeBtn).toBeVisible({ timeout: 8000 })
+    await expect(removeBtn).toBeVisible()
 
     // First attempt: dismiss the confirm — member stays
     page.once('dialog', (dialog) => void dialog.dismiss())
@@ -377,7 +365,7 @@ test.describe('Household screen', () => {
     // Second attempt: accept — member disappears
     page.once('dialog', (dialog) => void dialog.accept())
     await removeBtn.click()
-    await expect(removeBtn).not.toBeVisible({ timeout: 8000 })
+    await expect(removeBtn).not.toBeVisible()
   })
 
   test('inviting with an email that has no matching user shows an error notification', async ({
@@ -395,7 +383,7 @@ test.describe('Household screen', () => {
 
     await page.getByTestId('household-invite-email-input').fill('nadie-existe@example.com')
     await page.getByTestId('household-invite-submit').click()
-    await expect.poll(() => dialogMessage, { timeout: 8000 }).toContain('No hay ninguna cuenta')
+    await expect.poll(() => dialogMessage).toContain('No hay ninguna cuenta')
   })
 
   test('Mi hogar reports failed invite, remove, accept and decline requests', async ({
@@ -433,7 +421,7 @@ test.describe('Household screen', () => {
       await page.getByTestId('household-invite-open').first().click()
       await page.getByTestId('household-invite-email-input').fill('alguien@example.com')
       await page.getByTestId('household-invite-submit').click()
-      await expect.poll(() => messages.join('|'), { timeout: 8000 }).toContain('Probá de nuevo')
+      await expect.poll(() => messages.join('|')).toContain('Probá de nuevo')
       // 409 (already a member) and 403 (not owner/admin) get their own messages
       for (const [status, text] of [
         [409, 'ya está en el hogar'],
@@ -444,15 +432,13 @@ test.describe('Household screen', () => {
           route.fulfill({ status, contentType: 'application/json', body: '{"error":"x"}' }),
         )
         await page.getByTestId('household-invite-submit').click()
-        await expect.poll(() => messages.join('|'), { timeout: 8000 }).toContain(text)
+        await expect.poll(() => messages.join('|')).toContain(text)
       }
 
       await fail('**/v1/households/*/members/*')
       await page.reload() // the list was loaded before the API invite above
       await page.getByTestId(`household-remove-member-${invitee.user.id}`).click()
-      await expect
-        .poll(() => messages.join('|'), { timeout: 8000 })
-        .toContain('No se pudo quitar al miembro')
+      await expect.poll(() => messages.join('|')).toContain('No se pudo quitar al miembro')
 
       // Invitee: failed accept / decline keep the invitation and say so
       await page.unrouteAll({ behavior: 'ignoreErrors' })
@@ -461,11 +447,9 @@ test.describe('Household screen', () => {
       await fail('**/v1/households/*/accept')
       await fail('**/v1/households/*/decline')
       await page.getByTestId(`household-accept-${hh!.id}`).click()
-      await expect.poll(() => messages.join('|'), { timeout: 8000 }).toContain('No se pudo aceptar')
+      await expect.poll(() => messages.join('|')).toContain('No se pudo aceptar')
       await page.getByTestId(`household-decline-${hh!.id}`).click()
-      await expect
-        .poll(() => messages.join('|'), { timeout: 8000 })
-        .toContain('No se pudo rechazar')
+      await expect.poll(() => messages.join('|')).toContain('No se pudo rechazar')
       await expect(page.getByTestId(`household-invitation-${hh!.id}`)).toBeVisible()
     } finally {
       await page.unrouteAll({ behavior: 'ignoreErrors' })
@@ -508,25 +492,25 @@ test.describe('Household screen', () => {
       })
       await page.getByTestId('household-invite-email-input').fill(email)
       await page.getByTestId('household-invite-submit').click()
-      await expect.poll(() => dialogMessage, { timeout: 8000 }).toContain('ya está en el hogar')
+      await expect.poll(() => dialogMessage).toContain('ya está en el hogar')
 
       // Become the invitee; client-side navigation keeps coverage in one page
       await page.evaluate((jwt) => localStorage.setItem('auth_token', jwt), invitee.token)
       await page.goto('/household')
       const card = page.getByTestId(`household-invitation-${hh!.id}`)
-      await expect(card).toContainText(hh!.name, { timeout: 10000 })
+      await expect(card).toContainText(hh!.name)
 
       page.once('dialog', (dialog) => void dialog.accept())
       await page.getByTestId(`household-decline-${hh!.id}`).click()
-      await expect(card).toHaveCount(0, { timeout: 10000 })
+      await expect(card).toHaveCount(0)
       await expect(page.getByTestId('household-create-name-input')).toBeVisible()
 
       // Invited again → accept; the household and its members appear
       expect((await invite()).status()).toBe(201)
       await page.reload()
       await page.getByTestId(`household-accept-${hh!.id}`).click()
-      await expect(card).toHaveCount(0, { timeout: 10000 })
-      await expect(page.getByText(email)).toBeVisible({ timeout: 10000 })
+      await expect(card).toHaveCount(0)
+      await expect(page.getByText(email)).toBeVisible()
       await expect(page.getByTestId('household-invite-open')).toHaveCount(0) // members can't invite
     } finally {
       await page.request.delete(`${API}/v1/households/${hh!.id}/members/${invitee.user.id}`, {
@@ -551,9 +535,7 @@ test.describe('Stats screen', () => {
     await page.getByText('Estadísticas de cocina').click()
     await expect(
       page.getByText(/sesiones de cocina en total|Recetas más cocinadas/).first(),
-    ).toBeVisible({
-      timeout: 8000,
-    })
+    ).toBeVisible()
   })
 })
 
@@ -564,7 +546,7 @@ test.describe('Sign out', () => {
     await page.getByTestId('home-profile-button').click()
     await expect(page.getByTestId('usermenu-signout')).toBeVisible({ timeout: 5000 })
     await page.getByTestId('usermenu-signout').click()
-    await expect(page).toHaveURL(/auth\/login/, { timeout: 10000 })
+    await expect(page).toHaveURL(/auth\/login/)
   })
 })
 
@@ -590,7 +572,7 @@ test.describe('Profile screen (/profile)', () => {
     try {
       await page.goto('/profile')
       const chip = page.getByTestId('allergen-chip-leche')
-      await expect(chip).toBeVisible({ timeout: 8000 })
+      await expect(chip).toBeVisible()
       await chip.click()
       await expect
         .poll(async () => {
@@ -600,7 +582,7 @@ test.describe('Profile screen (/profile)', () => {
         .toContain('leche')
 
       await page.goto(`/recipe/${id}`)
-      await expect(page.getByText(/Alérgenos:.*Leche y lácteos/)).toBeVisible({ timeout: 8000 })
+      await expect(page.getByText(/Alérgenos:.*Leche y lácteos/)).toBeVisible()
     } finally {
       await page.request.patch(`${API_URL}/auth/profile`, { headers, data: { allergens: [] } })
       await page.request.delete(`${API_URL}/v1/recipes/${id}`, { headers })
@@ -615,12 +597,12 @@ test.describe('Profile screen (/profile)', () => {
     }
     try {
       await page.goto('/profile')
-      await expect(page.getByText('tocá para editar')).toBeVisible({ timeout: 8000 })
+      await expect(page.getByText('tocá para editar')).toBeVisible()
       await page.getByText('tocá para editar').click()
       const input = page.locator('input[autofocus], input').first()
       await input.fill('Demo E2E')
       await page.getByText('Guardar', { exact: true }).click()
-      await expect(page.getByText('Demo E2E')).toBeVisible({ timeout: 8000 })
+      await expect(page.getByText('Demo E2E')).toBeVisible()
     } finally {
       // Restore the demo account's name so later tests and the visual tour see it
       const res = await page.request.patch(`${API_URL}/auth/me`, {
@@ -633,7 +615,7 @@ test.describe('Profile screen (/profile)', () => {
 
   test('cancel exits name editing without saving', async ({ page }) => {
     await page.goto('/profile')
-    await expect(page.getByText('tocá para editar')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('tocá para editar')).toBeVisible()
     await page.getByText('tocá para editar').click()
     await page.getByText('Cancelar', { exact: true }).click()
     await expect(page.getByText('tocá para editar')).toBeVisible()
@@ -641,7 +623,7 @@ test.describe('Profile screen (/profile)', () => {
 
   test('preferred servings stepper increments and decrements', async ({ page }) => {
     await page.goto('/profile')
-    await expect(page.getByText('Porciones por defecto')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('Porciones por defecto')).toBeVisible()
     const row = page.getByText('Porciones por defecto').locator('xpath=following-sibling::*[1]')
     const value = row.locator('div,span').filter({ hasText: /^\d+$/ }).first()
     const before = Number(await value.textContent())
@@ -649,20 +631,20 @@ test.describe('Profile screen (/profile)', () => {
     // boundary — exercise both directions starting away from the stuck edge.
     if (before > 1) {
       await row.getByText('−', { exact: true }).click()
-      await expect(value).toHaveText(String(before - 1), { timeout: 8000 })
+      await expect(value).toHaveText(String(before - 1))
       await row.getByText('+', { exact: true }).click()
-      await expect(value).toHaveText(String(before), { timeout: 8000 })
+      await expect(value).toHaveText(String(before))
     } else {
       await row.getByText('+', { exact: true }).click()
-      await expect(value).toHaveText('2', { timeout: 8000 })
+      await expect(value).toHaveText('2')
       await row.getByText('−', { exact: true }).click()
-      await expect(value).toHaveText('1', { timeout: 8000 })
+      await expect(value).toHaveText('1')
     }
   })
 
   test('toggles a dietary chip on and off', async ({ page }) => {
     await page.goto('/profile')
-    await expect(page.getByText('Preferencias dietéticas')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('Preferencias dietéticas')).toBeVisible()
     const chip = page.getByText('paleo', { exact: true })
     await chip.click()
     // give the mutation a round trip, then toggle back off
@@ -674,19 +656,19 @@ test.describe('Profile screen (/profile)', () => {
 
   test('nutrition target stepper changes calories and restores', async ({ page }) => {
     await page.goto('/profile')
-    await expect(page.getByText('Objetivos nutricionales diarios')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('Objetivos nutricionales diarios')).toBeVisible()
     const row = page.getByText('Calorías', { exact: true }).locator('xpath=..')
     const valText = await row.locator('text=/\\d+/').first().textContent()
     const before = Number(valText?.match(/\d+/)?.[0] ?? 0)
     await row.getByText('+', { exact: true }).click()
-    await expect(row.getByText(String(before + 100))).toBeVisible({ timeout: 8000 })
+    await expect(row.getByText(String(before + 100))).toBeVisible()
     await row.getByText('−', { exact: true }).click()
-    await expect(row.getByText(String(before))).toBeVisible({ timeout: 8000 })
+    await expect(row.getByText(String(before))).toBeVisible()
   })
 
   test('sign out asks for confirmation; dismissing stays logged in', async ({ page }) => {
     await page.goto('/profile')
-    await expect(page.getByTestId('profile-signout')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByTestId('profile-signout')).toBeVisible()
     page.once('dialog', (dialog) => void dialog.dismiss())
     await page.getByTestId('profile-signout').click()
     // still on profile, still authenticated
@@ -695,10 +677,10 @@ test.describe('Profile screen (/profile)', () => {
 
   test('sign out confirm redirects to login', async ({ page }) => {
     await page.goto('/profile')
-    await expect(page.getByTestId('profile-signout')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByTestId('profile-signout')).toBeVisible()
     page.once('dialog', (dialog) => void dialog.accept())
     await page.getByTestId('profile-signout').click()
-    await page.waitForURL(/auth/, { timeout: 8000 })
+    await page.waitForURL(/auth/)
   })
 })
 
@@ -720,7 +702,6 @@ test.describe('Profile time zone', () => {
               timezone: string | null
             }
           ).timezone,
-        { timeout: 10000 },
       )
       .toBe('America/Montevideo')
   })

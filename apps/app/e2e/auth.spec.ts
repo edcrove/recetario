@@ -11,7 +11,7 @@ const E2E_PASSWORD = DEMO_ACCOUNTS[0]!.password
 test.describe('Auth: login via form', () => {
   test('shows login screen when unauthenticated', async ({ page }) => {
     await page.goto('/')
-    await expect(page).toHaveURL(/auth\/login/, { timeout: 10000 })
+    await expect(page).toHaveURL(/auth\/login/)
     await expect(page.getByText('Recetario').first()).toBeVisible()
     await expect(page.getByText('Ingresá a tu cuenta')).toBeVisible()
   })
@@ -24,7 +24,7 @@ test.describe('Auth: login via form', () => {
     page,
   }) => {
     await page.goto('/household')
-    await expect(page).toHaveURL(/auth\/login/, { timeout: 10000 })
+    await expect(page).toHaveURL(/auth\/login/)
   })
 
   test('shows error for wrong credentials', async ({ page }) => {
@@ -32,9 +32,7 @@ test.describe('Auth: login via form', () => {
     await page.getByPlaceholder('Email').fill('wrong@example.com')
     await page.getByPlaceholder('Contraseña').fill('wrongpass')
     await page.getByTestId('auth-login-submit').click()
-    await expect(page.getByText(/Email o contraseña incorrectos|Error al conectar/)).toBeVisible({
-      timeout: 8000,
-    })
+    await expect(page.getByText(/Email o contraseña incorrectos|Error al conectar/)).toBeVisible()
   })
 
   test('shows validation error for empty email/password', async ({ page }) => {
@@ -145,7 +143,7 @@ test.describe('Auth: register', () => {
     await expect(page.getByTestId('welcome-new-recipe')).toBeVisible()
     await expect(page.getByTestId('welcome-profile')).toBeVisible()
     await page.getByTestId('welcome-library').click()
-    await expect(page).toHaveURL(/\/library/, { timeout: 10000 })
+    await expect(page).toHaveURL(/\/library/)
   })
 
   test('shows error when email already registered', async ({ page }) => {
@@ -160,7 +158,7 @@ test.describe('Auth: register', () => {
     await page.getByPlaceholder('Mínimo 8 caracteres').fill('test12345')
     await page.getByPlaceholder('Repetí la contraseña').fill('test12345')
     await page.getByTestId('auth-register-submit').click()
-    await expect(page.getByText(/Este email ya está registrado/)).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText(/Este email ya está registrado/)).toBeVisible()
   })
 })
 
@@ -176,7 +174,7 @@ test.describe('Auth: expired session', () => {
     await page.evaluate(() => localStorage.setItem('auth_token', 'token-vencido-invalido'))
     await page.goto('/')
     await expect(page).toHaveURL(/auth\/login/, { timeout: 15000 })
-    await expect(page.getByText('Ingresá a tu cuenta')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('Ingresá a tu cuenta')).toBeVisible()
     // and the poisoned token is gone, so the next load goes straight to login
     const stored = await page.evaluate(() => localStorage.getItem('auth_token'))
     expect(stored).toBeNull()
@@ -192,9 +190,7 @@ test.describe('Auth: error branches', () => {
     await page.getByPlaceholder('Email').fill(E2E_EMAIL)
     await page.getByPlaceholder('Contraseña').fill('clave-incorrecta')
     await page.getByTestId('auth-login-submit').click()
-    await expect(page.getByText(/incorrectos/i).first()).toBeVisible({
-      timeout: 8000,
-    })
+    await expect(page.getByText(/incorrectos/i).first()).toBeVisible()
     await expect(page).toHaveURL(/auth\/login/)
   })
 })

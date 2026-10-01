@@ -13,7 +13,7 @@ test.describe('Weekly menu planner (/menu)', () => {
     await page.goto('/')
     await expect(page.getByText('Menú Semanal')).toBeVisible({ timeout: 15000 })
     await page.getByText('Menú Semanal').click()
-    await expect(page).toHaveURL(/\/menu/, { timeout: 10000 })
+    await expect(page).toHaveURL(/\/menu/)
   })
 
   test('shows week navigation controls', async ({ page }) => {
@@ -71,15 +71,15 @@ test.describe('Pick recipe screen (/menu/pick)', () => {
     await goToMenu(page)
     await expect(page.getByText('+ Agregar').first()).toBeVisible({ timeout: 15000 })
     await page.getByText('+ Agregar').first().click()
-    await expect(page).toHaveURL(/\/menu\/pick/, { timeout: 10000 })
+    await expect(page).toHaveURL(/\/menu\/pick/)
   })
 
   test('shows slot · date separator in header', async ({ page }) => {
     await goToMenu(page)
     await expect(page.getByText('+ Agregar').first()).toBeVisible({ timeout: 15000 })
     await page.getByText('+ Agregar').first().click()
-    await expect(page).toHaveURL(/\/menu\/pick/, { timeout: 10000 })
-    await expect(page.getByTestId('pick-header-slot-date')).toBeVisible({ timeout: 10000 })
+    await expect(page).toHaveURL(/\/menu\/pick/)
+    await expect(page.getByTestId('pick-header-slot-date')).toBeVisible()
     await expect(page.getByTestId('pick-header-slot-date')).toContainText('·')
   })
 
@@ -97,7 +97,7 @@ test.describe('Pick recipe screen (/menu/pick)', () => {
         .locator('[data-testid^="pick-recipe-"]')
         .first()
         .or(page.getByText('No hay recetas aún')),
-    ).toBeVisible({ timeout: 10000 })
+    ).toBeVisible()
   })
 
   test('search filters recipe list', async ({ page }) => {
@@ -105,12 +105,12 @@ test.describe('Pick recipe screen (/menu/pick)', () => {
     const searchInput = page.getByPlaceholder('Buscar receta...')
     await expect(searchInput).toBeVisible({ timeout: 15000 })
     await searchInput.fill('zzznomatch')
-    await expect(page.getByText('Sin resultados')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Sin resultados')).toBeVisible()
   })
 
   test('servings stepper increments the value', async ({ page }) => {
     await page.goto('/menu/pick?date=2025-01-06&slot=Almuerzo&weekStart=2025-01-06')
-    await expect(page.getByText('Porciones:')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Porciones:')).toBeVisible()
     const plusBtn = page.getByText('+', { exact: true }).first()
     const initial = await page.getByText(/^\d+$/).first().textContent()
     await plusBtn.click()
@@ -135,7 +135,7 @@ test.describe('Pick recipe screen (/menu/pick)', () => {
       await page.goto('/menu/pick?date=2025-01-06&slot=Almuerzo&weekStart=2025-01-06')
       await expect(page.getByPlaceholder('Buscar receta...')).toBeVisible({ timeout: 15000 })
       await page.getByPlaceholder('Buscar receta...').fill('Tarta')
-      await expect(page.getByTestId('allergen-badge').first()).toBeVisible({ timeout: 10000 })
+      await expect(page.getByTestId('allergen-badge').first()).toBeVisible()
     } finally {
       // Leave the account's allergens as found, or later profile tests see 'leche'
       await page.request.patch(`${API_URL}/auth/profile`, { headers, data: { allergens: [] } })
@@ -148,7 +148,7 @@ test.describe('Shopping list screen (/menu/shopping-list)', () => {
     await goToMenu(page)
     await expect(page.getByText('Lista de compras')).toBeVisible({ timeout: 15000 })
     await page.getByText('Lista de compras').click()
-    await expect(page).toHaveURL(/\/menu\/shopping-list/, { timeout: 10000 })
+    await expect(page).toHaveURL(/\/menu\/shopping-list/)
   })
 
   test('shows Lista de Compras title', async ({ page }) => {
@@ -178,6 +178,6 @@ test.describe('Shopping list screen (/menu/shopping-list)', () => {
     await page.goto('/menu/shopping-list?weekStart=2025-01-06')
     await expect(page.getByText('‹ Menú')).toBeVisible({ timeout: 15000 })
     await page.getByText('‹ Menú').click()
-    await expect(page).toHaveURL(/\/menu/, { timeout: 10000 })
+    await expect(page).toHaveURL(/\/menu/)
   })
 })

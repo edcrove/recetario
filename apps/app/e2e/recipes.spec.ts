@@ -10,7 +10,7 @@ test.describe('Recipes: search and filter', () => {
   test('search filters recipe list', async ({ page }) => {
     await page.getByPlaceholder(/buscar recetas/i).fill('Milanesa')
     // Results should show Milanesa
-    await expect(page.getByText(/Milanesa/i).first()).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText(/Milanesa/i).first()).toBeVisible()
     // Clear search
     await page.getByPlaceholder(/buscar recetas/i).clear()
   })
@@ -45,23 +45,23 @@ test.describe('Recipes: search and filter', () => {
       await page.reload()
       const search = page.getByPlaceholder(/buscar recetas/i)
       await search.fill(`E2E Chip`)
-      await expect(page.getByText(titleA)).toBeVisible({ timeout: 8000 })
+      await expect(page.getByText(titleA)).toBeVisible()
       await expect(page.getByText(titleB)).toBeVisible()
 
       // Chip + search term: only the matching type survives
       await page.getByTestId(`home-type-chip-${typeA!.id}`).click()
-      await expect(page.getByText(titleB)).toHaveCount(0, { timeout: 8000 })
+      await expect(page.getByText(titleB)).toHaveCount(0)
       await expect(page.getByText(titleA)).toBeVisible()
 
       // Chip alone (no search term) still filters
       await search.clear()
-      await expect(page.getByText(titleA)).toBeVisible({ timeout: 8000 })
+      await expect(page.getByText(titleA)).toBeVisible()
       await expect(page.getByText(titleB)).toHaveCount(0)
 
       // "Todas" clears the food-type filter
       await page.getByTestId('home-type-chip-all').click()
       await search.fill(`E2E Chip`)
-      await expect(page.getByText(titleB)).toBeVisible({ timeout: 8000 })
+      await expect(page.getByText(titleB)).toBeVisible()
     } finally {
       for (const id of ids) await page.request.delete(`${API_URL}/v1/recipes/${id}`, { headers })
     }
@@ -70,15 +70,15 @@ test.describe('Recipes: search and filter', () => {
 
 test.describe('Recipes: create via form', () => {
   test('nueva receta button opens form', async ({ page }) => {
-    await expect(page.getByText('+ Nueva Receta')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('+ Nueva Receta')).toBeVisible()
     await page.getByText('+ Nueva Receta').click()
-    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible()
   })
 
   test('form shows validation error for empty title', async ({ page }) => {
-    await expect(page.getByText('+ Nueva Receta')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('+ Nueva Receta')).toBeVisible()
     await page.getByText('+ Nueva Receta').click()
-    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible()
     await page.getByText('Guardar Receta').click()
     // Zod produces "Too small: expected string to have >=1 characters" or similar
     await expect(
@@ -115,9 +115,9 @@ test.describe('Recipes: create via form', () => {
     await page.getByText('Guardar Receta').click()
 
     // Lands on the new recipe with a saved notice, and it is in the list back home
-    await expect(page.getByTestId('recipe-saved-banner')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('recipe-saved-banner')).toBeVisible()
     await page.goBack()
-    await expect(page.getByText(recipeName)).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText(recipeName)).toBeVisible()
   })
 
   // Regression test for the 2026-07-03 audit finding: foodTypeIds selected in
@@ -133,7 +133,7 @@ test.describe('Recipes: create via form', () => {
     await page.getByPlaceholder('Nombre de la receta').fill(recipeName)
 
     const foodTypeChip = page.locator('[data-testid^="food-type-chip-"]').first()
-    await expect(foodTypeChip).toBeVisible({ timeout: 8000 })
+    await expect(foodTypeChip).toBeVisible()
     const testId = await foodTypeChip.getAttribute('data-testid')
     const expectedFoodTypeId = testId!.replace('food-type-chip-', '')
     await foodTypeChip.click()
@@ -143,7 +143,7 @@ test.describe('Recipes: create via form', () => {
     await page.getByText('+ Agregar paso').click()
     await page.getByPlaceholder(/Paso 1/i).fill('Mezclar ingredientes')
     await page.getByText('Guardar Receta').click()
-    await expect(page.getByTestId('recipe-saved-banner')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('recipe-saved-banner')).toBeVisible()
 
     const listRes = await page.request.get(`${API_URL}/v1/recipes?limit=100`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -182,7 +182,7 @@ test.describe('Recipes: form on a phone and save feedback', () => {
   }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.getByText('+ Nueva Receta').click()
-    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible()
     await page.getByText('+ Agregar ingrediente').click()
 
     for (const control of [
@@ -210,12 +210,12 @@ test.describe('Recipes: form on a phone and save feedback', () => {
   test('opening /recipe/new directly and saving once lands on the new recipe', async ({ page }) => {
     const title = `E2E Guardado Directo ${Date.now()}`
     await page.goto('/recipe/new')
-    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible()
     await page.getByPlaceholder('Nombre de la receta').fill(title)
     await page.getByPlaceholder('Ingrediente').first().fill('Arroz')
     await page.getByText('Guardar Receta').click()
 
-    await expect(page.getByTestId('recipe-saved-banner')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('recipe-saved-banner')).toBeVisible()
     await expect(page).toHaveURL(/\/recipe\/[0-9a-f-]{36}/)
     await expect(page.getByText(title)).toBeVisible()
 
@@ -243,10 +243,10 @@ test.describe('Recipes: form on a phone and save feedback', () => {
     const { id } = (await created.json()) as { id: string }
     try {
       await page.goto(`/recipe/${id}/edit`)
-      await expect(page.getByTestId('ingredient-unit-0')).toContainText('cda', { timeout: 10000 })
+      await expect(page.getByTestId('ingredient-unit-0')).toContainText('cda')
       await page.getByPlaceholder('Cant.').first().fill('3')
       await page.getByText('Guardar Cambios').click()
-      await expect(page.getByTestId('recipe-saved-banner')).toBeVisible({ timeout: 10000 })
+      await expect(page.getByTestId('recipe-saved-banner')).toBeVisible()
 
       const res = await page.request.get(`${API_URL}/v1/recipes/${id}`, { headers })
       const recipe = (await res.json()) as {
@@ -262,14 +262,12 @@ test.describe('Recipes: form on a phone and save feedback', () => {
 test.describe('Recipes: diet tags', () => {
   test('a tag the ingredients contradict is refused with the reason', async ({ page }) => {
     await page.getByText('+ Nueva Receta').click()
-    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible()
     await page.getByPlaceholder('Nombre de la receta').fill(`E2E Falso vegano ${Date.now()}`)
     await page.getByPlaceholder('Ingrediente').first().fill('Chorizo')
     await page.getByTestId('diet-chip-vegano').click()
     await page.getByText('Guardar Receta').click()
-    await expect(page.getByText(/"vegano" no se cumple: contiene Chorizo/)).toBeVisible({
-      timeout: 8000,
-    })
+    await expect(page.getByText(/"vegano" no se cumple: contiene Chorizo/)).toBeVisible()
   })
 })
 
@@ -280,10 +278,9 @@ test.describe('Recipes: detail view', () => {
         'text=/Milanesa de pollo|Empanadas de carne|Guiso de lentejas|Tarta de verduras|Locro criollo|Alfajores caseros|Revuelto gramajo|Ensalada César/',
       )
       .first()
-    await expect(firstRecipe).toBeVisible({ timeout: 10000 })
+    await expect(firstRecipe).toBeVisible()
     const title = await firstRecipe.textContent()
     await firstRecipe.click()
-    await page.waitForLoadState('networkidle', { timeout: 10000 })
 
     // After navigation, wait for cook button which is the most reliable indicator
     await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 20000 })
@@ -296,9 +293,8 @@ test.describe('Recipes: detail view', () => {
         'text=/Milanesa de pollo|Empanadas de carne|Guiso de lentejas|Tarta de verduras|Locro criollo|Alfajores caseros|Revuelto gramajo|Ensalada César/',
       )
       .first()
-    await expect(firstRecipe).toBeVisible({ timeout: 10000 })
+    await expect(firstRecipe).toBeVisible()
     await firstRecipe.click()
-    await page.waitForLoadState('networkidle', { timeout: 10000 })
 
     await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 20000 })
     await expect(page.getByText(/Porciones:/i).first()).toBeVisible()
@@ -310,9 +306,8 @@ test.describe('Recipes: detail view', () => {
         'text=/Milanesa de pollo|Empanadas de carne|Guiso de lentejas|Tarta de verduras|Locro criollo|Alfajores caseros|Revuelto gramajo|Ensalada César/',
       )
       .first()
-    await expect(firstRecipe).toBeVisible({ timeout: 10000 })
+    await expect(firstRecipe).toBeVisible()
     await firstRecipe.click()
-    await page.waitForLoadState('networkidle', { timeout: 10000 })
     await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 20000 })
   }
 
@@ -330,9 +325,7 @@ test.describe('Recipes: detail view', () => {
   test('editar link navigates to edit form', async ({ page }) => {
     await openFirstRecipeDetail(page)
     await page.getByText('Editar').click()
-    await expect(page.getByText(/Editar Receta|Guardar Cambios/).first()).toBeVisible({
-      timeout: 8000,
-    })
+    await expect(page.getByText(/Editar Receta|Guardar Cambios/).first()).toBeVisible()
   })
 
   // Note: this intentionally saves WITHOUT changing anything — it covers the
@@ -342,33 +335,29 @@ test.describe('Recipes: detail view', () => {
   test('saving the edit form without changes returns to detail', async ({ page }) => {
     await openFirstRecipeDetail(page)
     await page.getByText('Editar').click()
-    await expect(page.getByText(/Editar Receta|Guardar Cambios/).first()).toBeVisible({
-      timeout: 8000,
-    })
+    await expect(page.getByText(/Editar Receta|Guardar Cambios/).first()).toBeVisible()
     // Save without changes — should return to detail
     await page.getByText(/Guardar Cambios|Guardar Receta/).click()
-    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible()
   })
 
   test('can set times and difficulty in the edit form and save', async ({ page }) => {
     await openFirstRecipeDetail(page)
     await page.getByText('Editar').click()
-    await expect(page.getByTestId('recipe-prep-time')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByTestId('recipe-prep-time')).toBeVisible()
 
     await page.getByTestId('recipe-prep-time').fill('8')
     await page.getByTestId('recipe-cook-time').fill('12')
     await page.getByTestId('difficulty-chip-media').click()
 
     await page.getByText(/Guardar Cambios|Guardar Receta/).click()
-    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible()
   })
 
   test('can add and remove an ingredient row in the edit form', async ({ page }) => {
     await openFirstRecipeDetail(page)
     await page.getByText('Editar').click()
-    await expect(page.getByText(/Editar Receta|Guardar Cambios/).first()).toBeVisible({
-      timeout: 8000,
-    })
+    await expect(page.getByText(/Editar Receta|Guardar Cambios/).first()).toBeVisible()
 
     const nameInputs = page.getByPlaceholder('Ingrediente')
     const initialCount = await nameInputs.count()
@@ -382,15 +371,13 @@ test.describe('Recipes: detail view', () => {
     await expect(nameInputs).toHaveCount(initialCount)
 
     await page.getByText(/Guardar Cambios|Guardar Receta/).click()
-    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible()
   })
 
   test('can add and remove a step row in the edit form', async ({ page }) => {
     await openFirstRecipeDetail(page)
     await page.getByText('Editar').click()
-    await expect(page.getByText(/Editar Receta|Guardar Cambios/).first()).toBeVisible({
-      timeout: 8000,
-    })
+    await expect(page.getByText(/Editar Receta|Guardar Cambios/).first()).toBeVisible()
 
     const stepInputs = page.getByPlaceholder(/Paso \d+/)
     const initialCount = await stepInputs.count()
@@ -404,13 +391,13 @@ test.describe('Recipes: detail view', () => {
     await expect(stepInputs).toHaveCount(initialCount)
 
     await page.getByText(/Guardar Cambios|Guardar Receta/).click()
-    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible()
   })
 
   test('history tab shows empty state or past sessions', async ({ page }) => {
     await openFirstRecipeDetail(page)
     await page.getByTestId('recipe-tab-history').click()
-    await expect(page.getByText(/Todavía no cocinaste|★|☆/).first()).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText(/Todavía no cocinaste|★|☆/).first()).toBeVisible()
   })
 
   test('recipe tab returns from history to ingredients view', async ({ page }) => {
@@ -426,7 +413,7 @@ test.describe('Recipes: times & difficulty', () => {
     const recipeName = `E2E Rápida ${Date.now()}`
 
     await page.getByText('+ Nueva Receta').click()
-    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible()
     await page.getByPlaceholder('Nombre de la receta').fill(recipeName)
     await page.getByPlaceholder('Ingrediente').first().fill('Agua')
     await page.getByPlaceholder('Cant.').first().fill('1')
@@ -438,12 +425,12 @@ test.describe('Recipes: times & difficulty', () => {
     await page.getByTestId('difficulty-chip-fácil').click()
 
     await page.getByText('Guardar Receta').click()
-    await expect(page.getByTestId('recipe-saved-banner')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('recipe-saved-banner')).toBeVisible()
     await page.goBack()
-    await expect(page.getByText(recipeName)).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText(recipeName)).toBeVisible()
 
     // Compact "⏱ 15 min · fácil" line renders on the card.
-    await expect(page.getByText('⏱ 15 min · fácil').first()).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('⏱ 15 min · fácil').first()).toBeVisible()
 
     // ≤20 min keeps our recipe but hides untimed seed recipes.
     await page.getByTestId('filter-time-20').click()

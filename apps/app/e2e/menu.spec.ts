@@ -10,19 +10,19 @@ import { authHeaders, createRecipeViaApi, deleteRecipeViaApi } from './api'
 test.describe('Menu: navigation', () => {
   test('Menú Semanal button opens menu screen', async ({ page }) => {
     await page.getByText('Menú Semanal').click()
-    await expect(page.getByText(/Anterior|Siguiente/i).first()).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText(/Anterior|Siguiente/i).first()).toBeVisible()
     await expect(page.getByText('Lista de compras')).toBeVisible()
   })
 
   test('week navigation shows previous and next buttons', async ({ page }) => {
     await page.getByText('Menú Semanal').click()
-    await expect(page.getByText('‹ Anterior')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('‹ Anterior')).toBeVisible()
     await expect(page.getByText('Siguiente ›')).toBeVisible()
   })
 
   test('clicking Anterior changes the week — Siguiente becomes active', async ({ page }) => {
     await page.getByText('Menú Semanal').click()
-    await expect(page.getByText('‹ Anterior')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('‹ Anterior')).toBeVisible()
     const label = page.getByTestId('menu-week-label')
     const initial = await label.textContent()
     // Navigate to previous week: the label changes, and Siguiente brings it back
@@ -36,7 +36,7 @@ test.describe('Menu: navigation', () => {
 test.describe('Menu: add recipe to slot', () => {
   test('+ Agregar opens recipe picker', async ({ page }) => {
     await page.getByText('Menú Semanal').click()
-    await expect(page.getByText('+ Agregar').first()).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('+ Agregar').first()).toBeVisible()
     await page.getByText('+ Agregar').first().click()
     // Recipe picker should open
     await expect(page.getByPlaceholder('Buscar receta...')).toBeVisible({ timeout: 5000 })
@@ -44,11 +44,10 @@ test.describe('Menu: add recipe to slot', () => {
 
   test('recipe picker has servings stepper', async ({ page }) => {
     await page.getByText('Menú Semanal').click()
-    await expect(page.getByText('+ Agregar').first()).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('+ Agregar').first()).toBeVisible()
     await page.getByText('+ Agregar').first().click()
-    await page.waitForLoadState('networkidle', { timeout: 10000 })
     // Pick screen: search input + servings stepper
-    await expect(page.getByPlaceholder('Buscar receta...')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByPlaceholder('Buscar receta...')).toBeVisible()
     await expect(page.getByText('Porciones:')).toBeVisible()
   })
 
@@ -62,7 +61,7 @@ test.describe('Menu: add recipe to slot', () => {
   // leave a real seeded recipe on the current day/slot forever.
   async function clickFirstAddSlot(page: import('@playwright/test').Page) {
     const addBtn = page.locator('[data-testid^="menu-add-"]').first()
-    await expect(addBtn).toBeVisible({ timeout: 8000 })
+    await expect(addBtn).toBeVisible()
     const testId = (await addBtn.getAttribute('data-testid'))!
     const rest = testId.replace(/^menu-add-/, '') // "{day}-{slot}", day = YYYY-MM-DD
     const lastDash = rest.lastIndexOf('-')
@@ -92,10 +91,10 @@ test.describe('Menu: add recipe to slot', () => {
   // Picks one of this test's own recipes (never a seeded one that may not
   // exist), and checks the planner shows it in the slot it was added to.
   async function pickRecipe(page: import('@playwright/test').Page, title: string, id: string) {
-    await expect(page.getByPlaceholder('Buscar receta...')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByPlaceholder('Buscar receta...')).toBeVisible()
     await page.getByPlaceholder('Buscar receta...').fill(title)
     await page.getByTestId(`pick-recipe-${id}`).click()
-    await expect(page).not.toHaveURL(/\/menu\/pick/, { timeout: 8000 })
+    await expect(page).not.toHaveURL(/\/menu\/pick/)
   }
 
   test('can add a recipe to a slot', async ({ page }) => {
@@ -104,9 +103,7 @@ test.describe('Menu: add recipe to slot', () => {
     const { day, slot } = await clickFirstAddSlot(page)
     try {
       await pickRecipe(page, recipe.title, recipe.id)
-      await expect(page.getByTestId(`menu-entry-${day}-${slot}-${recipe.id}`)).toBeVisible({
-        timeout: 8000,
-      })
+      await expect(page.getByTestId(`menu-entry-${day}-${slot}-${recipe.id}`)).toBeVisible()
     } finally {
       await deleteEntriesInSlot(page, day, slot)
       await deleteRecipeViaApi(page, recipe.id)
@@ -122,9 +119,7 @@ test.describe('Menu: add recipe to slot', () => {
       await pickRecipe(page, first.title, first.id)
       await page.getByTestId(`menu-add-${day}-${slot}`).click()
       await pickRecipe(page, second.title, second.id)
-      await expect(page.locator(`[data-testid^="menu-entry-${day}-${slot}-"]`)).toHaveCount(2, {
-        timeout: 8000,
-      })
+      await expect(page.locator(`[data-testid^="menu-entry-${day}-${slot}-"]`)).toHaveCount(2)
     } finally {
       await deleteEntriesInSlot(page, day, slot)
       await deleteRecipeViaApi(page, first.id)
@@ -136,10 +131,9 @@ test.describe('Menu: add recipe to slot', () => {
 test.describe('Menu: pick screen filters', () => {
   test('time and difficulty filter chips work in the picker', async ({ page }) => {
     await page.getByText('Menú Semanal').click()
-    await expect(page.locator('[data-testid^="menu-add-"]').first()).toBeVisible({ timeout: 8000 })
+    await expect(page.locator('[data-testid^="menu-add-"]').first()).toBeVisible()
     await page.locator('[data-testid^="menu-add-"]').first().click()
-    await page.waitForLoadState('networkidle', { timeout: 15000 })
-    await expect(page.getByPlaceholder('Buscar receta...')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByPlaceholder('Buscar receta...')).toBeVisible()
 
     // Toggle filters on and off — exercises the picker's filter handlers.
     // Pick-screen chips use `pick-filter-*` testIDs so they don't collide with
@@ -174,13 +168,12 @@ test.describe('Menu: edit servings', () => {
     const slot = rest.slice(lastDash + 1)
 
     await addBtn.click()
-    await page.waitForLoadState('networkidle', { timeout: 15000 })
     const firstPickItem = page.locator('[data-testid^="pick-recipe-"]').first()
     await expect(firstPickItem).toBeVisible({ timeout: 15000 })
     const pickTestId = (await firstPickItem.getAttribute('data-testid'))!
     const recipeId = pickTestId.replace('pick-recipe-', '')
     await firstPickItem.click()
-    await page.waitForLoadState('networkidle', { timeout: 15000 })
+    await page.waitForURL((url) => !url.pathname.includes('/menu/pick'))
     return { day, slot, recipeId }
   }
 
@@ -197,17 +190,17 @@ test.describe('Menu: edit servings', () => {
 
   test('tapping recipe chip opens edit modal', async ({ page }) => {
     await page.getByText('Menú Semanal').click()
-    await expect(page.locator('[data-testid^="menu-add-"]').first()).toBeVisible({ timeout: 8000 })
+    await expect(page.locator('[data-testid^="menu-add-"]').first()).toBeVisible()
     const added = await ensureRecipeInMenu(page)
 
     try {
       // Click the chip using testID — triggers React's onPress via native pointer event
       const chip = page.locator('[data-testid^="menu-entry-"]').first()
-      await expect(chip).toBeVisible({ timeout: 8000 })
+      await expect(chip).toBeVisible()
       await chip.click()
 
       // Modal opens — identified by the save/delete testIDs
-      await expect(page.getByTestId('menu-modal-save')).toBeVisible({ timeout: 8000 })
+      await expect(page.getByTestId('menu-modal-save')).toBeVisible()
       await expect(page.getByTestId('menu-modal-delete')).toBeVisible()
     } finally {
       await cleanupAddedEntry(page, added)
@@ -216,21 +209,21 @@ test.describe('Menu: edit servings', () => {
 
   test('can update servings in modal', async ({ page }) => {
     await page.getByText('Menú Semanal').click()
-    await expect(page.locator('[data-testid^="menu-add-"]').first()).toBeVisible({ timeout: 8000 })
+    await expect(page.locator('[data-testid^="menu-add-"]').first()).toBeVisible()
     const added = await ensureRecipeInMenu(page)
 
     try {
       const chip = page.locator('[data-testid^="menu-entry-"]').first()
-      await expect(chip).toBeVisible({ timeout: 8000 })
+      await expect(chip).toBeVisible()
       await chip.click()
-      await expect(page.getByTestId('menu-modal-save')).toBeVisible({ timeout: 8000 })
+      await expect(page.getByTestId('menu-modal-save')).toBeVisible()
 
       const before = Number((await chip.innerText()).match(/(\d+) porc\./)?.[1])
       // Increment servings and save: the chip shows the new amount
       await page.getByText('+').last().click()
       await page.getByTestId('menu-modal-save').click()
-      await expect(page.getByTestId('menu-modal-save')).not.toBeVisible({ timeout: 10000 })
-      await expect(chip).toContainText(`${before + 1} porc.`, { timeout: 8000 })
+      await expect(page.getByTestId('menu-modal-save')).not.toBeVisible()
+      await expect(chip).toContainText(`${before + 1} porc.`)
     } finally {
       await cleanupAddedEntry(page, added)
     }
@@ -240,35 +233,30 @@ test.describe('Menu: edit servings', () => {
 test.describe('Menu: shopping list', () => {
   test('shopping list button from menu shows list', async ({ page }) => {
     await page.getByText('Menú Semanal').click()
-    await page.waitForLoadState('networkidle', { timeout: 10000 })
-    await expect(page.getByText('Lista de compras')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Lista de compras')).toBeVisible()
     await page.getByText('Lista de compras').click()
-    await page.waitForLoadState('networkidle', { timeout: 15000 })
-    await expect(page.getByText('Lista de Compras').first()).toBeAttached({ timeout: 10000 })
+    await expect(page.getByText('Lista de Compras').first()).toBeAttached()
   })
 
   test('shopping list from home shortcut works', async ({ page }) => {
-    await expect(page.getByText('🛒 Compras')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('🛒 Compras')).toBeVisible()
     await page.getByText('🛒 Compras').click()
-    await expect(page.getByText('Lista de Compras').first()).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('Lista de Compras').first()).toBeVisible()
   })
 
   test('shopping list shows items or empty state', async ({ page }) => {
     await page.getByText('🛒 Compras').click()
-    await expect(page.getByText('Lista de Compras').first()).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('Lista de Compras').first()).toBeVisible()
     // Either has measurable items or shows the empty state. FlatList's
     // ListEmptyComponent can render a frame or two after the header on web
     // (VirtualizedList's own layout pass), so poll instead of taking a
     // single point-in-time snapshot right after the header appears.
     await expect
-      .poll(
-        async () => {
-          const hasItems = await page.getByText(/\d+ (g|kg|ml|l|cdta|cda|taza|u)/).count()
-          const hasEmpty = await page.getByText(/No hay ingredientes/i).count()
-          return hasItems + hasEmpty
-        },
-        { timeout: 8000 },
-      )
+      .poll(async () => {
+        const hasItems = await page.getByText(/\d+ (g|kg|ml|l|cdta|cda|taza|u)/).count()
+        const hasEmpty = await page.getByText(/No hay ingredientes/i).count()
+        return hasItems + hasEmpty
+      })
       .toBeGreaterThan(0)
   })
 })

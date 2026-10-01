@@ -11,7 +11,7 @@ test.describe('Biblioteca', () => {
   test('smoke: opens from the user menu and shows the search box', async ({ page }) => {
     await page.getByTestId('home-profile-button').click()
     await page.getByText('Biblioteca').click()
-    await expect(page.getByTestId('library-search')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByTestId('library-search')).toBeVisible()
   })
 
   test('publish → appears in library → copy → fork is independent', async ({ page }) => {
@@ -39,7 +39,7 @@ test.describe('Biblioteca', () => {
     try {
       // 1. Publish via the edit form toggle
       await page.goto(`/recipe/${original.id}/edit`)
-      await expect(page.getByTestId('visibility-toggle')).toBeVisible({ timeout: 10000 })
+      await expect(page.getByTestId('visibility-toggle')).toBeVisible()
       await expect(page.getByText('🔒 Privada')).toBeVisible()
       await page.getByTestId('visibility-toggle').click()
       await expect(page.getByText('🌐 Pública')).toBeVisible({ timeout: 5000 })
@@ -47,24 +47,21 @@ test.describe('Biblioteca', () => {
       // onSuccess runs router.back(), which no-ops when the edit form was
       // entered via direct URL — the reliable signal is the persisted state
       await expect
-        .poll(
-          async () => {
-            const r = await page.request.get(`${API_URL}/v1/recipes/${original.id}`, { headers })
-            return ((await r.json()) as { visibility?: string }).visibility
-          },
-          { timeout: 10000 },
-        )
+        .poll(async () => {
+          const r = await page.request.get(`${API_URL}/v1/recipes/${original.id}`, { headers })
+          return ((await r.json()) as { visibility?: string }).visibility
+        })
         .toBe('public')
 
       // 2. It shows in the library with the copy button
       await page.goto('/library')
       await page.getByTestId('library-search').fill(title)
       const copyBtn = page.getByTestId(`library-copy-${original.id}`)
-      await expect(copyBtn).toBeVisible({ timeout: 10000 })
+      await expect(copyBtn).toBeVisible()
 
       // 3. Copy → lands on the fork's detail with the provenance chip
       await copyBtn.click()
-      await expect(page.getByTestId('fork-provenance')).toBeVisible({ timeout: 10000 })
+      await expect(page.getByTestId('fork-provenance')).toBeVisible()
       await expect(page.getByText(new RegExp(`Copiada de ${title.slice(0, 14)}`))).toBeVisible()
 
       const url = page.url()
@@ -91,9 +88,9 @@ test.describe('Biblioteca', () => {
 
   test('searching for something nonexistent shows the empty state', async ({ page }) => {
     await page.goto('/library')
-    await expect(page.getByTestId('library-search')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByTestId('library-search')).toBeVisible()
     await page.getByTestId('library-search').fill('zzz-inexistente-xq')
-    await expect(page.getByText('Sin resultados en la biblioteca')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('Sin resultados en la biblioteca')).toBeVisible()
   })
 
   test('a 500 while copying surfaces the error notification', async ({ page }) => {
@@ -125,11 +122,9 @@ test.describe('Biblioteca', () => {
       await page.goto('/library')
       await page.getByTestId('library-search').fill(title)
       const copyBtn = page.getByTestId(`library-copy-${recipe.id}`)
-      await expect(copyBtn).toBeVisible({ timeout: 10000 })
+      await expect(copyBtn).toBeVisible()
       await copyBtn.click()
-      await expect
-        .poll(() => dialogs.some((d) => d.includes('No se pudo copiar')), { timeout: 8000 })
-        .toBe(true)
+      await expect.poll(() => dialogs.some((d) => d.includes('No se pudo copiar'))).toBe(true)
     } finally {
       await page.request.delete(`${API_URL}/v1/recipes/${recipe.id}`, { headers })
     }
@@ -141,13 +136,13 @@ test.describe('Biblioteca', () => {
     page.on('dialog', (dialog) => void dialog.accept())
 
     await page.getByText('+ Nueva Receta').click()
-    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible()
     await page.getByPlaceholder('Nombre de la receta').fill(title)
     await page.getByPlaceholder('Ingrediente').first().fill('sal')
     await page.getByTestId('visibility-toggle').click()
     await expect(page.getByText('🌐 Pública')).toBeVisible({ timeout: 5000 })
     await page.getByText('Guardar Receta').click()
-    await expect(page.getByTestId('recipe-saved-banner')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('recipe-saved-banner')).toBeVisible()
 
     let recipeId: string | undefined
     try {

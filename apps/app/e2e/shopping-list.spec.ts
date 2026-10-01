@@ -54,7 +54,7 @@ test('checking a shopping-list item persists across a reload', async ({ page }) 
   try {
     await page.goto(`/menu/shopping-list?weekStart=${week}`)
     const row = page.getByTestId('shopping-item-harina')
-    await expect(row).toBeVisible({ timeout: 10000 })
+    await expect(row).toBeVisible()
     await expect(page.getByTestId('shopping-progress')).toHaveText('0 / 1')
 
     await row.click()
@@ -62,7 +62,7 @@ test('checking a shopping-list item persists across a reload', async ({ page }) 
 
     // Reload — the check came from the server, so it must still be there.
     await page.reload()
-    await expect(page.getByTestId('shopping-progress')).toHaveText('1 / 1', { timeout: 10000 })
+    await expect(page.getByTestId('shopping-progress')).toHaveText('1 / 1')
     await expect(page.getByTestId('shopping-item-harina').getByText('✓')).toBeVisible()
   } finally {
     await cleanup(page.request, headers, week, recipeId)
@@ -80,7 +80,7 @@ test('optimistic tick is applied on click and rolled back when the request fails
   try {
     await page.goto(`/menu/shopping-list?weekStart=${week}`)
     const row = page.getByTestId('shopping-item-harina')
-    await expect(row).toBeVisible({ timeout: 10000 })
+    await expect(row).toBeVisible()
 
     // Successful check: optimistic tick sticks (no reload, so this coverage is kept).
     await row.click()
@@ -91,7 +91,7 @@ test('optimistic tick is applied on click and rolled back when the request fails
     // 0/1 must roll back to 1/1.
     await page.route('**/menu/shopping-list/check', (r) => r.abort())
     await row.click()
-    await expect(page.getByTestId('shopping-progress')).toHaveText('1 / 1', { timeout: 10000 })
+    await expect(page.getByTestId('shopping-progress')).toHaveText('1 / 1')
     await page.unroute('**/menu/shopping-list/check')
   } finally {
     await cleanup(page.request, headers, week, recipeId)

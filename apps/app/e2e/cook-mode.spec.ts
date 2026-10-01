@@ -13,9 +13,8 @@ test.describe('Cook mode: basic flow', () => {
         'text=/Milanesa de pollo|Empanadas de carne|Guiso de lentejas|Locro criollo|Tarta de verduras/',
       )
       .first()
-    await expect(recipe).toBeVisible({ timeout: 10000 })
+    await expect(recipe).toBeVisible()
     await recipe.click()
-    await page.waitForLoadState('networkidle', { timeout: 10000 })
     await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 20000 })
   }
 
@@ -27,13 +26,13 @@ test.describe('Cook mode: basic flow', () => {
   test('cook mode opens with step counter', async ({ page }) => {
     await openRecipeDetail(page)
     await page.getByTestId('recipe-detail-cook').click()
-    await expect(page.getByText(/Paso \d+ \/ \d+/)).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText(/Paso \d+ \/ \d+/)).toBeVisible()
   })
 
   test('cook mode has Pasos and Ingredientes tabs', async ({ page }) => {
     await openRecipeDetail(page)
     await page.getByTestId('recipe-detail-cook').click()
-    await expect(page.getByText(/Paso \d+ \/ \d+/)).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText(/Paso \d+ \/ \d+/)).toBeVisible()
     // Verify step counter visible (cook mode is active)
     await expect(page.getByText(/Paso \d+ \/ \d+/)).toBeVisible()
     // Tab switcher has Pasos and Ingredientes
@@ -44,7 +43,7 @@ test.describe('Cook mode: basic flow', () => {
   test('can navigate to next step', async ({ page }) => {
     await openRecipeDetail(page)
     await page.getByTestId('recipe-detail-cook').click()
-    await expect(page.getByText(/Paso 1 \/ /)).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText(/Paso 1 \/ /)).toBeVisible()
 
     const nextBtn = page.getByTestId('cook-next').or(page.getByTestId('cook-finish')).first()
     await expect(nextBtn).toBeVisible({ timeout: 5000 })
@@ -59,7 +58,7 @@ test.describe('Cook mode: basic flow', () => {
   test('ingredients tab shows ingredient checklist', async ({ page }) => {
     await openRecipeDetail(page)
     await page.getByTestId('recipe-detail-cook').click()
-    await expect(page.getByText(/Paso \d+ \/ \d+/)).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText(/Paso \d+ \/ \d+/)).toBeVisible()
     await page.getByTestId('cook-tab-ingredients').click()
     await expect(page.getByTestId('ingredient-checklist-row-0')).toBeVisible({ timeout: 5000 })
   })
@@ -67,7 +66,7 @@ test.describe('Cook mode: basic flow', () => {
   test('can toggle ingredient checklist items', async ({ page }) => {
     await openRecipeDetail(page)
     await page.getByTestId('recipe-detail-cook').click()
-    await expect(page.getByText(/Paso \d+ \/ \d+/)).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText(/Paso \d+ \/ \d+/)).toBeVisible()
     await page.getByTestId('cook-tab-ingredients').click()
     const row = page.getByTestId('ingredient-checklist-row-0')
     await expect(row).toBeVisible({ timeout: 5000 })
@@ -88,7 +87,7 @@ test.describe('Cook mode: basic flow', () => {
   test('previous button navigates back a step', async ({ page }) => {
     await openRecipeDetail(page)
     await page.getByTestId('recipe-detail-cook').click()
-    await expect(page.getByText(/Paso 1 \/ /)).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText(/Paso 1 \/ /)).toBeVisible()
     await page.getByTestId('cook-next').click()
     await expect(page.getByText(/Paso 2 \/ /)).toBeVisible({ timeout: 5000 })
     await page.getByTestId('cook-prev').click()
@@ -98,11 +97,11 @@ test.describe('Cook mode: basic flow', () => {
   test('step timer is visible and can be paused/resumed', async ({ page }) => {
     // "Milanesa de pollo napolitana" step 4 has a durationSeconds timer — navigate there
     const recipe = page.getByText('Milanesa de pollo napolitana').first()
-    await expect(recipe).toBeVisible({ timeout: 10000 })
+    await expect(recipe).toBeVisible()
     await recipe.click()
-    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible()
     await page.getByTestId('recipe-detail-cook').click()
-    await expect(page.getByText(/Paso 1 \/ /)).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText(/Paso 1 \/ /)).toBeVisible()
 
     // Navigate to step 4 (index 3) which has the timer
     for (let i = 0; i < 3; i++) {
@@ -158,7 +157,7 @@ test.describe('Cook mode: basic flow', () => {
     await expect(page.getByTestId('cook-rating-skip')).toBeVisible({ timeout: 5000 })
     await page.getByTestId('cook-rating-skip').click()
     // After skip, app navigates back — verify we're no longer in cook mode
-    await expect(page.getByTestId('cook-rating-skip')).not.toBeVisible({ timeout: 8000 })
+    await expect(page.getByTestId('cook-rating-skip')).not.toBeVisible()
   })
 })
 
@@ -209,7 +208,7 @@ test.describe('Cook mode: full session flows', () => {
     await page.getByText(title).first().click()
     await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 20000 })
     await page.getByTestId('recipe-detail-cook').click()
-    await expect(page.getByText(/Paso 1 \/ /)).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText(/Paso 1 \/ /)).toBeVisible()
   }
 
   test('finishing a session with rating and note logs it to history', async ({ page }) => {
@@ -226,9 +225,9 @@ test.describe('Cook mode: full session flows', () => {
     await page.getByTestId('cook-rating-save').click()
 
     // Back on detail; history tab shows the rated session
-    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible()
     await page.getByTestId('recipe-tab-history').click()
-    await expect(page.getByText(/★/).first()).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText(/★/).first()).toBeVisible()
   })
 
   test('skipping the rating still exits cook mode', async ({ page }) => {
@@ -238,7 +237,7 @@ test.describe('Cook mode: full session flows', () => {
     await page.getByTestId('cook-finish').click()
     await expect(page.getByText('¿Cómo salió?')).toBeVisible({ timeout: 5000 })
     await page.getByTestId('cook-rating-skip').click()
-    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible()
 
     // The unrated session is still recorded
     const token = await page.evaluate(() => localStorage.getItem('auth_token'))
@@ -265,9 +264,7 @@ test.describe('Cook mode: full session flows', () => {
     await page.getByTestId('servings-plus').click() // 2 → 4
     await page.getByTestId('recipe-detail-cook').click()
     await page.getByTestId('cook-tab-ingredients').click()
-    await expect(page.getByTestId('ingredient-checklist-row-0')).toContainText('2 l agua', {
-      timeout: 8000,
-    })
+    await expect(page.getByTestId('ingredient-checklist-row-0')).toContainText('2 l agua')
     await expect(page.getByTestId('ingredient-checklist-row-1')).toContainText('2 diente ajo')
   })
 
@@ -291,7 +288,7 @@ test.describe('Cook mode: full session flows', () => {
 
     page.once('dialog', (d) => void d.accept())
     await page.getByTestId('cook-exit').click()
-    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible()
   })
 
   test('speech toggle switches the speaker icon on and off', async ({ page }) => {
@@ -367,7 +364,7 @@ test.describe('Cook mode: full session flows', () => {
 
     // Run to completion.
     await toggle.click()
-    await expect(timer).toHaveText('00:00', { timeout: 8000 })
+    await expect(timer).toHaveText('00:00')
   })
 
   test('a recipe without steps shows the cook-mode empty state', async ({ page }) => {
@@ -375,10 +372,10 @@ test.describe('Cook mode: full session flows', () => {
     // recipes, so the empty state is only reachable by direct URL.
     const recipe = await createRecipe(page, { steps: [] })
     await page.goto(`/recipe/${recipe.id}/cook`)
-    await expect(page.getByText('Esta receta no tiene pasos.')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Esta receta no tiene pasos.')).toBeVisible()
     // Opened by direct URL there is no history: ✕ replaces the route with the recipe.
     await page.getByText('✕').click()
-    await expect(page).toHaveURL(new RegExp(`/recipe/${recipe.id}$`), { timeout: 8000 })
-    await expect(page.getByText(recipe.title).first()).toBeVisible({ timeout: 8000 })
+    await expect(page).toHaveURL(new RegExp(`/recipe/${recipe.id}$`))
+    await expect(page.getByText(recipe.title).first()).toBeVisible()
   })
 })
