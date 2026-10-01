@@ -7,6 +7,7 @@ import {
   boolean,
   jsonb,
   timestamp,
+  date,
   index,
   uniqueIndex,
   unique,
@@ -57,8 +58,8 @@ export const recipes = pgTable(
     forkedFromId: uuid('forked_from_id').references((): AnyPgColumn => recipes.id, {
       onDelete: 'set null',
     }),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
-    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index('recipes_owner_idx').on(t.ownerId),
@@ -123,7 +124,7 @@ export const menuEntries = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     ownerId: text('owner_id').notNull(),
-    date: text('date').notNull(), // ISO date YYYY-MM-DD
+    date: date('date', { mode: 'string' }).notNull(), // ISO date YYYY-MM-DD
     slot: menuSlot('slot').notNull(),
     // Nullable + set null (not cascade): deleting a recipe must not erase the
     // week's meal-plan history — see the 2026-07-03 audit finding. recipeTitle
@@ -132,8 +133,8 @@ export const menuEntries = pgTable(
     recipeId: uuid('recipe_id').references(() => recipes.id, { onDelete: 'set null' }),
     recipeTitle: text('recipe_title'),
     servings: integer('servings').notNull().default(1),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
-    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     uniqueIndex('menu_entries_owner_date_slot_recipe_idx').on(
@@ -156,11 +157,11 @@ export const users = pgTable('users', {
   displayName: text('display_name'),
   avatarUrl: text('avatar_url'),
   // Set when the password is reset; JWTs issued before it are rejected.
-  passwordChangedAt: timestamp('password_changed_at'),
+  passwordChangedAt: timestamp('password_changed_at', { withTimezone: true }),
   // Last successful password login, for activity/retention analysis.
-  lastLoginAt: timestamp('last_login_at'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
 export const userProfiles = pgTable('user_profiles', {
@@ -182,7 +183,7 @@ export const households = pgTable('households', {
   ownerId: uuid('owner_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
 export const householdMembers = pgTable(
@@ -195,8 +196,8 @@ export const householdMembers = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     role: householdRole('role').notNull().default('member'),
-    invitedAt: timestamp('invited_at').notNull().defaultNow(),
-    acceptedAt: timestamp('accepted_at'),
+    invitedAt: timestamp('invited_at', { withTimezone: true }).notNull().defaultNow(),
+    acceptedAt: timestamp('accepted_at', { withTimezone: true }),
   },
   (t) => [uniqueIndex('household_members_pk').on(t.householdId, t.userId)],
 )
@@ -206,8 +207,8 @@ export const apiKeys = pgTable('api_keys', {
   keyHash: text('key_hash').notNull().unique(),
   ownerId: text('owner_id').notNull(),
   label: text('label'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  lastUsedAt: timestamp('last_used_at'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
 })
 
 // ── Taxonomy: meal categories (replaces category text enum) ─────────────────
@@ -220,7 +221,7 @@ export const mealCategories = pgTable(
     slug: text('slug').notNull(),
     color: text('color'),
     isSystem: integer('is_system').notNull().default(0), // 1 = cannot delete
-    createdAt: timestamp('created_at').notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [unique('meal_categories_slug_owner_uq').on(t.slug, t.ownerId).nullsNotDistinct()],
 )
@@ -234,7 +235,7 @@ export const foodTypes = pgTable(
     name: text('name').notNull(),
     slug: text('slug').notNull(),
     isSystem: integer('is_system').notNull().default(0),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [unique('food_types_slug_owner_uq').on(t.slug, t.ownerId).nullsNotDistinct()],
 )
@@ -260,7 +261,7 @@ export const tags = pgTable(
     ownerId: text('owner_id').notNull(),
     name: text('name').notNull(),
     slug: text('slug').notNull(),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex('tags_slug_owner_idx').on(t.slug, t.ownerId)],
 )
@@ -285,8 +286,8 @@ export const collections = pgTable('collections', {
   name: text('name').notNull(),
   emoji: text('emoji'),
   description: text('description'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
 export const recipeCollections = pgTable(
@@ -299,7 +300,7 @@ export const recipeCollections = pgTable(
       .notNull()
       .references(() => collections.id, { onDelete: 'cascade' }),
     position: integer('position').notNull().default(0),
-    addedAt: timestamp('added_at').notNull().defaultNow(),
+    addedAt: timestamp('added_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex('recipe_collections_pk').on(t.recipeId, t.collectionId)],
 )
@@ -316,7 +317,7 @@ export const recipeRelations = pgTable(
       .references(() => recipes.id, { onDelete: 'cascade' }),
     relationType: text('relation_type').notNull(), // 'similar' | 'variation' | 'inspiration'
     createdBy: text('created_by').notNull().default('user'), // 'user' | 'agent'
-    createdAt: timestamp('created_at').notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex('recipe_relations_pk').on(t.fromId, t.toId, t.relationType)],
 )
@@ -333,7 +334,7 @@ export const cookSessions = pgTable(
     recipeId: uuid('recipe_id').references(() => recipes.id, { onDelete: 'set null' }),
     recipeTitle: text('recipe_title'),
     ownerId: text('owner_id').notNull(),
-    cookedAt: timestamp('cooked_at').notNull().defaultNow(),
+    cookedAt: timestamp('cooked_at', { withTimezone: true }).notNull().defaultNow(),
     rating: integer('rating'), // 1–5, nullable
     notes: text('notes'),
     // Context captured at cook time — not recoverable later (2026-10-01 audit):
@@ -342,7 +343,7 @@ export const cookSessions = pgTable(
     servings: integer('servings'),
     source: text('source'), // 'app' | 'mcp'
     nutritionSnapshot: jsonb('nutrition_snapshot'),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index('cook_sessions_owner_idx').on(t.ownerId),
@@ -360,10 +361,10 @@ export const shoppingListChecks = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     ownerId: text('owner_id').notNull(),
-    weekStart: text('week_start').notNull(), // ISO date YYYY-MM-DD (Monday)
+    weekStart: date('week_start', { mode: 'string' }).notNull(), // ISO date YYYY-MM-DD (Monday)
     itemKey: text('item_key').notNull(), // normalizeIngredientName(ingredient)
     checked: boolean('checked').notNull().default(true),
-    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     uniqueIndex('shopping_list_checks_owner_week_item_idx').on(t.ownerId, t.weekStart, t.itemKey),
@@ -427,8 +428,8 @@ export const pantryItems = pgTable(
     unit: text('unit'), // nullable
     expiryDate: text('expiry_date'), // ISO date YYYY-MM-DD, nullable
     inStock: boolean('in_stock').notNull().default(true),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
-    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('pantry_items_owner_idx').on(t.ownerId)],
 )

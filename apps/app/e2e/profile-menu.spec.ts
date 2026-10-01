@@ -687,3 +687,27 @@ test.describe('Profile screen (/profile)', () => {
     await page.waitForURL(/auth/, { timeout: 8000 })
   })
 })
+
+// 2026-10-01 audit (Data): profiles stayed on the UTC default forever. The app
+// now stores the device's zone the first time it sees the default.
+test.describe('Profile time zone', () => {
+  test.use({ timezoneId: 'America/Montevideo' })
+
+  test('the device zone replaces the UTC default', async ({ page }) => {
+    const token = await page.evaluate(() => localStorage.getItem('auth_token'))
+    const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+    await page.request.patch(`${API_URL}/auth/profile`, { headers, data: { timezone: 'UTC' } })
+    await page.goto('/profile')
+    await expect
+      .poll(
+        async () =>
+          (
+            (await (await page.request.get(`${API_URL}/auth/profile`, { headers })).json()) as {
+              timezone: string | null
+            }
+          ).timezone,
+        { timeout: 10000 },
+      )
+      .toBe('America/Montevideo')
+  })
+})
