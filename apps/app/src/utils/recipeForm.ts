@@ -117,6 +117,7 @@ export interface RecipeFormState {
   cookTimeMin: string
   difficulty: RecipeDifficulty | null
   foodTypeIds: string[]
+  dietaryTags: string[]
   visibility: 'private' | 'public'
 }
 
@@ -138,6 +139,7 @@ export function recipeToFormState(recipe: Recipe): RecipeFormState {
     cookTimeMin: recipe.cookTimeMin != null ? String(recipe.cookTimeMin) : '',
     difficulty: recipe.difficulty ?? null,
     foodTypeIds: recipe.foodTypeIds ?? [],
+    dietaryTags: recipe.dietaryTags ?? [],
     visibility: recipe.visibility ?? 'private',
   }
 }

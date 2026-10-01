@@ -32,7 +32,9 @@ export function registerMutationTools(server: McpServer, api: ReturnType<typeof 
       dietaryTags: z
         .array(z.enum(['vegano', 'vegetariano', 'sin-gluten', 'sin-lactosa', 'keto', 'paleo']))
         .optional()
-        .describe('Dietary restrictions this recipe satisfies'),
+        .describe(
+          'Diets this recipe satisfies. Only tag what the ingredients allow: the API rejects a tag an ingredient contradicts (e.g. vegano with chorizo, sin-gluten with harina de trigo).',
+        ),
       nutrition: z
         .object({
           calories: z.number().min(0).describe('Calories per serving'),

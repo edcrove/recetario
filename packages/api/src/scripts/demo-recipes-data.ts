@@ -78,7 +78,7 @@ export const RECIPES = [
     category: 'Almuerzo',
     tags: ['lentejas', 'legumbres', 'invierno', 'económico'],
     totalTimeMin: 60,
-    dietaryTags: ['vegano', 'sin-gluten'],
+    dietaryTags: [],
     nutrition: { calories: 280, protein_g: 16, carbs_g: 42, fat_g: 5 },
     ingredients: [
       { name: 'Lentejas', quantity: 400, unit: 'g' },
