@@ -154,10 +154,14 @@ export function aggregateIngredients(
     const key = `${norm}::${ing.unit ?? '__null__'}`
     const existing = grouped.get(key)
     if (existing) {
+      // A "to taste" line next to a measured one keeps the measured amount:
+      // nulling the sum would drop the ingredient from the list altogether.
       existing.quantity =
-        existing.quantity !== null && ing.quantity !== null
-          ? existing.quantity + ing.quantity
-          : null
+        existing.quantity === null
+          ? ing.quantity
+          : ing.quantity === null
+            ? existing.quantity
+            : existing.quantity + ing.quantity
     } else {
       grouped.set(key, { quantity: ing.quantity, unit: ing.unit })
     }
