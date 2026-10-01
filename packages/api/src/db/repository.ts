@@ -287,6 +287,42 @@ export class RecipeRepository {
     return mapToRecipe(recipe, ingredientRows, stepRows, foodTypeIds)
   }
 
+  /**
+   * Several recipes in input order, each only if visible to `owner`. Three
+   * batched queries for the children instead of one findById per id (the
+   * collection listing used to fan out N×4 queries).
+   */
+  async findByIds(ids: string[], owner: string | string[]): Promise<Recipe[]> {
+    if (ids.length === 0) return []
+    const rows = await this.db
+      .select()
+      .from(schema.recipes)
+      .where(and(inArray(schema.recipes.id, ids), ownerCondition(owner)))
+    const byId = new Map((await this.hydrate(rows)).map((r) => [r.id, r]))
+    return ids.flatMap((id) => byId.get(id) ?? [])
+  }
+
+  /** Loads ingredients, steps and food types for many recipe rows at once. */
+  private async hydrate(recipes: (typeof schema.recipes.$inferSelect)[]): Promise<Recipe[]> {
+    if (recipes.length === 0) return []
+    const db = this.db
+    const ids = recipes.map((r) => r.id)
+    const ingredientRows = await db
+      .select()
+      .from(schema.ingredients)
+      .where(inArray(schema.ingredients.recipeId, ids))
+    const stepRows = await db.select().from(schema.steps).where(inArray(schema.steps.recipeId, ids))
+    const foodTypesByRecipe = await this.getFoodTypeIdsByRecipe(ids)
+    return recipes.map((recipe) =>
+      mapToRecipe(
+        recipe,
+        ingredientRows.filter((i) => i.recipeId === recipe.id),
+        stepRows.filter((s) => s.recipeId === recipe.id),
+        foodTypesByRecipe.get(recipe.id) ?? [],
+      ),
+    )
+  }
+
   async list(
     owner: string | string[],
     opts: {
@@ -315,34 +351,7 @@ export class RecipeRepository {
       .limit(opts.limit)
       .offset(opts.offset)
 
-    if (recipes.length === 0) return []
-
-    const ids = recipes.map((r) => r.id)
-
-    const ingredientRows = await db
-      .select()
-      .from(schema.ingredients)
-      .where(
-        sql`${schema.ingredients.recipeId} = ANY(${sql.raw(`ARRAY[${ids.map((id) => `'${id}'`).join(',')}]::uuid[]`)})`,
-      )
-
-    const stepRows = await db
-      .select()
-      .from(schema.steps)
-      .where(
-        sql`${schema.steps.recipeId} = ANY(${sql.raw(`ARRAY[${ids.map((id) => `'${id}'`).join(',')}]::uuid[]`)})`,
-      )
-
-    const foodTypesByRecipe = await this.getFoodTypeIdsByRecipe(ids)
-
-    return recipes.map((recipe) =>
-      mapToRecipe(
-        recipe,
-        ingredientRows.filter((i) => i.recipeId === recipe.id),
-        stepRows.filter((s) => s.recipeId === recipe.id),
-        foodTypesByRecipe.get(recipe.id) ?? [],
-      ),
-    )
+    return this.hydrate(recipes)
   }
 
   async search(
@@ -411,34 +420,7 @@ export class RecipeRepository {
       .orderBy(desc(schema.recipes.updatedAt), schema.recipes.id)
       .limit(50)
 
-    if (recipes.length === 0) return []
-
-    const ids = recipes.map((r) => r.id)
-
-    const ingredientRows = await db
-      .select()
-      .from(schema.ingredients)
-      .where(
-        sql`${schema.ingredients.recipeId} = ANY(${sql.raw(`ARRAY[${ids.map((id) => `'${id}'`).join(',')}]::uuid[]`)})`,
-      )
-
-    const stepRows = await db
-      .select()
-      .from(schema.steps)
-      .where(
-        sql`${schema.steps.recipeId} = ANY(${sql.raw(`ARRAY[${ids.map((id) => `'${id}'`).join(',')}]::uuid[]`)})`,
-      )
-
-    const foodTypesByRecipe = await this.getFoodTypeIdsByRecipe(ids)
-
-    return recipes.map((recipe) =>
-      mapToRecipe(
-        recipe,
-        ingredientRows.filter((i) => i.recipeId === recipe.id),
-        stepRows.filter((s) => s.recipeId === recipe.id),
-        foodTypesByRecipe.get(recipe.id) ?? [],
-      ),
-    )
+    return this.hydrate(recipes)
   }
 
   async update(id: string, ownerId: string, data: UpdateRecipe): Promise<Recipe | null> {
