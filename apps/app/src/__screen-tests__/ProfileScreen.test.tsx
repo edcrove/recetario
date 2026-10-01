@@ -1,0 +1,106 @@
+import React from 'react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { DEFAULT_NUTRITION_TARGETS } from '@recetario/shared'
+
+const m = vi.hoisted(() => ({
+  getProfile: vi.fn(),
+  updateProfile: vi.fn(),
+  signOut: vi.fn(async () => undefined),
+  confirm: vi.fn(async () => true),
+}))
+
+vi.mock('../api/client', () => ({
+  api: {
+    auth: {
+      me: vi.fn().mockResolvedValue({ id: 'u1', email: 'a@b.c', displayName: 'Ana' }),
+      getProfile: m.getProfile,
+      updateProfile: m.updateProfile,
+      updateMe: vi.fn(),
+    },
+  },
+}))
+vi.mock('../providers/AuthProvider', () => ({
+  useAuth: () => ({ token: 't', userId: 'u1', isLoading: false, signOut: m.signOut }),
+}))
+vi.mock('../utils/platformAlert', () => ({ confirmAsync: m.confirm, notify: vi.fn() }))
+
+import ProfileScreen from '../../app/profile/index'
+
+function wrap() {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(
+    <QueryClientProvider client={client}>
+      <ProfileScreen />
+    </QueryClientProvider>,
+  )
+}
+
+const baseProfile = {
+  preferredServings: 2,
+  dietaryRestrictions: [],
+  allergens: [],
+  goals: [],
+  timezone: null,
+}
+
+describe('ProfileScreen targets and session', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    m.updateProfile.mockResolvedValue({})
+    m.confirm.mockResolvedValue(true)
+  })
+
+  it('unset daily targets show the defaults and a step starts from them', async () => {
+    m.getProfile.mockResolvedValue({ ...baseProfile, nutritionTargets: null })
+    wrap()
+    expect(
+      await screen.findByText(String(DEFAULT_NUTRITION_TARGETS.daily_calories)),
+    ).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('target-daily_calories-plus'))
+    await waitFor(() =>
+      expect(m.updateProfile.mock.calls[0]?.[0]).toEqual({
+        nutritionTargets: { ...DEFAULT_NUTRITION_TARGETS, daily_calories: 2100 },
+      }),
+    )
+  })
+
+  it('a per-meal goal is stored under its menu slot', async () => {
+    m.getProfile.mockResolvedValue({
+      ...baseProfile,
+      nutritionTargets: { ...DEFAULT_NUTRITION_TARGETS, per_meal: { Cena: { calories: 600 } } },
+    })
+    wrap()
+    fireEvent.click(await screen.findByTestId('meal-target-Cena-plus'))
+    await waitFor(() =>
+      expect(m.updateProfile.mock.calls[0]?.[0]).toMatchObject({
+        nutritionTargets: { per_meal: { Cena: { calories: 650 } } },
+      }),
+    )
+  })
+
+  it('daily targets never go below zero', async () => {
+    m.getProfile.mockResolvedValue({
+      ...baseProfile,
+      nutritionTargets: { ...DEFAULT_NUTRITION_TARGETS, daily_fat_g: 0 },
+    })
+    wrap()
+    fireEvent.click(await screen.findByTestId('target-daily_fat_g-minus'))
+    await waitFor(() =>
+      expect(m.updateProfile.mock.calls[0]?.[0]).toMatchObject({
+        nutritionTargets: { daily_fat_g: 0 },
+      }),
+    )
+  })
+
+  it('signing out asks first', async () => {
+    m.getProfile.mockResolvedValue({ ...baseProfile, nutritionTargets: null })
+    wrap()
+    m.confirm.mockResolvedValueOnce(false)
+    fireEvent.click(await screen.findByTestId('profile-signout'))
+    await waitFor(() => expect(m.confirm).toHaveBeenCalledWith('Cerrar sesión', '¿Estás seguro?'))
+    expect(m.signOut).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByTestId('profile-signout'))
+    await waitFor(() => expect(m.signOut).toHaveBeenCalled())
+  })
+})
