@@ -537,6 +537,59 @@ test.describe('Stats screen', () => {
       page.getByText(/sesiones de cocina en total|Recetas más cocinadas/).first(),
     ).toBeVisible()
   })
+
+  // Story "App: pantalla de stats y tendencias": "streak de días consecutivos
+  // cocinando" and "frecuencia por semana (mínimo 8 semanas)". A fresh account
+  // so the streak starts from nothing.
+  test('a fresh cook starts a streak by cooking today; the chart spans 8+ weeks', async ({
+    page,
+  }) => {
+    const reg = await page.request.post(`${API_URL}/auth/register`, {
+      data: { email: `e2e-racha-${Date.now()}@example.com`, password: 'racha12345' },
+    })
+    const { token } = (await reg.json()) as { token: string }
+    const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+    await page.evaluate((jwt) => localStorage.setItem('auth_token', jwt), token)
+
+    await page.goto('/stats')
+    await expect(page.getByTestId('stats-streak')).toHaveText('Cociná hoy para empezar una racha')
+
+    const recipe = (await (
+      await page.request.post(`${API_URL}/v1/recipes`, {
+        headers,
+        data: {
+          title: 'Racha E2E',
+          servings: 1,
+          category: 'Cena',
+          ingredients: [{ name: 'x', quantity: 1, unit: 'g' }],
+          steps: [{ text: 'a' }],
+        },
+      })
+    ).json()) as { id: string }
+    // Cooked twice today: one day of streak, a week bar of 2
+    for (let i = 0; i < 2; i++) {
+      await page.request.post(`${API_URL}/v1/cook-sessions`, {
+        headers,
+        data: { recipeId: recipe.id, source: 'app' },
+      })
+    }
+
+    await page.reload()
+    await expect(page.getByTestId('stats-streak')).toContainText('🔥 1 día seguido cocinando')
+    await expect(page.getByTestId('stats-streak-longest')).toHaveText('Mejor racha: 1 día seguido')
+    const bars = page.locator('[data-testid^="stats-week-"]')
+    expect(await bars.count()).toBeGreaterThanOrEqual(8)
+    // Bar heights are proportional: this week's 2 is the full 80px, empty weeks the 4px floor
+    const height = (i: number) =>
+      bars.nth(i).evaluate((el) => {
+        const bar = el.children[1] as HTMLElement
+        return Math.round(bar.getBoundingClientRect().height)
+      })
+    const last = (await bars.count()) - 1
+    await expect(bars.nth(last)).toContainText('2')
+    expect(await height(last)).toBe(80)
+    expect(await height(0)).toBe(4)
+  })
 })
 
 test.describe('Sign out', () => {

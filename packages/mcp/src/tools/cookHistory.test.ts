@@ -143,3 +143,22 @@ it("the recipe's own servings never affect per-serving macros", async () => {
   const result = await getHandler(spy, 'getMacros')({ recipeId: 'r1', servings: 2 })
   expect(JSON.stringify(result)).toContain('calories\\": 800') // 2 × 400 per serving
 })
+
+describe('getMostCooked: the streak reaches the agent', () => {
+  it('passes the streak through and tells the agent what it means', async () => {
+    const server = createMcpServer()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const spy = vi.spyOn(server as any, 'tool')
+    registerCookHistoryTools(server, mockApi as never)
+    mockRequest.mockResolvedValueOnce({ totalSessions: 4, streak: { current: 3, longest: 5 } })
+    const result = (await getHandler(spy, 'getMostCooked')({})) as { content: { text: string }[] }
+    expect(JSON.parse(result.content[0]!.text).streak).toEqual({ current: 3, longest: 5 })
+    const description = spy.mock.calls.find(
+      (c: unknown[]) => c[0] === 'getMostCooked',
+    )![1] as string
+    expect(description).toMatch(/cooking streak/)
+    expect(description).toMatch(/consecutive days/)
+    expect(description).toMatch(/time zone/)
+    expect(description).toMatch(/streak ignores `since`/)
+  })
+})

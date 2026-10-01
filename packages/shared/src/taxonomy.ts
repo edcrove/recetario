@@ -106,5 +106,7 @@ export const CookStatsSchema = z.object({
     }),
   ),
   frequencyByWeek: z.array(z.object({ week: z.string(), count: z.number().int() })),
+  // Days in the person's time zone; not limited to the window (a streak can be older)
+  streak: z.object({ current: z.number().int(), longest: z.number().int() }),
 })
 export type CookStats = z.infer<typeof CookStatsSchema>

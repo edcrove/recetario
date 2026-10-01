@@ -1,6 +1,6 @@
 import { createRouter } from './router.js'
 import { createRoute as defineRoute, z } from '@hono/zod-openapi'
-import { CookSessionSchema, CookStatsSchema } from '@recetario/shared'
+import { CookSessionSchema, CookStatsSchema, cookingStreak } from '@recetario/shared'
 import { authMiddleware } from '../middleware/auth.js'
 import { cookSessionsRepository } from '../db/cook-sessions-repository.js'
 
@@ -125,6 +125,7 @@ cookSessionsRoute.openapi(statsRoute, async (c) => {
 
   const sinceDate = since ? new Date(since) : undefined
   const stats = await cookSessionsRepository.getStats(ownerId, sinceDate)
+  const { days, today } = await cookSessionsRepository.cookDays(ownerId)
 
   return c.json({
     since: stats.windowStart.toISOString().slice(0, 10),
@@ -136,6 +137,7 @@ cookSessionsRoute.openapi(statsRoute, async (c) => {
       lastCookedAt: new Date(r.lastCookedAt).toISOString(),
     })),
     frequencyByWeek: stats.frequencyByWeek,
+    streak: cookingStreak(days, today),
   })
 })
 
