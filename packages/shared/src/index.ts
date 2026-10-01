@@ -1,6 +1,5 @@
-// Domain logic (recipes, ingredients, users, etc.) will be added in Phase 1
-
-export const VERSION = '0.0.0'
+// Public surface of @recetario/shared: domain schemas and pure helpers used by
+// the API, the MCP server and the app. Package versions live in package.json.
 
 export * from './schema.js'
 export * from './scaling.js'

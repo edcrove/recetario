@@ -70,7 +70,7 @@ export async function registerAllTools(
   registerSuggestionTools(server, apiClient)
 }
 
-/* v8 ignore start */
+/* v8 ignore start -- stdio entrypoint; exercised by running the server, not unit tests */
 async function main() {
   const server = createMcpServer()
   const apiClient = createApiClient()

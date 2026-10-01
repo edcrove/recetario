@@ -175,7 +175,7 @@ export class PantryRepository {
       title: r.title,
       // Every recipe is created with ≥1 ingredient (API-enforced), so the map
       // always has an entry; the ?? [] is a defensive fallback only.
-      /* v8 ignore next */
+      /* v8 ignore next -- every household recipe has ingredients (schema min 1); ?? is defensive */
       ingredients: byRecipe.get(r.id) ?? [],
       nutrition: (r.nutrition as Nutrition | null) ?? null,
     }))

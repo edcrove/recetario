@@ -2,7 +2,6 @@ import { OpenAPIHono } from '@hono/zod-openapi'
 import { swaggerUI } from '@hono/swagger-ui'
 import { cors } from 'hono/cors'
 import { bodyLimit } from 'hono/body-limit'
-import { VERSION } from '@recetario/shared'
 import { healthRoute } from './routes/health.js'
 import { recipesRoute } from './routes/recipes.js'
 import { menuRoute } from './routes/menu.js'
@@ -108,7 +107,7 @@ app.doc('/openapi.json', {
 
 app.get('/docs', swaggerUI({ url: '/openapi.json' }))
 
-console.log(`@recetario/api starting (shared v${VERSION})`)
+console.log('@recetario/api starting')
 
 // Start HTTP server when run directly (not in test environment)
 if (process.env['NODE_ENV'] !== 'test') {
