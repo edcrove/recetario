@@ -199,6 +199,8 @@ export const CreateRecipeSchema = RecipeSchema.omit({
   cookTimeMin: z.number().int().positive().nullable().optional(),
   totalTimeMin: z.number().int().positive().nullable().optional(),
   difficulty: z.enum(['fácil', 'media', 'difícil']).nullable().optional(),
+  // null clears stale nutrition ("sin datos") — see nutritionAfterEdit
+  nutrition: NutritionSchema.nullable().optional(),
 })
 export type CreateRecipe = z.infer<typeof CreateRecipeSchema>
 

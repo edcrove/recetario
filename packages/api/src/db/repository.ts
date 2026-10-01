@@ -13,6 +13,7 @@ import {
 } from 'drizzle-orm'
 import {
   parseStepDurationSeconds,
+  nutritionAfterEdit,
   type CreateRecipe,
   type UpdateRecipe,
   type Recipe,
@@ -454,6 +455,9 @@ export class RecipeRepository {
     const existing = await this.findById(id, ownerId)
     if (!existing) return null
     const foodTypeIds = await this.usableFoodTypeIds(ownerId, data.foodTypeIds)
+    // Keep per-serving nutrition honest: rescale on a servings-only edit, clear
+    // it when the ingredients change, honor an explicit value (or null).
+    const nutrition = nutritionAfterEdit(existing, data)
 
     const [updated] = await db
       .update(schema.recipes)
@@ -474,7 +478,7 @@ export class RecipeRepository {
         ...(data.source !== undefined && { source: data.source }),
         /* v8 ignore start */
         ...(data.dietaryTags !== undefined && { dietaryTags: data.dietaryTags }),
-        ...(data.nutrition !== undefined && { nutrition: data.nutrition }),
+        ...(nutrition !== undefined && { nutrition }),
         /* v8 ignore stop */
         ...(data.visibility !== undefined && { visibility: data.visibility }),
         updatedAt: new Date(),

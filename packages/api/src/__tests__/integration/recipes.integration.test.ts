@@ -666,3 +666,52 @@ describe.skipIf(skip).sequential('Recipe visibility and fork provenance', () => 
     expect(got.steps[2]?.durationSeconds).toBe(300)
   })
 })
+
+// 2026-10-01 audit: nutrition went stale after edits and could not be cleared.
+describe.skipIf(skip).sequential('Recipe nutrition stays consistent with edits', () => {
+  const headers = { 'Content-Type': 'application/json', Authorization: authHeader }
+  let id: string
+
+  const put = async (body: unknown) => {
+    const res = await app.request(`/v1/recipes/${id}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(body),
+    })
+    expect(res.status).toBe(200)
+    return (await res.json()) as { nutrition?: { calories: number; protein_g: number } }
+  }
+
+  beforeAll(async () => {
+    const res = await app.request('/v1/recipes', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        ...baseRecipe,
+        title: 'Nutrición editable',
+        nutrition: { calories: 600, protein_g: 30, carbs_g: 60, fat_g: 20 },
+      }),
+    })
+    id = ((await res.json()) as { id: string }).id
+  })
+
+  it('a servings-only edit rescales the per-serving values', async () => {
+    const body = await put({ servings: 8 })
+    expect(body.nutrition).toMatchObject({ calories: 300, protein_g: 15 })
+  })
+
+  it('changing the ingredients clears it until re-estimated', async () => {
+    const body = await put({
+      ingredients: [...baseRecipe.ingredients, { name: 'queso', quantity: 100, unit: 'g' }],
+    })
+    expect(body.nutrition).toBeUndefined()
+  })
+
+  it('explicit null clears it, and an explicit value is stored as sent', async () => {
+    expect(
+      (await put({ nutrition: { calories: 450, protein_g: 20, carbs_g: 50, fat_g: 15 } }))
+        .nutrition,
+    ).toMatchObject({ calories: 450 })
+    expect((await put({ nutrition: null })).nutrition).toBeUndefined()
+  })
+})
