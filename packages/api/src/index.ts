@@ -1,6 +1,7 @@
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { swaggerUI } from '@hono/swagger-ui'
 import { cors } from 'hono/cors'
+import { bodyLimit } from 'hono/body-limit'
 import { VERSION } from '@recetario/shared'
 import { healthRoute } from './routes/health.js'
 import { recipesRoute } from './routes/recipes.js'
@@ -21,6 +22,16 @@ import { InvalidReferenceError } from './db/transaction.js'
 assertProductionConfig()
 
 export const app = new OpenAPIHono()
+
+// Requests bigger than any real recipe/import are refused before parsing.
+export const MAX_BODY_BYTES = 1024 * 1024
+app.use(
+  '*',
+  bodyLimit({
+    maxSize: MAX_BODY_BYTES,
+    onError: (c) => c.json({ error: 'Payload too large' }, 413),
+  }),
+)
 
 app.use(
   '*',

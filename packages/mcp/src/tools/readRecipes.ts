@@ -19,12 +19,13 @@ export function registerReadTools(server: McpServer, api: ReturnType<typeof crea
   // searchRecipes
   server.tool(
     'searchRecipes',
-    'Search recipes by name, ingredient, tag, or category.',
+    'Search recipes by title, ingredient, tag, food type or category. Text matching ignores accents and case; results are newest first (max 50).',
     {
-      q: z.string().optional().describe('Text search across title and ingredients'),
+      q: z.string().optional().describe('Text search in the recipe title'),
       tag: z.string().optional().describe('Filter by tag'),
       category: z.string().optional().describe('Filter by category'),
-      ingredient: z.string().optional().describe('Filter by ingredient name'),
+      ingredient: z.string().optional().describe('Filter by ingredient name (contains)'),
+      foodTypeId: z.uuid().optional().describe('Filter by food type id (see listTaxonomy)'),
     },
     async (params) => {
       const qs = new URLSearchParams(

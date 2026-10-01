@@ -57,13 +57,15 @@ export const authRequests: Store = new Map()
 const authMaxRequests = () => Number(process.env['AUTH_RATE_LIMIT_MAX_REQUESTS'] ?? 10)
 
 /**
- * Client IP. Behind a proxy (Railway, Docker ingress) the proxy appends the
- * address it saw to X-Forwarded-For, so the rightmost entry is the one a client
- * can't forge (assumes a single proxy hop). Without the header, falls back to
- * the socket address from @hono/node-server.
+ * Client IP. Behind a proxy (Railway) the proxy appends the address it saw to
+ * X-Forwarded-For, so the rightmost entry is the one a client can't forge
+ * (assumes a single proxy hop). The header is only trusted with
+ * TRUST_PROXY=true — without a proxy a client could set it and pick its own
+ * rate-limit key. Otherwise, and when it's blank, the socket address is used.
  */
 export function clientIp(c: Context): string {
-  const forwarded = c.req.header('x-forwarded-for')
+  const forwarded =
+    process.env['TRUST_PROXY'] === 'true' ? c.req.header('x-forwarded-for') : undefined
   if (forwarded) {
     const last = forwarded.split(',').at(-1)?.trim()
     if (last) return last

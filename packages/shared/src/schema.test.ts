@@ -308,3 +308,24 @@ describe('recipe image URLs', () => {
     )
   })
 })
+
+describe('recipe size limits', () => {
+  const base = {
+    title: 'X',
+    servings: 1,
+    category: 'Cena',
+    ingredients: [{ name: 'a', quantity: 1, unit: 'g' }],
+  }
+  it('rejects oversized titles, tag lists and step lists on create and update', () => {
+    expect(CreateRecipeSchema.safeParse({ ...base, title: 'x'.repeat(201) }).success).toBe(false)
+    expect(
+      CreateRecipeSchema.safeParse({ ...base, tags: Array.from({ length: 31 }, () => 't') })
+        .success,
+    ).toBe(false)
+    expect(
+      UpdateRecipeSchema.safeParse({ steps: Array.from({ length: 151 }, () => ({ text: 's' })) })
+        .success,
+    ).toBe(false)
+    expect(CreateRecipeSchema.safeParse(base).success).toBe(true)
+  })
+})

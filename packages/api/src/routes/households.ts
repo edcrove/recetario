@@ -2,6 +2,7 @@ import { createRouter } from './router.js'
 import { createRoute as defineRoute, z } from '@hono/zod-openapi'
 import { eq, and, inArray, isNull } from 'drizzle-orm'
 import { getDb, schema } from '../db/index.js'
+import { emailMatches } from '../db/email.js'
 import { authMiddleware } from '../middleware/auth.js'
 
 export const householdsRoute = createRouter()
@@ -186,11 +187,7 @@ householdsRoute.openapi(inviteRoute as any, async (c: any) => {
 
   let invitedUserId = userId
   if (!invitedUserId && email) {
-    const [user] = await db
-      .select()
-      .from(schema.users)
-      .where(eq(schema.users.email, email))
-      .limit(1)
+    const [user] = await db.select().from(schema.users).where(emailMatches(email)).limit(1)
     if (!user) return c.json({ error: 'No user found with that email' } as never, 404)
     invitedUserId = user.id
   }
