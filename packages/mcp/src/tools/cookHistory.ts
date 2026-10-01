@@ -95,7 +95,7 @@ export function registerCookHistoryTools(
 
   server.tool(
     'getMostCooked',
-    'Get cooking statistics: top recipes by count, frequency by week, total sessions',
+    "Get cooking statistics: top recipes by count, frequency by week, total sessions, and the cooking streak (current and longest run of consecutive days with at least one cook, in the user's time zone; the streak ignores `since`).",
     {
       since: z
         .string()

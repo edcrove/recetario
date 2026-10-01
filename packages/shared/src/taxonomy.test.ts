@@ -50,7 +50,17 @@ describe('taxonomy and history contracts', () => {
         totalSessions: 0,
         topRecipes: [],
         frequencyByWeek: [],
+        streak: { current: 0, longest: 0 },
       }).totalSessions,
     ).toBe(0)
+    // The streak is part of the contract: a payload without it is rejected
+    expect(
+      CookStatsSchema.safeParse({
+        since: '2026-07-01',
+        totalSessions: 0,
+        topRecipes: [],
+        frequencyByWeek: [],
+      }).success,
+    ).toBe(false)
   })
 })

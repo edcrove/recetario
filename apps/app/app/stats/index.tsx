@@ -9,7 +9,14 @@ import {
 import { useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../src/api/client'
-import { topRecipeLabel, statsWindowLabel } from '../../src/utils/statsLabels'
+import {
+  chartWeeks,
+  streakLabel,
+  topRecipeLabel,
+  statsWindowLabel,
+  weekLabel,
+} from '../../src/utils/statsLabels'
+import { getWeekStart } from '../../src/utils/weekMath'
 import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 
 export default function StatsScreen() {
@@ -30,7 +37,9 @@ export default function StatsScreen() {
     )
   }
 
-  const maxCount = Math.max(...(stats?.frequencyByWeek.map((w) => w.count) ?? [1]), 1)
+  const weeks = chartWeeks(stats?.frequencyByWeek ?? [], getWeekStart(new Date()))
+  const maxCount = Math.max(...weeks.map((w) => w.count), 1)
+  const streak = stats?.streak ?? { current: 0, longest: 0 }
 
   return (
     <ScrollView style={s.container} contentContainerStyle={s.content}>
@@ -40,6 +49,20 @@ export default function StatsScreen() {
         <Text style={s.totalLabel}>
           sesiones de cocina{stats?.since ? ` ${statsWindowLabel(stats.since)}` : ''}
         </Text>
+      </View>
+
+      {/* Cooking streak */}
+      <View testID="stats-streak" style={s.streakCard}>
+        {streak.current > 0 ? (
+          <Text style={s.streakNum}>🔥 {streakLabel(streak.current)} cocinando</Text>
+        ) : (
+          <Text style={s.streakNum}>Cociná hoy para empezar una racha</Text>
+        )}
+        {streak.longest > 0 && (
+          <Text testID="stats-streak-longest" style={s.streakBest}>
+            Mejor racha: {streakLabel(streak.longest)}
+          </Text>
+        )}
       </View>
 
       {/* Top recipes */}
@@ -91,13 +114,11 @@ export default function StatsScreen() {
         <Text style={s.empty}>Todavía no hay sesiones de cocina registradas.</Text>
       ) : (
         <View style={s.chart}>
-          {stats?.frequencyByWeek.map((w) => (
-            <View key={w.week} style={s.barGroup}>
+          {weeks.map((w) => (
+            <View key={w.week} testID={`stats-week-${w.week}`} style={s.barGroup}>
               <Text style={s.barCount}>{w.count}</Text>
               <View style={[s.bar, { height: Math.max(4, (w.count / maxCount) * 80) }]} />
-              <Text style={s.barWeek}>
-                {new Date(w.week).toLocaleDateString('es-AR', { month: 'short', day: 'numeric' })}
-              </Text>
+              <Text style={s.barWeek}>{weekLabel(w.week)}</Text>
             </View>
           ))}
         </View>
@@ -111,6 +132,15 @@ const makeStyles = (c: ThemeColors) =>
     container: { flex: 1, backgroundColor: c.surface },
     content: { padding: 20, paddingBottom: 40 },
     center: { flex: 1, backgroundColor: c.paper, justifyContent: 'center', alignItems: 'center' },
+    streakCard: {
+      backgroundColor: c.sand,
+      borderRadius: 16,
+      padding: 16,
+      alignItems: 'center',
+      marginBottom: 24,
+    },
+    streakNum: { fontSize: 18, fontWeight: '700', color: c.ink, fontFamily: fonts.display },
+    streakBest: { fontSize: 13, color: c.inkSoft, marginTop: 4 },
     totalCard: {
       backgroundColor: c.terracottaSoft,
       borderRadius: 16,
