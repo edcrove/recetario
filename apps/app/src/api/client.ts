@@ -389,8 +389,14 @@ export const api = {
       >(`/v1/cook-sessions?recipeId=${recipeId}&limit=${limit}`),
     stats: (since?: string) =>
       request<{
+        since: string
         totalSessions: number
-        topRecipes: Array<{ recipeId: string | null; count: number; lastCookedAt: string }>
+        topRecipes: Array<{
+          recipeId: string | null
+          title: string | null
+          count: number
+          lastCookedAt: string
+        }>
         frequencyByWeek: Array<{ week: string; count: number }>
       }>(`/v1/cook-sessions/stats${since ? `?since=${since}` : ''}`),
   },

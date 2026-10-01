@@ -19,10 +19,13 @@ const sessionSchema = z.object({
 })
 
 const statsSchema = z.object({
+  // Every figure covers the same window: `since` (default: last 90 days)
+  since: z.string(),
   totalSessions: z.number().int(),
   topRecipes: z.array(
     z.object({
       recipeId: z.uuid().nullable(),
+      title: z.string().nullable(),
       count: z.number().int(),
       lastCookedAt: z.string(),
     }),
@@ -144,9 +147,11 @@ cookSessionsRoute.openapi(statsRoute, async (c) => {
   const stats = await cookSessionsRepository.getStats(ownerId, sinceDate)
 
   return c.json({
+    since: stats.windowStart.toISOString().slice(0, 10),
     totalSessions: stats.totalSessions,
     topRecipes: stats.topRecipes.map((r) => ({
       recipeId: r.recipeId,
+      title: r.title,
       count: r.count,
       lastCookedAt: new Date(r.lastCookedAt).toISOString(),
     })),

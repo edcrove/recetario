@@ -126,9 +126,15 @@ test.describe('Stats: live top-recipe row and weekly chart', () => {
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
+            since: '2026-04-01',
             totalSessions: 5,
             topRecipes: [
-              { recipeId: recipe.id, count: 5, lastCookedAt: '2026-07-01T12:00:00.000Z' },
+              {
+                recipeId: recipe.id,
+                title: 'Receta top',
+                count: 5,
+                lastCookedAt: '2026-07-01T12:00:00.000Z',
+              },
             ],
             frequencyByWeek: [{ week: '2026-W27', count: 5 }],
           }),
@@ -138,7 +144,8 @@ test.describe('Stats: live top-recipe row and weekly chart', () => {
       await expect(page.getByText('#1')).toBeVisible({ timeout: 10000 })
       await expect(page.getByText('5×')).toBeVisible()
       // Tapping the live row navigates to the recipe detail (clickable branch).
-      await page.getByText(`${recipe.id.slice(0, 8)}…`).click()
+      await expect(page.getByText(/sesiones de cocina desde el 1 abr/)).toBeVisible()
+      await page.getByText('Receta top').click()
       await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 10000 })
     } finally {
       await page.unroute('**/v1/cook-sessions/stats*')

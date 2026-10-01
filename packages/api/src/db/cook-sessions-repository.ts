@@ -14,9 +14,15 @@ export interface CookSessionRow {
 }
 
 export interface CookStats {
-  topRecipes: Array<{ recipeId: string | null; count: number; lastCookedAt: Date }>
+  topRecipes: Array<{
+    recipeId: string | null
+    title: string | null
+    count: number
+    lastCookedAt: Date
+  }>
   frequencyByWeek: Array<{ week: string; count: number }>
   totalSessions: number
+  windowStart: Date
 }
 
 export const cookSessionsRepository = {
@@ -89,6 +95,10 @@ export const cookSessionsRepository = {
     const topRecipes = await db
       .select({
         recipeId: schema.cookSessions.recipeId,
+        // Latest title snapshot, so renamed or deleted recipes still read well
+        title: sql<
+          string | null
+        >`(array_agg(${schema.cookSessions.recipeTitle} order by ${schema.cookSessions.cookedAt} desc))[1]`,
         count: sql<number>`cast(count(*) as int)`,
         lastCookedAt: sql<Date>`max(${schema.cookSessions.cookedAt})`,
       })
@@ -119,19 +129,27 @@ export const cookSessionsRepository = {
       .groupBy(sql`date_trunc('week', ${schema.cookSessions.cookedAt})`)
       .orderBy(sql`date_trunc('week', ${schema.cookSessions.cookedAt}) asc`)
 
+    // Same window as the other two figures, so the screen never mixes periods
     const [totalRow] = await db
       .select({ total: sql<number>`cast(count(*) as int)` })
       .from(schema.cookSessions)
-      .where(eq(schema.cookSessions.ownerId, ownerId))
+      .where(
+        and(
+          eq(schema.cookSessions.ownerId, ownerId),
+          gte(schema.cookSessions.cookedAt, windowStart),
+        ),
+      )
 
     return {
       topRecipes: topRecipes.map((r) => ({
         recipeId: r.recipeId,
+        title: r.title,
         count: r.count,
         lastCookedAt: r.lastCookedAt,
       })),
       frequencyByWeek: frequencyByWeek.map((r) => ({ week: r.week, count: r.count })),
       totalSessions: totalRow?.total ?? 0,
+      windowStart,
     }
   },
 }
