@@ -23,9 +23,9 @@ function wrap(ui: React.ReactElement) {
 describe('NewRecipeScreen', () => {
   beforeEach(() => mockCreate.mockReset())
 
-  it('renders form heading and all required sections', () => {
+  it('renders all required sections (the title lives in the stack header)', () => {
     wrap(<NewRecipeScreen />)
-    expect(screen.getByText('Nueva Receta')).toBeInTheDocument()
+    expect(screen.queryByText('Nueva Receta')).not.toBeInTheDocument()
     expect(screen.getByText('Título *')).toBeInTheDocument()
     expect(screen.getByText('Porciones *')).toBeInTheDocument()
     expect(screen.getByText('Ingredientes *')).toBeInTheDocument()
