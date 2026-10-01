@@ -220,3 +220,78 @@ test('recipe detail lists sugars, saturated fat and sodium when the recipe has t
     await page.request.delete(`${API_URL}/v1/recipes/${recipe.id}`, { headers })
   }
 })
+
+// Story "goals in Perfil + day progress/delta in planner": "Pick screen with
+// goals set: projected delta preview ('con esta receta el almuerzo queda en
+// 780 / 700 kcal')". A fresh account, so the demo profile's goals stay as seeded.
+test('with a lunch goal the pick screen previews where lunch lands, per recipe', async ({
+  page,
+}) => {
+  const email = `e2e-preview-${Date.now()}@example.com`
+  const reg = await page.request.post(`${API_URL}/auth/register`, {
+    data: { email, password: 'preview1234' },
+  })
+  const { token } = (await reg.json()) as { token: string }
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+  await page.request.patch(`${API_URL}/auth/profile`, {
+    headers,
+    data: {
+      nutritionTargets: {
+        daily_calories: 2000,
+        daily_protein_g: 0,
+        daily_carbs_g: 0,
+        daily_fat_g: 0,
+        per_meal: { Almuerzo: { calories: 700 } },
+      },
+    },
+  })
+  const make = async (title: string, calories: number) =>
+    (await (
+      await page.request.post(`${API_URL}/v1/recipes`, {
+        headers,
+        data: {
+          title,
+          servings: 2,
+          category: 'Almuerzo',
+          ingredients: [{ name: 'x', quantity: 1, unit: 'g' }],
+          steps: [{ text: 'a' }],
+          nutrition: { calories, protein_g: 10, carbs_g: 10, fat_g: 10 },
+        },
+      })
+    ).json()) as { id: string }
+  const starter = await make('Entrada preview', 300)
+  const heavy = await make('Guiso preview', 480)
+  const light = await make('Ensalada preview', 350)
+  // Lunch already has a 300 kcal starter planned
+  const date = '2027-06-08'
+  await page.request.post(`${API_URL}/v1/menu`, {
+    headers,
+    data: { date, slot: 'Almuerzo', recipeId: starter.id, servings: 2 },
+  })
+
+  await page.evaluate((jwt) => localStorage.setItem('auth_token', jwt), token)
+  await page.goto(`/menu/pick?date=${date}&slot=Almuerzo&weekStart=2027-06-07`)
+  const over = page.getByTestId(`pick-projection-${heavy.id}`)
+  const ok = page.getByTestId(`pick-projection-${light.id}`)
+  // The AC's own example: 300 planned + 480 = 780 against a 700 goal
+  await expect(over).toHaveText('Con esta receta el almuerzo queda en 780 / 700 kcal')
+  await expect(ok).toHaveText('Con esta receta el almuerzo queda en 650 / 700 kcal')
+  // Over the goal reads in a different colour than on-track
+  const colour = (id: string) =>
+    page.getByTestId(`pick-projection-${id}`).evaluate((el) => getComputedStyle(el).color)
+  expect(await colour(heavy.id)).not.toBe(await colour(light.id))
+
+  // Picking it plans it: lunch now lands exactly where the preview said
+  await page.getByTestId(`pick-recipe-${heavy.id}`).click()
+  const lunch = async () => {
+    const res = await page.request.get(`${API_URL}/v1/menu/day-nutrition?date=${date}`, {
+      headers,
+    })
+    const body = (await res.json()) as {
+      byMeal: { mealCategory: string; totals: { calories: number }; calorieDelta: number }[]
+    }
+    const meal = body.byMeal.find((m) => m.mealCategory === 'Almuerzo')
+    return meal ? `${meal.totals.calories}|${meal.calorieDelta}` : null
+  }
+  await expect.poll(lunch).toBe('780|80')
+})

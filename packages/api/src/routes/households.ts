@@ -178,3 +178,68 @@ householdsRoute.openapi(declineRoute, async (c) => {
   }
   return c.body(null, 204)
 })
+
+// PATCH /households/:id/members/:userId — owner/admin changes a member's role
+const changeRoleRoute = defineRoute({
+  method: 'patch',
+  path: '/{id}/members/{userId}',
+  security: [{ ApiKeyAuth: [] }],
+  request: {
+    params: z.object({ id: z.uuid(), userId: z.uuid() }),
+    body: {
+      content: {
+        'application/json': {
+          schema: z.object({ role: z.enum(['admin', 'member', 'viewer']) }),
+        },
+      },
+      required: true,
+    },
+  },
+  responses: {
+    200: { content: { 'application/json': { schema: memberSchema } }, description: 'Updated' },
+    403: { content: { 'application/json': { schema: errorSchema } }, description: 'Forbidden' },
+    404: { content: { 'application/json': { schema: errorSchema } }, description: 'Not found' },
+  },
+})
+
+householdsRoute.openapi(changeRoleRoute, async (c) => {
+  const ownerId = c.get('ownerId')
+  const { id, userId } = c.req.valid('param')
+  const { role } = c.req.valid('json')
+
+  const access = await householdRepository.canManage(id, ownerId)
+  if (access === 'not_member') return c.json({ error: 'Household not found' }, 404)
+  if (access === 'no') return c.json({ error: 'Forbidden' }, 403)
+
+  // The owner's role can't change: they are not matched, so it reads as 404
+  const member = await householdRepository.changeRole(id, userId, role)
+  if (!member) return c.json({ error: 'Member not found' }, 404)
+  return c.json(member, 200)
+})
+
+// POST /households/:id/leave — a member leaves a household they joined
+const leaveRoute = defineRoute({
+  method: 'post',
+  path: '/{id}/leave',
+  security: [{ ApiKeyAuth: [] }],
+  request: { params: z.object({ id: z.uuid() }) },
+  responses: {
+    204: { description: 'Left' },
+    404: { content: { 'application/json': { schema: errorSchema } }, description: 'Not found' },
+    409: {
+      content: { 'application/json': { schema: errorSchema } },
+      description: 'The owner cannot leave',
+    },
+  },
+})
+
+householdsRoute.openapi(leaveRoute, async (c) => {
+  const ownerId = c.get('ownerId')
+  const { id } = c.req.valid('param')
+  const result = await householdRepository.leave(id, ownerId)
+  if (result === 'not_member') return c.json({ error: 'Household not found' }, 404)
+  if (result === 'owner') {
+    return c.json({ error: 'The owner cannot leave the household' }, 409)
+  }
+  return c.body(null, 204)
+})

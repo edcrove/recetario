@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 const { mockInsert, mockSelect, mockUpdate, mockDelete, withTransaction } = vi.hoisted(() => ({
   // db.transaction(fn) runs fn against the same mocked handle
@@ -338,5 +338,135 @@ describe('POST /v1/households/:id/decline', () => {
       headers: AUTH,
     })
     expect(res.status).toBe(404)
+  })
+})
+
+// Story "App: gestión de household (invitar, roles)": "Owner puede cambiar rol
+// o remover miembro. Miembro puede ver y abandonar el hogar."
+describe('PATCH /v1/households/:id/members/:userId (change role)', () => {
+  afterEach(() => vi.restoreAllMocks())
+  const patch = (body: unknown) =>
+    app.request(`/v1/households/${HH_ID}/members/${USER_ID}`, {
+      method: 'PATCH',
+      headers: AUTH,
+      body: JSON.stringify(body),
+    })
+
+  it('the owner changes a member to viewer and gets the updated member (200)', async () => {
+    mockSelect.mockReturnValue([makeMember('owner')])
+    mockUpdate.mockReturnValue([{ ...makeMember('viewer'), userId: USER_ID }])
+    const canManage = vi.spyOn(householdRepository, 'canManage')
+    const changeRole = vi.spyOn(householdRepository, 'changeRole')
+    const res = await patch({ role: 'viewer' })
+    expect(res.status).toBe(200)
+    // Rights are checked for the caller ('dev' under DEV_API_KEY), not the target
+    expect(canManage).toHaveBeenCalledWith(HH_ID, 'dev')
+    expect(changeRole).toHaveBeenCalledWith(HH_ID, USER_ID, 'viewer')
+    const body = (await res.json()) as { userId: string; role: string }
+    expect(body).toMatchObject({ userId: USER_ID, role: 'viewer' })
+  })
+
+  it('an admin can change roles too (same rights as invite/remove)', async () => {
+    mockSelect.mockReturnValue([makeMember('admin')])
+    mockUpdate.mockReturnValue([makeMember('member')])
+    expect((await patch({ role: 'member' })).status).toBe(200)
+  })
+
+  it('a plain member cannot change roles (403) and nothing is written', async () => {
+    mockSelect.mockReturnValue([makeMember('member')])
+    const res = await patch({ role: 'admin' })
+    expect(res.status).toBe(403)
+    expect(await res.json()).toEqual({ error: 'Forbidden' })
+    expect(mockUpdate).not.toHaveBeenCalled()
+  })
+
+  it('a pending admin cannot change roles (403)', async () => {
+    mockSelect.mockReturnValue([{ ...makeMember('admin'), acceptedAt: null }])
+    expect((await patch({ role: 'viewer' })).status).toBe(403)
+    expect(mockUpdate).not.toHaveBeenCalled()
+  })
+
+  it('returns 404 when the requester is not in the household', async () => {
+    mockSelect.mockReturnValue([])
+    const res = await patch({ role: 'viewer' })
+    expect(res.status).toBe(404)
+    expect(await res.json()).toEqual({ error: 'Household not found' })
+    expect(mockUpdate).not.toHaveBeenCalled()
+  })
+
+  it('returns 404 when the target is not a (non-owner) member', async () => {
+    mockSelect.mockReturnValue([makeMember('owner')])
+    mockUpdate.mockReturnValue([])
+    const res = await patch({ role: 'admin' })
+    expect(res.status).toBe(404)
+    expect(await res.json()).toEqual({ error: 'Member not found' })
+  })
+
+  it('rejects promoting anyone to owner (400)', async () => {
+    mockSelect.mockReturnValue([makeMember('owner')])
+    expect((await patch({ role: 'owner' })).status).toBe(400)
+    expect(mockUpdate).not.toHaveBeenCalled()
+  })
+
+  it('rejects a missing role (400)', async () => {
+    expect((await patch({})).status).toBe(400)
+  })
+
+  it('requires auth (401)', async () => {
+    const res = await app.request(`/v1/households/${HH_ID}/members/${USER_ID}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: 'viewer' }),
+    })
+    expect(res.status).toBe(401)
+  })
+})
+
+describe('POST /v1/households/:id/leave', () => {
+  afterEach(() => vi.restoreAllMocks())
+  const leave = () =>
+    app.request(`/v1/households/${HH_ID}/leave`, { method: 'POST', headers: AUTH })
+
+  it('an accepted member leaves (204) and their membership is deleted', async () => {
+    mockSelect.mockReturnValue([makeMember('member')])
+    mockDelete.mockReturnValue([makeMember('member')])
+    const leaveSpy = vi.spyOn(householdRepository, 'leave')
+    expect((await leave()).status).toBe(204)
+    // It is the caller who leaves, never someone else
+    expect(leaveSpy).toHaveBeenCalledWith(HH_ID, 'dev')
+    expect(mockDelete).toHaveBeenCalledTimes(1)
+  })
+
+  it('a viewer can leave too', async () => {
+    mockSelect.mockReturnValue([makeMember('viewer')])
+    mockDelete.mockReturnValue([makeMember('viewer')])
+    expect((await leave()).status).toBe(204)
+  })
+
+  it('the owner cannot leave (409) and nothing is deleted', async () => {
+    mockSelect.mockReturnValue([makeMember('owner')])
+    const res = await leave()
+    expect(res.status).toBe(409)
+    expect(await res.json()).toEqual({ error: 'The owner cannot leave the household' })
+    expect(mockDelete).not.toHaveBeenCalled()
+  })
+
+  it('a pending invitee is told to decline instead (404)', async () => {
+    mockSelect.mockReturnValue([{ ...makeMember('member'), acceptedAt: null }])
+    expect((await leave()).status).toBe(404)
+    expect(mockDelete).not.toHaveBeenCalled()
+  })
+
+  it('returns 404 when not a member at all', async () => {
+    mockSelect.mockReturnValue([])
+    const res = await leave()
+    expect(res.status).toBe(404)
+    expect(await res.json()).toEqual({ error: 'Household not found' })
+    expect(mockDelete).not.toHaveBeenCalled()
+  })
+
+  it('requires auth (401)', async () => {
+    const res = await app.request(`/v1/households/${HH_ID}/leave`, { method: 'POST' })
+    expect(res.status).toBe(401)
   })
 })

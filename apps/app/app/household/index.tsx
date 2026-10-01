@@ -12,7 +12,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../src/api/client'
 import { useAuth } from '../../src/providers/AuthProvider'
 import { confirmAsync, notify } from '../../src/utils/platformAlert'
-import { inviteErrorMessage, memberLabel, pendingInvitations } from '../../src/utils/roles'
+import {
+  canChangeRole,
+  canLeaveHousehold,
+  inviteErrorMessage,
+  memberLabel,
+  pendingInvitations,
+} from '../../src/utils/roles'
 import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 
 const ROLE_LABELS: Record<string, string> = {
@@ -38,6 +44,8 @@ export default function HouseholdScreen() {
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState<'admin' | 'member' | 'viewer'>('member')
   const [invitingFor, setInvitingFor] = useState<string | null>(null)
+  // `${householdId}:${userId}` of the member whose role picker is open
+  const [roleEditFor, setRoleEditFor] = useState<string | null>(null)
 
   const { data: households = [], isLoading } = useQuery({
     queryKey: ['households'],
@@ -93,6 +101,30 @@ export default function HouseholdScreen() {
       api.households.removeMember(householdId, userId),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['households'] }),
     onError: () => notify('Error', 'No se pudo quitar al miembro. Probá de nuevo.'),
+  })
+
+  const changeRole = useMutation({
+    mutationFn: ({
+      householdId,
+      userId,
+      role,
+    }: {
+      householdId: string
+      userId: string
+      role: 'admin' | 'member' | 'viewer'
+    }) => api.households.changeRole(householdId, userId, role),
+    onSuccess: () => {
+      // A viewer change alters what that person may edit on every shared screen
+      refreshShared()
+      setRoleEditFor(null)
+    },
+    onError: () => notify('Error', 'No se pudo cambiar el rol. Probá de nuevo.'),
+  })
+
+  const leaveHousehold = useMutation({
+    mutationFn: (householdId: string) => api.households.leave(householdId),
+    onSuccess: refreshShared,
+    onError: () => notify('Error', 'No se pudo abandonar el hogar. Probá de nuevo.'),
   })
 
   const pending = pendingInvitations(households, userId)
@@ -195,6 +227,21 @@ export default function HouseholdScreen() {
                   </Text>
                   {!m.acceptedAt && <Text style={s.pending}>Pendiente</Text>}
                 </View>
+                {canChangeRole(myRole, m) && (
+                  <TouchableOpacity
+                    testID={`household-change-role-${m.userId}`}
+                    role="button"
+                    aria-label={`Cambiar el rol de ${memberLabel(m)}`}
+                    style={s.roleEditBtn}
+                    onPress={() =>
+                      setRoleEditFor((cur) =>
+                        cur === `${hh.id}:${m.userId}` ? null : `${hh.id}:${m.userId}`,
+                      )
+                    }
+                  >
+                    <Text style={s.roleEditText}>Rol</Text>
+                  </TouchableOpacity>
+                )}
                 {m.role !== 'owner' && canManageMembers && (
                   <TouchableOpacity
                     testID={`household-remove-member-${m.userId}`}
@@ -210,6 +257,29 @@ export default function HouseholdScreen() {
                   >
                     <Text style={s.removeText}>✕</Text>
                   </TouchableOpacity>
+                )}
+                {roleEditFor === `${hh.id}:${m.userId}` && (
+                  <View style={s.rolePicker} testID={`household-role-picker-${m.userId}`}>
+                    {(['admin', 'member', 'viewer'] as const).map((r) => {
+                      const current = m.role === r
+                      return (
+                        <TouchableOpacity
+                          key={r}
+                          testID={`household-role-option-${m.userId}-${r}`}
+                          aria-selected={current}
+                          style={[s.roleChip, current && s.roleChipActive]}
+                          disabled={current || changeRole.isPending}
+                          onPress={() =>
+                            changeRole.mutate({ householdId: hh.id, userId: m.userId, role: r })
+                          }
+                        >
+                          <Text style={[s.roleChipText, current && s.roleChipTextActive]}>
+                            {ROLE_LABELS[r]}
+                          </Text>
+                        </TouchableOpacity>
+                      )
+                    })}
+                  </View>
                 )}
               </View>
             ))}
@@ -279,6 +349,24 @@ export default function HouseholdScreen() {
                   <Text style={s.inviteBtnText}>+ Invitar miembro</Text>
                 </TouchableOpacity>
               ))}
+
+            {canLeaveHousehold(hh.members?.find((m) => m.userId === userId)) && (
+              <TouchableOpacity
+                testID={`household-leave-${hh.id}`}
+                accessibilityRole="button"
+                style={s.leaveBtn}
+                disabled={leaveHousehold.isPending}
+                onPress={async () => {
+                  const confirmed = await confirmAsync(
+                    'Abandonar hogar',
+                    `¿Abandonar ${hh.name}? Vas a dejar de ver sus recetas, el menú semanal y la lista de compras.`,
+                  )
+                  if (confirmed) leaveHousehold.mutate(hh.id)
+                }}
+              >
+                <Text style={s.leaveText}>Abandonar hogar</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )
       })}
@@ -328,6 +416,16 @@ const makeStyles = (c: ThemeColors) =>
       marginBottom: 16,
     },
     addCard: { backgroundColor: c.surface, borderRadius: 12, padding: 16 },
+    roleEditBtn: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 8,
+      backgroundColor: c.sand,
+      marginRight: 8,
+    },
+    roleEditText: { fontSize: 13, fontWeight: '600', color: c.ink },
+    leaveBtn: { marginTop: 16, alignSelf: 'flex-start', paddingVertical: 6 },
+    leaveText: { fontSize: 14, fontWeight: '600', color: c.danger },
     householdName: { fontSize: 18, fontWeight: '700', color: c.ink, marginBottom: 12 },
     sectionLabel: {
       fontSize: 11,
@@ -341,8 +439,10 @@ const makeStyles = (c: ThemeColors) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
+      flexWrap: 'wrap',
       paddingVertical: 6,
     },
+    rolePicker: { flexDirection: 'row', gap: 8, width: '100%', marginTop: 8 },
     memberInfo: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
     roleBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
     roleBadgeText: { color: c.surface, fontSize: 11, fontWeight: '700' },

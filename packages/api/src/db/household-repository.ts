@@ -159,6 +159,47 @@ export const householdRepository = {
     return deleted.length > 0
   },
 
+  /**
+   * Changes a non-owner member's role (the owner's role is fixed); null when
+   * there is no such member. Pending invitees can be re-roled before accepting.
+   */
+  async changeRole(
+    householdId: string,
+    userId: string,
+    role: Exclude<HouseholdRole, 'owner'>,
+  ): Promise<MemberView | null> {
+    const [member] = await currentDb()
+      .update(schema.householdMembers)
+      .set({ role })
+      .where(
+        and(
+          membership(householdId, userId),
+          inArray(schema.householdMembers.role, ['admin', 'member', 'viewer']),
+        ),
+      )
+      .returning()
+    return member ? toMember(member) : null
+  },
+
+  /**
+   * The user leaves a household they joined. The owner can't leave (the
+   * household always keeps its owner); a pending invite is declined instead.
+   */
+  async leave(householdId: string, userId: string): Promise<'left' | 'owner' | 'not_member'> {
+    return inTransaction(async () => {
+      const db = currentDb()
+      const [me] = await db
+        .select()
+        .from(schema.householdMembers)
+        .where(membership(householdId, userId))
+        .limit(1)
+      if (!me?.acceptedAt) return 'not_member'
+      if (me.role === 'owner') return 'owner'
+      await db.delete(schema.householdMembers).where(membership(householdId, userId)).returning()
+      return 'left'
+    })
+  },
+
   /** The invitee turns down a pending invitation. */
   async decline(householdId: string, userId: string): Promise<boolean> {
     const deleted = await currentDb()
