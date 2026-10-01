@@ -269,7 +269,7 @@ describe('GET /v1/collections/:id/recipes', () => {
     expect(body).toHaveLength(1)
     expect(body[0].title).toBe('Tarta')
     // One batched lookup for every linked recipe, not one per link
-    expect(recipeRepository.findByIds).toHaveBeenCalledWith([UUID2], ['dev'])
+    expect(recipeRepository.findByIds).toHaveBeenCalledWith([UUID2], { visibleTo: 'dev' })
   })
 
   it('skips recipes that no longer exist (deleted since being added)', async () => {

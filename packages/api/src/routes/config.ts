@@ -1,8 +1,7 @@
 import { createRouter } from './router.js'
 import { createRoute as defineRoute, z } from '@hono/zod-openapi'
 import { TaxonomyOverviewSchema } from '@recetario/shared'
-import { eq, sql, and, ne, or, isNull } from 'drizzle-orm'
-import { getDb, schema } from '../db/index.js'
+import { configRepository } from '../db/config-repository.js'
 import { authMiddleware } from '../middleware/auth.js'
 
 export const configRoute = createRouter()
@@ -27,77 +26,7 @@ configRoute.openapi(
   }),
   async (c) => {
     const ownerId = c.get('ownerId')
-    const db = getDb()
-
-    const mealCategories = await db
-      .select({
-        id: schema.mealCategories.id,
-        name: schema.mealCategories.name,
-        slug: schema.mealCategories.slug,
-        isSystem: schema.mealCategories.isSystem,
-        usageCount: sql<number>`cast(count(${schema.recipes.id}) as int)`,
-      })
-      .from(schema.mealCategories)
-      .leftJoin(
-        schema.recipes,
-        sql`lower(${schema.recipes.category}) = ${schema.mealCategories.slug}`,
-      )
-      .where(or(eq(schema.mealCategories.ownerId, ownerId), isNull(schema.mealCategories.ownerId)))
-      .groupBy(schema.mealCategories.id)
-      .orderBy(schema.mealCategories.name)
-
-    const foodTypes = await db
-      .select({
-        id: schema.foodTypes.id,
-        name: schema.foodTypes.name,
-        slug: schema.foodTypes.slug,
-        isSystem: schema.foodTypes.isSystem,
-        usageCount: sql<number>`cast(count(${schema.recipeFoodTypes.recipeId}) as int)`,
-      })
-      .from(schema.foodTypes)
-      .leftJoin(schema.recipeFoodTypes, eq(schema.recipeFoodTypes.foodTypeId, schema.foodTypes.id))
-      .where(or(eq(schema.foodTypes.ownerId, ownerId), isNull(schema.foodTypes.ownerId)))
-      .groupBy(schema.foodTypes.id)
-      .orderBy(schema.foodTypes.name)
-
-    const tags = await db
-      .select({
-        id: schema.tags.id,
-        name: schema.tags.name,
-        slug: schema.tags.slug,
-        usageCount: sql<number>`cast(count(${schema.recipeTags.recipeId}) as int)`,
-      })
-      .from(schema.tags)
-      .leftJoin(schema.recipeTags, eq(schema.recipeTags.tagId, schema.tags.id))
-      .where(eq(schema.tags.ownerId, ownerId))
-      .groupBy(schema.tags.id)
-      .orderBy(schema.tags.name)
-
-    return c.json({
-      mealCategories: mealCategories.map((r) => ({
-        id: r.id,
-        name: r.name,
-        slug: r.slug,
-        usageCount: r.usageCount,
-        isDeletable: r.usageCount === 0 && !Boolean(r.isSystem),
-        isSystem: Boolean(r.isSystem),
-      })),
-      foodTypes: foodTypes.map((r) => ({
-        id: r.id,
-        name: r.name,
-        slug: r.slug,
-        usageCount: r.usageCount,
-        isDeletable: r.usageCount === 0 && !Boolean(r.isSystem),
-        isSystem: Boolean(r.isSystem),
-      })),
-      tags: tags.map((r) => ({
-        id: r.id,
-        name: r.name,
-        slug: r.slug,
-        usageCount: r.usageCount,
-        isDeletable: r.usageCount === 0,
-      })),
-    })
+    return c.json(await configRepository.overview(ownerId), 200)
   },
 )
 
@@ -129,38 +58,9 @@ configRoute.openapi(
     const ownerId = c.get('ownerId')
     const { type, id } = c.req.valid('param')
     const { name } = c.req.valid('json')
-    const db = getDb()
-    const slug = name
-      .toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-]/g, '')
-
-    if (type === 'categories') {
-      const [row] = await db
-        .update(schema.mealCategories)
-        .set({ name, slug })
-        .where(and(eq(schema.mealCategories.id, id), eq(schema.mealCategories.ownerId, ownerId)))
-        .returning()
-      if (!row) return c.json({ error: 'Not found' }, 404)
-      return c.json({ id: row.id, name: row.name }, 200)
-    }
-    if (type === 'food-types') {
-      const [row] = await db
-        .update(schema.foodTypes)
-        .set({ name, slug })
-        .where(and(eq(schema.foodTypes.id, id), eq(schema.foodTypes.ownerId, ownerId)))
-        .returning()
-      if (!row) return c.json({ error: 'Not found' }, 404)
-      return c.json({ id: row.id, name: row.name }, 200)
-    }
-    // tags
-    const [row] = await db
-      .update(schema.tags)
-      .set({ name, slug })
-      .where(and(eq(schema.tags.id, id), eq(schema.tags.ownerId, ownerId)))
-      .returning()
+    const row = await configRepository.rename(type, ownerId, id, name)
     if (!row) return c.json({ error: 'Not found' }, 404)
-    return c.json({ id: row.id, name: row.name }, 200)
+    return c.json(row, 200)
   },
 )
 
@@ -179,7 +79,10 @@ configRoute.openapi(
     },
     responses: {
       204: { description: 'Deleted' },
-      400: { content: { 'application/json': { schema: errorSchema } }, description: 'In use' },
+      400: {
+        content: { 'application/json': { schema: errorSchema } },
+        description: 'System item or invalid reassignTo',
+      },
       404: { content: { 'application/json': { schema: errorSchema } }, description: 'Not found' },
     },
   }),
@@ -187,87 +90,22 @@ configRoute.openapi(
     const ownerId = c.get('ownerId')
     const { type, id } = c.req.valid('param')
     const { reassignTo } = c.req.valid('query')
-    const db = getDb()
-
-    if (type === 'food-types') {
-      const [owned] = await db
-        .select({ id: schema.foodTypes.id })
-        .from(schema.foodTypes)
-        .where(
-          and(
-            eq(schema.foodTypes.id, id),
-            eq(schema.foodTypes.ownerId, ownerId),
-            ne(sql`${schema.foodTypes.isSystem}`, 1),
-          ),
-        )
-        .limit(1)
-      if (!owned) return c.json({ error: 'Not found or system type' }, 400)
-
-      const usageCount = await db
-        .select({ count: sql<number>`cast(count(*) as int)` })
-        .from(schema.recipeFoodTypes)
-        .where(eq(schema.recipeFoodTypes.foodTypeId, id))
-      if (/* v8 ignore next -- count() always returns one row */ (usageCount[0]?.count ?? 0) > 0) {
-        if (reassignTo) {
-          await db
-            .update(schema.recipeFoodTypes)
-            .set({ foodTypeId: reassignTo })
-            .where(eq(schema.recipeFoodTypes.foodTypeId, id))
-        } else {
-          await db.delete(schema.recipeFoodTypes).where(eq(schema.recipeFoodTypes.foodTypeId, id))
-        }
-      }
-      await db.delete(schema.foodTypes).where(eq(schema.foodTypes.id, id))
-    } else if (type === 'tags') {
-      const [owned] = await db
-        .select({ id: schema.tags.id })
-        .from(schema.tags)
-        .where(and(eq(schema.tags.id, id), eq(schema.tags.ownerId, ownerId)))
-        .limit(1)
-      if (!owned) return c.json({ error: 'Not found' }, 404)
-
-      if (reassignTo) {
-        await db
-          .update(schema.recipeTags)
-          .set({ tagId: reassignTo })
-          .where(eq(schema.recipeTags.tagId, id))
-      } else {
-        await db.delete(schema.recipeTags).where(eq(schema.recipeTags.tagId, id))
-      }
-      await db.delete(schema.tags).where(eq(schema.tags.id, id))
-    } else if (type === 'categories') {
-      const [owned] = await db
-        .select({ id: schema.mealCategories.id, slug: schema.mealCategories.slug })
-        .from(schema.mealCategories)
-        .where(
-          and(
-            eq(schema.mealCategories.id, id),
-            eq(schema.mealCategories.ownerId, ownerId),
-            ne(sql`${schema.mealCategories.isSystem}`, 1),
-          ),
-        )
-        .limit(1)
-      if (!owned) return c.json({ error: 'Not found or system category' }, 400)
-
-      // Categories link to recipes via a case-insensitive slug/text match
-      // (recipes.category), not a foreign key — reassignment means updating
-      // matching recipes' category text, not a join-table row.
-      if (reassignTo) {
-        const [target] = await db
-          .select({ name: schema.mealCategories.name })
-          .from(schema.mealCategories)
-          .where(eq(schema.mealCategories.id, reassignTo))
-          .limit(1)
-        if (target) {
-          await db
-            .update(schema.recipes)
-            .set({ category: target.name })
-            .where(sql`lower(${schema.recipes.category}) = ${owned.slug}`)
-        }
-      }
-      await db.delete(schema.mealCategories).where(eq(schema.mealCategories.id, id))
+    const outcome =
+      type === 'food-types'
+        ? await configRepository.deleteFoodType(ownerId, id, reassignTo)
+        : type === 'tags'
+          ? await configRepository.deleteTag(ownerId, id, reassignTo)
+          : await configRepository.deleteCategory(ownerId, id, reassignTo)
+    if (outcome === 'bad_target') return c.json({ error: 'Invalid reassignTo' }, 400)
+    if (outcome === 'not_found') {
+      // Tags have no system rows; for the others a system item is "not deletable"
+      return type === 'tags'
+        ? c.json({ error: 'Not found' }, 404)
+        : c.json(
+            { error: `Not found or system ${type === 'food-types' ? 'type' : 'category'}` },
+            400,
+          )
     }
-
     return c.body(null, 204)
   },
 )
@@ -299,34 +137,8 @@ configRoute.openapi(
   async (c) => {
     const ownerId = c.get('ownerId')
     const { sourceId, targetId } = c.req.valid('json')
-    const db = getDb()
-
-    const owned = await db
-      .select({ id: schema.tags.id })
-      .from(schema.tags)
-      .where(
-        and(
-          eq(schema.tags.ownerId, ownerId),
-          or(eq(schema.tags.id, sourceId), eq(schema.tags.id, targetId)),
-        ),
-      )
-    if (owned.length < 2) return c.json({ error: 'Tag not found' }, 404)
-
-    // Reassign all recipe_tags from source to target (ignore duplicates)
-    const rows = await db
-      .select()
-      .from(schema.recipeTags)
-      .where(eq(schema.recipeTags.tagId, sourceId))
-    let merged = 0
-    for (const row of rows) {
-      await db
-        .insert(schema.recipeTags)
-        .values({ recipeId: row.recipeId, tagId: targetId })
-        .onConflictDoNothing()
-      merged++
-    }
-    await db.delete(schema.recipeTags).where(eq(schema.recipeTags.tagId, sourceId))
-    await db.delete(schema.tags).where(eq(schema.tags.id, sourceId))
+    const merged = await configRepository.mergeTags(ownerId, sourceId, targetId)
+    if (merged === null) return c.json({ error: 'Tag not found' }, 404)
     return c.json({ merged }, 200)
   },
 )

@@ -201,3 +201,203 @@ describe.skipIf(skip).sequential('Taxonomy config cross-tenant authorization', (
     expect(stillThere).toBeUndefined()
   })
 })
+
+// 2026-10-01 audit: config writes and counts must stay inside the caller's recipes,
+// and a reassign target must be one the caller can use.
+describe.skipIf(skip).sequential('Taxonomy config stays inside the caller’s recipes', () => {
+  const db = () => getDb()
+  const recipe = (ownerId: string, category: string) =>
+    db()
+      .insert(schema.recipes)
+      .values({
+        ownerId,
+        title: `R ${category} ${Math.random()}`,
+        servings: 2,
+        category,
+      })
+      .returning()
+      .then((rows) => rows[0]!)
+
+  it("reassigning a category renames only the caller's recipes", async () => {
+    const [cat] = await db()
+      .insert(schema.mealCategories)
+      .values({ name: 'Brunch', slug: 'brunch', ownerId: TEST_OWNER_ID })
+      .returning()
+    const [target] = await db()
+      .insert(schema.mealCategories)
+      .values({ name: 'Desayuno Tardío', slug: 'desayuno-tardio', ownerId: TEST_OWNER_ID })
+      .returning()
+    const mine = await recipe(TEST_OWNER_ID, 'Brunch')
+    const theirs = await recipe(OTHER_OWNER_ID, 'Brunch')
+
+    // Counts only the caller's recipe
+    const overview = await (
+      await app.request('/v1/config/taxonomy', { headers: { Authorization: authHeader } })
+    ).json()
+    const brunch = overview.mealCategories.find((c: { id: string }) => c.id === cat!.id)
+    expect(brunch.usageCount).toBe(1)
+
+    const res = await app.request(`/v1/config/categories/${cat!.id}?reassignTo=${target!.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: authHeader },
+    })
+    expect(res.status).toBe(204)
+    const after = async (id: string) =>
+      (await db().select().from(schema.recipes).where(eq(schema.recipes.id, id)))[0]!.category
+    expect(await after(mine.id)).toBe('Desayuno Tardío')
+    expect(await after(theirs.id)).toBe('Brunch')
+  })
+
+  it("rejects a reassign target that is another user's (400) and keeps the item", async () => {
+    const [cat] = await db()
+      .insert(schema.mealCategories)
+      .values({ name: 'Picada', slug: 'picada', ownerId: TEST_OWNER_ID })
+      .returning()
+    const [foreign] = await db()
+      .insert(schema.mealCategories)
+      .values({ name: 'Ajena', slug: 'ajena', ownerId: OTHER_OWNER_ID })
+      .returning()
+    const res = await app.request(`/v1/config/categories/${cat!.id}?reassignTo=${foreign!.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: authHeader },
+    })
+    expect(res.status).toBe(400)
+    const still = await db()
+      .select()
+      .from(schema.mealCategories)
+      .where(eq(schema.mealCategories.id, cat!.id))
+    expect(still).toHaveLength(1)
+
+    const self = await app.request(`/v1/config/categories/${cat!.id}?reassignTo=${cat!.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: authHeader },
+    })
+    expect(self.status).toBe(400)
+  })
+
+  it('moves food-type links to the target, skipping recipes that already have it', async () => {
+    const create = async (name: string) =>
+      (
+        await (
+          await app.request('/v1/food-types', {
+            method: 'POST',
+            headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name }),
+          })
+        ).json()
+      ).id as string
+    const from = await create('Tipo Origen')
+    const to = await create('Tipo Destino')
+    const both = await recipe(TEST_OWNER_ID, 'Cena')
+    const onlyFrom = await recipe(TEST_OWNER_ID, 'Cena')
+    await db()
+      .insert(schema.recipeFoodTypes)
+      .values([
+        { recipeId: both.id, foodTypeId: from },
+        { recipeId: both.id, foodTypeId: to },
+        { recipeId: onlyFrom.id, foodTypeId: from },
+      ])
+
+    const foreign = await app.request(
+      `/v1/config/food-types/${from}?reassignTo=${await otherFoodTypeIdLookup()}`,
+      {
+        method: 'DELETE',
+        headers: { Authorization: authHeader },
+      },
+    )
+    expect(foreign.status).toBe(400)
+
+    const res = await app.request(`/v1/config/food-types/${from}?reassignTo=${to}`, {
+      method: 'DELETE',
+      headers: { Authorization: authHeader },
+    })
+    expect(res.status).toBe(204)
+    const links = await db()
+      .select()
+      .from(schema.recipeFoodTypes)
+      .where(eq(schema.recipeFoodTypes.foodTypeId, to))
+    expect(links.map((l) => l.recipeId).sort()).toEqual([both.id, onlyFrom.id].sort())
+  })
+
+  it('moves tag links on delete; rejects a foreign or same target', async () => {
+    const tag = async (ownerId: string, slug: string) =>
+      (await db().insert(schema.tags).values({ name: slug, slug, ownerId }).returning())[0]!.id
+    const from = await tag(TEST_OWNER_ID, 'origen')
+    const to = await tag(TEST_OWNER_ID, 'destino')
+    const foreign = await tag(OTHER_OWNER_ID, 'ajeno')
+    const r = await recipe(TEST_OWNER_ID, 'Cena')
+    await db().insert(schema.recipeTags).values({ recipeId: r.id, tagId: from })
+
+    for (const bad of [foreign, from]) {
+      const res = await app.request(`/v1/config/tags/${from}?reassignTo=${bad}`, {
+        method: 'DELETE',
+        headers: { Authorization: authHeader },
+      })
+      expect(res.status).toBe(400)
+    }
+    const res = await app.request(`/v1/config/tags/${from}?reassignTo=${to}`, {
+      method: 'DELETE',
+      headers: { Authorization: authHeader },
+    })
+    expect(res.status).toBe(204)
+    const links = await db().select().from(schema.recipeTags).where(eq(schema.recipeTags.tagId, to))
+    expect(links.map((l) => l.recipeId)).toEqual([r.id])
+  })
+
+  it('deletes a tag outright, and a food type with no recipes while reassigning', async () => {
+    const [tag] = await db()
+      .insert(schema.tags)
+      .values({ name: 'suelto', slug: 'suelto', ownerId: TEST_OWNER_ID })
+      .returning()
+    const r = await recipe(TEST_OWNER_ID, 'Cena')
+    await db().insert(schema.recipeTags).values({ recipeId: r.id, tagId: tag!.id })
+    const res = await app.request(`/v1/config/tags/${tag!.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: authHeader },
+    })
+    expect(res.status).toBe(204)
+    expect(
+      await db().select().from(schema.recipeTags).where(eq(schema.recipeTags.recipeId, r.id)),
+    ).toEqual([])
+
+    const create = async (name: string) =>
+      (
+        await (
+          await app.request('/v1/food-types', {
+            method: 'POST',
+            headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name }),
+          })
+        ).json()
+      ).id as string
+    const unused = await create('Sin Uso')
+    const target = await create('Destino Sin Uso')
+    const del = await app.request(`/v1/config/food-types/${unused}?reassignTo=${target}`, {
+      method: 'DELETE',
+      headers: { Authorization: authHeader },
+    })
+    expect(del.status).toBe(204)
+  })
+
+  it('renames a category and a tag', async () => {
+    const [cat] = await db()
+      .insert(schema.mealCategories)
+      .values({ name: 'Viejo', slug: 'viejo', ownerId: TEST_OWNER_ID })
+      .returning()
+    const res = await app.request(`/v1/config/categories/${cat!.id}`, {
+      method: 'PATCH',
+      headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Nuevo Nombre' }),
+    })
+    expect(await res.json()).toEqual({ id: cat!.id, name: 'Nuevo Nombre' })
+  })
+})
+
+async function otherFoodTypeIdLookup(): Promise<string> {
+  const [row] = await getDb()
+    .select({ id: schema.foodTypes.id })
+    .from(schema.foodTypes)
+    .where(eq(schema.foodTypes.ownerId, OTHER_OWNER_ID))
+    .limit(1)
+  return row!.id
+}

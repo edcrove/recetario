@@ -146,6 +146,18 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
 - **Where it lives**: `apps/app/playwright.config.ts`, `apps/app/e2e/*.spec.ts`.
 - **Status**: active
 
+### D-2026-10-01-12 · Household visibility is resolved in the repositories
+
+- **Decision**: routes never compute the household-visible owner set. Recipe reads take an
+  explicit `RecipeScope`: `{ visibleTo: callerId }` (caller plus accepted housemates,
+  resolved inside the repository like menu, pantry and cook sessions already did) or
+  `{ ownedBy: ownerId }` for strict guards ahead of a write. Route files go through
+  repositories for every table (account, taxonomy, config, household repositories).
+- **Why**: 2026-10-01 audit (Clean code) — visibility was resolved in two layers and a
+  `string | string[]` owner argument made the strict/visible choice implicit.
+- **Where it lives**: `packages/api/src/db/repository.ts` (`RecipeScope`), `src/db/*-repository.ts`.
+- **Status**: active
+
 ## 2026-09-30 — Dependency & maintenance session (PRs #125, #140, #147, #148, #124)
 
 ### D-2026-09-30-12 · Production startup guard, closed sign-up and release step
