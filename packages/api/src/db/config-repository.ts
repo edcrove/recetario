@@ -1,18 +1,8 @@
 import { and, eq, isNull, ne, or, sql } from 'drizzle-orm'
 import type { AnyPgColumn } from 'drizzle-orm/pg-core'
+import type { ConfigType, TaxonomyItem } from '@recetario/shared'
 import { schema } from './index.js'
 import { currentDb, inTransaction } from './transaction.js'
-
-export type ConfigType = 'categories' | 'food-types' | 'tags'
-
-export interface TaxonomyItemView {
-  id: string
-  name: string
-  slug: string
-  usageCount: number
-  isDeletable: boolean
-  isSystem?: boolean
-}
 
 /** Why a delete didn't happen: the item isn't the caller's (or is a system one), or the reassign target isn't usable. */
 export type DeleteOutcome = 'deleted' | 'not_found' | 'bad_target'
@@ -51,9 +41,9 @@ const ownCustomCategory = (ownerId: string, id: string) =>
  */
 export const configRepository = {
   async overview(ownerId: string): Promise<{
-    mealCategories: TaxonomyItemView[]
-    foodTypes: TaxonomyItemView[]
-    tags: TaxonomyItemView[]
+    mealCategories: TaxonomyItem[]
+    foodTypes: TaxonomyItem[]
+    tags: TaxonomyItem[]
   }> {
     const db = currentDb()
     const mealCategories = await db

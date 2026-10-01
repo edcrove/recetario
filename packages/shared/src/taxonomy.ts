@@ -1,123 +1,13 @@
 import { z } from 'zod'
 
-// ── Meal categories (replaces CategorySchema enum) ───────────────────────────
-export const MealCategorySchema = z.object({
-  id: z.uuid(),
-  ownerId: z.string().nullable(),
-  name: z.string().min(1).max(50),
-  slug: z.string().min(1).max(50),
-  color: z.string().optional(),
-  isSystem: z.boolean(),
-})
-export type MealCategory = z.infer<typeof MealCategorySchema>
+// Response contracts for the taxonomy configurator, food types, collections,
+// recipe relations, suggestions and cook history, shared by the API (OpenAPI
+// responses) and the app client so they can't drift (2026-10-01 audit: the API
+// declared these in its route files, the app re-typed them by hand, and the
+// schemas that used to live here matched neither).
 
-export const CreateMealCategorySchema = MealCategorySchema.pick({ name: true, color: true })
-export type CreateMealCategory = z.infer<typeof CreateMealCategorySchema>
-
-// System slugs kept for backward compat
-export const SYSTEM_CATEGORY_SLUGS = [
-  'desayuno',
-  'almuerzo',
-  'cena',
-  'postre',
-  'snack',
-  'bebida',
-  'otro',
-] as const
-
-// ── Food types ───────────────────────────────────────────────────────────────
-export const FoodTypeSchema = z.object({
-  id: z.uuid(),
-  ownerId: z.string().nullable(),
-  name: z.string().min(1).max(50),
-  slug: z.string().min(1).max(50),
-  isSystem: z.boolean(),
-})
-export type FoodType = z.infer<typeof FoodTypeSchema>
-
-export const CreateFoodTypeSchema = FoodTypeSchema.pick({ name: true })
-export type CreateFoodType = z.infer<typeof CreateFoodTypeSchema>
-
-export const SYSTEM_FOOD_TYPE_SLUGS = [
-  'guiso',
-  'sopa',
-  'carne',
-  'minuta',
-  'ensalada',
-  'pasta',
-  'postre',
-  'bebida',
-  'saludable',
-  'panificado',
-  'tarta',
-] as const
-
-// ── Tags ─────────────────────────────────────────────────────────────────────
-export const TagSchema = z.object({
-  id: z.uuid(),
-  ownerId: z.string(),
-  name: z.string().min(1).max(50),
-  slug: z.string().min(1).max(50),
-})
-export type Tag = z.infer<typeof TagSchema>
-
-// ── Collections ──────────────────────────────────────────────────────────────
-export const CollectionSchema = z.object({
-  id: z.uuid(),
-  ownerId: z.string(),
-  name: z.string().min(1).max(100),
-  emoji: z.string().max(4).optional(),
-  description: z.string().max(500).optional(),
-  recipeCount: z.number().int().default(0),
-  createdAt: z.string().datetime().optional(),
-  updatedAt: z.string().datetime().optional(),
-})
-export type Collection = z.infer<typeof CollectionSchema>
-
-export const CreateCollectionSchema = CollectionSchema.pick({
-  name: true,
-  emoji: true,
-  description: true,
-})
-export type CreateCollection = z.infer<typeof CreateCollectionSchema>
-
-// ── Recipe relations ─────────────────────────────────────────────────────────
-export const RelationTypeSchema = z.enum(['similar', 'variation', 'inspiration'])
-export type RelationType = z.infer<typeof RelationTypeSchema>
-
-export const RecipeRelationSchema = z.object({
-  fromId: z.uuid(),
-  toId: z.uuid(),
-  relationType: RelationTypeSchema,
-  createdBy: z.enum(['user', 'agent']).default('user'),
-})
-export type RecipeRelation = z.infer<typeof RecipeRelationSchema>
-
-// ── Cook sessions ────────────────────────────────────────────────────────────
-export const CookSessionSchema = z.object({
-  id: z.uuid(),
-  // Nullable: deleting a recipe sets this to null instead of destroying the
-  // session (see 2026-07-03 audit finding). recipeTitle is a snapshot from
-  // when the session was logged, so history stays readable either way.
-  recipeId: z.uuid().nullable(),
-  recipeTitle: z.string().nullable().optional(),
-  ownerId: z.string(),
-  cookedAt: z.string().datetime(),
-  rating: z.number().int().min(1).max(5).nullable(),
-  notes: z.string().max(1000).nullable(),
-  createdAt: z.string().datetime().optional(),
-})
-export type CookSession = z.infer<typeof CookSessionSchema>
-
-export const CreateCookSessionSchema = z.object({
-  recipeId: z.uuid(),
-  rating: z.number().int().min(1).max(5).nullable().optional(),
-  notes: z.string().max(1000).optional(),
-})
-export type CreateCookSession = z.infer<typeof CreateCookSessionSchema>
-
-// ── Taxonomy usage stats ──────────────────────────────────────────────────────
-export const TaxonomyItemWithUsageSchema = z.object({
+/** One row of the taxonomy configurator. Tags have no system rows, so no `isSystem`. */
+export const TaxonomyItemSchema = z.object({
   id: z.uuid(),
   name: z.string(),
   slug: z.string(),
@@ -125,11 +15,96 @@ export const TaxonomyItemWithUsageSchema = z.object({
   isDeletable: z.boolean(),
   isSystem: z.boolean().optional(),
 })
-export type TaxonomyItemWithUsage = z.infer<typeof TaxonomyItemWithUsageSchema>
+export type TaxonomyItem = z.infer<typeof TaxonomyItemSchema>
 
 export const TaxonomyOverviewSchema = z.object({
-  mealCategories: z.array(TaxonomyItemWithUsageSchema),
-  foodTypes: z.array(TaxonomyItemWithUsageSchema),
-  tags: z.array(TaxonomyItemWithUsageSchema),
+  mealCategories: z.array(TaxonomyItemSchema),
+  foodTypes: z.array(TaxonomyItemSchema),
+  tags: z.array(TaxonomyItemSchema),
 })
 export type TaxonomyOverview = z.infer<typeof TaxonomyOverviewSchema>
+
+export const ConfigTypeSchema = z.enum(['categories', 'food-types', 'tags'])
+export type ConfigType = z.infer<typeof ConfigTypeSchema>
+
+export const FoodTypeSchema = z.object({
+  id: z.uuid(),
+  name: z.string(),
+  slug: z.string(),
+  isSystem: z.boolean(),
+})
+export type FoodType = z.infer<typeof FoodTypeSchema>
+
+export const CollectionSchema = z.object({
+  id: z.uuid(),
+  name: z.string(),
+  emoji: z.string().nullable(),
+  description: z.string().nullable(),
+  recipeCount: z.number().int(),
+  createdAt: z.string(),
+})
+export type Collection = z.infer<typeof CollectionSchema>
+
+export const RelationTypeSchema = z.enum(['similar', 'variation', 'inspiration'])
+export type RelationType = z.infer<typeof RelationTypeSchema>
+
+export const RecipeRelationSchema = z.object({
+  fromId: z.uuid(),
+  toId: z.uuid(),
+  relationType: RelationTypeSchema,
+  createdBy: z.string(),
+})
+export type RecipeRelation = z.infer<typeof RecipeRelationSchema>
+
+/** A recipe ranked by "what can I cook with what I have". */
+export const SuggestionSchema = z.object({
+  id: z.uuid(),
+  title: z.string(),
+  matchedCount: z.number().int(),
+  totalCount: z.number().int(),
+  matchFraction: z.number(),
+  missingIngredients: z.array(z.string()),
+  goalFit: z.enum(['dentro', 'cerca', 'lejos']).nullable(),
+  nutrition: z
+    .object({
+      calories: z.number(),
+      protein_g: z.number(),
+      carbs_g: z.number(),
+      fat_g: z.number(),
+    })
+    .nullable(),
+  usesExpiring: z.array(z.string()),
+  recentlyCooked: z.boolean(),
+  avgRating: z.number().nullable(),
+})
+export type Suggestion = z.infer<typeof SuggestionSchema>
+
+export const CookSessionSchema = z.object({
+  id: z.uuid(),
+  recipeId: z.uuid().nullable(),
+  recipeTitle: z.string().nullable().optional(),
+  ownerId: z.string(),
+  cookedAt: z.string(),
+  rating: z.number().int().min(1).max(5).nullable(),
+  notes: z.string().nullable(),
+  servings: z.number().int().nullable().optional(),
+  source: z.string().nullable().optional(),
+  createdAt: z.string(),
+})
+export type CookSession = z.infer<typeof CookSessionSchema>
+
+export const CookStatsSchema = z.object({
+  // Every figure covers the same window: `since` (default: last 90 days)
+  since: z.string(),
+  totalSessions: z.number().int(),
+  topRecipes: z.array(
+    z.object({
+      recipeId: z.uuid().nullable(),
+      title: z.string().nullable(),
+      count: z.number().int(),
+      lastCookedAt: z.string(),
+    }),
+  ),
+  frequencyByWeek: z.array(z.object({ week: z.string(), count: z.number().int() })),
+})
+export type CookStats = z.infer<typeof CookStatsSchema>

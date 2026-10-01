@@ -13,6 +13,15 @@ import type {
   Profile,
   NutritionTargets,
   DayNutrition,
+  TaxonomyOverview,
+  ConfigType,
+  Suggestion,
+  FoodType,
+  Collection,
+  RecipeRelation,
+  RelationType,
+  CookSession,
+  CookStats,
 } from '@recetario/shared'
 
 const BASE_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
@@ -194,38 +203,13 @@ export const api = {
     ) => request<Profile>('/auth/profile', { method: 'PATCH', body: JSON.stringify(data) }),
   },
   config: {
-    taxonomy: () =>
-      request<{
-        mealCategories: Array<{
-          id: string
-          name: string
-          slug: string
-          usageCount: number
-          isDeletable: boolean
-          isSystem?: boolean
-        }>
-        foodTypes: Array<{
-          id: string
-          name: string
-          slug: string
-          usageCount: number
-          isDeletable: boolean
-          isSystem?: boolean
-        }>
-        tags: Array<{
-          id: string
-          name: string
-          slug: string
-          usageCount: number
-          isDeletable: boolean
-        }>
-      }>('/v1/config/taxonomy'),
-    rename: (type: 'categories' | 'food-types' | 'tags', id: string, name: string) =>
+    taxonomy: () => request<TaxonomyOverview>('/v1/config/taxonomy'),
+    rename: (type: ConfigType, id: string, name: string) =>
       request<{ id: string; name: string }>(`/v1/config/${type}/${id}`, {
         method: 'PATCH',
         body: JSON.stringify({ name }),
       }),
-    delete: (type: 'categories' | 'food-types' | 'tags', id: string, reassignTo?: string) =>
+    delete: (type: ConfigType, id: string, reassignTo?: string) =>
       request<void>(`/v1/config/${type}/${id}${reassignTo ? `?reassignTo=${reassignTo}` : ''}`, {
         method: 'DELETE',
       }),
@@ -282,39 +266,16 @@ export const api = {
   },
   suggestions: {
     fromIngredients: (body: { ingredients?: string[]; usePantry?: boolean; date?: string }) =>
-      request<
-        Array<{
-          id: string
-          title: string
-          matchedCount: number
-          totalCount: number
-          matchFraction: number
-          missingIngredients: string[]
-          goalFit: 'dentro' | 'cerca' | 'lejos' | null
-          nutrition: { calories: number; protein_g: number; carbs_g: number; fat_g: number } | null
-          usesExpiring?: string[]
-          recentlyCooked?: boolean
-          avgRating?: number | null
-        }>
-      >('/v1/suggestions/from-ingredients', { method: 'POST', body: JSON.stringify(body) }),
+      request<Suggestion[]>('/v1/suggestions/from-ingredients', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
   },
   taxonomy: {
-    foodTypes: () =>
-      request<Array<{ id: string; name: string; slug: string; isSystem: boolean }>>(
-        '/v1/food-types',
-      ),
-    collections: () =>
-      request<
-        Array<{
-          id: string
-          name: string
-          emoji: string | null
-          description: string | null
-          recipeCount: number
-        }>
-      >('/v1/collections'),
+    foodTypes: () => request<FoodType[]>('/v1/food-types'),
+    collections: () => request<Collection[]>('/v1/collections'),
     createCollection: (data: { name: string; emoji?: string; description?: string }) =>
-      request<{ id: string; name: string; emoji: string | null }>('/v1/collections', {
+      request<Collection>('/v1/collections', {
         method: 'POST',
         body: JSON.stringify(data),
       }),
@@ -332,18 +293,12 @@ export const api = {
       request<void>(`/v1/collections/${collectionId}/recipes/${recipeId}`, { method: 'DELETE' }),
     deleteCollection: (collectionId: string) =>
       request<void>(`/v1/collections/${collectionId}`, { method: 'DELETE' }),
-    relations: (recipeId: string) =>
-      request<Array<{ fromId: string; toId: string; relationType: string }>>(
-        `/v1/recipes/${recipeId}/relations`,
-      ),
-    addRelation: (fromId: string, toId: string, relationType: string) =>
-      request<{ fromId: string; toId: string; relationType: string }>(
-        `/v1/recipes/${fromId}/relations`,
-        {
-          method: 'POST',
-          body: JSON.stringify({ toId, relationType }),
-        },
-      ),
+    relations: (recipeId: string) => request<RecipeRelation[]>(`/v1/recipes/${recipeId}/relations`),
+    addRelation: (fromId: string, toId: string, relationType: RelationType) =>
+      request<RecipeRelation>(`/v1/recipes/${fromId}/relations`, {
+        method: 'POST',
+        body: JSON.stringify({ toId, relationType }),
+      }),
   },
   cookSessions: {
     log: (data: {
@@ -352,36 +307,11 @@ export const api = {
       notes?: string
       servings?: number
       source?: 'app' | 'mcp'
-    }) =>
-      request<{
-        id: string
-        recipeId: string
-        rating: number | null
-        notes: string | null
-        cookedAt: string
-      }>('/v1/cook-sessions', { method: 'POST', body: JSON.stringify(data) }),
+    }) => request<CookSession>('/v1/cook-sessions', { method: 'POST', body: JSON.stringify(data) }),
     listByRecipe: (recipeId: string, limit = 20) =>
-      request<
-        Array<{
-          id: string
-          recipeId: string
-          rating: number | null
-          notes: string | null
-          cookedAt: string
-        }>
-      >(`/v1/cook-sessions?recipeId=${recipeId}&limit=${limit}`),
+      request<CookSession[]>(`/v1/cook-sessions?recipeId=${recipeId}&limit=${limit}`),
     stats: (since?: string) =>
-      request<{
-        since: string
-        totalSessions: number
-        topRecipes: Array<{
-          recipeId: string | null
-          title: string | null
-          count: number
-          lastCookedAt: string
-        }>
-        frequencyByWeek: Array<{ week: string; count: number }>
-      }>(`/v1/cook-sessions/stats${since ? `?since=${since}` : ''}`),
+      request<CookStats>(`/v1/cook-sessions/stats${since ? `?since=${since}` : ''}`),
   },
   households: {
     create: (name: string) =>

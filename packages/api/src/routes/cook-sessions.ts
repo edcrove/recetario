@@ -1,5 +1,6 @@
 import { createRouter } from './router.js'
 import { createRoute as defineRoute, z } from '@hono/zod-openapi'
+import { CookSessionSchema, CookStatsSchema } from '@recetario/shared'
 import { authMiddleware } from '../middleware/auth.js'
 import { cookSessionsRepository } from '../db/cook-sessions-repository.js'
 
@@ -7,38 +8,9 @@ export const cookSessionsRoute = createRouter()
 
 cookSessionsRoute.use('*', authMiddleware)
 
-const sessionSchema = z.object({
-  id: z.uuid(),
-  recipeId: z.uuid().nullable(),
-  recipeTitle: z.string().nullable().optional(),
-  ownerId: z.string(),
-  cookedAt: z.string(),
-  rating: z.number().int().min(1).max(5).nullable(),
-  notes: z.string().nullable(),
-  servings: z.number().int().nullable().optional(),
-  source: z.string().nullable().optional(),
-  createdAt: z.string(),
-})
+const sessionSchema = CookSessionSchema
 
-const statsSchema = z.object({
-  // Every figure covers the same window: `since` (default: last 90 days)
-  since: z.string(),
-  totalSessions: z.number().int(),
-  topRecipes: z.array(
-    z.object({
-      recipeId: z.uuid().nullable(),
-      title: z.string().nullable(),
-      count: z.number().int(),
-      lastCookedAt: z.string(),
-    }),
-  ),
-  frequencyByWeek: z.array(
-    z.object({
-      week: z.string(),
-      count: z.number().int(),
-    }),
-  ),
-})
+const statsSchema = CookStatsSchema
 
 // POST /v1/cook-sessions
 const createRoute = defineRoute({

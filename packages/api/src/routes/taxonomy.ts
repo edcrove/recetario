@@ -1,6 +1,11 @@
 import { createRouter } from './router.js'
 import { createRoute as defineRoute, z } from '@hono/zod-openapi'
-import { RecipeSchema } from '@recetario/shared'
+import {
+  RecipeSchema,
+  FoodTypeSchema,
+  CollectionSchema,
+  RecipeRelationSchema,
+} from '@recetario/shared'
 import { taxonomyRepository } from '../db/taxonomy-repository.js'
 import { authMiddleware } from '../middleware/auth.js'
 import { recipeRepository } from '../db/repository.js'
@@ -14,12 +19,7 @@ for (const path of ['/food-types', '/collections', '/collections/*', '/recipes/:
 
 const errorSchema = z.object({ error: z.string() })
 
-const foodTypeSchema = z.object({
-  id: z.uuid(),
-  name: z.string(),
-  slug: z.string(),
-  isSystem: z.boolean(),
-})
+const foodTypeSchema = FoodTypeSchema
 
 // GET /v1/food-types
 taxonomyRoute.openapi(
@@ -63,14 +63,7 @@ taxonomyRoute.openapi(
   },
 )
 
-const collectionSchema = z.object({
-  id: z.uuid(),
-  name: z.string(),
-  emoji: z.string().nullable(),
-  description: z.string().nullable(),
-  recipeCount: z.number().int(),
-  createdAt: z.string(),
-})
+const collectionSchema = CollectionSchema
 
 // GET /v1/collections
 taxonomyRoute.openapi(
@@ -239,12 +232,7 @@ taxonomyRoute.openapi(
   },
 )
 
-const relationSchema = z.object({
-  fromId: z.uuid(),
-  toId: z.uuid(),
-  relationType: z.enum(['similar', 'variation', 'inspiration']),
-  createdBy: z.string(),
-})
+const relationSchema = RecipeRelationSchema
 
 // POST /v1/recipes/:id/relations
 taxonomyRoute.openapi(

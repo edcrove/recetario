@@ -1,31 +1,7 @@
 import { and, eq, isNull, or, sql } from 'drizzle-orm'
+import type { Collection, FoodType, RecipeRelation, RelationType } from '@recetario/shared'
 import { schema } from './index.js'
 import { currentDb } from './transaction.js'
-
-export type RelationType = 'similar' | 'variation' | 'inspiration'
-
-export interface FoodTypeView {
-  id: string
-  name: string
-  slug: string
-  isSystem: boolean
-}
-
-export interface CollectionView {
-  id: string
-  name: string
-  emoji: string | null
-  description: string | null
-  recipeCount: number
-  createdAt: string
-}
-
-export interface RelationView {
-  fromId: string
-  toId: string
-  relationType: RelationType
-  createdBy: string
-}
 
 /** "Comida Rápida" → "comida-rpida": lowercase, dashes, ASCII only. */
 function slugify(name: string): string {
@@ -44,7 +20,7 @@ const ownCollection = (ownerId: string, id: string) =>
  */
 export const taxonomyRepository = {
   /** System food types plus the caller's own, by name. */
-  async listFoodTypes(ownerId: string): Promise<FoodTypeView[]> {
+  async listFoodTypes(ownerId: string): Promise<FoodType[]> {
     const rows = await currentDb()
       .select()
       .from(schema.foodTypes)
@@ -58,7 +34,7 @@ export const taxonomyRepository = {
     }))
   },
 
-  async createFoodType(ownerId: string, name: string): Promise<FoodTypeView> {
+  async createFoodType(ownerId: string, name: string): Promise<FoodType> {
     const [row] = await currentDb()
       .insert(schema.foodTypes)
       .values({ name, slug: slugify(name), ownerId, isSystem: 0 })
@@ -67,7 +43,7 @@ export const taxonomyRepository = {
   },
 
   /** The caller's collections with their recipe counts, by name. */
-  async listCollections(ownerId: string): Promise<CollectionView[]> {
+  async listCollections(ownerId: string): Promise<Collection[]> {
     const rows = await currentDb()
       .select({
         id: schema.collections.id,
@@ -91,7 +67,7 @@ export const taxonomyRepository = {
   async createCollection(
     ownerId: string,
     input: { name: string; emoji?: string; description?: string },
-  ): Promise<CollectionView> {
+  ): Promise<Collection> {
     const [row] = await currentDb()
       .insert(schema.collections)
       .values({ ...input, ownerId })
@@ -151,11 +127,11 @@ export const taxonomyRepository = {
     return links.map((link) => link.recipeId)
   },
 
-  async addRelation(relation: RelationView): Promise<void> {
+  async addRelation(relation: RecipeRelation): Promise<void> {
     await currentDb().insert(schema.recipeRelations).values(relation).onConflictDoNothing()
   },
 
-  async listRelations(fromId: string): Promise<RelationView[]> {
+  async listRelations(fromId: string): Promise<RecipeRelation[]> {
     const rows = await currentDb()
       .select()
       .from(schema.recipeRelations)

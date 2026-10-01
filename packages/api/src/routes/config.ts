@@ -1,5 +1,6 @@
 import { createRouter } from './router.js'
 import { createRoute as defineRoute, z } from '@hono/zod-openapi'
+import { TaxonomyOverviewSchema } from '@recetario/shared'
 import { configRepository } from '../db/config-repository.js'
 import { authMiddleware } from '../middleware/auth.js'
 
@@ -8,20 +9,7 @@ configRoute.use('*', authMiddleware)
 
 const errorSchema = z.object({ error: z.string() })
 
-const taxonomyItemSchema = z.object({
-  id: z.uuid(),
-  name: z.string(),
-  slug: z.string(),
-  usageCount: z.number().int(),
-  isDeletable: z.boolean(),
-  isSystem: z.boolean().optional(),
-})
-
-const taxonomyOverviewSchema = z.object({
-  mealCategories: z.array(taxonomyItemSchema),
-  foodTypes: z.array(taxonomyItemSchema),
-  tags: z.array(taxonomyItemSchema),
-})
+const taxonomyOverviewSchema = TaxonomyOverviewSchema
 
 // GET /v1/config/taxonomy
 configRoute.openapi(
