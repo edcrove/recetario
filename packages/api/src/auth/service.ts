@@ -32,13 +32,17 @@ export async function signJwt(payload: JwtPayload): Promise<string> {
     .sign(JWT_SECRET)
 }
 
-export async function verifyJwt(token: string): Promise<JwtPayload | null> {
+export async function verifyJwt(token: string): Promise<(JwtPayload & { iat: number }) | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET, { algorithms: [JWT_ALGORITHM] })
+    const { payload } = await jwtVerify(token, JWT_SECRET, {
+      algorithms: [JWT_ALGORITHM],
+      requiredClaims: ['iat'],
+    })
     return {
       sub: payload.sub as string,
       email: payload['email'] as string,
       householdId: payload['householdId'] as string | undefined,
+      iat: payload.iat as number,
     }
   } catch {
     return null

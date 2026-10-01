@@ -155,6 +155,8 @@ export const users = pgTable('users', {
   passwordHash: text('password_hash').notNull(),
   displayName: text('display_name'),
   avatarUrl: text('avatar_url'),
+  // Set when the password is reset; JWTs issued before it are rejected.
+  passwordChangedAt: timestamp('password_changed_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 })
