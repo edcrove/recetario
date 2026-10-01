@@ -1,4 +1,4 @@
-import { eq, and, isNotNull } from 'drizzle-orm'
+import { eq, and, ne, isNotNull } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { getDb, schema } from './index.js'
 
@@ -16,6 +16,9 @@ export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f
  * Only ACCEPTED memberships count, on both sides: a pending invite must not
  * share anything, otherwise inviting someone's email would expose their
  * private content to the inviter (and the inviter's to them).
+ *
+ * Viewers are read-only: they see the household, but their own content
+ * (recipes, cook history) never surfaces to the other members.
  */
 export async function getVisibleOwnerIds(callerId: string): Promise<string[]> {
   if (!UUID_RE.test(callerId)) return [callerId]
@@ -31,6 +34,7 @@ export async function getVisibleOwnerIds(callerId: string): Promise<string[]> {
         eq(mine.userId, callerId),
         isNotNull(mine.acceptedAt),
         isNotNull(schema.householdMembers.acceptedAt),
+        ne(schema.householdMembers.role, 'viewer'),
       ),
     )
 

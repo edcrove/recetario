@@ -24,6 +24,10 @@ vi.mock('../db/ingredient-repository.js', () => ({
   },
 }))
 
+vi.mock('../db/household-visibility.js', () => ({
+  isViewerAnywhere: vi.fn(async () => false),
+}))
+
 vi.mock('../db/index.js', () => ({
   getDb: vi.fn(() => {
     throw new Error('DB not available in tests')
@@ -33,6 +37,9 @@ vi.mock('../db/index.js', () => ({
 
 import { app } from '../index.js'
 import { pantryRepository } from '../db/pantry-repository.js'
+import { isViewerAnywhere } from '../db/household-visibility.js'
+
+const mockIsViewer = vi.mocked(isViewerAnywhere)
 
 const mockRepo = pantryRepository as unknown as {
   list: ReturnType<typeof vi.fn>
@@ -185,5 +192,39 @@ describe('DELETE /v1/pantry/{id}', () => {
     mockRepo.remove.mockResolvedValue(false)
     const res = await app.request(`/v1/pantry/${ID}`, { method: 'DELETE', headers: AUTH })
     expect(res.status).toBe(404)
+  })
+})
+
+// Viewers are read-only on the shared pantry: every write 403s, reads still work.
+describe('viewer role enforcement on pantry writes', () => {
+  beforeEach(() => {
+    mockIsViewer.mockResolvedValue(true)
+  })
+  afterAll(() => {
+    mockIsViewer.mockResolvedValue(false)
+  })
+
+  it.each([
+    ['POST', '/v1/pantry', { name: 'Sal' }],
+    ['POST', '/v1/pantry/bulk', { items: [{ name: 'Sal' }] }],
+    ['PATCH', `/v1/pantry/${ID}`, { inStock: false }],
+    ['DELETE', `/v1/pantry/${ID}`, undefined],
+  ])('%s %s returns 403', async (method, path, body) => {
+    const res = await app.request(path, {
+      method,
+      headers: body ? JSON_AUTH : AUTH,
+      body: body ? JSON.stringify(body) : undefined,
+    })
+    expect(res.status).toBe(403)
+    expect(mockRepo.create).not.toHaveBeenCalled()
+    expect(mockRepo.upsert).not.toHaveBeenCalled()
+    expect(mockRepo.update).not.toHaveBeenCalled()
+    expect(mockRepo.remove).not.toHaveBeenCalled()
+  })
+
+  it('GET /v1/pantry still works', async () => {
+    mockRepo.list.mockResolvedValue([item])
+    const res = await app.request('/v1/pantry', { headers: AUTH })
+    expect(res.status).toBe(200)
   })
 })

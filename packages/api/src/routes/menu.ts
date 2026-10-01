@@ -271,11 +271,16 @@ const putShoppingCheckRoute = defineRoute({
       content: { 'application/json': { schema: z.object({ ok: z.boolean() }) } },
       description: 'Check state persisted',
     },
+    403: {
+      content: { 'application/json': { schema: errorSchema } },
+      description: 'Household viewers cannot check off the shared list',
+    },
   },
 })
 
 menuRoute.openapi(putShoppingCheckRoute, async (c) => {
   const ownerId = c.get('ownerId')
+  if (await isViewerAnywhere(ownerId)) return c.json({ error: 'Forbidden' }, 403)
   const { weekStart, key, checked } = c.req.valid('json')
   await menuRepository.setShoppingCheck(ownerId, weekStart, key, checked)
   return c.json({ ok: true }, 200)

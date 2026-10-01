@@ -14,6 +14,8 @@ import { api } from '../../src/api/client'
 import { notify } from '../../src/utils/platformAlert'
 import { expiryStatus, groupPantry, type PantryItem } from '../../src/utils/pantryView'
 import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
+import { useIsViewer } from '../../src/hooks/useIsViewer'
+import { ViewerNotice } from '../../src/components/ViewerNotice'
 
 export default function PantryScreen() {
   const c = useThemeColors()
@@ -21,6 +23,8 @@ export default function PantryScreen() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const [newName, setNewName] = useState('')
+  // The pantry is shared with the household; viewers can only read it.
+  const isViewer = useIsViewer()
 
   const {
     data: items = [],
@@ -86,25 +90,29 @@ export default function PantryScreen() {
         </TouchableOpacity>
       </View>
 
-      <View style={s.addRow}>
-        <TextInput
-          testID="pantry-new-name"
-          style={s.addInput}
-          placeholder="Agregar a la despensa…"
-          placeholderTextColor={c.inkSoft}
-          value={newName}
-          onChangeText={setNewName}
-          autoCorrect={false}
-        />
-        <TouchableOpacity
-          testID="pantry-add"
-          style={[s.addBtn, !newName.trim() && s.addBtnDisabled]}
-          disabled={!newName.trim()}
-          onPress={() => add.mutate(newName.trim())}
-        >
-          <Text style={s.addBtnText}>Agregar</Text>
-        </TouchableOpacity>
-      </View>
+      {isViewer ? (
+        <ViewerNotice />
+      ) : (
+        <View style={s.addRow}>
+          <TextInput
+            testID="pantry-new-name"
+            style={s.addInput}
+            placeholder="Agregar a la despensa…"
+            placeholderTextColor={c.inkSoft}
+            value={newName}
+            onChangeText={setNewName}
+            autoCorrect={false}
+          />
+          <TouchableOpacity
+            testID="pantry-add"
+            style={[s.addBtn, !newName.trim() && s.addBtnDisabled]}
+            disabled={!newName.trim()}
+            onPress={() => add.mutate(newName.trim())}
+          >
+            <Text style={s.addBtnText}>Agregar</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <SectionList
         sections={sections}
@@ -119,6 +127,7 @@ export default function PantryScreen() {
               <TouchableOpacity
                 testID={`pantry-toggle-${item.id}`}
                 style={[s.checkbox, item.inStock && s.checkboxOn]}
+                disabled={isViewer}
                 onPress={() => toggle.mutate({ id: item.id, inStock: !item.inStock })}
               >
                 {item.inStock && <Text style={s.checkmark}>✓</Text>}
@@ -155,14 +164,16 @@ export default function PantryScreen() {
                   </View>
                 )}
               </View>
-              <TouchableOpacity
-                testID={`pantry-delete-${item.id}`}
-                accessibilityRole="button"
-                accessibilityLabel="Eliminar de la despensa"
-                onPress={() => remove.mutate(item.id)}
-              >
-                <Text style={s.delete}>🗑️</Text>
-              </TouchableOpacity>
+              {!isViewer && (
+                <TouchableOpacity
+                  testID={`pantry-delete-${item.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel="Eliminar de la despensa"
+                  onPress={() => remove.mutate(item.id)}
+                >
+                  <Text style={s.delete}>🗑️</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )
         }}

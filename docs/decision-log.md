@@ -71,6 +71,20 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
   entries).
 - **Status**: active — revisit when households track per-member portions.
 
+### D-2026-10-01-6 · Household viewers are read-only on every shared surface
+
+- **Decision**: an accepted `viewer` gets 403 on menu writes, shopping-list check-offs and
+  shared-pantry writes. Their own recipes and cook history never surface to the other
+  members (`getVisibleOwnerIds` skips viewer members), so they can keep personal recipes
+  without writing into the household. The app hides those controls and shows a
+  "solo lectura" notice (`ViewerNotice`) on menu, shopping list and pantry.
+- **Why**: the 2026-10-01 audit found `viewer` enforced only on menu writes; viewers could
+  still edit the shared pantry, check items off and publish recipes into the household,
+  and the UI hid buttons without saying why.
+- **Where it lives**: `packages/api/src/db/household-visibility.ts`, `routes/pantry.ts`,
+  `routes/menu.ts`, `apps/app/src/hooks/useIsViewer.ts`, `src/components/ViewerNotice.tsx`.
+- **Status**: active
+
 ## 2026-09-30 — Dependency & maintenance session (PRs #125, #140, #147, #148, #124)
 
 ### D-2026-09-30-12 · Production startup guard, closed sign-up and release step

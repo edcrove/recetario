@@ -125,10 +125,11 @@ test.describe('Pick recipe screen (/menu/pick)', () => {
   test('shows an allergen badge on recipes that conflict with the profile', async ({ page }) => {
     const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
     const token = await page.evaluate(() => localStorage.getItem('auth_token'))
-    await page.request.patch(`${API_URL}/auth/profile`, {
+    const res = await page.request.patch(`${API_URL}/auth/profile`, {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      data: { allergens: ['queso'] },
+      data: { allergens: ['leche'] },
     })
+    expect(res.ok()).toBe(true)
 
     await page.goto('/menu/pick?date=2025-01-06&slot=Almuerzo&weekStart=2025-01-06')
     await expect(page.getByPlaceholder('Buscar receta...')).toBeVisible({ timeout: 15000 })
