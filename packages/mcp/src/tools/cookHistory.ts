@@ -70,11 +70,19 @@ export function registerCookHistoryTools(
       recipeId: z.uuid().describe('Recipe UUID'),
       rating: z.number().int().min(1).max(5).optional().describe('Rating 1-5'),
       notes: z.string().max(1000).optional().describe('Cooking notes'),
+      servings: z
+        .number()
+        .int()
+        .positive()
+        .max(100)
+        .optional()
+        .describe('How many servings were cooked (defaults to unknown)'),
     },
     async (args) => {
       const session = await api.request('/v1/cook-sessions', {
         method: 'POST',
-        body: JSON.stringify(args),
+        // Sessions logged by an agent are tagged so analytics can tell them apart
+        body: JSON.stringify({ ...args, source: 'mcp' }),
       })
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(session, null, 2) }],

@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 // Hoisted mocks
-const { mockUsersSelect, mockUsersInsert, mockProfileInsert } = vi.hoisted(() => ({
+const { mockUsersSelect, mockUsersInsert, mockProfileInsert, mockUsersUpdate } = vi.hoisted(() => ({
+  mockUsersUpdate: vi.fn(),
   mockUsersSelect: vi.fn(),
   mockUsersInsert: vi.fn(),
   mockProfileInsert: vi.fn(),
@@ -23,6 +24,7 @@ vi.mock('../db/index.js', () => ({
       }),
       onConflictDoNothing: () => Promise.resolve(),
     }),
+    update: () => ({ set: (v: unknown) => ({ where: () => Promise.resolve(mockUsersUpdate(v)) }) }),
   })),
   schema: {
     users: { email: 'email', id: 'id' },
@@ -178,6 +180,8 @@ describe('POST /auth/login', () => {
     const body = await res.json()
     expect(typeof body.token).toBe('string')
     expect(body.user.email).toBe('test@test.com')
+    // A successful login records lastLoginAt
+    expect(mockUsersUpdate).toHaveBeenCalledWith({ lastLoginAt: expect.any(Date) })
   })
 
   it('returns 401 when password is wrong', async () => {

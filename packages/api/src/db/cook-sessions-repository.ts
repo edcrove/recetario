@@ -10,7 +10,17 @@ export interface CookSessionRow {
   cookedAt: Date
   rating: number | null
   notes: string | null
+  servings: number | null
+  source: string | null
+  nutritionSnapshot: unknown
   createdAt: Date
+}
+
+export interface CookSessionInput {
+  rating?: number | null
+  notes?: string | null
+  servings?: number
+  source?: 'app' | 'mcp'
 }
 
 export interface CookStats {
@@ -29,8 +39,7 @@ export const cookSessionsRepository = {
   async create(
     ownerId: string,
     recipeId: string,
-    rating?: number | null,
-    notes?: string | null,
+    input: CookSessionInput = {},
   ): Promise<CookSessionRow> {
     const db = getDb()
     // Snapshot the recipe's current title — see 2026-07-03 audit finding:
@@ -41,7 +50,7 @@ export const cookSessionsRepository = {
     // same class as the menu upsert fix in #108).
     const visibleOwners = await getVisibleOwnerIds(ownerId)
     const [recipe] = await db
-      .select({ title: schema.recipes.title })
+      .select({ title: schema.recipes.title, nutrition: schema.recipes.nutrition })
       .from(schema.recipes)
       .where(and(eq(schema.recipes.id, recipeId), inArray(schema.recipes.ownerId, visibleOwners)))
       .limit(1)
@@ -52,8 +61,11 @@ export const cookSessionsRepository = {
         ownerId,
         recipeId,
         recipeTitle: recipe?.title,
-        rating: rating ?? null,
-        notes: notes ?? null,
+        rating: input.rating ?? null,
+        notes: input.notes ?? null,
+        servings: input.servings ?? null,
+        source: input.source ?? null,
+        nutritionSnapshot: recipe?.nutrition ?? null,
       })
       .returning()
     return session!

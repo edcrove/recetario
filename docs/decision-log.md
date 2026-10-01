@@ -97,6 +97,18 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
   `updateRecipe` description.
 - **Status**: active
 
+### D-2026-10-01-8 · Capture cook-time context now
+
+- **Decision**: each cook session stores the servings cooked, where it was logged from
+  (`app` / `mcp`) and a snapshot of the recipe's per-serving nutrition; users record
+  `last_login_at` on password login.
+- **Why**: none of this can be reconstructed later (2026-10-01 audit, Data Science), and
+  capturing it before production data exists is free.
+- **Where it lives**: migration `0016`, `cook-sessions-repository.ts`, `POST /v1/cook-sessions`
+  (`servings`, `source`), `/auth/login`, cook mode, MCP `logCookSession`.
+- **Status**: active — menu-entry status (planned/cooked/skipped instead of hard deletes) is
+  still open.
+
 ## 2026-09-30 — Dependency & maintenance session (PRs #125, #140, #147, #148, #124)
 
 ### D-2026-09-30-12 · Production startup guard, closed sign-up and release step

@@ -31,11 +31,12 @@ describe('logCookSession', () => {
     const spy = vi.spyOn(server as any, 'tool')
     registerCookHistoryTools(server, mockApi as never)
     mockRequest.mockResolvedValueOnce({ id: 's1', recipeId: 'r1', rating: 4 })
-    await getHandler(spy, 'logCookSession')({ recipeId: 'r1', rating: 4, notes: 'Good' })
-    expect(mockRequest).toHaveBeenCalledWith(
-      '/v1/cook-sessions',
-      expect.objectContaining({ method: 'POST' }),
-    )
+    await getHandler(spy, 'logCookSession')({ recipeId: 'r1', rating: 4, servings: 3 })
+    expect(mockRequest).toHaveBeenCalledWith('/v1/cook-sessions', {
+      method: 'POST',
+      // tagged as an agent-logged session
+      body: JSON.stringify({ recipeId: 'r1', rating: 4, servings: 3, source: 'mcp' }),
+    })
   })
 })
 

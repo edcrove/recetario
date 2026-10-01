@@ -70,13 +70,24 @@ describe('POST /v1/cook-sessions', () => {
     const res = await app.request('/v1/cook-sessions', {
       method: 'POST',
       headers: AUTH,
-      body: JSON.stringify({ recipeId: SESSION.recipeId, rating: 4, notes: 'Great!' }),
+      body: JSON.stringify({
+        recipeId: SESSION.recipeId,
+        rating: 4,
+        notes: 'Great!',
+        servings: 3,
+        source: 'app',
+      }),
     })
     expect(res.status).toBe(201)
     const body = await res.json()
     expect(body.recipeId).toBe(SESSION.recipeId)
     expect(body.rating).toBe(4)
-    expect(mockCreate).toHaveBeenCalledWith('dev', SESSION.recipeId, 4, 'Great!')
+    expect(mockCreate).toHaveBeenCalledWith('dev', SESSION.recipeId, {
+      rating: 4,
+      notes: 'Great!',
+      servings: 3,
+      source: 'app',
+    })
   })
 
   it('creates a session without optional fields', async () => {
@@ -87,7 +98,7 @@ describe('POST /v1/cook-sessions', () => {
       body: JSON.stringify({ recipeId: SESSION.recipeId }),
     })
     expect(res.status).toBe(201)
-    expect(mockCreate).toHaveBeenCalledWith('dev', SESSION.recipeId, undefined, undefined)
+    expect(mockCreate).toHaveBeenCalledWith('dev', SESSION.recipeId, {})
   })
 
   it('returns 400 for invalid rating', async () => {

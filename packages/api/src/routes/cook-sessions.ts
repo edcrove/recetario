@@ -15,6 +15,8 @@ const sessionSchema = z.object({
   cookedAt: z.string(),
   rating: z.number().int().min(1).max(5).nullable(),
   notes: z.string().nullable(),
+  servings: z.number().int().nullable().optional(),
+  source: z.string().nullable().optional(),
   createdAt: z.string(),
 })
 
@@ -51,6 +53,8 @@ const createRoute = defineRoute({
             recipeId: z.uuid(),
             rating: z.number().int().min(1).max(5).nullable().optional(),
             notes: z.string().max(1000).optional(),
+            servings: z.number().int().positive().max(100).optional(),
+            source: z.enum(['app', 'mcp']).optional(),
           }),
         },
       },
@@ -64,9 +68,9 @@ const createRoute = defineRoute({
 
 cookSessionsRoute.openapi(createRoute, async (c) => {
   const ownerId = c.get('ownerId')
-  const { recipeId, rating, notes } = c.req.valid('json')
+  const { recipeId, ...input } = c.req.valid('json')
 
-  const session = await cookSessionsRepository.create(ownerId, recipeId, rating, notes)
+  const session = await cookSessionsRepository.create(ownerId, recipeId, input)
 
   return c.json(
     {
@@ -77,6 +81,8 @@ cookSessionsRoute.openapi(createRoute, async (c) => {
       cookedAt: session.cookedAt.toISOString(),
       rating: session.rating,
       notes: session.notes,
+      servings: session.servings,
+      source: session.source,
       createdAt: session.createdAt.toISOString(),
     },
     201,
@@ -119,6 +125,8 @@ cookSessionsRoute.openapi(listByRecipeRoute, async (c) => {
       cookedAt: s.cookedAt.toISOString(),
       rating: s.rating,
       notes: s.notes,
+      servings: s.servings,
+      source: s.source,
       createdAt: s.createdAt.toISOString(),
     })),
   )
@@ -196,6 +204,8 @@ cookSessionsRoute.openapi(listRoute as any, async (c: any) => {
       cookedAt: s.cookedAt.toISOString(),
       rating: s.rating,
       notes: s.notes,
+      servings: s.servings,
+      source: s.source,
       createdAt: s.createdAt.toISOString(),
     })),
   )
