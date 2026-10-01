@@ -1,4 +1,4 @@
-import { eq, and, ilike, or, sql, inArray, desc, lte } from 'drizzle-orm'
+import { eq, and, ilike, or, sql, inArray, desc, lte, isNull } from 'drizzle-orm'
 import {
   parseStepDurationSeconds,
   type CreateRecipe,
@@ -8,7 +8,8 @@ import {
   type RecipeDifficulty,
 } from '@recetario/shared'
 import { getVisibleOwnerIds } from './household-visibility.js'
-import { getDb, schema } from './index.js'
+import { schema } from './index.js'
+import { currentDb, inTransaction, InvalidReferenceError } from './transaction.js'
 
 type DbRow = typeof schema.recipes.$inferSelect
 type IngredientRow = typeof schema.ingredients.$inferSelect
@@ -78,12 +79,26 @@ function mapToRecipe(
 }
 
 export class RecipeRepository {
+  // Inside inTransaction() this is the transaction, so every helper joins it
   private get db() {
-    return getDb()
+    return currentDb()
   }
 
-  async create(ownerId: string, data: CreateRecipe): Promise<Recipe> {
+  async create(
+    ownerId: string,
+    data: CreateRecipe,
+    opts: { dropUnknownFoodTypes?: boolean } = {},
+  ): Promise<Recipe> {
+    return inTransaction(() => this.createInTx(ownerId, data, opts))
+  }
+
+  private async createInTx(
+    ownerId: string,
+    data: CreateRecipe,
+    opts: { dropUnknownFoodTypes?: boolean },
+  ): Promise<Recipe> {
     const db = this.db
+    const foodTypeIds = await this.usableFoodTypeIds(ownerId, data.foodTypeIds, opts)
     const [recipe] = await db
       .insert(schema.recipes)
       .values({
@@ -113,9 +128,37 @@ export class RecipeRepository {
 
     const ingredientRows = await this.insertIngredients(recipe.id, data.ingredients)
     const stepRows = await this.insertSteps(recipe.id, data.steps)
-    await this.replaceFoodTypes(recipe.id, data.foodTypeIds)
+    await this.replaceFoodTypes(recipe.id, foodTypeIds)
 
-    return mapToRecipe(recipe, ingredientRows, stepRows, data.foodTypeIds ?? [])
+    return mapToRecipe(recipe, ingredientRows, stepRows, foodTypeIds ?? [])
+  }
+
+  /**
+   * Food types a recipe may link to: system ones plus the owner's own. Unknown
+   * or foreign ids are a 400 (InvalidReferenceError) — or, for forks of someone
+   * else's recipe, silently dropped (their custom types aren't the caller's).
+   */
+  private async usableFoodTypeIds(
+    ownerId: string,
+    ids: string[] | undefined,
+    opts: { dropUnknownFoodTypes?: boolean } = {},
+  ): Promise<string[] | undefined> {
+    if (ids === undefined || ids.length === 0) return ids
+    const unique = [...new Set(ids)]
+    const rows = await this.db
+      .select({ id: schema.foodTypes.id })
+      .from(schema.foodTypes)
+      .where(
+        and(
+          inArray(schema.foodTypes.id, unique),
+          or(isNull(schema.foodTypes.ownerId), eq(schema.foodTypes.ownerId, ownerId)),
+        ),
+      )
+    const known = new Set(rows.map((r) => r.id))
+    if (known.size === unique.length || opts.dropUnknownFoodTypes) {
+      return unique.filter((id) => known.has(id))
+    }
+    throw new InvalidReferenceError('Unknown foodTypeIds')
   }
 
   private async replaceFoodTypes(recipeId: string, foodTypeIds: string[] | undefined) {
@@ -352,10 +395,19 @@ export class RecipeRepository {
   }
 
   async update(id: string, ownerId: string, data: UpdateRecipe): Promise<Recipe | null> {
+    return inTransaction(() => this.updateInTx(id, ownerId, data))
+  }
+
+  private async updateInTx(
+    id: string,
+    ownerId: string,
+    data: UpdateRecipe,
+  ): Promise<Recipe | null> {
     const db = this.db
 
     const existing = await this.findById(id, ownerId)
     if (!existing) return null
+    const foodTypeIds = await this.usableFoodTypeIds(ownerId, data.foodTypeIds)
 
     const [updated] = await db
       .update(schema.recipes)
@@ -398,7 +450,7 @@ export class RecipeRepository {
       await this.insertSteps(id, data.steps)
     }
 
-    await this.replaceFoodTypes(id, data.foodTypeIds)
+    await this.replaceFoodTypes(id, foodTypeIds)
 
     return this.findById(id, ownerId)
   }
@@ -460,6 +512,10 @@ export class RecipeRepository {
    * from then on completely independent of the original.
    */
   async copyAsFork(id: string, callerId: string): Promise<Recipe | null> {
+    return inTransaction(() => this.copyAsForkInTx(id, callerId))
+  }
+
+  private async copyAsForkInTx(id: string, callerId: string): Promise<Recipe | null> {
     const db = this.db
 
     const [source] = await db
@@ -478,27 +534,31 @@ export class RecipeRepository {
     /* v8 ignore next - source row fetched above, findById cannot miss */
     if (!full) return null
 
-    const fork = await this.create(callerId, {
-      title: full.title,
-      servings: full.servings,
-      category: full.category,
-      tags: full.tags,
-      prepTimeMin: full.prepTimeMin,
-      cookTimeMin: full.cookTimeMin,
-      totalTimeMin: full.totalTimeMin,
-      images: full.images,
-      notes: full.notes,
-      yield: full.yield,
-      originalLanguage: full.originalLanguage,
-      translations: full.translations,
-      ingredients: full.ingredients,
-      steps: full.steps,
-      source: full.source,
-      dietaryTags: full.dietaryTags,
-      nutrition: full.nutrition,
-      foodTypeIds: full.foodTypeIds,
-      visibility: 'private',
-    })
+    const fork = await this.create(
+      callerId,
+      {
+        title: full.title,
+        servings: full.servings,
+        category: full.category,
+        tags: full.tags,
+        prepTimeMin: full.prepTimeMin,
+        cookTimeMin: full.cookTimeMin,
+        totalTimeMin: full.totalTimeMin,
+        images: full.images,
+        notes: full.notes,
+        yield: full.yield,
+        originalLanguage: full.originalLanguage,
+        translations: full.translations,
+        ingredients: full.ingredients,
+        steps: full.steps,
+        source: full.source,
+        dietaryTags: full.dietaryTags,
+        nutrition: full.nutrition,
+        foodTypeIds: full.foodTypeIds,
+        visibility: 'private',
+      },
+      { dropUnknownFoodTypes: true },
+    )
 
     await db.update(schema.recipes).set({ forkedFromId: id }).where(eq(schema.recipes.id, fork.id!))
 
@@ -516,6 +576,13 @@ export class RecipeRepository {
   }
 
   async upsert(ownerId: string, data: CreateRecipe): Promise<{ recipe: Recipe; created: boolean }> {
+    return inTransaction(() => this.upsertInTx(ownerId, data))
+  }
+
+  private async upsertInTx(
+    ownerId: string,
+    data: CreateRecipe,
+  ): Promise<{ recipe: Recipe; created: boolean }> {
     const db = this.db
 
     // Check for existing recipe by source

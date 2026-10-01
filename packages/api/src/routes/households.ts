@@ -1,9 +1,10 @@
-import { createRoute as defineRoute, OpenAPIHono, z } from '@hono/zod-openapi'
+import { createRouter } from './router.js'
+import { createRoute as defineRoute, z } from '@hono/zod-openapi'
 import { eq, and } from 'drizzle-orm'
 import { getDb, schema } from '../db/index.js'
 import { authMiddleware } from '../middleware/auth.js'
 
-export const householdsRoute = new OpenAPIHono()
+export const householdsRoute = createRouter()
 
 householdsRoute.use('*', authMiddleware)
 
@@ -45,13 +46,16 @@ householdsRoute.openapi(createRoute, async (c) => {
   const { name } = c.req.valid('json')
   const db = getDb()
 
-  const [household] = await db.insert(schema.households).values({ name, ownerId }).returning()
-
-  await db.insert(schema.householdMembers).values({
-    householdId: household!.id,
-    userId: ownerId,
-    role: 'owner',
-    acceptedAt: new Date(),
+  // Household and owner membership land together or not at all
+  const household = await db.transaction(async (tx) => {
+    const [created] = await tx.insert(schema.households).values({ name, ownerId }).returning()
+    await tx.insert(schema.householdMembers).values({
+      householdId: created!.id,
+      userId: ownerId,
+      role: 'owner',
+      acceptedAt: new Date(),
+    })
+    return created
   })
 
   return c.json(

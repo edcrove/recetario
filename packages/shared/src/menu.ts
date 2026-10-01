@@ -6,7 +6,7 @@ export type MenuSlot = z.infer<typeof MenuSlotSchema>
 export const MenuEntrySchema = z.object({
   id: z.uuid(),
   ownerId: z.string(),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), // YYYY-MM-DD
+  date: z.iso.date(), // YYYY-MM-DD
   slot: MenuSlotSchema,
   // Nullable: deleting a recipe sets this to null instead of destroying the
   // menu entry (see 2026-07-03 audit finding). recipeName still resolves via
@@ -20,7 +20,7 @@ export const MenuEntrySchema = z.object({
 export type MenuEntry = z.infer<typeof MenuEntrySchema>
 
 export const CreateMenuEntrySchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  date: z.iso.date(),
   slot: MenuSlotSchema,
   recipeId: z.uuid(),
   servings: z.number().int().positive().default(1),
@@ -28,7 +28,7 @@ export const CreateMenuEntrySchema = z.object({
 export type CreateMenuEntry = z.infer<typeof CreateMenuEntrySchema>
 
 export const MenuWeekSchema = z.object({
-  weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  weekStart: z.iso.date(),
   entries: z.array(MenuEntrySchema),
 })
 export type MenuWeek = z.infer<typeof MenuWeekSchema>

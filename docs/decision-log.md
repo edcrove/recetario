@@ -12,6 +12,49 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
 
 ---
 
+## 2026-10-01 — Audit fixes
+
+### D-2026-10-01-1 · API error contract and transactional writes
+
+- **Decision**: every error the API returns is JSON with an `error` field. Request
+  validation failures are `400 { error: 'Validation error', details: [{ path, message }] }`
+  (shared `createRouter()` hook). Unhandled errors go through `app.onError`: Postgres FK
+  violations → 400, unique violations → 409, invalid values → 400, anything else → 500
+  `{ error: 'Internal server error' }`; unknown routes → 404 JSON. Multi-statement writes
+  (recipe create/update/upsert/fork, household create) run in one transaction
+  (`db/transaction.ts`), and recipe `foodTypeIds` must be system or the caller's own.
+- **Why**: Auditar 2026-10-01 reproduced an orphan recipe after a 500, plain-text 500s on
+  impossible dates, and Zod's raw error shape leaking to MCP agents.
+- **Where it lives**: `packages/api/src/index.ts`, `src/routes/router.ts`,
+  `src/db/transaction.ts`, `src/db/repository.ts`.
+- **Status**: active
+
+### D-2026-10-01-2 · The ingredient catalog is shared per deployment; system rows are read-only
+
+- **Decision**: canonical ingredients and synonyms stay global to the deployment (one
+  family per deploy, ADR-012). Curated system rows can't be deleted or remapped (409);
+  user-added rows are shared by everyone on that deploy.
+- **Why**: any user could remap a system synonym and corrupt every household's shopping
+  list. Per-owner catalogs would need a schema change that a single-family deploy doesn't
+  need yet.
+- **Where it lives**: `packages/api/src/db/ingredient-repository.ts` (`setSynonym`).
+- **Status**: revisit when one deployment serves more than one family.
+
+### D-2026-10-01-3 · Stored URLs are http(s) only (recorded from PR #158)
+
+- **Decision**: recipe source URL, images, avatar and MCP `sourceUrl` must be http(s).
+  Rows stored before the check are not migrated; the app hides non-http(s) source links.
+- **Where it lives**: `packages/shared/src/schema.ts` (`HttpUrlSchema`),
+  `apps/app/src/utils/sourceHost.ts` (`isHttpUrl`).
+- **Status**: revisit if a data cleanup migration is wanted.
+
+### D-2026-10-01-4 · Partial recipe updates (recorded from PR #155)
+
+- **Decision**: `PUT /v1/recipes/:id` is a partial update: an omitted field stays as is;
+  a field that is sent replaces the stored value (arrays replace the whole list).
+- **Where it lives**: `UpdateRecipeSchema` (no defaults), `RecipeRepository.update`.
+- **Status**: active
+
 ## 2026-09-30 — Dependency & maintenance session (PRs #125, #140, #147, #148, #124)
 
 ### D-2026-09-30-12 · Production startup guard, closed sign-up and release step
