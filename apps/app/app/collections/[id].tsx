@@ -47,6 +47,16 @@ export default function CollectionDetailScreen() {
     onError: () => notify('Error', 'No se pudo quitar la receta de la colección.'),
   })
 
+  const deleteCollection = useMutation({
+    mutationFn: () => api.taxonomy.deleteCollection(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['collections'] })
+      if (router.canGoBack()) router.back()
+      else router.replace('/collections')
+    },
+    onError: () => notify('Error', 'No se pudo eliminar la colección.'),
+  })
+
   if (isLoading)
     return (
       <View style={s.center}>
@@ -64,6 +74,21 @@ export default function CollectionDetailScreen() {
         <Text testID="collection-detail-title" style={s.title}>
           {icon} {title}
         </Text>
+        <TouchableOpacity
+          testID="collection-delete"
+          accessibilityRole="button"
+          accessibilityLabel="Eliminar colección"
+          style={s.deleteBtn}
+          onPress={async () => {
+            const ok = await confirmAsync(
+              'Eliminar colección',
+              `¿Eliminar "${title}"? Las recetas no se borran.`,
+            )
+            if (ok) deleteCollection.mutate()
+          }}
+        >
+          <Text style={s.deleteText}>Eliminar</Text>
+        </TouchableOpacity>
       </View>
 
       <FlatList
@@ -134,8 +159,24 @@ const makeStyles = (c: ThemeColors) =>
     container: { flex: 1, backgroundColor: c.surface },
     center: { flex: 1, backgroundColor: c.paper, justifyContent: 'center', alignItems: 'center' },
     errorText: { color: c.danger, fontSize: 14 },
-    header: { padding: 16, borderBottomWidth: 1, borderColor: c.sand },
-    title: { fontSize: 20, fontWeight: '700', color: c.ink, fontFamily: fonts.display },
+    header: {
+      padding: 16,
+      borderBottomWidth: 1,
+      borderColor: c.sand,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+    },
+    deleteBtn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 8 },
+    deleteText: { color: c.danger, fontWeight: '600' },
+    title: {
+      flexShrink: 1,
+      fontSize: 20,
+      fontWeight: '700',
+      color: c.ink,
+      fontFamily: fonts.display,
+    },
     list: { padding: 16, gap: 8 },
     empty: { color: c.inkSoft, textAlign: 'center', marginTop: 32, fontSize: 14 },
     card: {

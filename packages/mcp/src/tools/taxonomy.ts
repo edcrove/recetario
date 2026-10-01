@@ -35,6 +35,18 @@ export function registerTaxonomyTools(server: McpServer, api: ReturnType<typeof 
   })
 
   server.tool(
+    'deleteCollection',
+    'Delete a collection. Its recipes are kept; only the grouping is removed. Irreversible.',
+    { collectionId: z.uuid().describe('Collection UUID to delete') },
+    async ({ collectionId }) => {
+      await api.request(`/v1/collections/${collectionId}`, { method: 'DELETE' })
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify({ deleted: true, collectionId }) }],
+      }
+    },
+  )
+
+  server.tool(
     'addToCollection',
     'Add a recipe to a collection',
     { collectionId: z.uuid(), recipeId: z.uuid() },
