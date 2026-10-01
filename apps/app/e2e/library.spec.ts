@@ -152,7 +152,7 @@ test.describe('Biblioteca', () => {
     await page.getByTestId('visibility-toggle').click()
     await expect(page.getByText('🌐 Pública')).toBeVisible({ timeout: 5000 })
     await page.getByText('Guardar Receta').click()
-    await expect(page.getByText(title)).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('recipe-saved-banner')).toBeVisible({ timeout: 10000 })
 
     let recipeId: string | undefined
     try {

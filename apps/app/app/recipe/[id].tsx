@@ -42,7 +42,7 @@ export default function RecipeDetailScreen() {
   const colors = useThemeColors()
   const s = makeStyles(colors)
   const { userId } = useAuth()
-  const { id } = useLocalSearchParams<{ id: string }>()
+  const { id, saved } = useLocalSearchParams<{ id: string; saved?: string }>()
   const router = useRouter()
   const [targetServings, setTargetServings] = useState<number | null>(null)
   const [mode, setMode] = useState<DisplayMode>('cooking')
@@ -99,6 +99,11 @@ export default function RecipeDetailScreen() {
 
   return (
     <ScrollView style={s.container} contentContainerStyle={s.content}>
+      {saved === '1' && (
+        <View testID="recipe-saved-banner" style={s.savedBanner}>
+          <Text style={s.savedBannerText}>✓ Receta guardada</Text>
+        </View>
+      )}
       <View style={s.header}>
         <Text style={s.title}>{recipe.title}</Text>
         {!isForeignRecipe(recipe.ownerId, userId) && (
@@ -283,6 +288,14 @@ export default function RecipeDetailScreen() {
 
 const makeStyles = (c: ThemeColors) =>
   StyleSheet.create({
+    savedBanner: {
+      backgroundColor: c.sand,
+      borderRadius: 8,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      marginBottom: 12,
+    },
+    savedBannerText: { color: c.ink, fontWeight: '600' },
     forkChip: {
       backgroundColor: c.sageSoft,
       borderRadius: 10,

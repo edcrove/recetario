@@ -76,7 +76,9 @@ test.describe('Recipes: create via form', () => {
     // Save
     await page.getByText('Guardar Receta').click()
 
-    // Should return to home and recipe appears
+    // Lands on the new recipe with a saved notice, and it is in the list back home
+    await expect(page.getByTestId('recipe-saved-banner')).toBeVisible({ timeout: 10000 })
+    await page.goBack()
     await expect(page.getByText(recipeName)).toBeVisible({ timeout: 10000 })
   })
 
@@ -104,7 +106,7 @@ test.describe('Recipes: create via form', () => {
     await page.getByText('+ Agregar paso').click()
     await page.getByPlaceholder(/Paso 1/i).fill('Mezclar ingredientes')
     await page.getByText('Guardar Receta').click()
-    await expect(page.getByText(recipeName)).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('recipe-saved-banner')).toBeVisible({ timeout: 10000 })
 
     const listRes = await page.request.get(`${API_URL}/v1/recipes?limit=100`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -128,6 +130,96 @@ test.describe('Recipes: create via form', () => {
       await chips.nth(1).click()
       // No crash after selecting multiple
       await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible()
+    }
+  })
+})
+
+test.describe('Recipes: form on a phone and save feedback', () => {
+  const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
+
+  async function authHeaders(page: import('@playwright/test').Page) {
+    const token = await page.evaluate(() => localStorage.getItem('auth_token'))
+    return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+  }
+
+  test('at 390px every ingredient control is on screen and the full unit list opens', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.getByText('+ Nueva Receta').click()
+    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible({ timeout: 10000 })
+    await page.getByText('+ Agregar ingrediente').click()
+
+    for (const control of [
+      page.getByPlaceholder('Ingrediente').first(),
+      page.getByPlaceholder('Cant.').first(),
+      page.getByTestId('ingredient-unit-0'),
+      page.getByPlaceholder('Picado, etc.').first(),
+      page.getByTestId('ingredient-remove-0'),
+    ]) {
+      await control.scrollIntoViewIfNeeded()
+      const box = await control.boundingBox()
+      expect(box).not.toBeNull()
+      expect(box!.x).toBeGreaterThanOrEqual(0)
+      expect(box!.x + box!.width).toBeLessThanOrEqual(390)
+    }
+
+    await page.getByTestId('ingredient-unit-0').click()
+    for (const unit of ['tsp', 'tbsp', 'cup', 'unit', 'pinch', 'clove']) {
+      await expect(page.getByTestId(`unit-option-0-${unit}`)).toBeVisible()
+    }
+    await page.getByTestId('unit-option-0-tbsp').click()
+    await expect(page.getByTestId('ingredient-unit-0')).toContainText('cda')
+  })
+
+  test('opening /recipe/new directly and saving once lands on the new recipe', async ({ page }) => {
+    const title = `E2E Guardado Directo ${Date.now()}`
+    await page.goto('/recipe/new')
+    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible({ timeout: 10000 })
+    await page.getByPlaceholder('Nombre de la receta').fill(title)
+    await page.getByPlaceholder('Ingrediente').first().fill('Arroz')
+    await page.getByText('Guardar Receta').click()
+
+    await expect(page.getByTestId('recipe-saved-banner')).toBeVisible({ timeout: 10000 })
+    await expect(page).toHaveURL(/\/recipe\/[0-9a-f-]{36}/)
+    await expect(page.getByText(title)).toBeVisible()
+
+    const headers = await authHeaders(page)
+    const res = await page.request.get(
+      `${API_URL}/v1/recipes/search?q=${encodeURIComponent(title)}`,
+      { headers },
+    )
+    const found = (await res.json()) as Array<{ id: string }>
+    expect(found).toHaveLength(1)
+    await page.request.delete(`${API_URL}/v1/recipes/${found[0]!.id}`, { headers })
+  })
+
+  test('editing a recipe keeps a tbsp unit through the round trip', async ({ page }) => {
+    const headers = await authHeaders(page)
+    const created = await page.request.post(`${API_URL}/v1/recipes`, {
+      headers,
+      data: {
+        title: `E2E Cucharada ${Date.now()}`,
+        servings: 2,
+        category: 'Cena',
+        ingredients: [{ name: 'Aceite', quantity: 2, unit: 'tbsp' }],
+      },
+    })
+    const { id } = (await created.json()) as { id: string }
+    try {
+      await page.goto(`/recipe/${id}/edit`)
+      await expect(page.getByTestId('ingredient-unit-0')).toContainText('cda', { timeout: 10000 })
+      await page.getByPlaceholder('Cant.').first().fill('3')
+      await page.getByText('Guardar Cambios').click()
+      await expect(page.getByTestId('recipe-saved-banner')).toBeVisible({ timeout: 10000 })
+
+      const res = await page.request.get(`${API_URL}/v1/recipes/${id}`, { headers })
+      const recipe = (await res.json()) as {
+        ingredients: Array<{ unit: string; quantity: number }>
+      }
+      expect(recipe.ingredients[0]).toMatchObject({ unit: 'tbsp', quantity: 3 })
+    } finally {
+      await page.request.delete(`${API_URL}/v1/recipes/${id}`, { headers })
     }
   })
 })
@@ -296,6 +388,8 @@ test.describe('Recipes: times & difficulty', () => {
     await page.getByTestId('difficulty-chip-fácil').click()
 
     await page.getByText('Guardar Receta').click()
+    await expect(page.getByTestId('recipe-saved-banner')).toBeVisible({ timeout: 10000 })
+    await page.goBack()
     await expect(page.getByText(recipeName)).toBeVisible({ timeout: 10000 })
 
     // Compact "⏱ 15 min · fácil" line renders on the card.
