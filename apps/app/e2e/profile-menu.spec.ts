@@ -526,6 +526,42 @@ test.describe('Sign out', () => {
 // UserMenu overlay, leaving name editing, servings, dietary chips, nutrition
 // targets and the confirm-guarded sign-out untested (57% E2E).
 test.describe('Profile screen (/profile)', () => {
+  test('an allergen picked in the profile warns on a recipe with a derivative', async ({
+    page,
+  }) => {
+    const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
+    const token = await page.evaluate(() => localStorage.getItem('auth_token'))
+    const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+    const created = await page.request.post(`${API_URL}/v1/recipes`, {
+      headers,
+      data: {
+        title: `E2E Alfajor ${Date.now()}`,
+        servings: 4,
+        category: 'Postre',
+        ingredients: [{ name: 'Dulce de leche', quantity: 200, unit: 'g' }],
+      },
+    })
+    const { id } = (await created.json()) as { id: string }
+    try {
+      await page.goto('/profile')
+      const chip = page.getByTestId('allergen-chip-leche')
+      await expect(chip).toBeVisible({ timeout: 8000 })
+      await chip.click()
+      await expect
+        .poll(async () => {
+          const res = await page.request.get(`${API_URL}/auth/profile`, { headers })
+          return ((await res.json()) as { allergens: string[] }).allergens
+        })
+        .toContain('leche')
+
+      await page.goto(`/recipe/${id}`)
+      await expect(page.getByText(/Alérgenos:.*Leche y lácteos/)).toBeVisible({ timeout: 8000 })
+    } finally {
+      await page.request.patch(`${API_URL}/auth/profile`, { headers, data: { allergens: [] } })
+      await page.request.delete(`${API_URL}/v1/recipes/${id}`, { headers })
+    }
+  })
+
   test('edits the display name inline', async ({ page }) => {
     await page.goto('/profile')
     await expect(page.getByText('tocá para editar')).toBeVisible({ timeout: 8000 })

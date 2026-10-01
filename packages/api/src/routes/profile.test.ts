@@ -1,10 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockUsersUpdate, mockProfileSelect, mockProfileUpsert } = vi.hoisted(() => ({
-  mockUsersUpdate: vi.fn(),
-  mockProfileSelect: vi.fn(),
-  mockProfileUpsert: vi.fn(),
-}))
+const { mockUsersUpdate, mockProfileSelect, mockProfileUpsert, mockProfileValues } = vi.hoisted(
+  () => ({
+    mockUsersUpdate: vi.fn(),
+    mockProfileSelect: vi.fn(),
+    mockProfileUpsert: vi.fn(),
+    mockProfileValues: vi.fn(),
+  }),
+)
 
 vi.mock('../db/index.js', () => ({
   getDb: vi.fn(() => ({
@@ -15,8 +18,8 @@ vi.mock('../db/index.js', () => ({
       from: () => ({ where: () => ({ limit: () => Promise.resolve(mockProfileSelect()) }) }),
     }),
     insert: () => ({
-      values: () => ({
-        onConflictDoUpdate: () => Promise.resolve(mockProfileUpsert()),
+      values: (v: unknown) => ({
+        onConflictDoUpdate: () => Promise.resolve(mockProfileUpsert(mockProfileValues(v))),
         onConflictDoNothing: () => Promise.resolve(),
       }),
     }),
@@ -155,7 +158,7 @@ describe('PATCH /auth/profile', () => {
         userId: 'u1',
         preferredServings: 4,
         dietaryRestrictions: ['keto'],
-        allergens: ['maní'],
+        allergens: ['maní', 'kiwi'],
         goals: [],
         timezone: null,
       },
@@ -166,13 +169,30 @@ describe('PATCH /auth/profile', () => {
       body: JSON.stringify({
         preferredServings: 4,
         dietaryRestrictions: ['keto'],
-        allergens: ['maní'],
+        allergens: ['maní', 'mani', 'Lácteos'],
       }),
     })
     expect(res.status).toBe(200)
+    // Stored as deduplicated enum keys
+    expect(mockProfileValues).toHaveBeenLastCalledWith(
+      expect.objectContaining({ allergens: ['mani', 'leche'] }),
+    )
     const body = await res.json()
     expect(body.preferredServings).toBe(4)
-    expect(body.allergens).toEqual(['maní'])
+    // Legacy stored names are returned as keys; unknown legacy text is kept
+    expect(body.allergens).toEqual(['mani', 'kiwi'])
+  })
+
+  it('rejects an allergen outside the enum with a 400 listing the valid keys', async () => {
+    const res = await app.request('/auth/profile', {
+      method: 'PATCH',
+      headers: AUTH,
+      body: JSON.stringify({ allergens: ['leche', 'kiwi'] }),
+    })
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body.error).toContain('Unknown allergen: kiwi')
+    expect(body.error).toContain('frutos_secos')
   })
 
   it('returns null fields when profile not found after upsert', async () => {

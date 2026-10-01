@@ -10,6 +10,7 @@ import {
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { ALLERGENS, ALLERGEN_LABELS, type Allergen } from '@recetario/shared'
 import { api } from '../../src/api/client'
 import { useAuth } from '../../src/providers/AuthProvider'
 import { confirmAsync } from '../../src/utils/platformAlert'
@@ -68,6 +69,14 @@ export default function ProfileScreen() {
       ? current.filter((d) => d !== option)
       : [...current, option]
     updateProfile.mutate({ dietaryRestrictions: next })
+  }
+
+  function toggleAllergen(key: Allergen) {
+    const current = (profile?.allergens ?? []).filter((a): a is Allergen =>
+      (ALLERGENS as readonly string[]).includes(a),
+    )
+    const next = current.includes(key) ? current.filter((a) => a !== key) : [...current, key]
+    updateProfile.mutate({ allergens: next })
   }
 
   function updateServings(delta: number) {
@@ -229,6 +238,25 @@ export default function ProfileScreen() {
         })}
       </View>
 
+      {/* Allergens */}
+      <Text style={s.sectionTitle}>Alergias e intolerancias</Text>
+      <Text style={s.sectionHint}>Te avisamos en cada receta que los contenga.</Text>
+      <View style={s.chips}>
+        {ALLERGENS.map((key) => {
+          const active = (profile?.allergens ?? []).includes(key)
+          return (
+            <TouchableOpacity
+              key={key}
+              testID={`allergen-chip-${key}`}
+              style={[s.chip, active && s.chipActive]}
+              onPress={() => toggleAllergen(key)}
+            >
+              <Text style={[s.chipText, active && s.chipTextActive]}>{ALLERGEN_LABELS[key]}</Text>
+            </TouchableOpacity>
+          )
+        })}
+      </View>
+
       {/* Configurator */}
       <TouchableOpacity style={s.row} onPress={() => router.push('/config')}>
         <Text style={s.rowText}>⚙️ Configuración de taxonomía</Text>
@@ -384,6 +412,7 @@ const makeStyles = (c: ThemeColors) =>
       marginTop: 20,
       fontFamily: fonts.display,
     },
+    sectionHint: { fontSize: 12, color: c.inkSoft, marginTop: -6, marginBottom: 8 },
     servingsRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
     servingsBtn: {
       width: 36,
