@@ -429,7 +429,7 @@ export const pantryItems = pgTable(
     name: text('name').notNull(),
     quantity: text('quantity'), // nullable (stored as text like ingredients.quantity)
     unit: text('unit'), // nullable
-    expiryDate: text('expiry_date'), // ISO date YYYY-MM-DD, nullable
+    expiryDate: date('expiry_date', { mode: 'string' }), // ISO date YYYY-MM-DD, nullable
     inStock: boolean('in_stock').notNull().default(true),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

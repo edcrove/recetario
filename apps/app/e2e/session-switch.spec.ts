@@ -29,7 +29,7 @@ test('the next user on the device sees none of the previous user cached data', a
   await expect(page.getByTestId(`recipe-card-${recipe.id}`)).toBeVisible({ timeout: 15000 })
   // The user menu shows the signed-in account (cached ['me'] query)
   await page.getByTestId('home-profile-button').click()
-  await expect(page.getByText(accountA.email)).toBeVisible({ timeout: 10000 })
+  await expect(page.getByText(accountA.email)).toBeVisible()
 
   // B: a fresh account with no recipes
   const emailB = `e2e-switch+${Date.now()}-${testInfo.parallelIndex}@recetario.app`
@@ -40,15 +40,14 @@ test('the next user on the device sees none of the previous user cached data', a
 
   // A signs out from the user menu, B signs in through the form on the same page
   await page.getByTestId('usermenu-signout').click()
-  await expect(page).toHaveURL(/auth\/login/, { timeout: 10000 })
+  await expect(page).toHaveURL(/auth\/login/)
   await page.getByPlaceholder('Email').fill(emailB)
   await page.getByPlaceholder('Contraseña').fill('switch1234')
   await page.getByTestId('auth-login-submit').click()
   await expect(page.getByText('+ Nueva Receta')).toBeVisible({ timeout: 15000 })
-  await page.waitForLoadState('networkidle', { timeout: 15000 })
 
   await expect(page.getByTestId(`recipe-card-${recipe.id}`)).toHaveCount(0)
   await page.getByTestId('home-profile-button').click()
-  await expect(page.getByText(emailB)).toBeVisible({ timeout: 10000 })
+  await expect(page.getByText(emailB)).toBeVisible()
   await expect(page.getByText(accountA.email)).toHaveCount(0)
 })

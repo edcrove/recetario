@@ -90,7 +90,7 @@ test('pick/type ingredients → cook now + almost, and the weekly gap jumps to t
     // From home into the screen.
     await page.goto('/')
     await page.getByTestId('home-heladera-button').click()
-    await expect(page.getByTestId('heladera-input')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('heladera-input')).toBeVisible()
 
     // Pick rice from the pantry chips, and type a second ingredient.
     await page.getByTestId(`heladera-pantry-chip-${pantryId}`).click()
@@ -100,7 +100,7 @@ test('pick/type ingredients → cook now + almost, and the weekly gap jumps to t
     await expect(page.getByTestId(`heladera-have-${p}sal`)).toBeVisible()
 
     // Rice alone → the rice recipe is cookable now, with macro strip + goal badge.
-    await expect(page.getByTestId('heladera-cookable')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('heladera-cookable')).toBeVisible()
     const cookCard = page.getByTestId(`heladera-recipe-${cookId}`)
     await expect(cookCard).toBeVisible()
     await expect(cookCard.getByText(/520 kcal/)).toBeVisible()
@@ -116,9 +116,9 @@ test('pick/type ingredients → cook now + almost, and the weekly gap jumps to t
 
     // Tu semana: the planned meal is incomplete (empty pantry for chicken) → to the list.
     await page.getByTestId('heladera-tab-semana').click()
-    await expect(page.getByText('Incompleta').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Incompleta').first()).toBeVisible()
     await page.getByTestId('heladera-add-to-list').click()
-    await expect(page).toHaveURL(/shopping-list/, { timeout: 10000 })
+    await expect(page).toHaveURL(/shopping-list/)
   } finally {
     await page.request.delete(`${API_URL}/v1/menu/${mealDate}/Cena`, { headers })
     if (pantryId) await page.request.delete(`${API_URL}/v1/pantry/${pantryId}`, { headers })

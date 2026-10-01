@@ -45,6 +45,7 @@ export default defineConfig({
         'src/db/household-repository.ts',
         'src/db/account-repository.ts',
         'src/db/config-repository.ts',
+        'src/db/taxonomy-repository.ts',
         'src/db/transaction.ts',
       ],
       thresholds: {
