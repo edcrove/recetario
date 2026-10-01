@@ -55,18 +55,6 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
 - **Where it lives**: `UpdateRecipeSchema` (no defaults), `RecipeRepository.update`.
 - **Status**: active
 
-### D-2026-10-01-7 · Recipe nutrition follows edits
-
-- **Decision**: on a recipe update, an explicit `nutrition` (object, or `null` to clear)
-  wins; otherwise a servings-only change rescales the per-serving values and any
-  ingredient change clears them (`null`, shown as "sin datos") until an agent re-estimates.
-- **Why**: per-serving nutrition silently went stale after edits and there was no way to
-  unset it (2026-10-01 audit, Nutrition/Backend). A wrong number is worse than none.
-- **Where it lives**: `packages/shared/src/recipeNutrition.ts` (`nutritionAfterEdit`),
-  `RecipeRepository.updateInTx`, `CreateRecipeSchema.nutrition` (nullable on input), MCP
-  `updateRecipe` description.
-- **Status**: active
-
 ### D-2026-10-01-5 · Day and week nutrition are per-person intake
 
 - **Decision**: the day rollup (`computeDayNutrition`), the week view
@@ -95,6 +83,18 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
   and the UI hid buttons without saying why.
 - **Where it lives**: `packages/api/src/db/household-visibility.ts`, `routes/pantry.ts`,
   `routes/menu.ts`, `apps/app/src/hooks/useIsViewer.ts`, `src/components/ViewerNotice.tsx`.
+- **Status**: active
+
+### D-2026-10-01-7 · Recipe nutrition follows edits
+
+- **Decision**: on a recipe update, an explicit `nutrition` (object, or `null` to clear)
+  wins; otherwise a servings-only change rescales the per-serving values and any
+  ingredient change clears them (`null`, shown as "sin datos") until an agent re-estimates.
+- **Why**: per-serving nutrition silently went stale after edits and there was no way to
+  unset it (2026-10-01 audit, Nutrition/Backend). A wrong number is worse than none.
+- **Where it lives**: `packages/shared/src/recipeNutrition.ts` (`nutritionAfterEdit`),
+  `RecipeRepository.updateInTx`, `CreateRecipeSchema.nutrition` (nullable on input), MCP
+  `updateRecipe` description.
 - **Status**: active
 
 ## 2026-09-30 — Dependency & maintenance session (PRs #125, #140, #147, #148, #124)
