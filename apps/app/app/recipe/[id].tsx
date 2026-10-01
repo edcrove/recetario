@@ -9,7 +9,7 @@ import {
   Linking,
 } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../src/api/client'
 import { displayIngredient } from '../../src/utils/displayIngredient'
 import type { DisplayMode } from '../../src/utils/displayIngredient'
@@ -20,6 +20,7 @@ import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 import { isForeignRecipe } from '../../src/utils/roles'
 import { isHttpUrl, sourceHost } from '../../src/utils/sourceHost'
 import { useAuth } from '../../src/providers/AuthProvider'
+import { confirmAsync, notify } from '../../src/utils/platformAlert'
 import { NutritionBar } from '../../src/components/NutritionBar'
 
 type DetailTab = 'recipe' | 'history'
@@ -45,6 +46,7 @@ export default function RecipeDetailScreen() {
   const { userId } = useAuth()
   const { id, saved } = useLocalSearchParams<{ id: string; saved?: string }>()
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [targetServings, setTargetServings] = useState<number | null>(null)
   const [mode, setMode] = useState<DisplayMode>('cooking')
   const [detailTab, setDetailTab] = useState<DetailTab>('recipe')
@@ -82,6 +84,24 @@ export default function RecipeDetailScreen() {
     enabled: detailTab === 'recipe' && !!recipe,
   })
 
+  const deleteMutation = useMutation({
+    mutationFn: () => api.recipes.delete(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['recipes'] })
+      queryClient.removeQueries({ queryKey: ['recipe', id] })
+      router.replace('/')
+    },
+    onError: () => notify('Error', 'No se pudo eliminar la receta.'),
+  })
+
+  async function confirmDelete() {
+    const ok = await confirmAsync(
+      'Eliminar receta',
+      `¿Eliminar "${recipe?.title}"? También se quita del menú y de tus colecciones.`,
+    )
+    if (ok) deleteMutation.mutate()
+  }
+
   if (isLoading)
     return (
       <View style={s.center}>
@@ -108,9 +128,19 @@ export default function RecipeDetailScreen() {
       <View style={s.header}>
         <Text style={s.title}>{recipe.title}</Text>
         {!isForeignRecipe(recipe.ownerId, userId) && (
-          <TouchableOpacity onPress={() => router.push(`/recipe/${id}/edit`)}>
-            <Text style={s.editLink}>Editar</Text>
-          </TouchableOpacity>
+          <View style={s.ownerActions}>
+            <TouchableOpacity onPress={() => router.push(`/recipe/${id}/edit`)}>
+              <Text style={s.editLink}>Editar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              testID="recipe-delete"
+              accessibilityRole="button"
+              disabled={deleteMutation.isPending}
+              onPress={() => void confirmDelete()}
+            >
+              <Text style={s.deleteLink}>Eliminar</Text>
+            </TouchableOpacity>
+          </View>
         )}
       </View>
       <Text style={s.meta}>
@@ -299,6 +329,8 @@ export default function RecipeDetailScreen() {
 
 const makeStyles = (c: ThemeColors) =>
   StyleSheet.create({
+    ownerActions: { flexDirection: 'row', gap: 16, alignItems: 'center' },
+    deleteLink: { color: c.danger, fontSize: 15, fontWeight: '600' },
     savedBanner: {
       backgroundColor: c.sand,
       borderRadius: 8,

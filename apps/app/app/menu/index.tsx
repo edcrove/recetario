@@ -11,6 +11,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { api } from '../../src/api/client'
+import { ErrorState } from '../../src/components/ErrorState'
 import { invalidateMenuWeek } from '../../src/utils/menuCache'
 import type { MenuEntry, MenuSlot } from '@recetario/shared'
 import { getWeekStart, addDays, formatDate } from '../../src/utils/weekMath'
@@ -44,6 +45,7 @@ export default function MenuWeekScreen() {
     data: entries = [],
     isLoading,
     error,
+    refetch,
   } = useQuery({
     queryKey: ['menu', weekStart],
     queryFn: () => api.menu.getWeek(weekStart),
@@ -90,12 +92,7 @@ export default function MenuWeekScreen() {
       </View>
     )
 
-  if (error)
-    return (
-      <View style={s.center}>
-        <Text style={s.errorText}>Error al cargar el menú</Text>
-      </View>
-    )
+  if (error) return <ErrorState message="Error al cargar el menú" onRetry={() => void refetch()} />
 
   return (
     <ScrollView style={s.container}>

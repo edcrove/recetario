@@ -39,8 +39,10 @@ export default function LoginScreen() {
       const msg = e instanceof Error ? e.message : String(e)
       if (msg.includes('401') || msg.includes('Invalid') || msg.includes('incorrect')) {
         setError('Email o contraseña incorrectos.')
+      } else if (msg.includes('429')) {
+        setError('Demasiados intentos. Esperá un minuto y probá de nuevo.')
       } else {
-        setError(`Error al conectar con el servidor. (${msg})`)
+        setError('No pudimos conectar con el servidor. Revisá tu conexión y probá de nuevo.')
       }
     } finally {
       setLoading(false)
