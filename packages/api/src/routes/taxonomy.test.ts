@@ -33,7 +33,12 @@ vi.mock('../db/index.js', () => {
     getDb: vi.fn(() => ({
       select: makeSelect,
       insert: () => makeInsert(),
-      delete: () => ({ where: () => Promise.resolve([]) }),
+      delete: () => ({
+        where: () =>
+          Object.assign(Promise.resolve([]), {
+            returning: () => Promise.resolve(mockDelete()),
+          }),
+      }),
     })),
     schema: {
       foodTypes: { name: 'name', id: 'id', ownerId: 'owner_id' },
@@ -333,5 +338,30 @@ describe('GET /v1/recipes/:id/relations', () => {
       headers: { Authorization: 'Bearer test-key' },
     })
     expect(res.status).toBe(404)
+  })
+})
+
+describe('DELETE /v1/collections/:id', () => {
+  it('deletes an own collection (204)', async () => {
+    mockDelete.mockReturnValueOnce([{ id: UUID }])
+    const res = await app.request(`/v1/collections/${UUID}`, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer test-key' },
+    })
+    expect(res.status).toBe(204)
+  })
+
+  it("404s for a missing or someone else's collection", async () => {
+    mockDelete.mockReturnValueOnce([])
+    const res = await app.request(`/v1/collections/${UUID}`, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer test-key' },
+    })
+    expect(res.status).toBe(404)
+  })
+
+  it('requires auth', async () => {
+    const res = await app.request(`/v1/collections/${UUID}`, { method: 'DELETE' })
+    expect(res.status).toBe(401)
   })
 })

@@ -608,13 +608,27 @@ test.describe('Profile screen (/profile)', () => {
   })
 
   test('edits the display name inline', async ({ page }) => {
-    await page.goto('/profile')
-    await expect(page.getByText('tocá para editar')).toBeVisible({ timeout: 8000 })
-    await page.getByText('tocá para editar').click()
-    const input = page.locator('input[autofocus], input').first()
-    await input.fill('Demo E2E')
-    await page.getByText('Guardar', { exact: true }).click()
-    await expect(page.getByText('Demo E2E')).toBeVisible({ timeout: 8000 })
+    const token = await page.evaluate(() => localStorage.getItem('auth_token'))
+    const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+    const me = (await (await page.request.get(`${API_URL}/auth/me`, { headers })).json()) as {
+      displayName: string | null
+    }
+    try {
+      await page.goto('/profile')
+      await expect(page.getByText('tocá para editar')).toBeVisible({ timeout: 8000 })
+      await page.getByText('tocá para editar').click()
+      const input = page.locator('input[autofocus], input').first()
+      await input.fill('Demo E2E')
+      await page.getByText('Guardar', { exact: true }).click()
+      await expect(page.getByText('Demo E2E')).toBeVisible({ timeout: 8000 })
+    } finally {
+      // Restore the demo account's name so later tests and the visual tour see it
+      const res = await page.request.patch(`${API_URL}/auth/me`, {
+        headers,
+        data: { displayName: me.displayName ?? 'Demo' },
+      })
+      expect(res.ok()).toBe(true)
+    }
   })
 
   test('cancel exits name editing without saving', async ({ page }) => {

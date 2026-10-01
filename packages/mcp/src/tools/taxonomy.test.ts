@@ -23,6 +23,7 @@ describe('registerTaxonomyTools', () => {
     expect(names).toContain('getFoodTypes')
     expect(names).toContain('createCollection')
     expect(names).toContain('listCollections')
+    expect(names).toContain('deleteCollection')
     expect(names).toContain('addToCollection')
     expect(names).toContain('addRecipeRelation')
     expect(names).toContain('getRelatedRecipes')
@@ -120,5 +121,18 @@ describe('getRelatedRecipes', () => {
     const result = await getHandler(spy, 'getRelatedRecipes')({ recipeId })
     expect(result).toBeDefined()
     expect(mockRequest).toHaveBeenCalledWith(`/v1/recipes/${recipeId}/relations`)
+  })
+})
+
+describe('deleteCollection', () => {
+  it('calls DELETE /v1/collections/:id', async () => {
+    const server = createMcpServer()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const spy = vi.spyOn(server as any, 'tool')
+    registerTaxonomyTools(server, mockApi as never)
+    mockRequest.mockResolvedValueOnce(null)
+    const result = await getHandler(spy, 'deleteCollection')({ collectionId: 'c1' })
+    expect(mockRequest).toHaveBeenCalledWith('/v1/collections/c1', { method: 'DELETE' })
+    expect(JSON.stringify(result)).toContain('deleted')
   })
 })

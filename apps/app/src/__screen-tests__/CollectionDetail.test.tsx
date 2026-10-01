@@ -9,7 +9,15 @@ const {
   mockCollections,
   params,
   headerTitle,
+  mockDeleteCollection,
+  mockBack,
+  mockReplace,
+  canGoBack,
 } = vi.hoisted(() => ({
+  mockDeleteCollection: vi.fn().mockResolvedValue(undefined),
+  mockBack: vi.fn(),
+  mockReplace: vi.fn(),
+  canGoBack: { current: true },
   mockCollectionRecipes: vi.fn(),
   mockRemoveFromCollection: vi.fn().mockResolvedValue(undefined),
   mockPush: vi.fn(),
@@ -24,12 +32,18 @@ vi.mock('../api/client', () => ({
       collectionRecipes: mockCollectionRecipes,
       collections: mockCollections,
       removeFromCollection: mockRemoveFromCollection,
+      deleteCollection: mockDeleteCollection,
     },
   },
 }))
 
 vi.mock('expo-router', () => ({
-  useRouter: () => ({ push: mockPush, back: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({
+    push: mockPush,
+    back: mockBack,
+    replace: mockReplace,
+    canGoBack: () => canGoBack.current,
+  }),
   useLocalSearchParams: () => params.current,
   Stack: {
     Screen: ({ options }: { options: { title: string } }) => {
@@ -135,5 +149,22 @@ describe('CollectionDetailScreen', () => {
     mockCollectionRecipes.mockRejectedValue(new Error('network error'))
     wrap(<CollectionDetailScreen />)
     expect(await screen.findByText('No se pudo cargar la colección.')).toBeInTheDocument()
+  })
+
+  it('deletes the whole collection after confirming and leaves the screen', async () => {
+    mockCollectionRecipes.mockResolvedValue([])
+    canGoBack.current = true
+    wrap(<CollectionDetailScreen />)
+    fireEvent.click(await screen.findByTestId('collection-delete'))
+    await waitFor(() => expect(mockDeleteCollection).toHaveBeenCalledWith('col-1'))
+    await waitFor(() => expect(mockBack).toHaveBeenCalled())
+  })
+
+  it('opened from a link, deleting lands on the collections list', async () => {
+    mockCollectionRecipes.mockResolvedValue([])
+    canGoBack.current = false
+    wrap(<CollectionDetailScreen />)
+    fireEvent.click(await screen.findByTestId('collection-delete'))
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/collections'))
   })
 })

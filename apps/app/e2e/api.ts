@@ -36,3 +36,11 @@ export async function deleteRecipeViaApi(page: Page, id: string) {
   })
   expect([204, 404]).toContain(res.status())
 }
+
+/** Cleanup: deletes a collection (its recipes stay); 404 means it is already gone. */
+export async function deleteCollectionViaApi(page: Page, id: string) {
+  const res = await page.request.delete(`${API_URL}/v1/collections/${id}`, {
+    headers: await authHeaders(page),
+  })
+  expect([204, 404]).toContain(res.status())
+}

@@ -177,6 +177,30 @@ taxonomyRoute.openapi(
   },
 )
 
+// DELETE /v1/collections/:id — removes the collection (and its links), never the recipes
+taxonomyRoute.openapi(
+  defineRoute({
+    method: 'delete',
+    path: '/collections/:id',
+    security: [{ ApiKeyAuth: [] }],
+    request: { params: z.object({ id: z.uuid() }) },
+    responses: {
+      204: { description: 'Deleted' },
+      404: { content: { 'application/json': { schema: errorSchema } }, description: 'Not found' },
+    },
+  }),
+  async (c) => {
+    const ownerId = c.get('ownerId')
+    const { id } = c.req.valid('param')
+    const deleted = await getDb()
+      .delete(schema.collections)
+      .where(and(eq(schema.collections.id, id), eq(schema.collections.ownerId, ownerId)))
+      .returning({ id: schema.collections.id })
+    if (deleted.length === 0) return c.json({ error: 'Collection not found' }, 404)
+    return c.body(null, 204)
+  },
+)
+
 // POST /v1/collections/:id/recipes
 taxonomyRoute.openapi(
   defineRoute({

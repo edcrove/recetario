@@ -355,6 +355,8 @@ export const api = {
       ),
     removeFromCollection: (collectionId: string, recipeId: string) =>
       request<void>(`/v1/collections/${collectionId}/recipes/${recipeId}`, { method: 'DELETE' }),
+    deleteCollection: (collectionId: string) =>
+      request<void>(`/v1/collections/${collectionId}`, { method: 'DELETE' }),
     relations: (recipeId: string) =>
       request<Array<{ fromId: string; toId: string; relationType: string }>>(
         `/v1/recipes/${recipeId}/relations`,

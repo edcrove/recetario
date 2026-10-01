@@ -1,6 +1,6 @@
 import { test, expect } from './fixtures'
 import { API_URL } from './env'
-import { authHeaders, createRecipeViaApi, deleteRecipeViaApi } from './api'
+import { authHeaders, createRecipeViaApi, deleteCollectionViaApi, deleteRecipeViaApi } from './api'
 
 /**
  * Targeted coverage for flows no other suite exercises:
@@ -532,7 +532,7 @@ test.describe('Screen error states (route interception)', () => {
         timeout: 15000,
       })
     } finally {
-      await page.request.delete(`${API_URL}/v1/collections/${collection.id}`, { headers })
+      await deleteCollectionViaApi(page, collection.id)
     }
   })
 
@@ -750,7 +750,7 @@ test.describe('Small interaction branches', () => {
       await page.getByTestId(`collection-remove-${recipe.id}`).click()
       await expect(row).toBeVisible()
     } finally {
-      await page.request.delete(`${API_URL}/v1/collections/${collection.id}`, { headers })
+      await deleteCollectionViaApi(page, collection.id)
       await deleteRecipeViaApi(page, recipe.id)
     }
   })
@@ -898,5 +898,38 @@ test.describe('Data-shape branches', () => {
     await expect(page.getByText('Lista de compras')).toBeVisible({ timeout: 10000 })
     await page.getByText('Lista de compras').click()
     await page.waitForURL(/weekStart=2027-03-08/, { timeout: 10000 })
+  })
+})
+
+test.describe('Collections: delete', () => {
+  test('deleting a collection from its screen keeps its recipes', async ({ page }) => {
+    const headers = await authHeaders(page)
+    const name = `E2E Borrar ${Date.now()}`
+    const colRes = await page.request.post(`${API_URL}/v1/collections`, {
+      headers,
+      data: { name, emoji: '🗑️' },
+    })
+    const collection = (await colRes.json()) as { id: string }
+    const recipe = await createRecipeViaApi(page)
+    try {
+      await page.request.post(`${API_URL}/v1/collections/${collection.id}/recipes`, {
+        headers,
+        data: { recipeId: recipe.id },
+      })
+      await page.goto('/collections')
+      await page.getByText(name).click()
+      await expect(page.getByTestId(`collection-recipe-${recipe.id}`)).toBeVisible({
+        timeout: 10000,
+      })
+      page.once('dialog', (d) => void d.accept())
+      await page.getByTestId('collection-delete').click()
+      // Back on the list, the collection is gone; the recipe still exists
+      await expect(page.getByText(name)).toHaveCount(0, { timeout: 10000 })
+      const res = await page.request.get(`${API_URL}/v1/recipes/${recipe.id}`, { headers })
+      expect(res.ok()).toBe(true)
+    } finally {
+      await deleteCollectionViaApi(page, collection.id)
+      await deleteRecipeViaApi(page, recipe.id)
+    }
   })
 })
