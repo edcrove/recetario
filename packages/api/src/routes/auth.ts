@@ -1,5 +1,6 @@
 import { createRouter } from './router.js'
 import { createRoute as defineRoute, z } from '@hono/zod-openapi'
+import { UserSchema } from '@recetario/shared'
 import { eq } from 'drizzle-orm'
 import { getDb, schema } from '../db/index.js'
 import { emailMatches, normalizeEmail } from '../db/email.js'
@@ -17,12 +18,7 @@ authRoute.use('/register', authRateLimitMiddleware)
 // JWT (app) or API key (MCP agents): same rules as every other authenticated route
 authRoute.use('/me', authMiddleware)
 
-const userResponseSchema = z.object({
-  id: z.uuid(),
-  email: z.email(),
-  displayName: z.string().nullable(),
-  createdAt: z.string(),
-})
+const userResponseSchema = UserSchema
 
 const authResponseSchema = z.object({
   user: userResponseSchema,

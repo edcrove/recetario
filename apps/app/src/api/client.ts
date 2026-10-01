@@ -5,6 +5,14 @@ import type {
   MenuEntry,
   ShoppingListEntry,
   LibraryRecipe,
+  User,
+  Household,
+  HouseholdMember,
+  HouseholdRole,
+  PantryItem,
+  Profile,
+  NutritionTargets,
+  DayNutrition,
 } from '@recetario/shared'
 
 const BASE_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
@@ -147,68 +155,33 @@ export const api = {
         } | null
       }>(`/v1/menu/nutrition?weekStart=${weekStart}`),
     dayNutrition: (date: string) =>
-      request<import('@recetario/shared').DayNutrition & { date: string }>(
-        `/v1/menu/day-nutrition?date=${date}`,
-      ),
+      request<DayNutrition & { date: string }>(`/v1/menu/day-nutrition?date=${date}`),
   },
   auth: {
     register: (data: { email: string; password: string; displayName?: string }) =>
-      request<{ user: { id: string; email: string; displayName: string | null }; token: string }>(
-        '/auth/register',
-        { method: 'POST', body: JSON.stringify(data) },
-      ),
+      request<{ user: User; token: string }>('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
     login: (data: { email: string; password: string }) =>
-      request<{ user: { id: string; email: string; displayName: string | null }; token: string }>(
-        '/auth/login',
-        { method: 'POST', body: JSON.stringify(data) },
-      ),
-    me: () =>
-      request<{ id: string; email: string; displayName: string | null; createdAt: string }>(
-        '/auth/me',
-      ),
+      request<{ user: User; token: string }>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    me: () => request<User>('/auth/me'),
     updateMe: (data: { displayName?: string; avatarUrl?: string }) =>
-      request<{ id: string; email: string; displayName: string | null }>('/auth/me', {
+      request<User>('/auth/me', {
         method: 'PATCH',
         body: JSON.stringify(data),
       }),
-    getProfile: () =>
-      request<{
-        preferredServings: number | null
-        dietaryRestrictions: string[]
-        allergens: string[]
-        goals: string[]
-        timezone: string | null
-        nutritionTargets: {
-          daily_calories: number
-          daily_protein_g: number
-          daily_carbs_g: number
-          daily_fat_g: number
-        } | null
-      }>('/auth/profile'),
-    updateProfile: (data: {
-      preferredServings?: number
-      dietaryRestrictions?: string[]
-      allergens?: string[]
-      goals?: string[]
-      timezone?: string
-      nutritionTargets?: {
-        daily_calories: number
-        daily_protein_g: number
-        daily_carbs_g: number
-        daily_fat_g: number
-      }
-    }) =>
-      request<{
-        preferredServings: number | null
-        dietaryRestrictions: string[]
-        allergens: string[]
-        nutritionTargets: {
-          daily_calories: number
-          daily_protein_g: number
-          daily_carbs_g: number
-          daily_fat_g: number
-        } | null
-      }>('/auth/profile', { method: 'PATCH', body: JSON.stringify(data) }),
+    getProfile: () => request<Profile>('/auth/profile'),
+    updateProfile: (
+      data: Partial<Omit<Profile, 'preferredServings' | 'timezone' | 'nutritionTargets'>> & {
+        preferredServings?: number
+        timezone?: string
+        nutritionTargets?: NutritionTargets
+      },
+    ) => request<Profile>('/auth/profile', { method: 'PATCH', body: JSON.stringify(data) }),
   },
   config: {
     taxonomy: () =>
@@ -277,25 +250,14 @@ export const api = {
       }),
   },
   pantry: {
-    list: () =>
-      request<
-        Array<{
-          id: string
-          ownerId: string
-          name: string
-          quantity: string | null
-          unit: string | null
-          expiryDate: string | null
-          inStock: boolean
-        }>
-      >('/v1/pantry'),
+    list: () => request<PantryItem[]>('/v1/pantry'),
     create: (data: {
       name: string
       quantity?: string | null
       unit?: string | null
       expiryDate?: string | null
       inStock?: boolean
-    }) => request('/v1/pantry', { method: 'POST', body: JSON.stringify(data) }),
+    }) => request<PantryItem>('/v1/pantry', { method: 'POST', body: JSON.stringify(data) }),
     update: (
       id: string,
       data: {
@@ -305,7 +267,7 @@ export const api = {
         expiryDate?: string | null
         inStock?: boolean
       },
-    ) => request(`/v1/pantry/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    ) => request<PantryItem>(`/v1/pantry/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
     remove: (id: string) => request<void>(`/v1/pantry/${id}`, { method: 'DELETE' }),
   },
   suggestions: {
@@ -413,33 +375,18 @@ export const api = {
   },
   households: {
     create: (name: string) =>
-      request<{ id: string; name: string; ownerId: string }>('/v1/households', {
+      request<Household>('/v1/households', {
         method: 'POST',
         body: JSON.stringify({ name }),
       }),
-    mine: () =>
-      request<
-        Array<{
-          id: string
-          name: string
-          ownerId: string
-          members?: Array<{
-            userId: string
-            role: string
-            invitedAt: string
-            acceptedAt: string | null
-            displayName?: string | null
-            email?: string
-          }>
-        }>
-      >('/v1/households/mine'),
-    invite: (householdId: string, email: string, role: string) =>
-      request<{ userId: string; role: string }>(`/v1/households/${householdId}/invite`, {
+    mine: () => request<Household[]>('/v1/households/mine'),
+    invite: (householdId: string, email: string, role: Exclude<HouseholdRole, 'owner'>) =>
+      request<HouseholdMember>(`/v1/households/${householdId}/invite`, {
         method: 'POST',
         body: JSON.stringify({ email, role }),
       }),
     accept: (householdId: string) =>
-      request<{ userId: string; role: string }>(`/v1/households/${householdId}/accept`, {
+      request<HouseholdMember>(`/v1/households/${householdId}/accept`, {
         method: 'POST',
       }),
     decline: (householdId: string) =>

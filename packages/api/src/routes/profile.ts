@@ -6,6 +6,8 @@ import {
   ALLERGENS,
   HTTP_URL_PROTOCOL,
   NutritionTargetsSchema,
+  UserSchema,
+  ProfileSchema,
   normalizeAllergens,
   toAllergenKey,
 } from '@recetario/shared'
@@ -34,24 +36,9 @@ const userPatchSchema = z.object({
   avatarUrl: z.url({ protocol: HTTP_URL_PROTOCOL }).optional(),
 })
 
-const userResponseSchema = z.object({
-  id: z.uuid(),
-  email: z.email(),
-  displayName: z.string().nullable(),
-  avatarUrl: z.string().nullable(),
-  createdAt: z.string(),
-})
+const userResponseSchema = UserSchema
 
-const nutritionTargetsSchema = NutritionTargetsSchema.nullable()
-
-const profileSchema = z.object({
-  preferredServings: z.number().int().min(1).max(20).nullable(),
-  dietaryRestrictions: z.array(z.string()),
-  allergens: z.array(z.string()),
-  goals: z.array(z.string()),
-  timezone: z.string().nullable(),
-  nutritionTargets: nutritionTargetsSchema,
-})
+const profileSchema = ProfileSchema
 
 // PATCH /auth/me
 const patchMeRoute = defineRoute({

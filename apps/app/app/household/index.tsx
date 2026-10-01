@@ -61,7 +61,7 @@ export default function HouseholdScreen() {
     }: {
       householdId: string
       email: string
-      role: string
+      role: 'admin' | 'member' | 'viewer'
     }) => api.households.invite(householdId, email, role),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['households'] })
