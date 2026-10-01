@@ -291,18 +291,27 @@ export default function ProfileScreen() {
         ] as const
       ).map(({ field, label, unit, step }) => {
         const t = profile?.nutritionTargets as Record<string, number> | null
-        const val = t?.[field] ?? 0
+        // Unset targets show the defaults the steppers start from
+        const val = t?.[field] ?? DEFAULT_NUTRITION_TARGETS[field]
         return (
           <View key={field} style={s.targetRow}>
             <Text style={s.targetLabel}>{label}</Text>
-            <TouchableOpacity style={s.servingsBtn} onPress={() => updateTarget(field, -step)}>
+            <TouchableOpacity
+              testID={`target-${field}-minus`}
+              style={s.servingsBtn}
+              onPress={() => updateTarget(field, -step)}
+            >
               <Text style={s.servingsBtnText}>−</Text>
             </TouchableOpacity>
             <Text style={s.targetValue}>
               {val}
               <Text style={s.targetUnit}> {unit}</Text>
             </Text>
-            <TouchableOpacity style={s.servingsBtn} onPress={() => updateTarget(field, step)}>
+            <TouchableOpacity
+              testID={`target-${field}-plus`}
+              style={s.servingsBtn}
+              onPress={() => updateTarget(field, step)}
+            >
               <Text style={s.servingsBtnText}>+</Text>
             </TouchableOpacity>
           </View>
