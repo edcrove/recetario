@@ -1,9 +1,9 @@
 import { test, expect } from './fixtures'
+import { API_URL } from './env'
 
 // Ingredient unification story 4: the config "Ingredientes" tab lists canonicals
 // grouped by family with synonyms as chips, search, and two curation actions
 // (create a canonical, move a synonym). These smokes drive the real UI.
-const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
 
 test('lists canonicals, creates one, and searches', async ({ page }) => {
   const token = await page.evaluate(() => localStorage.getItem('auth_token'))

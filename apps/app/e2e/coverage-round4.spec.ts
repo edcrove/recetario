@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { API_URL } from './env'
 
 /**
  * Round 4 — closing the remaining browser-reachable gaps the earlier rounds
@@ -18,8 +19,6 @@ import { test, expect } from './fixtures'
  * Everything created is cleaned up; interceptions are page-scoped and set
  * before the navigation that triggers the fetch.
  */
-
-const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
 
 async function authHeaders(page: import('@playwright/test').Page) {
   const token = await page.evaluate(() => localStorage.getItem('auth_token'))

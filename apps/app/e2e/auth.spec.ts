@@ -1,7 +1,6 @@
 import { testUnauth as test, expect } from './fixtures'
 import { DEMO_ACCOUNTS } from './demoAccounts'
-
-const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
+import { API_URL } from './env'
 const E2E_EMAIL = DEMO_ACCOUNTS[0]!.email
 const E2E_PASSWORD = DEMO_ACCOUNTS[0]!.password
 

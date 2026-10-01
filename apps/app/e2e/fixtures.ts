@@ -2,8 +2,7 @@ import { test as base, expect } from '@playwright/test'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { DEMO_ACCOUNTS } from './demoAccounts'
-
-const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
+import { API_URL } from './env'
 const COLLECT_COVERAGE = process.env['E2E_COVERAGE'] === 'true'
 // Istanbul coverage goes to .e2e-coverage/ for nyc merge
 const COVERAGE_DIR = path.join(process.cwd(), '.e2e-coverage')

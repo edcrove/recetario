@@ -1,9 +1,9 @@
 import { test, expect } from './fixtures'
+import { API_URL } from './env'
 
 // Recipe provenance (import epic story 1): a recipe with a source URL shows a
 // "Fuente: {host}" link on its detail. The MCP fetch tool + createRecipe set
 // source; here we assert the display end via a recipe created with a source.
-const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
 
 test('a recipe with a source URL shows its provenance on the detail', async ({ page }) => {
   const token = await page.evaluate(() => localStorage.getItem('auth_token'))

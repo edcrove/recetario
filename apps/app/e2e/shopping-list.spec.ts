@@ -1,9 +1,9 @@
 import { test, expect } from './fixtures'
 import type { APIRequestContext } from '@playwright/test'
+import { API_URL } from './env'
 
 // Shopping list v2 (story 2): items group by aisle, check-off is optimistic and
 // persists server-side. Seeds a recipe + menu entry per week via the API.
-const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
 
 async function seedWeek(request: APIRequestContext, headers: Record<string, string>, week: string) {
   const recipeRes = await request.post(`${API_URL}/v1/recipes`, {

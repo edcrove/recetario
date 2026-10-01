@@ -1,9 +1,9 @@
 import { test, expect } from './fixtures'
+import { API_URL } from './env'
 
 // Pantry epic story 3: the Despensa screen — reachable from the user menu — lets
 // you add items, toggle stock, and remove them. Items are owner-scoped, so the
 // per-worker demo accounts don't collide.
-const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
 
 test('add, toggle and delete a pantry item from the Despensa screen', async ({ page }) => {
   const token = await page.evaluate(() => localStorage.getItem('auth_token'))

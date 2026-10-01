@@ -67,6 +67,10 @@ E2E_SCREENSHOTS=true pnpm e2e:local   # + full-page screenshot per test and the 
 pnpm e2e:down      # stop the E2E stack
 ```
 
+E2E specs default to the E2E stack (`apps/app/e2e/env.ts`: API `:3001`, app `:8081`), so a bare
+`playwright test` never hits the manual data. Every `e2e/*.spec.ts` must be listed in the CI
+Playwright step — `pnpm check:e2e-specs` (also run by `ci:local` and the CI lint job) enforces it.
+
 Never point local E2E at `:8080`/`:3000` — that pollutes the manual data. Known issue: the
 app web image (`apps/app/Dockerfile`) fails at `expo export`, which blocks `e2e:up`/`e2e:local`
 until fixed (backlog bug); without it, use the no-Docker recipe in `.claude/skills/auditar/SKILL.md`.
@@ -229,20 +233,21 @@ Include the PR link in the story's PR field.
 
 ### Required vars per environment
 
-| Variable                       | Package | Required in prod | Notes                                                                            |
-| ------------------------------ | ------- | ---------------- | -------------------------------------------------------------------------------- |
-| `DATABASE_URL`                 | api     | ✅               | Postgres connection string                                                       |
-| `JWT_SECRET`                   | api     | ✅               | ≥64 random hex chars. **Fails fast at startup if missing in production.**        |
-| `DEV_API_KEY`                  | api     | ❌               | Local/CI fallback auth. Never in production.                                     |
-| `REGISTRATION_OPEN`            | api     | ❌               | `true` opens sign-up in production (closed by default there).                    |
-| `ALLOW_DEV_SECRETS`            | api     | ❌               | docker-compose/CI only: relaxes the production secret checks. Never on a deploy. |
-| `AUTH_RATE_LIMIT_MAX_REQUESTS` | api     | ❌               | Per-IP login/register attempts per minute (default 10). Raised only in CI/E2E.   |
-| `RATE_LIMIT_MAX_REQUESTS`      | api     | ❌               | Recipe writes per account per minute (default 100). Raised only in CI/E2E.       |
-| `CORS_ORIGIN`                  | api     | ✅ (web)         | Comma-separated allowed origins for the deployed web app; localhost is built in. |
-| `API_BASE_URL`                 | mcp     | ✅               | URL of the API the MCP server calls                                              |
-| `MCP_API_KEY`                  | mcp     | ✅               | API key for MCP→API auth (from api_keys table)                                   |
-| `EXPO_PUBLIC_API_URL`          | app     | ✅               | Public — embedded at build time                                                  |
-| `EXPO_PUBLIC_API_KEY`          | app     | ❌               | Public — never put secrets here                                                  |
+| Variable                       | Package | Required in prod | Notes                                                                             |
+| ------------------------------ | ------- | ---------------- | --------------------------------------------------------------------------------- |
+| `DATABASE_URL`                 | api     | ✅               | Postgres connection string                                                        |
+| `JWT_SECRET`                   | api     | ✅               | ≥64 random hex chars. **Fails fast at startup if missing in production.**         |
+| `DEV_API_KEY`                  | api     | ❌               | Local/CI fallback auth. Never in production.                                      |
+| `REGISTRATION_OPEN`            | api     | ❌               | `true` opens sign-up in production (closed by default there).                     |
+| `ALLOW_DEV_SECRETS`            | api     | ❌               | docker-compose/CI only: relaxes the production secret checks. Never on a deploy.  |
+| `AUTH_RATE_LIMIT_MAX_REQUESTS` | api     | ❌               | Per-IP login/register attempts per minute (default 10). Raised only in CI/E2E.    |
+| `RATE_LIMIT_MAX_REQUESTS`      | api     | ❌               | Recipe writes per account per minute (default 100). Raised only in CI/E2E.        |
+| `CORS_ORIGIN`                  | api     | ✅ (web)         | Comma-separated allowed origins for the deployed web app; localhost is built in.  |
+| `TRUST_PROXY`                  | api     | ❌               | `true` only behind a proxy that sets X-Forwarded-For (Railway); keys rate limits. |
+| `API_BASE_URL`                 | mcp     | ✅               | URL of the API the MCP server calls                                               |
+| `MCP_API_KEY`                  | mcp     | ✅               | API key for MCP→API auth (from api_keys table)                                    |
+| `EXPO_PUBLIC_API_URL`          | app     | ✅               | Public — embedded at build time                                                   |
+| `EXPO_PUBLIC_API_KEY`          | app     | ❌               | Public — never put secrets here                                                   |
 
 ### Local development
 

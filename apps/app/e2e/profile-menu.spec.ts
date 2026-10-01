@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { API_URL } from './env'
 
 /**
  * Profile menu (UserMenu component) and satellite screens:
@@ -115,7 +116,6 @@ test.describe('Collections screen', () => {
   // Regression test for the 2026-07-03 audit finding: tapping a collection
   // used to navigate to a dead-end/blank route — collections/[id] didn't exist.
   test('tapping a collection shows its recipes instead of a dead end', async ({ page }) => {
-    const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
     const token = await page.evaluate(() => localStorage.getItem('auth_token'))
 
     const colRes = await page.request.post(`${API_URL}/v1/collections`, {
@@ -199,7 +199,6 @@ test.describe('Config (taxonomy) screen', () => {
   // real creation endpoint (POST /v1/food-types), so create one via the API
   // first to guarantee there's something the caller actually owns to rename.
   test('renames an own food type and sees the new name', async ({ page }) => {
-    const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
     const token = await page.evaluate(() => localStorage.getItem('auth_token'))
     const createRes = await page.request.post(`${API_URL}/v1/food-types`, {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -235,7 +234,7 @@ test.describe('Config (taxonomy) screen', () => {
   })
 
   test('a used food type can be reassigned by name before deleting it', async ({ page }) => {
-    const API = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
+    const API = API_URL
     const token = await page.evaluate(() => localStorage.getItem('auth_token'))
     const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
     const stamp = Date.now()
@@ -348,7 +347,6 @@ test.describe('Household screen', () => {
   test('inviting a real user by email succeeds, and the member can be removed', async ({
     page,
   }, testInfo) => {
-    const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
     const inviteeEmail = `invitado-e2e-${testInfo.parallelIndex}-${Date.now()}@example.com`
     const registerRes = await page.request.post(`${API_URL}/auth/register`, {
       data: { email: inviteeEmail, password: 'password123' },
@@ -403,7 +401,7 @@ test.describe('Household screen', () => {
   test('Mi hogar reports failed invite, remove, accept and decline requests', async ({
     page,
   }, testInfo) => {
-    const API = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
+    const API = API_URL
     const ownerToken = await page.evaluate(() => localStorage.getItem('auth_token'))
     const ownerHeaders = { Authorization: `Bearer ${ownerToken ?? ''}` }
     await openHouseholdEnsuringOneExists(page)
@@ -480,7 +478,7 @@ test.describe('Household screen', () => {
   test('the invitee declines, is invited again and accepts — all in Mi hogar', async ({
     page,
   }, testInfo) => {
-    const API = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
+    const API = API_URL
     const ownerToken = await page.evaluate(() => localStorage.getItem('auth_token'))
     const ownerHeaders = { Authorization: `Bearer ${ownerToken ?? ''}` }
     await openHouseholdEnsuringOneExists(page)
@@ -577,7 +575,6 @@ test.describe('Profile screen (/profile)', () => {
   test('an allergen picked in the profile warns on a recipe with a derivative', async ({
     page,
   }) => {
-    const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
     const token = await page.evaluate(() => localStorage.getItem('auth_token'))
     const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
     const created = await page.request.post(`${API_URL}/v1/recipes`, {

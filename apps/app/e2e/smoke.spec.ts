@@ -2,7 +2,7 @@ import { test, expect } from './fixtures'
 
 /**
  * Smoke E2E: verifies the Expo web app renders and navigates correctly.
- * Requires the app to be running at PLAYWRIGHT_BASE_URL (default localhost:8080).
+ * Requires the app to be running at PLAYWRIGHT_BASE_URL (default: the E2E stack on localhost:8081, see e2e/env.ts).
  * Requires the API at EXPO_PUBLIC_API_URL with demo@recetario.app / demo1234.
  */
 

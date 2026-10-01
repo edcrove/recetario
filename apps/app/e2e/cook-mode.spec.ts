@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { API_URL } from './env'
 
 /**
  * Cook mode E2E flows.
@@ -166,8 +167,6 @@ test.describe('Cook mode: basic flow', () => {
 // timer), and the no-steps empty state. Uses dedicated recipes created via API
 // so the seeded demo data stays untouched.
 test.describe('Cook mode: full session flows', () => {
-  const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
-
   // Recipes created here are deleted after each test: leftovers accumulate
   // across local runs, push the seeded recipes off the home list's first page
   // and break every title-based locator in other suites.

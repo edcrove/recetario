@@ -1,11 +1,10 @@
 import { test, expect } from './fixtures'
+import { API_URL } from './env'
 
 /**
  * Weekly menu E2E flows.
  * All tests run authenticated via the auth fixture.
  */
-
-const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
 
 async function authHeaders(page: import('@playwright/test').Page) {
   const token = await page.evaluate(() => localStorage.getItem('auth_token'))

@@ -1,9 +1,9 @@
 import { test, expect } from './fixtures'
+import { API_URL } from './env'
 
 // ¿Qué hay en la heladera? story 3: type/pick what you have → "Podés cocinar ya"
 // and "Te falta poco"; the "Tu semana" tab lists the planned week's gap and
 // jumps to the shopping list.
-const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
 
 function weekStartUTC(): string {
   const d = new Date()

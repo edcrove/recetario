@@ -1,5 +1,6 @@
 import { test, expect } from './fixtures'
 import type { Page } from '@playwright/test'
+import { API_URL } from './env'
 
 async function goToMenu(page: Page): Promise<void> {
   await page.goto('/')
@@ -123,7 +124,6 @@ test.describe('Pick recipe screen (/menu/pick)', () => {
   // the allergen warning only showed up on the recipe detail page, three taps
   // deep from where planning actually happens. Now the picker shows a badge.
   test('shows an allergen badge on recipes that conflict with the profile', async ({ page }) => {
-    const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
     const token = await page.evaluate(() => localStorage.getItem('auth_token'))
     const res = await page.request.patch(`${API_URL}/auth/profile`, {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
