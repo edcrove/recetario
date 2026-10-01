@@ -43,6 +43,10 @@ export const NutritionSchema = z.object({
   carbs_g: z.number().min(0),
   fat_g: z.number().min(0),
   fiber_g: z.number().min(0).optional(),
+  // Optional label nutrients (2026-10-01 audit): only stored when known.
+  sugars_g: z.number().min(0).optional(),
+  saturated_fat_g: z.number().min(0).optional(),
+  sodium_mg: z.number().min(0).optional(),
 })
 export type Nutrition = z.infer<typeof NutritionSchema>
 

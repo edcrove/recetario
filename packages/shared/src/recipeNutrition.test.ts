@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { nutritionAfterEdit } from './recipeNutrition.js'
+import { nutritionAfterEdit, scalePerServing } from './recipeNutrition.js'
 
 const nutrition = { calories: 600, protein_g: 30, carbs_g: 60, fat_g: 20, fiber_g: 8 }
 const ingredients = [
@@ -56,5 +56,42 @@ describe('nutritionAfterEdit', () => {
 
   it('does nothing for a recipe without nutrition', () => {
     expect(nutritionAfterEdit({ ...base, nutrition: null }, { servings: 8 })).toBeUndefined()
+  })
+})
+
+describe('scalePerServing', () => {
+  it('scales every present nutrient and rounds like the app', () => {
+    expect(
+      scalePerServing(
+        {
+          calories: 301,
+          protein_g: 10.04,
+          carbs_g: 40,
+          fat_g: 5,
+          fiber_g: 3,
+          sugars_g: 12.3,
+          saturated_fat_g: 2.25,
+          sodium_mg: 455,
+        },
+        2,
+      ),
+    ).toEqual({
+      calories: 602,
+      protein_g: 20.1,
+      carbs_g: 80,
+      fat_g: 10,
+      fiber_g: 6,
+      sugars_g: 24.6,
+      saturated_fat_g: 4.5,
+      sodium_mg: 910,
+    })
+  })
+  it('keeps absent optional nutrients absent', () => {
+    expect(scalePerServing({ calories: 100, protein_g: 1, carbs_g: 1, fat_g: 1 }, 0.5)).toEqual({
+      calories: 50,
+      protein_g: 0.5,
+      carbs_g: 0.5,
+      fat_g: 0.5,
+    })
   })
 })

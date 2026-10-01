@@ -241,4 +241,29 @@ describe('nutrition number parsing', () => {
     )
     expect(r?.nutrition).toEqual({ calories: 400, protein_g: 10, fiber_g: 6.5 })
   })
+
+  it('reads sugars, saturated fat and sodium (mg, or grams converted)', () => {
+    const mg = parseRecipeFromHtml(
+      ldBlock({
+        '@type': 'Recipe',
+        name: 'S',
+        nutrition: {
+          calories: '300 kcal',
+          sugarContent: '12 g',
+          saturatedFatContent: '3,5 g',
+          sodiumContent: '480 mg',
+        },
+      }),
+    )
+    expect(mg?.nutrition).toEqual({
+      calories: 300,
+      sugars_g: 12,
+      saturated_fat_g: 3.5,
+      sodium_mg: 480,
+    })
+    const grams = parseRecipeFromHtml(
+      ldBlock({ '@type': 'Recipe', name: 'G', nutrition: { sodiumContent: '1.2 g' } }),
+    )
+    expect(grams?.nutrition).toEqual({ sodium_mg: 1200 })
+  })
 })

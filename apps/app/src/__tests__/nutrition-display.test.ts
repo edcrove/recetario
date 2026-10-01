@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { roundNutrition, scaleNutrition } from '../utils/nutritionDisplay'
+import { roundNutrition, scaleNutrition, extraNutrientsLine } from '../utils/nutritionDisplay'
 import type { Nutrition } from '@recetario/shared'
 
 // regression: nutrition per serving must NOT scale with batch size (found during 2026-07-02 audit)
@@ -56,5 +56,39 @@ describe('scaleNutrition', () => {
   it('is a no-op at 1 serving', () => {
     const nutrition: Nutrition = { calories: 210, protein_g: 11, carbs_g: 17.5, fat_g: 22.7 }
     expect(scaleNutrition(nutrition, 1)).toEqual(nutrition)
+  })
+})
+
+describe('optional label nutrients', () => {
+  const full = {
+    calories: 300,
+    protein_g: 10,
+    carbs_g: 40,
+    fat_g: 8,
+    sugars_g: 12.34,
+    saturated_fat_g: 3.46,
+    sodium_mg: 480.4,
+  }
+  it('rounds and scales sugars, saturated fat and sodium when present', () => {
+    expect(roundNutrition(full)).toMatchObject({
+      sugars_g: 12.3,
+      saturated_fat_g: 3.5,
+      sodium_mg: 480,
+    })
+    expect(scaleNutrition(full, 2)).toMatchObject({
+      sugars_g: 24.68,
+      saturated_fat_g: 6.92,
+      sodium_mg: 960.8,
+    })
+    const bare = { calories: 1, protein_g: 1, carbs_g: 1, fat_g: 1 }
+    expect(roundNutrition(bare).sodium_mg).toBeUndefined()
+    expect(scaleNutrition(bare, 2).sugars_g).toBeUndefined()
+  })
+  it('summarizes only the known nutrients', () => {
+    expect(extraNutrientsLine({ sugars_g: 12, saturated_fat_g: 3.5, sodium_mg: 480.4 })).toBe(
+      'Azúcares 12 g · Grasas sat. 3.5 g · Sodio 480 mg',
+    )
+    expect(extraNutrientsLine({ sodium_mg: 90 })).toBe('Sodio 90 mg')
+    expect(extraNutrientsLine({})).toBe('')
   })
 })

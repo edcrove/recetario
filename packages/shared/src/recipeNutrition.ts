@@ -45,15 +45,27 @@ export function nutritionAfterEdit(
   )
     return null
   if (update.servings !== undefined && update.servings !== existing.servings) {
-    const f = existing.servings / update.servings
-    const n = existing.nutrition
-    return {
-      calories: Math.round(n.calories * f),
-      protein_g: round1(n.protein_g * f),
-      carbs_g: round1(n.carbs_g * f),
-      fat_g: round1(n.fat_g * f),
-      ...(n.fiber_g !== undefined && { fiber_g: round1(n.fiber_g * f) }),
-    }
+    return scalePerServing(existing.nutrition, existing.servings / update.servings)
   }
   return undefined
+}
+
+/**
+ * Multiplies per-serving nutrition by `factor`, keeping only the fields that
+ * are present and rounding like the rest of the app (kcal and mg to integers,
+ * grams to one decimal).
+ */
+export function scalePerServing(n: Nutrition, factor: number): Nutrition {
+  const out: Nutrition = {
+    calories: Math.round(n.calories * factor),
+    protein_g: round1(n.protein_g * factor),
+    carbs_g: round1(n.carbs_g * factor),
+    fat_g: round1(n.fat_g * factor),
+  }
+  for (const key of ['fiber_g', 'sugars_g', 'saturated_fat_g'] as const) {
+    const v = n[key]
+    if (v !== undefined) out[key] = round1(v * factor)
+  }
+  if (n.sodium_mg !== undefined) out.sodium_mg = Math.round(n.sodium_mg * factor)
+  return out
 }
