@@ -7,6 +7,7 @@ import { hashPassword, verifyPassword, signJwt } from '../auth/service.js'
 import { authRateLimitMiddleware } from '../middleware/rateLimit.js'
 import { registrationOpen } from '../config/production.js'
 import { authMiddleware } from '../middleware/auth.js'
+import { UUID_RE } from '../db/household-visibility.js'
 
 export const authRoute = createRouter()
 
@@ -129,19 +130,22 @@ authRoute.openapi(loginRoute, async (c) => {
 
   const [user] = await db.select().from(schema.users).where(emailMatches(email)).limit(1)
   if (!user || !(await verifyPassword(password, user.passwordHash))) {
-    return c.json({ error: 'Invalid email or password' } as never, 401)
+    return c.json({ error: 'Invalid email or password' }, 401)
   }
 
   const token = await signJwt({ sub: user.id, email: user.email })
-  return c.json({
-    user: {
-      id: user.id,
-      email: user.email,
-      displayName: user.displayName,
-      createdAt: user.createdAt.toISOString(),
+  return c.json(
+    {
+      user: {
+        id: user.id,
+        email: user.email,
+        displayName: user.displayName,
+        createdAt: user.createdAt.toISOString(),
+      },
+      token,
     },
-    token,
-  } as never)
+    200,
+  )
 })
 
 // GET /auth/me
@@ -155,22 +159,24 @@ const meRoute = defineRoute({
   },
 })
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-authRoute.openapi(meRoute as any, async (c: any) => {
+authRoute.openapi(meRoute, async (c) => {
   const userId: string = c.get('ownerId')
   // Legacy/dev owners ('dev', 'test-owner') are not users
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) {
-    return c.json({ error: 'User not found' } as never, 401)
+  if (!UUID_RE.test(userId)) {
+    return c.json({ error: 'User not found' }, 401)
   }
 
   const db = getDb()
   const [user] = await db.select().from(schema.users).where(eq(schema.users.id, userId)).limit(1)
-  if (!user) return c.json({ error: 'User not found' } as never, 401)
+  if (!user) return c.json({ error: 'User not found' }, 401)
 
-  return c.json({
-    id: user.id,
-    email: user.email,
-    displayName: user.displayName,
-    createdAt: user.createdAt.toISOString(),
-  })
+  return c.json(
+    {
+      id: user.id,
+      email: user.email,
+      displayName: user.displayName,
+      createdAt: user.createdAt.toISOString(),
+    },
+    200,
+  )
 })
