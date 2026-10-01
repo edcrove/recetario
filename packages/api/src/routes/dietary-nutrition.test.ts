@@ -64,6 +64,7 @@ vi.mock('../db/menu-repository.js', () => ({
     upsert: vi.fn(),
     remove: vi.fn(),
     getScaledIngredients: vi.fn().mockResolvedValue([]),
+    getNutritionInputs: vi.fn(),
   },
 }))
 vi.mock('../db/cook-sessions-repository.js', () => ({
@@ -75,6 +76,7 @@ vi.mock('../db/cook-sessions-repository.js', () => ({
 }))
 
 import { app } from '../index.js'
+import { menuRepository } from '../db/menu-repository.js'
 import { requests as rateLimitStore } from '../middleware/rateLimit.js'
 
 beforeEach(() => {
@@ -86,82 +88,56 @@ beforeEach(() => {
 })
 
 describe('GET /v1/menu/nutrition', () => {
-  it('returns weekly nutrition totals (empty entries)', async () => {
-    mockSelect
-      .mockReturnValueOnce([]) // menu entries
-      .mockReturnValueOnce([
-        {
-          nutritionTargets: {
-            daily_calories: 2000,
-            daily_protein_g: 50,
-            daily_carbs_g: 200,
-            daily_fat_g: 70,
-          },
-        },
-      ])
+  const portion = (date: string, calories: number, protein_g = 10) => ({
+    date,
+    mealCategory: 'Almuerzo',
+    nutrition: { calories, protein_g, carbs_g: 40, fat_g: 5 },
+  })
+  const getInputs = vi.spyOn(menuRepository, 'getNutritionInputs')
+  const fullTarget = {
+    daily_calories: 2000,
+    daily_protein_g: 50,
+    daily_carbs_g: 200,
+    daily_fat_g: 70,
+  }
+
+  it('returns 7 empty days plus the daily targets', async () => {
+    getInputs.mockResolvedValueOnce({
+      entries: [],
+      target: { ...fullTarget, per_meal: { cena: { calories: 600 } } },
+    })
     const res = await app.request('/v1/menu/nutrition?weekStart=2026-07-06', {
       headers: { Authorization: 'Bearer test-key' },
     })
     expect(res.status).toBe(200)
     const body = await res.json()
+    expect(getInputs).toHaveBeenCalledWith('dev', '2026-07-06', '2026-07-12')
     expect(body.weekStart).toBe('2026-07-06')
     expect(body.days).toHaveLength(7)
+    expect(body.days[6].date).toBe('2026-07-12')
     expect(body.days[0].calories).toBe(0)
-    expect(body.targets?.daily_calories).toBe(2000)
+    expect(body.targets).toEqual(fullTarget) // daily goals only
   })
 
-  it('aggregates one portion per planned dish per day', async () => {
-    mockSelect
-      .mockReturnValueOnce([
-        {
-          date: '2026-07-06',
-          nutrition: { calories: 500, protein_g: 30, carbs_g: 60, fat_g: 20 },
-        },
-        {
-          date: '2026-07-06',
-          nutrition: { calories: 300, protein_g: 10, carbs_g: 40, fat_g: 5 },
-        },
-      ])
-      .mockReturnValueOnce([{ nutritionTargets: null }])
+  it('sums one portion per planned dish per day, like the day rollup', async () => {
+    getInputs.mockResolvedValueOnce({
+      entries: [
+        portion('2026-07-06', 500, 30),
+        portion('2026-07-06', 300.4, 10.04),
+        portion('2026-07-08', 200),
+        { date: '2026-07-07', mealCategory: 'Cena', nutrition: null },
+      ],
+      target: null,
+    })
     const res = await app.request('/v1/menu/nutrition?weekStart=2026-07-06', {
       headers: { Authorization: 'Bearer test-key' },
     })
     expect(res.status).toBe(200)
     const body = await res.json()
-    const monday = body.days.find((d: { date: string }) => d.date === '2026-07-06')
-    expect(monday?.calories).toBe(800) // 500 + 300: one portion each
+    expect(body.days[0]).toMatchObject({ date: '2026-07-06', calories: 800, protein_g: 40 })
+    expect(body.days[1].calories).toBe(0) // no nutrition data
+    expect(body.days[2].calories).toBe(200)
     expect(body.targets).toBeNull()
-  })
-
-  it('reports per-person intake, not the household batch (nutrition is per serving)', async () => {
-    mockSelect
-      .mockReturnValueOnce([
-        {
-          date: '2026-07-06',
-          nutrition: { calories: 500, protein_g: 20, carbs_g: 50, fat_g: 15 },
-        },
-      ])
-      .mockReturnValueOnce([{ nutritionTargets: null }])
-    const res = await app.request('/v1/menu/nutrition?weekStart=2026-07-06', {
-      headers: { Authorization: 'Bearer test-key' },
-    })
-    expect(res.status).toBe(200)
-    const body = await res.json()
-    expect(body.days[0].calories).toBe(500) // one person's portion, whatever servings were planned
-  })
-
-  it('skips entries with no nutrition data', async () => {
-    mockSelect
-      .mockReturnValueOnce([
-        { date: '2026-07-06', servings: 2, recipeServings: 2, nutrition: null },
-      ])
-      .mockReturnValueOnce([{ nutritionTargets: null }])
-    const res = await app.request('/v1/menu/nutrition?weekStart=2026-07-06', {
-      headers: { Authorization: 'Bearer test-key' },
-    })
-    expect(res.status).toBe(200)
-    const body = await res.json()
-    expect(body.days[0].calories).toBe(0)
   })
 })
 

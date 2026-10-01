@@ -9,14 +9,13 @@ import {
   resolveCanonical,
   computeMenuGaps,
   computeDayNutrition,
+  addIsoDays,
 } from '@recetario/shared'
 import { ingredientRepository } from '../db/ingredient-repository.js'
 import { pantryRepository } from '../db/pantry-repository.js'
 import { menuRepository } from '../db/menu-repository.js'
-import { isViewerAnywhere, getVisibleOwnerIds } from '../db/household-visibility.js'
+import { isViewerAnywhere } from '../db/household-visibility.js'
 import { authMiddleware } from '../middleware/auth.js'
-import { getDb, schema as dbSchema } from '../db/index.js'
-import { eq, and, gte, lte, inArray } from 'drizzle-orm'
 import '../types.js'
 
 export const menuRoute = createRouter()
@@ -388,82 +387,31 @@ const getMenuNutritionRoute = defineRoute({
 menuRoute.openapi(getMenuNutritionRoute as any, async (c: any) => {
   const ownerId = c.get('ownerId')
   const { weekStart } = c.req.valid('query')
-  const db = getDb()
+  const weekEnd = addIsoDays(weekStart, 6)
+  const { entries, target } = await menuRepository.getNutritionInputs(ownerId, weekStart, weekEnd)
 
-  const weekStartDate = new Date(weekStart + 'T00:00:00Z')
-  const weekEndDate = new Date(weekStartDate)
-  weekEndDate.setUTCDate(weekEndDate.getUTCDate() + 6)
-  const weekEnd = weekEndDate.toISOString().slice(0, 10)
-
-  // Get menu entries for the week with recipe nutrition. Scope the recipe join
-  // to visible owners so a planted foreign recipe id can't leak the victim's
-  // nutrition through this endpoint.
-  const visibleOwners = await getVisibleOwnerIds(ownerId)
-  const entries = await db
-    .select({
-      date: dbSchema.menuEntries.date,
-      nutrition: dbSchema.recipes.nutrition,
-    })
-    .from(dbSchema.menuEntries)
-    .innerJoin(dbSchema.recipes, eq(dbSchema.menuEntries.recipeId, dbSchema.recipes.id))
-    .where(
-      and(
-        eq(dbSchema.menuEntries.ownerId, ownerId),
-        inArray(dbSchema.recipes.ownerId, visibleOwners),
-        gte(dbSchema.menuEntries.date, weekStart),
-        lte(dbSchema.menuEntries.date, weekEnd),
-      ),
-    )
-
-  // Get user nutrition targets
-  const [profile] = await db
-    .select({ nutritionTargets: dbSchema.userProfiles.nutritionTargets })
-    .from(dbSchema.userProfiles)
-    .where(eq(dbSchema.userProfiles.userId, ownerId))
-    .limit(1)
-
-  // Aggregate per day
-  const dayMap = new Map<
-    string,
-    { calories: number; protein_g: number; carbs_g: number; fat_g: number }
-  >()
-
-  for (const entry of entries) {
-    const n = entry.nutrition as {
-      calories: number
-      protein_g: number
-      carbs_g: number
-      fat_g: number
-    } | null
-    if (!n) continue
-    // Nutrition is stored per serving. Days are compared against one person's
-    // target, so each planned dish counts as one portion, however many servings
-    // the household cooks (D-2026-10-01-5).
-    const day = dayMap.get(entry.date) ?? { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 }
-    day.calories += Math.round(n.calories)
-    day.protein_g += Math.round(n.protein_g * 10) / 10
-    day.carbs_g += Math.round(n.carbs_g * 10) / 10
-    day.fat_g += Math.round(n.fat_g * 10) / 10
-    dayMap.set(entry.date, day)
-  }
-
+  // Same per-person rollup as /menu/day-nutrition (one portion per planned
+  // dish, D-2026-10-01-5), over the same household-shared entries.
   const days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(weekStartDate)
-    d.setUTCDate(d.getUTCDate() + i)
-    const date = d.toISOString().slice(0, 10)
-    return { date, ...(dayMap.get(date) ?? { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 }) }
+    const date = addIsoDays(weekStart, i)
+    const { totals } = computeDayNutrition(
+      entries.filter((e) => e.date === date),
+      null,
+    )
+    return { date, ...totals }
   })
 
   return c.json({
     weekStart,
     days,
-    targets:
-      (profile?.nutritionTargets as {
-        daily_calories: number
-        daily_protein_g: number
-        daily_carbs_g: number
-        daily_fat_g: number
-      } | null) ?? null,
+    targets: target
+      ? {
+          daily_calories: target.daily_calories,
+          daily_protein_g: target.daily_protein_g,
+          daily_carbs_g: target.daily_carbs_g,
+          daily_fat_g: target.daily_fat_g,
+        }
+      : null,
   })
 })
 
