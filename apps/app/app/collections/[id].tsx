@@ -1,5 +1,5 @@
 import { View, Text, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator } from 'react-native'
-import { useRouter, useLocalSearchParams } from 'expo-router'
+import { Stack, useRouter, useLocalSearchParams } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../src/api/client'
 import { notify, confirmAsync } from '../../src/utils/platformAlert'
@@ -16,6 +16,16 @@ export default function CollectionDetailScreen() {
     name?: string
     emoji?: string
   }>()
+
+  // Opened from a link (no params) the name comes from the collections list.
+  const { data: collections = [] } = useQuery({
+    queryKey: ['collections'],
+    queryFn: () => api.taxonomy.collections(),
+    enabled: !name,
+  })
+  const listed = collections.find((col) => col.id === id)
+  const title = name ?? listed?.name ?? 'Colección'
+  const icon = emoji ?? listed?.emoji ?? '📋'
 
   const {
     data: recipes = [],
@@ -51,9 +61,10 @@ export default function CollectionDetailScreen() {
 
   return (
     <View style={s.container}>
+      <Stack.Screen options={{ title }} />
       <View style={s.header}>
         <Text testID="collection-detail-title" style={s.title}>
-          {emoji ?? '📋'} {name ?? 'Colección'}
+          {icon} {title}
         </Text>
       </View>
 
@@ -63,7 +74,7 @@ export default function CollectionDetailScreen() {
         contentContainerStyle={s.list}
         ListEmptyComponent={
           <Text testID="collection-detail-empty" style={s.empty}>
-            Sin recetas en esta colección.
+            Sin recetas en esta colección. Abrí una receta y tocá «Guardar en colección».
           </Text>
         }
         renderItem={({ item }) => {

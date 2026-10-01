@@ -15,6 +15,7 @@ import { displayIngredient } from '../../src/utils/displayIngredient'
 import type { DisplayMode } from '../../src/utils/displayIngredient'
 import { roundNutrition, scaleNutrition } from '../../src/utils/nutritionDisplay'
 import { AllergenWarning } from '../../src/components/AllergenWarning'
+import { SaveToCollection } from '../../src/components/SaveToCollection'
 import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 import { isForeignRecipe } from '../../src/utils/roles'
 import { isHttpUrl, sourceHost } from '../../src/utils/sourceHost'
@@ -136,6 +137,8 @@ export default function RecipeDetailScreen() {
       )}
 
       <AllergenWarning recipe={recipe} />
+
+      <SaveToCollection recipeId={id} />
 
       {/* Tab bar */}
       <View style={s.tabBar}>
