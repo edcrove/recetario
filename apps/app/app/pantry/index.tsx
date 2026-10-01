@@ -11,7 +11,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { api } from '../../src/api/client'
-import { notify } from '../../src/utils/platformAlert'
+import { confirmAsync, notify } from '../../src/utils/platformAlert'
 import { expiryStatus, groupPantry, type PantryItem } from '../../src/utils/pantryView'
 import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 import { useIsViewer } from '../../src/hooks/useIsViewer'
@@ -169,7 +169,13 @@ export default function PantryScreen() {
                   testID={`pantry-delete-${item.id}`}
                   accessibilityRole="button"
                   accessibilityLabel="Eliminar de la despensa"
-                  onPress={() => remove.mutate(item.id)}
+                  onPress={async () => {
+                    const ok = await confirmAsync(
+                      'Eliminar de la despensa',
+                      `¿Eliminar "${item.name}" de la despensa?`,
+                    )
+                    if (ok) remove.mutate(item.id)
+                  }}
                 >
                   <Text style={s.delete}>🗑️</Text>
                 </TouchableOpacity>

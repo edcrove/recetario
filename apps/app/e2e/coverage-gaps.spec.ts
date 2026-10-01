@@ -312,6 +312,11 @@ test.describe('Menu planner: deep flows', () => {
     const removeBtn = page.locator('[data-testid^="menu-remove-"]').first()
     await expect(removeBtn).toBeVisible({ timeout: 8000 })
     const before = await page.locator('[data-testid^="menu-entry-"]').count()
+    // Cancelling the confirm keeps the entry; accepting removes it
+    page.once('dialog', (d) => void d.dismiss())
+    await removeBtn.click()
+    await expect(page.locator('[data-testid^="menu-entry-"]')).toHaveCount(before)
+    page.once('dialog', (d) => void d.accept())
     await removeBtn.click()
     await expect(page.locator('[data-testid^="menu-entry-"]')).toHaveCount(before - 1, {
       timeout: 8000,
