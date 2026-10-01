@@ -219,6 +219,24 @@ describe.skipIf(skip).sequential('Recipe integration tests', () => {
     expect(Array.isArray(body)).toBe(true)
   })
 
+  it('POST /v1/recipes rejects diet tags the ingredients contradict', async () => {
+    const res = await app.request('/v1/recipes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+      body: JSON.stringify({
+        ...baseRecipe,
+        title: 'Guiso falso vegano',
+        dietaryTags: ['vegano'],
+        ingredients: [{ name: 'Chorizo colorado', quantity: 200, unit: 'g' }],
+      }),
+    })
+    expect(res.status).toBe(400)
+    const search = await app.request('/v1/recipes/search?q=Guiso+falso+vegano', {
+      headers: { Authorization: authHeader },
+    })
+    expect(await search.json()).toEqual([])
+  })
+
   it('GET /v1/recipes/search ignores accents and case, and filters by ingredient in SQL', async () => {
     const create = await app.request('/v1/recipes', {
       method: 'POST',

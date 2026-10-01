@@ -5,6 +5,7 @@ import {
   CreateRecipeSchema,
   UpdateRecipeSchema,
   LibraryRecipeSchema,
+  dietaryConflicts,
 } from '@recetario/shared'
 import { recipeRepository } from '../db/repository.js'
 import { getVisibleOwnerIds } from '../db/household-visibility.js'
@@ -27,6 +28,22 @@ recipesRoute.use('/recipes/:id/copy', rateLimitMiddleware)
 recipesRoute.use('/recipes', rateLimitMiddleware)
 
 const errorSchema = z.object({ error: z.string(), details: z.unknown().optional() })
+
+/** 400 body when claimed diet tags contradict the ingredients, else null. */
+function dietaryTagError(
+  ingredients: ReadonlyArray<{ name: string }>,
+  tags: readonly string[] | null | undefined,
+) {
+  const conflicts = dietaryConflicts(ingredients, tags ?? [])
+  if (conflicts.length === 0) return null
+  return {
+    error: 'Validation error',
+    details: conflicts.map((c) => ({
+      path: 'dietaryTags',
+      message: `"${c.tag}" no se cumple: contiene ${c.ingredient}`,
+    })),
+  }
+}
 
 // POST /v1/recipes — create or upsert (201 new, 200 dedupe)
 const postRecipeRoute = defineRoute({
@@ -58,6 +75,9 @@ const postRecipeRoute = defineRoute({
 recipesRoute.openapi(postRecipeRoute, async (c) => {
   const ownerId = c.get('ownerId')
   const body = c.req.valid('json')
+
+  const tagError = dietaryTagError(body.ingredients, body.dietaryTags)
+  if (tagError) return c.json(tagError, 400)
 
   const { recipe, created } = await recipeRepository.upsert(ownerId, body)
   return created ? c.json(recipe, 201) : c.json(recipe, 200)
@@ -181,6 +201,10 @@ const putRecipeRoute = defineRoute({
       content: { 'application/json': { schema: RecipeSchema } },
       description: 'Recipe updated',
     },
+    400: {
+      content: { 'application/json': { schema: errorSchema } },
+      description: 'Diet tags contradict the ingredients',
+    },
     404: {
       content: { 'application/json': { schema: errorSchema } },
       description: 'Recipe not found',
@@ -192,6 +216,18 @@ recipesRoute.openapi(putRecipeRoute, async (c) => {
   const ownerId = c.get('ownerId')
   const { id } = c.req.valid('param')
   const body = c.req.valid('json')
+  if (body.dietaryTags !== undefined || body.ingredients !== undefined) {
+    // Partial update: check the tags and ingredients the recipe will end up with.
+    const current =
+      body.dietaryTags === undefined || body.ingredients === undefined
+        ? await recipeRepository.findById(id, [ownerId])
+        : null
+    const tagError = dietaryTagError(
+      body.ingredients ?? current?.ingredients ?? [],
+      body.dietaryTags ?? current?.dietaryTags,
+    )
+    if (tagError) return c.json(tagError, 400)
+  }
   const recipe = await recipeRepository.update(id, ownerId, body)
   if (!recipe) return c.json({ error: 'Recipe not found' }, 404)
   return c.json(recipe, 200)
