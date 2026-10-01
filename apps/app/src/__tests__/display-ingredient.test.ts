@@ -100,4 +100,24 @@ describe('displayIngredient', () => {
     const result = displayIngredient(flour, 4, 4, 'imperial')
     expect(result).toBe('200 g Harina')
   })
+
+  it('imperial mode: picks cups for larger volumes (never 100 cdta leche)', () => {
+    const ing: Ingredient = { name: 'Leche', quantity: 500, unit: 'ml' }
+    expect(displayIngredient(ing, 1, 1, 'imperial')).toBe('2.08 taza Leche')
+  })
+
+  it('imperial mode: tablespoons for medium amounts', () => {
+    const ing: Ingredient = { name: 'Aceite', quantity: 30, unit: 'ml' }
+    expect(displayIngredient(ing, 1, 1, 'imperial')).toBe('2 cda Aceite')
+  })
+
+  it('metric mode: liters from 1000 ml', () => {
+    const ing: Ingredient = { name: 'Caldo', quantity: 6, unit: 'cup' }
+    expect(displayIngredient(ing, 1, 1, 'metric')).toBe('1.44 l Caldo')
+  })
+
+  it('metric mode: count units stay as written', () => {
+    const ing: Ingredient = { name: 'Huevo', quantity: 2, unit: 'unit' }
+    expect(displayIngredient(ing, 1, 1, 'metric')).toBe('2 u Huevo')
+  })
 })
