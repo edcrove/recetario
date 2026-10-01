@@ -86,7 +86,11 @@ export default function LoginScreen() {
           onPress={handleLogin}
           disabled={loading}
         >
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={s.btnText}>Ingresar</Text>}
+          {loading ? (
+            <ActivityIndicator color={colors.surface} />
+          ) : (
+            <Text style={s.btnText}>Ingresar</Text>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity style={s.link} onPress={() => router.push('/auth/forgot')}>

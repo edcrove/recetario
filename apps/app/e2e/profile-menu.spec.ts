@@ -93,7 +93,7 @@ test.describe('Profile screen', () => {
 })
 
 test.describe('Collections screen', () => {
-  test('navigates from home and shows empty or list state', async ({ page }) => {
+  test('opens Colecciones from home with the create field ready', async ({ page }) => {
     await page.getByTestId('home-collections-button').click()
     await expect(page.getByPlaceholder('Nueva colección…')).toBeVisible()
   })
@@ -300,7 +300,9 @@ test.describe('Household screen', () => {
     await expect(page.getByTestId('household-invite-open').first()).toBeVisible()
   }
 
-  test('navigates and shows create or existing household', async ({ page }) => {
+  test('Mi hogar opens from the user menu (create form or members, by account state)', async ({
+    page,
+  }) => {
     await page.getByTestId('home-profile-button').click()
     await page.getByText('Mi hogar').click()
     await expect(

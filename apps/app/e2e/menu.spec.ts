@@ -244,19 +244,11 @@ test.describe('Menu: shopping list', () => {
     await expect(page.getByText('Lista de Compras').first()).toBeVisible()
   })
 
-  test('shopping list shows items or empty state', async ({ page }) => {
-    await page.getByText('🛒 Compras').click()
-    await expect(page.getByText('Lista de Compras').first()).toBeVisible()
-    // Either has measurable items or shows the empty state. FlatList's
-    // ListEmptyComponent can render a frame or two after the header on web
-    // (VirtualizedList's own layout pass), so poll instead of taking a
-    // single point-in-time snapshot right after the header appears.
-    await expect
-      .poll(async () => {
-        const hasItems = await page.getByText(/\d+ (g|kg|ml|l|cdta|cda|taza|u)/).count()
-        const hasEmpty = await page.getByText(/No hay ingredientes/i).count()
-        return hasItems + hasEmpty
-      })
-      .toBeGreaterThan(0)
+  // Was "shows items or empty state", which could not fail. Items with real
+  // quantities are asserted in journeys.spec; this pins the empty case.
+  test('a week with nothing planned shows the empty shopping state', async ({ page }) => {
+    await page.goto('/menu/shopping-list?weekStart=2031-01-06')
+    await expect(page.getByText('No hay ingredientes para esta semana')).toBeVisible()
+    await expect(page.locator('[data-testid^="shopping-item-"]')).toHaveCount(0)
   })
 })

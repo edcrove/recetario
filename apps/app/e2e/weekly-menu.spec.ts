@@ -89,15 +89,12 @@ test.describe('Pick recipe screen (/menu/pick)', () => {
     await expect(page.getByText('Porciones:')).toBeVisible()
   })
 
-  test('shows recipe list or empty state', async ({ page }) => {
+  test("lists the account's recipes to pick from", async ({ page }) => {
     await page.goto('/menu/pick?date=2025-01-06&slot=Almuerzo&weekStart=2025-01-06')
-    // Either the account's recipes or the empty state — one of them must render
-    await expect(
-      page
-        .locator('[data-testid^="pick-recipe-"]')
-        .first()
-        .or(page.getByText('No hay recetas aún')),
-    ).toBeVisible()
+    // Demo accounts are seeded with recipes, so the list (not the empty state) shows
+    await page.getByPlaceholder('Buscar receta...').fill('Guiso de lentejas')
+    await expect(page.locator('[data-testid^="pick-recipe-"]')).toHaveCount(1)
+    await expect(page.getByText('No hay recetas aún')).toHaveCount(0)
   })
 
   test('search filters recipe list', async ({ page }) => {
