@@ -32,7 +32,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>26/26</span>
+                <span class='fraction'>28/28</span>
             </div>
         
             
@@ -144,7 +144,9 @@
 <a name='L79'></a><a href='#L79'>79</a>
 <a name='L80'></a><a href='#L80'>80</a>
 <a name='L81'></a><a href='#L81'>81</a>
-<a name='L82'></a><a href='#L82'>82</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">17x</span>
@@ -157,22 +159,22 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">158x</span>
-<span class="cline-any cline-yes">158x</span>
+<span class="cline-any cline-yes">161x</span>
+<span class="cline-any cline-yes">161x</span>
 <span class="cline-any cline-yes">5316x</span>
-<span class="cline-any cline-yes">158x</span>
+<span class="cline-any cline-yes">161x</span>
 <span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">154x</span>
-<span class="cline-any cline-yes">154x</span>
-<span class="cline-any cline-yes">154x</span>
+<span class="cline-any cline-yes">157x</span>
+<span class="cline-any cline-yes">157x</span>
+<span class="cline-any cline-yes">157x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">17x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">158x</span>
+<span class="cline-any cline-yes">161x</span>
 <span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-yes">3x</span>
@@ -188,11 +190,11 @@
 <span class="cline-any cline-yes">17x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">17x</span>
-<span class="cline-any cline-yes">130x</span>
-<span class="cline-any cline-yes">115x</span>
+<span class="cline-any cline-yes">133x</span>
+<span class="cline-any cline-yes">118x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">114x</span>
+<span class="cline-any cline-yes">117x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -209,13 +211,15 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">47x</span>
-<span class="cline-any cline-yes">47x</span>
-<span class="cline-any cline-yes">36x</span>
-<span class="cline-any cline-yes">36x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">12x</span>
-<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">48x</span>
+<span class="cline-any cline-yes">48x</span>
+<span class="cline-any cline-yes">25x</span>
+<span class="cline-any cline-yes">25x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">24x</span>
+<span class="cline-any cline-yes">24x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">17x</span>
@@ -284,13 +288,15 @@ export const authRequests: Store = new Map()
 const authMaxRequests = () =&gt; Number(process.env['AUTH_RATE_LIMIT_MAX_REQUESTS'] ?? 10)
 &nbsp;
 /**
- * Client IP. Behind a proxy (Railway, Docker ingress) the proxy appends the
- * address it saw to X-Forwarded-For, so the rightmost entry is the one a client
- * can't forge (assumes a single proxy hop). Without the header, falls back to
- * the socket address from @hono/node-server.
+ * Client IP. Behind a proxy (Railway) the proxy appends the address it saw to
+ * X-Forwarded-For, so the rightmost entry is the one a client can't forge
+ * (assumes a single proxy hop). The header is only trusted with
+ * TRUST_PROXY=true — without a proxy a client could set it and pick its own
+ * rate-limit key. Otherwise, and when it's blank, the socket address is used.
  */
 export function clientIp(c: Context): string {
-  const forwarded = c.req.header('x-forwarded-for')
+  const forwarded =
+    process.env['TRUST_PROXY'] === 'true' ? c.req.header('x-forwarded-for') : undefined
   if (forwarded) {
     const last = forwarded.split(',').at(-1)?.trim()
     if (last) return last
@@ -313,7 +319,7 @@ export const authRateLimitMiddleware = createMiddleware(async (c, next) =&gt; {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-10-01T03:12:35.757Z
+                at 2026-10-01T03:12:35.705Z
             </div>
         <script src="../prettify.js"></script>
         <script>
