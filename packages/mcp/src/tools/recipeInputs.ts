@@ -48,6 +48,11 @@ export const NutritionInput = NutritionSchema.extend({
   carbs_g: NutritionSchema.shape.carbs_g.describe('Carbohydrate grams per serving'),
   fat_g: NutritionSchema.shape.fat_g.describe('Fat grams per serving'),
   fiber_g: NutritionSchema.shape.fiber_g.describe('Fiber grams per serving'),
+  sugars_g: NutritionSchema.shape.sugars_g.describe('Sugars grams per serving (if known)'),
+  saturated_fat_g: NutritionSchema.shape.saturated_fat_g.describe(
+    'Saturated fat grams per serving (if known)',
+  ),
+  sodium_mg: NutritionSchema.shape.sodium_mg.describe('Sodium milligrams per serving (if known)'),
 }).describe('Nutrition facts per serving (not per whole recipe)')
 
 export const FoodTypeIdsInput = z

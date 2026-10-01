@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native'
 import { useThemeColors, type ThemeColors } from '../theme/tokens'
+import { extraNutrientsLine } from '../utils/nutritionDisplay'
 
 interface MacroBarProps {
   label: string
@@ -34,6 +35,9 @@ interface Props {
   carbs_g: number
   fat_g: number
   fiber_g?: number
+  sugars_g?: number
+  saturated_fat_g?: number
+  sodium_mg?: number
   targets?: {
     daily_calories: number
     daily_protein_g: number
@@ -49,6 +53,9 @@ export function NutritionBar({
   carbs_g,
   fat_g,
   fiber_g,
+  sugars_g,
+  saturated_fat_g,
+  sodium_mg,
   targets,
   label,
 }: Props) {
@@ -86,6 +93,11 @@ export function NutritionBar({
         />
         {fiber_g != null && <MacroBar label="Fibra" value={fiber_g} unit="g" color="#7c3aed" />}
       </View>
+      {extraNutrientsLine({ sugars_g, saturated_fat_g, sodium_mg }) ? (
+        <Text testID="nutrition-extras" style={s.extras}>
+          {extraNutrientsLine({ sugars_g, saturated_fat_g, sodium_mg })}
+        </Text>
+      ) : null}
     </View>
   )
 }
@@ -111,4 +123,5 @@ const makeStyles = (c: ThemeColors) =>
     macroValue: { fontSize: 14, fontWeight: '700', color: c.ink },
     barBg: { width: '100%', height: 4, backgroundColor: c.line, borderRadius: 2, marginTop: 2 },
     barFill: { height: 4, borderRadius: 2 },
+    extras: { fontSize: 12, color: c.inkSoft, marginTop: 8, fontVariant: ['tabular-nums'] },
   })

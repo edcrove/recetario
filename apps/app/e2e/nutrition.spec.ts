@@ -190,3 +190,38 @@ test('planning a dish from the app refreshes the day summary without a reload', 
     await page.request.delete(`${API_URL}/v1/recipes/${recipe.id}`, { headers })
   }
 })
+
+// 2026-10-01 audit (Nutrition): sugars, saturated fat and sodium when known.
+test('recipe detail lists sugars, saturated fat and sodium when the recipe has them', async ({
+  page,
+}) => {
+  const headers = await authHeaders(page)
+  const res = await page.request.post(`${API_URL}/v1/recipes`, {
+    headers,
+    data: {
+      title: `E2E Sodio ${Date.now()}`,
+      servings: 2,
+      category: 'Cena',
+      ingredients: [{ name: 'sal', quantity: 1, unit: 'g' }],
+      nutrition: {
+        calories: 300,
+        protein_g: 10,
+        carbs_g: 40,
+        fat_g: 8,
+        sugars_g: 12,
+        saturated_fat_g: 3.5,
+        sodium_mg: 480,
+      },
+    },
+  })
+  const recipe = (await res.json()) as { id: string }
+  try {
+    await page.goto(`/recipe/${recipe.id}`)
+    await expect(page.getByTestId('nutrition-extras').first()).toHaveText(
+      'Azúcares 12 g · Grasas sat. 3.5 g · Sodio 480 mg',
+      { timeout: 10000 },
+    )
+  } finally {
+    await page.request.delete(`${API_URL}/v1/recipes/${recipe.id}`, { headers })
+  }
+})

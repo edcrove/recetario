@@ -22,6 +22,9 @@ export interface ParsedRecipe {
     carbs_g?: number
     fat_g?: number
     fiber_g?: number
+    sugars_g?: number
+    saturated_fat_g?: number
+    sodium_mg?: number
   }
 }
 
@@ -58,6 +61,14 @@ export function firstNumber(value: unknown): number | undefined {
   }
   // raw starts with a digit (regex above), so this is always a finite number
   return parseFloat(raw)
+}
+
+/** Sodium in mg; schema.org usually says "480 mg" but some sites give grams. */
+function sodiumMg(value: unknown): number | undefined {
+  const n = firstNumber(value)
+  if (n === undefined) return undefined
+  const isGrams = typeof value === 'string' && /\d\s*g\b/i.test(value) && !/mg/i.test(value)
+  return isGrams ? Math.round(n * 1000) : n
 }
 
 /** Energy in kcal; values given in kJ ("1800 kJ") are converted. */
@@ -145,10 +156,15 @@ function normalizeNutrition(n: unknown): ParsedRecipe['nutrition'] {
     carbs_g: firstNumber(o['carbohydrateContent']),
     fat_g: firstNumber(o['fatContent']),
     fiber_g: firstNumber(o['fiberContent']),
+    sugars_g: firstNumber(o['sugarContent']),
+    saturated_fat_g: firstNumber(o['saturatedFatContent']),
+    sodium_mg: sodiumMg(o['sodiumContent']),
   }
   if (!Object.values(out).some((v) => v !== undefined)) return undefined
-  // Only report fiber when the source gives it (keeps the shape stable otherwise)
-  if (out.fiber_g === undefined) delete out.fiber_g
+  // Optional nutrients appear only when the source gives them (stable shape otherwise)
+  for (const key of ['fiber_g', 'sugars_g', 'saturated_fat_g', 'sodium_mg'] as const) {
+    if (out[key] === undefined) delete out[key]
+  }
   return out
 }
 

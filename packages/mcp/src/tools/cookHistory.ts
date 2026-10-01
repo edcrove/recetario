@@ -1,5 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
+import { scalePerServing, type Nutrition } from '@recetario/shared'
 import type { createApiClient } from '../index.js'
 
 export function registerMacrosTools(server: McpServer, api: ReturnType<typeof createApiClient>) {
@@ -20,13 +21,7 @@ export function registerMacrosTools(server: McpServer, api: ReturnType<typeof cr
       const recipe = (await api.request(`/v1/recipes/${recipeId}`)) as {
         title: string
         servings: number
-        nutrition?: {
-          calories: number
-          protein_g: number
-          carbs_g: number
-          fat_g: number
-          fiber_g?: number
-        } | null
+        nutrition?: Nutrition | null
       }
       if (!recipe.nutrition) {
         return {
@@ -36,17 +31,7 @@ export function registerMacrosTools(server: McpServer, api: ReturnType<typeof cr
         }
       }
       // Nutrition is stored per serving (ADR-010): N servings = N × the stored values
-      const scale = servings
-      const scaled = {
-        calories: Math.round(recipe.nutrition.calories * scale),
-        protein_g: Math.round(recipe.nutrition.protein_g * scale * 10) / 10,
-        carbs_g: Math.round(recipe.nutrition.carbs_g * scale * 10) / 10,
-        fat_g: Math.round(recipe.nutrition.fat_g * scale * 10) / 10,
-        fiber_g:
-          recipe.nutrition.fiber_g != null
-            ? Math.round(recipe.nutrition.fiber_g * scale * 10) / 10
-            : undefined,
-      }
+      const scaled = scalePerServing(recipe.nutrition, servings)
       return {
         content: [
           {
