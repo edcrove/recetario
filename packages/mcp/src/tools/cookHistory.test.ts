@@ -98,7 +98,7 @@ describe('getMacros', () => {
       nutrition: { calories: 400, protein_g: 20, carbs_g: 60, fat_g: 10 },
     })
     const result = await getHandler(spy, 'getMacros')({ recipeId: 'r1', servings: 4 })
-    expect(JSON.stringify(result)).toContain('800') // 400 * (4/2)
+    expect(JSON.stringify(result)).toContain('1600') // 400 kcal per serving × 4 servings
     expect(mockRequest).toHaveBeenCalledWith('/v1/recipes/r1')
   })
 
@@ -129,7 +129,7 @@ describe('getMacros — fiber_g branch', () => {
   })
 })
 
-it('handles zero recipeServings gracefully (scale defaults to 1)', async () => {
+it("the recipe's own servings never affect per-serving macros", async () => {
   const server = createMcpServer()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const spy = vi.spyOn(server as any, 'tool')
@@ -140,6 +140,5 @@ it('handles zero recipeServings gracefully (scale defaults to 1)', async () => {
     nutrition: { calories: 400, protein_g: 20, carbs_g: 60, fat_g: 10 },
   })
   const result = await getHandler(spy, 'getMacros')({ recipeId: 'r1', servings: 2 })
-  // scale = 1 when recipeServings = 0
-  expect(JSON.stringify(result)).toContain('400')
+  expect(JSON.stringify(result)).toContain('calories\\": 800') // 2 × 400 per serving
 })

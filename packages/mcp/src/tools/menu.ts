@@ -8,7 +8,7 @@ export function registerMenuTools(server: McpServer, api: ReturnType<typeof crea
   // addToMenu
   server.tool(
     'addToMenu',
-    'Add or replace a recipe in a meal slot for a specific date. Servings defaults to the recipe default.',
+    'Add a recipe to a meal slot for a specific date (a slot can hold several recipes). Servings defaults to 1; pass the number of people eating.',
     {
       date: z
         .string()
@@ -32,18 +32,30 @@ export function registerMenuTools(server: McpServer, api: ReturnType<typeof crea
   // removeFromMenu
   server.tool(
     'removeFromMenu',
-    'Remove a recipe from a meal slot on a specific date.',
+    'Remove one recipe from a meal slot on a specific date. Without recipeId it clears every recipe in that slot.',
     {
       date: z
         .string()
         .regex(/^\d{4}-\d{2}-\d{2}$/)
         .describe('Date in YYYY-MM-DD format'),
-      slot: MenuSlot.describe('Meal slot to clear'),
+      slot: MenuSlot.describe('Meal slot'),
+      recipeId: z
+        .uuid()
+        .optional()
+        .describe('Recipe to remove from the slot; omit to clear the whole slot'),
     },
-    async ({ date, slot }) => {
-      await api.request(`/v1/menu/${date}/${encodeURIComponent(slot)}`, { method: 'DELETE' })
+    async ({ date, slot, recipeId }) => {
+      const path = `/v1/menu/${date}/${encodeURIComponent(slot)}${recipeId ? `/${recipeId}` : ''}`
+      await api.request(path, { method: 'DELETE' })
       return {
-        content: [{ type: 'text' as const, text: `Removed ${slot} on ${date}` }],
+        content: [
+          {
+            type: 'text' as const,
+            text: recipeId
+              ? `Removed recipe ${recipeId} from ${slot} on ${date}`
+              : `Cleared ${slot} on ${date}`,
+          },
+        ],
       }
     },
   )

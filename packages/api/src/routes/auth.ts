@@ -2,15 +2,18 @@ import { createRouter } from './router.js'
 import { createRoute as defineRoute, z } from '@hono/zod-openapi'
 import { eq } from 'drizzle-orm'
 import { getDb, schema } from '../db/index.js'
-import { hashPassword, verifyPassword, signJwt, verifyJwt } from '../auth/service.js'
+import { hashPassword, verifyPassword, signJwt } from '../auth/service.js'
 import { authRateLimitMiddleware } from '../middleware/rateLimit.js'
 import { registrationOpen } from '../config/production.js'
+import { authMiddleware } from '../middleware/auth.js'
 
 export const authRoute = createRouter()
 
 // Brute-force guard: per-IP limit on the unauthenticated credential endpoints
 authRoute.use('/login', authRateLimitMiddleware)
 authRoute.use('/register', authRateLimitMiddleware)
+// JWT (app) or API key (MCP agents): same rules as every other authenticated route
+authRoute.use('/me', authMiddleware)
 
 const userResponseSchema = z.object({
   id: z.uuid(),
@@ -148,7 +151,7 @@ authRoute.openapi(loginRoute, async (c) => {
 const meRoute = defineRoute({
   method: 'get',
   path: '/me',
-  security: [{ BearerAuth: [] }],
+  security: [{ BearerAuth: [] }, { ApiKeyAuth: [] }],
   responses: {
     200: { content: { 'application/json': { schema: userResponseSchema } }, description: 'OK' },
     401: { content: { 'application/json': { schema: errorSchema } }, description: 'Unauthorized' },
@@ -157,20 +160,14 @@ const meRoute = defineRoute({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 authRoute.openapi(meRoute as any, async (c: any) => {
-  const authHeader = c.req.header('Authorization')
-  if (!authHeader?.startsWith('Bearer ')) {
-    return c.json({ error: 'Unauthorized' } as never, 401)
+  const userId: string = c.get('ownerId')
+  // Legacy/dev owners ('dev', 'test-owner') are not users
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) {
+    return c.json({ error: 'User not found' } as never, 401)
   }
 
-  const payload = await verifyJwt(authHeader.slice(7) as string)
-  if (!payload) return c.json({ error: 'Invalid or expired token' } as never, 401)
-
   const db = getDb()
-  const [user] = await db
-    .select()
-    .from(schema.users)
-    .where(eq(schema.users.id, payload.sub))
-    .limit(1)
+  const [user] = await db.select().from(schema.users).where(eq(schema.users.id, userId)).limit(1)
   if (!user) return c.json({ error: 'User not found' } as never, 401)
 
   return c.json({

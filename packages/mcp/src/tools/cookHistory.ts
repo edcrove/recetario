@@ -35,7 +35,8 @@ export function registerMacrosTools(server: McpServer, api: ReturnType<typeof cr
           ],
         }
       }
-      const scale = recipe.servings > 0 ? servings / recipe.servings : 1
+      // Nutrition is stored per serving (ADR-010): N servings = N × the stored values
+      const scale = servings
       const scaled = {
         calories: Math.round(recipe.nutrition.calories * scale),
         protein_g: Math.round(recipe.nutrition.protein_g * scale * 10) / 10,

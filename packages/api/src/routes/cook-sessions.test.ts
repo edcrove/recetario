@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockCreate, mockList, mockStats } = vi.hoisted(() => ({
+const { mockCreate, mockList, mockRecent, mockStats } = vi.hoisted(() => ({
   mockCreate: vi.fn(),
   mockList: vi.fn(),
+  mockRecent: vi.fn(),
   mockStats: vi.fn(),
 }))
 
@@ -10,6 +11,7 @@ vi.mock('../db/cook-sessions-repository.js', () => ({
   cookSessionsRepository: {
     create: mockCreate,
     listByRecipe: mockList,
+    listRecent: mockRecent,
     getStats: mockStats,
   },
 }))
@@ -110,11 +112,14 @@ describe('GET /v1/cook-sessions', () => {
     expect(body[0].rating).toBe(4)
   })
 
-  it('returns 400 when recipeId is missing', async () => {
-    const res = await app.request('/v1/cook-sessions', {
+  it("without recipeId returns the user's recent sessions (used by MCP getCookHistory)", async () => {
+    mockRecent.mockResolvedValue([SESSION])
+    const res = await app.request('/v1/cook-sessions?limit=5', {
       headers: { Authorization: 'Bearer test-key' },
     })
-    expect(res.status).toBe(400)
+    expect(res.status).toBe(200)
+    expect(await res.json()).toHaveLength(1)
+    expect(mockRecent).toHaveBeenCalledWith('dev', 5, 0)
   })
 })
 
