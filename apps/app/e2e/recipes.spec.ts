@@ -1,6 +1,7 @@
 import { test, expect } from './fixtures'
 import { API_URL } from './env'
 import { openSeededRecipe, SEEDED_RECIPE } from './recipeNav'
+import { authHeaders, createRecipeViaApi, deleteRecipeViaApi } from './api'
 
 /**
  * Recipe CRUD E2E flows.
@@ -8,6 +9,17 @@ import { openSeededRecipe, SEEDED_RECIPE } from './recipeNav'
  */
 
 test.describe('Recipes: search and filter', () => {
+  // Story #121 regression (search input lost focus on every keystroke) had no test.
+  test('typing in search keeps the focus between keystrokes', async ({ page }) => {
+    const search = page.getByPlaceholder(/buscar recetas/i)
+    await search.click()
+    await search.pressSequentially('Gui', { delay: 60 })
+    await expect(page.locator('[data-testid^="recipe-card-"]').first()).toBeVisible()
+    await search.pressSequentially('so', { delay: 60 })
+    await expect(search).toBeFocused()
+    await expect(search).toHaveValue('Guiso')
+  })
+
   test('search filters recipe list', async ({ page }) => {
     await page.getByPlaceholder(/buscar recetas/i).fill('Milanesa')
     // Results should show Milanesa
@@ -370,10 +382,28 @@ test.describe('Recipes: detail view', () => {
     await expect(page.getByTestId('recipe-detail-cook')).toBeVisible()
   })
 
-  test('history tab shows empty state or past sessions', async ({ page }) => {
-    await openFirstRecipeDetail(page)
-    await page.getByTestId('recipe-tab-history').click()
-    await expect(page.getByText(/Todavía no cocinaste|★|☆/).first()).toBeVisible()
+  test('history tab: empty before cooking, then the session with its rating and note', async ({
+    page,
+  }) => {
+    const headers = await authHeaders(page)
+    const recipe = await createRecipeViaApi(page)
+    try {
+      await page.goto(`/recipe/${recipe.id}`)
+      await page.getByTestId('recipe-tab-history').click()
+      await expect(page.getByText('Todavía no cocinaste esta receta.')).toBeVisible()
+
+      const log = await page.request.post(`${API_URL}/v1/cook-sessions`, {
+        headers,
+        data: { recipeId: recipe.id, rating: 4, notes: 'Salió rico (E2E historial)' },
+      })
+      expect(log.ok()).toBe(true)
+      await page.reload()
+      await page.getByTestId('recipe-tab-history').click()
+      await expect(page.getByText('Salió rico (E2E historial)')).toBeVisible()
+      await expect(page.getByText('Todavía no cocinaste esta receta.')).toHaveCount(0)
+    } finally {
+      await deleteRecipeViaApi(page, recipe.id)
+    }
   })
 
   test('recipe tab returns from history to ingredients view', async ({ page }) => {
