@@ -1,8 +1,10 @@
 import { z } from 'zod'
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import { MenuSlotSchema, MenuEntryStatusSchema } from '@recetario/shared'
 import type { createApiClient } from '../index.js'
 
-const MenuSlot = z.enum(['Desayuno', 'Almuerzo', 'Merienda', 'Cena', 'Snacks/Otros'])
+// Shared enums, so the agent contract can't drift from the API's
+const MenuSlot = MenuSlotSchema
 
 export function registerMenuTools(server: McpServer, api: ReturnType<typeof createApiClient>) {
   // addToMenu
@@ -57,6 +59,29 @@ export function registerMenuTools(server: McpServer, api: ReturnType<typeof crea
           },
         ],
       }
+    },
+  )
+
+  // updateMenuEntry
+  server.tool(
+    'updateMenuEntry',
+    "Change a planned dish: servings, and/or status — 'cooked' once eaten, 'skipped' if it didn't happen (kept as history and left out of the day's nutrition), 'planned' to undo.",
+    {
+      date: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .describe('Date in YYYY-MM-DD format'),
+      slot: MenuSlot.describe('Meal slot'),
+      recipeId: z.uuid().describe('Recipe in that slot'),
+      servings: z.number().int().min(1).optional().describe('New number of servings'),
+      status: MenuEntryStatusSchema.optional().describe('planned | cooked | skipped'),
+    },
+    async ({ date, slot, recipeId, servings, status }) => {
+      const entry = await api.request(`/v1/menu/${date}/${encodeURIComponent(slot)}/${recipeId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ servings, status }),
+      })
+      return { content: [{ type: 'text' as const, text: JSON.stringify(entry, null, 2) }] }
     },
   )
 
