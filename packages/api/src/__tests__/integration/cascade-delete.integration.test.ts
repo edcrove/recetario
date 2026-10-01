@@ -78,8 +78,11 @@ describe
       })
       const stats = await res.json()
       expect(stats.totalSessions).toBeGreaterThanOrEqual(1)
-      expect(stats.topRecipes.some((r: { recipeId: string | null }) => r.recipeId === null)).toBe(
-        true,
+      const orphan = stats.topRecipes.find(
+        (r: { recipeId: string | null; title: string | null }) => r.recipeId === null,
       )
+      // The title snapshot keeps stats readable after the recipe is gone
+      expect(orphan?.title).toBe('Receta A Borrar')
+      expect(stats.since).toMatch(/^\d{4}-\d{2}-\d{2}$/)
     })
   })

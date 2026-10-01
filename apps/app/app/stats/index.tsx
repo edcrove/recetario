@@ -9,6 +9,7 @@ import {
 import { useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../src/api/client'
+import { topRecipeLabel, statsWindowLabel } from '../../src/utils/statsLabels'
 import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 
 export default function StatsScreen() {
@@ -36,7 +37,9 @@ export default function StatsScreen() {
       {/* Total sessions */}
       <View style={s.totalCard}>
         <Text style={s.totalNum}>{stats?.totalSessions ?? 0}</Text>
-        <Text style={s.totalLabel}>sesiones de cocina en total</Text>
+        <Text style={s.totalLabel}>
+          sesiones de cocina{stats?.since ? ` ${statsWindowLabel(stats.since)}` : ''}
+        </Text>
       </View>
 
       {/* Top recipes */}
@@ -51,7 +54,7 @@ export default function StatsScreen() {
               <Text style={s.topRank}>#{i + 1}</Text>
               <View style={s.topInfo}>
                 <Text style={s.topRecipeId} numberOfLines={1}>
-                  {recipeId ? `${recipeId.slice(0, 8)}…` : 'Receta eliminada'}
+                  {topRecipeLabel(r)}
                 </Text>
                 <Text style={s.topLastCooked}>
                   Última vez:{' '}

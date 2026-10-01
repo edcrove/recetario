@@ -127,8 +127,11 @@ describe('GET /v1/cook-sessions/stats', () => {
   it('returns stats with topRecipes and frequencyByWeek', async () => {
     mockStats.mockResolvedValue({
       totalSessions: 5,
-      topRecipes: [{ recipeId: SESSION.recipeId, count: 3, lastCookedAt: new Date() }],
+      topRecipes: [
+        { recipeId: SESSION.recipeId, title: 'Milanesas', count: 3, lastCookedAt: new Date() },
+      ],
       frequencyByWeek: [{ week: '2026-06-29', count: 2 }],
+      windowStart: new Date('2026-04-01T12:00:00Z'),
     })
     const res = await app.request('/v1/cook-sessions/stats', {
       headers: { Authorization: 'Bearer test-key' },
@@ -137,11 +140,18 @@ describe('GET /v1/cook-sessions/stats', () => {
     const body = await res.json()
     expect(body.totalSessions).toBe(5)
     expect(body.topRecipes).toHaveLength(1)
+    expect(body.topRecipes[0].title).toBe('Milanesas')
+    expect(body.since).toBe('2026-04-01')
     expect(body.frequencyByWeek[0].count).toBe(2)
   })
 
   it('passes since param to repository', async () => {
-    mockStats.mockResolvedValue({ totalSessions: 0, topRecipes: [], frequencyByWeek: [] })
+    mockStats.mockResolvedValue({
+      totalSessions: 0,
+      topRecipes: [],
+      frequencyByWeek: [],
+      windowStart: new Date('2026-01-01'),
+    })
     const res = await app.request('/v1/cook-sessions/stats?since=2026-01-01', {
       headers: { Authorization: 'Bearer test-key' },
     })

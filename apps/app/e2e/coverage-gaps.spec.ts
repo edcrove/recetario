@@ -20,10 +20,11 @@ test.describe('Stats screen with data', () => {
     page,
   }) => {
     const headers = await authHeaders(page)
+    const statsTitle = `E2E Stats ${Date.now()}`
     const recipeRes = await page.request.post(`${API_URL}/v1/recipes`, {
       headers,
       data: {
-        title: `E2E Stats ${Date.now()}`,
+        title: statsTitle,
         servings: 2,
         category: 'Cena',
         ingredients: [{ name: 'sal', quantity: 1, unit: 'g' }],
@@ -48,7 +49,8 @@ test.describe('Stats screen with data', () => {
 
       // Tapping OUR recipe's row navigates to its detail (#1 might be an
       // older, since-deleted session's row, which renders unclickable)
-      await page.getByText(`${recipe.id.slice(0, 8)}…`).click()
+      // Rows are named by recipe title, not by id
+      await page.getByText(statsTitle).click()
       await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 10000 })
     } finally {
       await page.request.delete(`${API_URL}/v1/recipes/${recipe.id}`, { headers })
@@ -598,14 +600,22 @@ test.describe('Screen error states (route interception)', () => {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
+          since: '2026-04-01',
           totalSessions: 3,
-          topRecipes: [{ recipeId: null, count: 3, lastCookedAt: '2026-07-01T12:00:00.000Z' }],
+          topRecipes: [
+            {
+              recipeId: null,
+              title: 'Guiso viejo',
+              count: 3,
+              lastCookedAt: '2026-07-01T12:00:00.000Z',
+            },
+          ],
           frequencyByWeek: [{ week: '2026-W27', count: 3 }],
         }),
       }),
     )
     await page.goto('/stats')
-    await expect(page.getByText('Receta eliminada')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Guiso viejo (eliminada)')).toBeVisible({ timeout: 10000 })
     await expect(page.getByText('3×')).toBeVisible()
   })
 })
