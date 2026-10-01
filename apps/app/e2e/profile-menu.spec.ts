@@ -186,7 +186,7 @@ test.describe('Config (taxonomy) screen', () => {
     await page.getByText('Configuración de taxonomía').click()
     await expect(page.getByTestId('config-tab-tags')).toBeVisible({ timeout: 8000 })
     await page.getByTestId('config-tab-tags').click()
-    await page.waitForTimeout(300)
+    await expect(page.getByTestId('config-tab-tags')).toBeVisible()
     await page.getByTestId('config-tab-categories').click()
     await expect(page.locator('[data-testid^="config-item-"]').first()).toBeVisible({
       timeout: 8000,
@@ -587,6 +587,8 @@ test.describe('Profile screen (/profile)', () => {
       },
     })
     const { id } = (await created.json()) as { id: string }
+    // Start from no allergens: the chip toggles, so a leftover 'leche' would turn it off
+    await page.request.patch(`${API_URL}/auth/profile`, { headers, data: { allergens: [] } })
     try {
       await page.goto('/profile')
       const chip = page.getByTestId('allergen-chip-leche')
@@ -663,13 +665,20 @@ test.describe('Profile screen (/profile)', () => {
   test('toggles a dietary chip on and off', async ({ page }) => {
     await page.goto('/profile')
     await expect(page.getByText('Preferencias dietéticas')).toBeVisible({ timeout: 8000 })
+    const token = await page.evaluate(() => localStorage.getItem('auth_token'))
+    const headers = { Authorization: `Bearer ${token}` }
+    const diets = async () =>
+      (
+        (await (await page.request.get(`${API_URL}/auth/profile`, { headers })).json()) as {
+          dietaryRestrictions: string[]
+        }
+      ).dietaryRestrictions
     const chip = page.getByText('paleo', { exact: true })
+    // Each tap round-trips to the profile: on, then off again
     await chip.click()
-    // give the mutation a round trip, then toggle back off
-    await page.waitForTimeout(600)
+    await expect.poll(diets, { timeout: 8000 }).toContain('paleo')
     await chip.click()
-    await page.waitForTimeout(600)
-    await expect(chip).toBeVisible()
+    await expect.poll(diets, { timeout: 8000 }).not.toContain('paleo')
   })
 
   test('nutrition target stepper changes calories and restores', async ({ page }) => {
