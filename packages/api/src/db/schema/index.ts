@@ -119,6 +119,8 @@ export const recipeSources = pgTable(
   ],
 )
 
+export const menuEntryStatus = pgEnum('menu_entry_status', ['planned', 'cooked', 'skipped'])
+
 export const menuEntries = pgTable(
   'menu_entries',
   {
@@ -133,6 +135,7 @@ export const menuEntries = pgTable(
     recipeId: uuid('recipe_id').references(() => recipes.id, { onDelete: 'set null' }),
     recipeTitle: text('recipe_title'),
     servings: integer('servings').notNull().default(1),
+    status: menuEntryStatus('status').notNull().default('planned'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

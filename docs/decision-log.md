@@ -122,6 +122,18 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
   `USING`) + `0018` (generated, defaults), `useTimezoneSync`, `PATCH /auth/profile`.
 - **Status**: active
 
+### D-2026-10-01-10 · Planned dishes have a status
+
+- **Decision**: menu entries carry `status` (`planned` | `cooked` | `skipped`, default
+  `planned`). Marking a dish skipped keeps it as history and leaves it out of the day's and
+  week's intake; cooked and planned still count. Removing an entry stays an explicit delete.
+  The shopping list ignores status (what to buy doesn't change once a dish is skipped).
+- **Why**: 2026-10-01 audit (Data) — hard deletes were the only way to record "we didn't
+  make it", so plan-vs-actual could never be analyzed.
+- **Where it lives**: migration `0019`, `MenuEntryStatusSchema`, `PATCH /v1/menu/{date}/{slot}/{recipeId}`
+  (`servings` and/or `status`), MCP `updateMenuEntry`, the planner's edit modal.
+- **Status**: active — D-2026-10-01-8's note on menu-entry status is resolved by this.
+
 ## 2026-09-30 — Dependency & maintenance session (PRs #125, #140, #147, #148, #124)
 
 ### D-2026-09-30-12 · Production startup guard, closed sign-up and release step

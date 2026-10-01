@@ -72,6 +72,16 @@ export default function MenuWeekScreen() {
     onError: () => notify('Error', 'No se pudieron actualizar las porciones.'),
   })
 
+  const statusMutation = useMutation({
+    mutationFn: ({ entry, status }: { entry: MenuEntry; status: MenuEntry['status'] }) =>
+      api.menu.setStatus(entry.date, entry.slot, entry.recipeId!, status),
+    onSuccess: () => {
+      invalidateMenuWeek(queryClient, weekStart)
+      setEditing(null)
+    },
+    onError: () => notify('Error', 'No se pudo actualizar el estado.'),
+  })
+
   const entryMap = buildEntryMap(entries)
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
 
@@ -134,7 +144,11 @@ export default function MenuWeekScreen() {
                           disabled={isViewer}
                           onPress={() => openEdit(entry)}
                         >
-                          <Text style={s.entryName} numberOfLines={1}>
+                          <Text
+                            style={[s.entryName, entry.status === 'skipped' && s.entrySkipped]}
+                            numberOfLines={1}
+                          >
+                            {entry.status === 'cooked' ? '✓ ' : ''}
                             {entry.recipeName ?? 'Receta'}
                           </Text>
                           <Text style={s.entryServings}>{entry.servings} porc.</Text>
@@ -230,6 +244,29 @@ export default function MenuWeekScreen() {
                   {updateServingsMutation.isPending ? 'Guardando…' : 'Guardar'}
                 </Text>
               </TouchableOpacity>
+              {editing?.recipeId && (
+                <View style={s.statusRow}>
+                  {(
+                    [
+                      ['cooked', '✓ Cocinada'],
+                      ['skipped', 'No se hizo'],
+                      ['planned', 'Planificada'],
+                    ] as const
+                  )
+                    .filter(([st]) => st !== (editing.status ?? 'planned'))
+                    .map(([st, label]) => (
+                      <TouchableOpacity
+                        key={st}
+                        testID={`menu-modal-status-${st}`}
+                        style={s.statusBtn}
+                        disabled={statusMutation.isPending}
+                        onPress={() => statusMutation.mutate({ entry: editing, status: st })}
+                      >
+                        <Text style={s.statusBtnText}>{label}</Text>
+                      </TouchableOpacity>
+                    ))}
+                </View>
+              )}
               <TouchableOpacity
                 testID="menu-modal-delete"
                 style={s.modalDeleteBtn}
@@ -326,6 +363,17 @@ const makeStyles = (c: ThemeColors) =>
     },
     entryChipInner: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
     entryName: { flex: 1, fontSize: 13, fontWeight: '600', color: c.terracotta },
+    entrySkipped: { color: c.inkSoft, textDecorationLine: 'line-through' },
+    statusRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
+    statusBtn: {
+      flex: 1,
+      minHeight: 44,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRadius: 10,
+      backgroundColor: c.sageSoft,
+    },
+    statusBtnText: { color: c.ink, fontWeight: '600' },
     entryServings: { fontSize: 11, color: c.terracotta, fontWeight: '500' },
     removeChipBtn: { paddingHorizontal: 8, paddingVertical: 4 },
     removeChipText: { color: c.danger, fontWeight: '700', fontSize: 12 },

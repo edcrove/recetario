@@ -3,6 +3,14 @@ import { z } from 'zod'
 export const MenuSlotSchema = z.enum(['Desayuno', 'Almuerzo', 'Merienda', 'Cena', 'Snacks/Otros'])
 export type MenuSlot = z.infer<typeof MenuSlotSchema>
 
+/**
+ * What happened to a planned dish: still planned, cooked, or skipped (not
+ * eaten). Skipped entries stay as history instead of being deleted, and are
+ * left out of the day's intake.
+ */
+export const MenuEntryStatusSchema = z.enum(['planned', 'cooked', 'skipped'])
+export type MenuEntryStatus = z.infer<typeof MenuEntryStatusSchema>
+
 export const MenuEntrySchema = z.object({
   id: z.uuid(),
   ownerId: z.string(),
@@ -14,6 +22,7 @@ export const MenuEntrySchema = z.object({
   recipeId: z.uuid().nullable(),
   servings: z.number().int().positive(),
   recipeName: z.string().optional(),
+  status: MenuEntryStatusSchema.default('planned'),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 })

@@ -118,6 +118,16 @@ export const api = {
         method: 'PATCH',
         body: JSON.stringify({ servings }),
       }),
+    setStatus: (
+      date: string,
+      slot: string,
+      recipeId: string,
+      status: 'planned' | 'cooked' | 'skipped',
+    ) =>
+      request<MenuEntry>(`/v1/menu/${date}/${encodeURIComponent(slot)}/${recipeId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      }),
     shoppingList: (weekStart: string) =>
       request<ShoppingListEntry[]>(`/v1/menu/shopping-list?weekStart=${weekStart}`),
     missingIngredients: (weekStart: string) =>
