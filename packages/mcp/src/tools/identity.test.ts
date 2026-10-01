@@ -15,6 +15,7 @@ describe('registerIdentityTools', () => {
     expect(names).toContain('whoami')
     expect(names).toContain('updateProfile')
     expect(names).toContain('listHouseholdMembers')
+    expect(names).toContain('respondToHouseholdInvitation')
   })
 })
 
@@ -92,5 +93,37 @@ describe('listHouseholdMembers', () => {
     const result = await getHandler(spy, 'listHouseholdMembers')()
     expect(JSON.stringify(result)).toContain('Mi Hogar')
     expect(mockRequest).toHaveBeenCalledWith('/v1/households/mine')
+  })
+})
+
+describe('respondToHouseholdInvitation', () => {
+  const HH = '550e8400-e29b-41d4-a716-446655440000'
+
+  it('accept=true posts to /accept and returns the membership', async () => {
+    const server = createMcpServer()
+    const spy = vi.spyOn(server, 'tool')
+    registerIdentityTools(server, mockApi as never)
+    mockRequest.mockResolvedValueOnce({ userId: 'u', role: 'member', acceptedAt: '2026-10-01' })
+
+    const result = await getHandler(
+      spy,
+      'respondToHouseholdInvitation',
+    )({ householdId: HH, accept: true })
+    expect(mockRequest).toHaveBeenCalledWith(`/v1/households/${HH}/accept`, { method: 'POST' })
+    expect(JSON.stringify(result)).toContain('2026-10-01')
+  })
+
+  it('accept=false posts to /decline', async () => {
+    const server = createMcpServer()
+    const spy = vi.spyOn(server, 'tool')
+    registerIdentityTools(server, mockApi as never)
+    mockRequest.mockResolvedValueOnce(null)
+
+    const result = await getHandler(
+      spy,
+      'respondToHouseholdInvitation',
+    )({ householdId: HH, accept: false })
+    expect(mockRequest).toHaveBeenCalledWith(`/v1/households/${HH}/decline`, { method: 'POST' })
+    expect(JSON.stringify(result)).toContain('declined')
   })
 })

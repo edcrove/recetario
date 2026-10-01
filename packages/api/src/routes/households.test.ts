@@ -31,7 +31,7 @@ vi.mock('../db/index.js', () => ({
   })),
   schema: {
     households: {},
-    householdMembers: { householdId: 'hh', userId: 'uid', role: 'role' },
+    householdMembers: { householdId: 'hh', userId: 'uid', role: 'role', acceptedAt: 'acc' },
     users: { email: 'email' },
   },
 }))
@@ -266,6 +266,51 @@ describe('DELETE /v1/households/:id/members/:userId', () => {
     mockDelete.mockReturnValue([]) // target user not in household
     const res = await app.request(`/v1/households/${HH_ID}/members/${USER_ID}`, {
       method: 'DELETE',
+      headers: AUTH,
+    })
+    expect(res.status).toBe(404)
+  })
+})
+
+describe('pending invitations grant no management rights', () => {
+  const pending = (role: string) => ({ ...makeMember(role), acceptedAt: null })
+
+  it('a pending admin cannot invite (403)', async () => {
+    mockSelect.mockReturnValue([pending('admin')])
+    const res = await app.request(`/v1/households/${HH_ID}/invite`, {
+      method: 'POST',
+      headers: AUTH,
+      body: JSON.stringify({ userId: USER_ID, role: 'member' }),
+    })
+    expect(res.status).toBe(403)
+    expect(mockInsert).not.toHaveBeenCalled()
+  })
+
+  it('a pending admin cannot remove members (403)', async () => {
+    mockSelect.mockReturnValue([pending('admin')])
+    const res = await app.request(`/v1/households/${HH_ID}/members/${USER_ID}`, {
+      method: 'DELETE',
+      headers: AUTH,
+    })
+    expect(res.status).toBe(403)
+    expect(mockDelete).not.toHaveBeenCalled()
+  })
+})
+
+describe('POST /v1/households/:id/decline', () => {
+  it('removes my pending invitation and returns 204', async () => {
+    mockDelete.mockReturnValue([{ ...makeMember('member'), acceptedAt: null }])
+    const res = await app.request(`/v1/households/${HH_ID}/decline`, {
+      method: 'POST',
+      headers: AUTH,
+    })
+    expect(res.status).toBe(204)
+  })
+
+  it('returns 404 when there is no pending invitation (already accepted or none)', async () => {
+    mockDelete.mockReturnValue([])
+    const res = await app.request(`/v1/households/${HH_ID}/decline`, {
+      method: 'POST',
       headers: AUTH,
     })
     expect(res.status).toBe(404)

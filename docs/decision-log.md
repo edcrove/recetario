@@ -67,8 +67,9 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
   blocked the invitee's own menu. The UI already showed such members as "Pendiente".
 - **Where it lives**: `packages/api/src/db/household-visibility.ts`; regression tests in
   `household-sharing.integration.test.ts`.
-- **Status**: active. Invitees still need an in-app way to accept (backlog story
-  "accept/decline invitations in the app").
+- **Status**: active. Invitees accept or decline in the app (home banner → Mi hogar) or
+  through the MCP tool `respondToHouseholdInvitation`. A pending membership also grants
+  no management rights (invite/remove), and the owner cannot be removed.
 
 ### D-2026-09-30-8 · Visual regression screenshots reviewed by the QA auditor
 
