@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for cookableRanking.ts</title>
+    <title>Code coverage report for recipeNutrition.ts</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="prettify.css" />
     <link rel="stylesheet" href="base.css" />
@@ -19,20 +19,20 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="index.html">All files</a> cookableRanking.ts</h1>
+        <h1><a href="index.html">All files</a> recipeNutrition.ts</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>8/8</span>
+                <span class='fraction'>16/16</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>4/4</span>
+                <span class='fraction'>20/20</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>7/7</span>
+                <span class='fraction'>13/13</span>
             </div>
         
             
@@ -109,7 +109,20 @@
 <a name='L44'></a><a href='#L44'>44</a>
 <a name='L45'></a><a href='#L45'>45</a>
 <a name='L46'></a><a href='#L46'>46</a>
-<a name='L47'></a><a href='#L47'>47</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -124,6 +137,16 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -138,13 +161,19 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-yes">8x</span>
 <span class="cline-any cline-yes">7x</span>
-<span class="cline-any cline-yes">7x</span>
-<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -152,54 +181,64 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/**
- * Deterministic "what can I cook" ranking: given recipes (with each ingredient
- * already resolved to a canonical key) and the set of in-stock pantry keys,
- * rank recipes by the fraction of ingredients on hand and list what's missing.
- * No inference — the agent/app presents the result.
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import type { Ingredient, Nutrition } from './schema.js'
+&nbsp;
+interface NutritionBasis {
+  servings: number
+  nutrition?: Nutrition | null
+  ingredients: Pick&lt;Ingredient, 'name' | 'quantity' | 'unit'&gt;[]
+}
+&nbsp;
+interface NutritionUpdate {
+  servings?: number
+  nutrition?: Nutrition | null
+  ingredients?: Pick&lt;Ingredient, 'name' | 'quantity' | 'unit'&gt;[]
+}
+&nbsp;
+function round1(n: number): number {
+  return Math.round(n * 10) / 10
+}
+&nbsp;
+function sameIngredients(
+  a: NutritionBasis['ingredients'],
+  b: NonNullable&lt;NutritionUpdate['ingredients']&gt;,
+): boolean {
+  const key = (i: NutritionBasis['ingredients'][number]) =&gt;
+    `${i.name.trim().toLowerCase()}|${i.quantity ?? ''}|${i.unit ?? ''}`
+  return a.length === b.length &amp;&amp; a.every((ing, idx) =&gt; key(ing) === key(b[idx]!))
+}
+&nbsp;
+/**
+ * What per-serving nutrition a recipe should store after an edit, so it never
+ * silently goes stale. Returns undefined to leave it unchanged.
+ *
+ * - Explicit `nutrition` (an object, or null to clear) always wins.
+ * - Different ingredients invalidate it → null ("sin datos") until re-estimated.
+ * - Only the servings changed → the same batch split differently, so scale it.
  */
-&nbsp;
-export interface RankInputRecipe {
-  id: string
-  title: string
-  /** Each ingredient's display name and its canonical/normalized key. */
-  ingredients: { name: string; key: string }[]
-}
-&nbsp;
-export interface CookableResult {
-  id: string
-  title: string
-  matchedCount: number
-  totalCount: number
-  /** matchedCount / totalCount, 0 when the recipe has no ingredients. */
-  matchFraction: number
-  /** Display names of the ingredients not covered by the pantry. */
-  missingIngredients: string[]
-}
-&nbsp;
-/** Ranks recipes by pantry coverage (most cookable first, then title). */
-export function rankCookable(
-  recipes: RankInputRecipe[],
-  pantryKeys: ReadonlySet&lt;string&gt;,
-): CookableResult[] {
-  return recipes
-    .map((r): CookableResult =&gt; {
-      const missing = r.ingredients.filter((i) =&gt; !pantryKeys.has(i.key))
-      const totalCount = r.ingredients.length
-      const matchedCount = totalCount - missing.length
-      return {
-        id: r.id,
-        title: r.title,
-        matchedCount,
-        totalCount,
-        matchFraction: totalCount &gt; 0 ? matchedCount / totalCount : 0,
-        missingIngredients: missing.map((i) =&gt; i.name),
-      }
-    })
-    .sort((a, b) =&gt; b.matchFraction - a.matchFraction || a.title.localeCompare(b.title))
+export function nutritionAfterEdit(
+  existing: NutritionBasis,
+  update: NutritionUpdate,
+): Nutrition | null | undefined {
+  if (update.nutrition !== undefined) return update.nutrition
+  if (!existing.nutrition) return undefined
+  if (
+    update.ingredients !== undefined &amp;&amp;
+    !sameIngredients(existing.ingredients, update.ingredients)
+  )
+    return null
+  if (update.servings !== undefined &amp;&amp; update.servings !== existing.servings) {
+    const f = existing.servings / update.servings
+    const n = existing.nutrition
+    return {
+      calories: Math.round(n.calories * f),
+      protein_g: round1(n.protein_g * f),
+      carbs_g: round1(n.carbs_g * f),
+      fat_g: round1(n.fat_g * f),
+      ...(n.fiber_g !== undefined &amp;&amp; { fiber_g: round1(n.fiber_g * f) }),
+    }
+  }
+  return undefined
 }
 &nbsp;</pre></td></tr></table></pre>
 
