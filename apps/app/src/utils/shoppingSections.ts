@@ -36,3 +36,20 @@ export function groupShoppingByAisle(items: ShoppingListEntry[]): ShoppingSectio
 export function shoppingProgress(items: ShoppingListEntry[]): { checked: number; total: number } {
   return { checked: items.filter((i) => i.checked).length, total: items.length }
 }
+
+/**
+ * The list as plain text for the clipboard (WhatsApp, notes): only what is
+ * still to buy, grouped by aisle in store order. Null when nothing is left.
+ */
+export function shoppingListText(
+  items: ShoppingListEntry[],
+  weekLabel: string,
+  formatQty: (item: ShoppingListEntry) => string,
+): string | null {
+  const pending = items.filter((i) => !i.checked)
+  if (pending.length === 0) return null
+  const blocks = groupShoppingByAisle(pending).map(
+    (s) => `${s.title}\n${s.data.map((i) => `- ${i.ingredient}: ${formatQty(i)}`).join('\n')}`,
+  )
+  return [`Lista de compras · ${weekLabel}`, ...blocks].join('\n\n')
+}

@@ -6,13 +6,20 @@ import {
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native'
+import { useState } from 'react'
+import * as Clipboard from 'expo-clipboard'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { api } from '../../src/api/client'
 import type { ShoppingListEntry } from '@recetario/shared'
 import { formatShoppingQty } from '../../src/utils/menuLogic'
 import { formatDate } from '../../src/utils/weekMath'
-import { groupShoppingByAisle, shoppingProgress } from '../../src/utils/shoppingSections'
+import {
+  groupShoppingByAisle,
+  shoppingListText,
+  shoppingProgress,
+} from '../../src/utils/shoppingSections'
+import { notify } from '../../src/utils/platformAlert'
 import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 import { useIsViewer } from '../../src/hooks/useIsViewer'
 import { ViewerNotice } from '../../src/components/ViewerNotice'
@@ -27,10 +34,12 @@ export default function ShoppingListScreen() {
   const queryKey = ['shopping-list', week]
   // Check-offs are shared with the household; viewers can only read them.
   const isViewer = useIsViewer()
+  const [copied, setCopied] = useState(false)
 
   const {
     data: items = [],
     isLoading,
+    isFetching,
     error,
     refetch,
   } = useQuery({
@@ -73,6 +82,23 @@ export default function ShoppingListScreen() {
       </View>
     )
 
+  async function copyList() {
+    // Items only load with a weekStart, so there is always one to name here
+    const text = shoppingListText(items, `semana del ${formatDate(week)}`, formatShoppingQty)
+    if (!text) {
+      notify('Lista completa', 'No queda nada por comprar esta semana.')
+      return
+    }
+    // On web a refused copy resolves false (it never throws); native may reject
+    const ok = await Clipboard.setStringAsync(text).catch(() => false)
+    if (!ok) {
+      notify('No se pudo copiar', 'Tu navegador no permitió copiar al portapapeles.')
+      return
+    }
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2500)
+  }
+
   const sections = groupShoppingByAisle(items)
   const { checked, total } = shoppingProgress(items)
   const pct = total > 0 ? checked / total : 0
@@ -87,6 +113,29 @@ export default function ShoppingListScreen() {
       </View>
 
       {weekStart && <Text style={styles.weekLabel}>Semana del {formatDate(weekStart)}</Text>}
+      <View style={styles.actionsRow}>
+        <TouchableOpacity
+          testID="shopping-copy"
+          role="button"
+          style={styles.actionBtn}
+          disabled={total === 0}
+          onPress={() => void copyList()}
+        >
+          <Text style={[styles.actionText, total === 0 && styles.actionTextDisabled]}>
+            {copied ? '✓ Copiada' : '📋 Copiar lista'}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          testID="shopping-refresh"
+          role="button"
+          aria-label="Actualizar desde el menú"
+          style={styles.actionBtn}
+          disabled={isFetching}
+          onPress={() => void refetch()}
+        >
+          <Text style={styles.actionText}>{isFetching ? 'Actualizando…' : '↻ Actualizar'}</Text>
+        </TouchableOpacity>
+      </View>
       {isViewer && <ViewerNotice />}
 
       {total > 0 && (
@@ -138,6 +187,15 @@ export default function ShoppingListScreen() {
 
 const makeStyles = (c: ThemeColors) =>
   StyleSheet.create({
+    actionsRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 8 },
+    actionBtn: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 8,
+      backgroundColor: c.sand,
+    },
+    actionText: { fontSize: 13, fontWeight: '600', color: c.ink },
+    actionTextDisabled: { color: c.inkSoft },
     container: { flex: 1, backgroundColor: c.surface },
     center: {
       flex: 1,
