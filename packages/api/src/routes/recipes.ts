@@ -8,7 +8,6 @@ import {
   dietaryConflicts,
 } from '@recetario/shared'
 import { recipeRepository } from '../db/repository.js'
-import { getVisibleOwnerIds } from '../db/household-visibility.js'
 import { authMiddleware } from '../middleware/auth.js'
 import { rateLimitMiddleware } from '../middleware/rateLimit.js'
 import '../types.js'
@@ -109,15 +108,17 @@ const searchRecipesRoute = defineRoute({
 recipesRoute.openapi(searchRecipesRoute, async (c) => {
   const ownerId = c.get('ownerId')
   const { q, tag, category, ingredient, dietary, foodTypeId } = c.req.valid('query')
-  const visibleOwners = await getVisibleOwnerIds(ownerId)
-  const recipes = await recipeRepository.search(visibleOwners, {
-    q,
-    tag,
-    category,
-    ingredient,
-    dietary,
-    foodTypeId,
-  })
+  const recipes = await recipeRepository.search(
+    { visibleTo: ownerId },
+    {
+      q,
+      tag,
+      category,
+      ingredient,
+      dietary,
+      foodTypeId,
+    },
+  )
   return c.json(recipes, 200)
 })
 
@@ -145,13 +146,15 @@ const listRecipesRoute = defineRoute({
 recipesRoute.openapi(listRecipesRoute, async (c) => {
   const ownerId = c.get('ownerId')
   const { limit, offset, maxTotalTime, difficulty } = c.req.valid('query')
-  const visibleOwners = await getVisibleOwnerIds(ownerId)
-  const recipes = await recipeRepository.list(visibleOwners, {
-    limit,
-    offset,
-    ...(maxTotalTime !== undefined && { maxTotalTime }),
-    ...(difficulty !== undefined && { difficulty }),
-  })
+  const recipes = await recipeRepository.list(
+    { visibleTo: ownerId },
+    {
+      limit,
+      offset,
+      ...(maxTotalTime !== undefined && { maxTotalTime }),
+      ...(difficulty !== undefined && { difficulty }),
+    },
+  )
   return c.json(recipes, 200)
 })
 
@@ -178,8 +181,7 @@ const getRecipeByIdRoute = defineRoute({
 recipesRoute.openapi(getRecipeByIdRoute, async (c) => {
   const ownerId = c.get('ownerId')
   const { id } = c.req.valid('param')
-  const visibleOwners = await getVisibleOwnerIds(ownerId)
-  const recipe = await recipeRepository.findById(id, visibleOwners)
+  const recipe = await recipeRepository.findById(id, { visibleTo: ownerId })
   if (!recipe) return c.json({ error: 'Recipe not found' }, 404)
   return c.json(recipe, 200)
 })
@@ -220,7 +222,7 @@ recipesRoute.openapi(putRecipeRoute, async (c) => {
     // Partial update: check the tags and ingredients the recipe will end up with.
     const current =
       body.dietaryTags === undefined || body.ingredients === undefined
-        ? await recipeRepository.findById(id, [ownerId])
+        ? await recipeRepository.findById(id, { ownedBy: ownerId })
         : null
     const tagError = dietaryTagError(
       body.ingredients ?? current?.ingredients ?? [],
