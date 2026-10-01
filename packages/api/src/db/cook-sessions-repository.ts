@@ -71,6 +71,16 @@ export const cookSessionsRepository = {
       .offset(offset)
   },
 
+  async listRecent(ownerId: string, limit = 20, offset = 0): Promise<CookSessionRow[]> {
+    return getDb()
+      .select()
+      .from(schema.cookSessions)
+      .where(eq(schema.cookSessions.ownerId, ownerId))
+      .orderBy(desc(schema.cookSessions.cookedAt))
+      .limit(limit)
+      .offset(offset)
+  },
+
   async getStats(ownerId: string, since?: Date): Promise<CookStats> {
     const db = getDb()
     const windowStart = since ?? new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) // 90 days
