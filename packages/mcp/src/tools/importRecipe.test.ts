@@ -88,6 +88,51 @@ describe('isPrivateIp', () => {
   })
 })
 
+// Mutation testing (2026-10-01): every range boundary below could be shifted
+// by one without a test failing. Each private range is pinned at both edges,
+// next to the public address just outside it.
+describe('isPrivateIp range edges', () => {
+  it.each([
+    ['0.0.0.0', true],
+    ['1.0.0.1', false],
+    ['9.255.255.255', false],
+    ['10.0.0.0', true],
+    ['11.0.0.1', false],
+    ['126.255.255.255', false],
+    ['127.0.0.1', true],
+    ['128.0.0.1', false],
+    ['100.63.255.255', false],
+    ['100.64.0.0', true],
+    ['100.127.255.255', true],
+    ['100.128.0.0', false],
+    ['169.253.0.1', false],
+    ['169.254.0.1', true],
+    ['169.255.0.1', false],
+    ['172.15.255.255', false],
+    ['172.16.0.0', true],
+    ['172.31.255.255', true],
+    ['172.32.0.0', false],
+    ['192.167.0.1', false],
+    ['192.168.0.1', true],
+    ['192.169.0.1', false],
+    ['192.0.0.1', true],
+    ['192.1.0.1', false],
+    ['198.17.0.1', false],
+    ['198.18.0.1', true],
+    ['198.19.255.255', true],
+    ['198.20.0.1', false],
+    ['223.255.255.255', false],
+    ['224.0.0.1', true],
+  ])('%s → private %s', (ip, expected) => {
+    expect(isPrivateIp(ip)).toBe(expected)
+  })
+
+  it('only reads a whole dotted quad, not one buried in a longer string', () => {
+    expect(isPrivateIp('1.10.0.0.1')).toBe(false)
+    expect(isPrivateIp('10.0.0.1.5')).toBe(false)
+  })
+})
+
 describe('fetchRecipePage tool', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn())
