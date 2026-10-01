@@ -1,0 +1,121 @@
+import { test, expect } from './fixtures'
+import { API_URL } from './env'
+import { authHeaders, createRecipeViaApi, deleteRecipeViaApi } from './api'
+
+// Configurator bug (2026-10-01 test-base review): each taxonomy tab can create
+// a new item, and tapping an item's "N recetas" badge lists the recipes behind
+// it, each one opening the recipe.
+
+test('creates a food type, rejects a duplicate, and its badge opens the recipes that use it', async ({
+  page,
+}) => {
+  const name = `Zz e2e ${Math.random().toString(36).slice(2, 8)}`
+  let recipeId: string | undefined
+  try {
+    await page.goto('/config')
+    await page.getByTestId('config-tab-food-types').click()
+    const input = page.getByTestId('config-new-name')
+    await expect(input).toHaveAttribute('placeholder', 'Nuevo tipo de comida')
+
+    // The add button looks disabled until something is typed
+    const add = page.getByTestId('config-new-add')
+    const opacity = () => add.evaluate((el) => getComputedStyle(el).opacity)
+    await expect(add).toBeDisabled()
+    expect(await opacity()).toBe('0.4')
+    await input.fill(name)
+    await expect(add).toBeEnabled()
+    expect(await opacity()).toBe('1')
+    await add.click()
+    await expect(input).toHaveValue('')
+
+    const row = page.locator('[data-testid^="config-item-"]', { hasText: name })
+    await expect(row).toBeVisible()
+    const foodTypeId = (await row.getAttribute('data-testid'))!.replace('config-item-', '')
+    const badge = page.getByTestId(`config-usage-${foodTypeId}`)
+    await expect(badge).toHaveText('0 recetas')
+    await expect(badge).toBeDisabled()
+    const bg = () =>
+      badge
+        .locator('div')
+        .first()
+        .evaluate((el) => getComputedStyle(el).backgroundColor)
+    const emptyBg = await bg()
+
+    // Same name again → "Ya existe", and the typed name stays
+    const dialogs: string[] = []
+    page.on('dialog', (d) => {
+      dialogs.push(d.message())
+      void d.accept()
+    })
+    await input.fill(name)
+    await add.click()
+    await expect.poll(() => dialogs).toEqual([`Ya existe\n\n"${name}" ya está en la lista.`])
+    await expect(input).toHaveValue(name)
+
+    // A recipe of that food type → the badge counts it and lists it
+    const recipe = await createRecipeViaApi(page, { foodTypeIds: [foodTypeId] })
+    recipeId = recipe.id
+    await page.reload()
+    await page.getByTestId('config-tab-food-types').click()
+    await expect(badge).toHaveText('1 receta')
+    expect(await bg()).not.toBe(emptyBg)
+
+    await badge.click()
+    await expect(page.getByText(`Recetas con "${name}"`)).toBeVisible()
+    await page.getByTestId(`config-usage-recipe-${recipe.id}`).click()
+    await expect(page).toHaveURL(new RegExp(`/recipe/${recipe.id}$`))
+    await expect(page.getByText(recipe.title).first()).toBeVisible()
+  } finally {
+    if (recipeId) await deleteRecipeViaApi(page, recipeId)
+    const headers = await authHeaders(page)
+    const overview = (await (
+      await page.request.get(`${API_URL}/v1/config/taxonomy`, { headers })
+    ).json()) as { foodTypes: { id: string; name: string }[] }
+    const ft = overview.foodTypes.find((t) => t.name === name)
+    if (ft) await page.request.delete(`${API_URL}/v1/config/food-types/${ft.id}`, { headers })
+  }
+})
+
+test('creates a tag from its tab; a category badge lists my recipes and closes with Cerrar', async ({
+  page,
+}) => {
+  const name = `zz-e2e-${Math.random().toString(36).slice(2, 8)}`
+  let recipeId: string | undefined
+  try {
+    const recipe = await createRecipeViaApi(page, { category: 'Postre' })
+    recipeId = recipe.id
+    await page.goto('/config')
+
+    // Categories (default tab): the system "Postre" badge lists the recipe
+    await expect(page.getByTestId('config-new-name')).toHaveAttribute(
+      'placeholder',
+      'Nueva categoría',
+    )
+    const postre = page.locator('[data-testid^="config-item-"]', { hasText: /^Postre/ })
+    await postre.locator('[data-testid^="config-usage-"]').click()
+    await expect(page.getByText('Recetas con "Postre"')).toBeVisible()
+    await expect(page.getByTestId(`config-usage-recipe-${recipe.id}`)).toHaveText(recipe.title)
+    await page.getByTestId('config-usage-close').click()
+    await expect(page.getByText('Recetas con "Postre"')).toBeHidden()
+    await expect(page).toHaveURL(/\/config$/)
+
+    // Tags: create one
+    await page.getByTestId('config-tab-tags').click()
+    await expect(page.getByTestId('config-new-name')).toHaveAttribute(
+      'placeholder',
+      'Nueva etiqueta',
+    )
+    await page.getByTestId('config-new-name').fill(name)
+    await page.getByTestId('config-new-add').click()
+    const row = page.locator('[data-testid^="config-item-"]', { hasText: name })
+    await expect(row.locator('[data-testid^="config-usage-"]')).toHaveText('0 recetas')
+  } finally {
+    if (recipeId) await deleteRecipeViaApi(page, recipeId)
+    const headers = await authHeaders(page)
+    const overview = (await (
+      await page.request.get(`${API_URL}/v1/config/taxonomy`, { headers })
+    ).json()) as { tags: { id: string; name: string }[] }
+    const tag = overview.tags.find((t) => t.name === name)
+    if (tag) await page.request.delete(`${API_URL}/v1/config/tags/${tag.id}`, { headers })
+  }
+})

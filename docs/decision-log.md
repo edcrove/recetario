@@ -186,6 +186,22 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
   `GET /v1/cook-sessions/stats` (`streak`), `apps/app/app/stats/index.tsx`.
 - **Status**: active
 
+### D-2026-10-01-15 · Taxonomy badge lists its recipes; items are created per tab
+
+- **Decision**: `GET /v1/config/{type}/{id}/recipes` returns the caller's recipes behind an
+  item's usage badge, matched exactly as the overview counts them, so the list always has
+  as many rows as the badge. `POST /v1/config/{type}` creates the caller's own category,
+  food type or tag. A name whose slug is already visible to the caller (system or own) is a
+  409; a name with no slug characters is a 400. The MCP `getTaxonomyUsage` tool now returns
+  that list instead of only the count, and `createTaxonomyItem` was added.
+- **Why**: configurator ACs ("tap en badge → ver recetas que lo usan", "crear nuevo ítem en
+  cada tab") found unbuilt by the 2026-10-01 test-base review.
+- **Where it lives**: `configRepository.create` / `usedBy`, `packages/api/src/routes/config.ts`,
+  `packages/mcp/src/tools/configurator.ts`, `apps/app/app/config/index.tsx`.
+- **Status**: active. Known gaps, tracked separately: recipe tags (`recipes.tags` jsonb) never
+  write `recipe_tags`, so tag badges stay at 0; recipe categories are a fixed enum, so a
+  custom category cannot be used by recipes yet.
+
 ## 2026-09-30 — Dependency & maintenance session (PRs #125, #140, #147, #148, #124)
 
 ### D-2026-09-30-12 · Production startup guard, closed sign-up and release step
