@@ -11,8 +11,16 @@ import {
   ScrollView,
 } from 'react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useRouter } from 'expo-router'
 import { api } from '../../src/api/client'
-import { deleteModalTitle } from '../../src/utils/configModal'
+import {
+  deleteModalTitle,
+  newItemPlaceholder,
+  createErrorAlert,
+  usageBadgeLabel,
+  usageModalTitle,
+  type EditableTab,
+} from '../../src/utils/configModal'
 import { notify } from '../../src/utils/platformAlert'
 import { IngredientsPanel } from '../../src/components/IngredientsPanel'
 import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
@@ -43,6 +51,9 @@ export default function ConfiguratorScreen() {
   const [editName, setEditName] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<TaxonomyItem | null>(null)
   const [reassignId, setReassignId] = useState('')
+  const [newName, setNewName] = useState('')
+  const [usageItem, setUsageItem] = useState<TaxonomyItem | null>(null)
+  const router = useRouter()
 
   const { data: taxonomy, isLoading } = useQuery({
     queryKey: ['config-taxonomy'],
@@ -67,6 +78,24 @@ export default function ConfiguratorScreen() {
       setReassignId('')
     },
     onError: () => notify('Error', 'No se pudo eliminar el elemento.'),
+  })
+
+  const create = useMutation({
+    mutationFn: (name: string) => api.config.create(tab as EditableTab, name),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['config-taxonomy'] })
+      setNewName('')
+    },
+    onError: (err, name) => {
+      const alert = createErrorAlert(err, name)
+      notify(alert.title, alert.message)
+    },
+  })
+
+  const usage = useQuery({
+    queryKey: ['config-usage', tab, usageItem?.id],
+    queryFn: () => api.config.usedBy(tab as EditableTab, usageItem!.id),
+    enabled: !!usageItem,
   })
 
   const mergeTags = useMutation({
@@ -118,6 +147,27 @@ export default function ConfiguratorScreen() {
         <IngredientsPanel />
       ) : (
         <>
+          {/* Create a new item in this tab */}
+          <View style={s.createRow}>
+            <TextInput
+              testID="config-new-name"
+              placeholderTextColor={colors.inkSoft}
+              style={s.createInput}
+              value={newName}
+              onChangeText={setNewName}
+              placeholder={newItemPlaceholder(tab)}
+            />
+            <TouchableOpacity
+              testID="config-new-add"
+              accessibilityRole="button"
+              style={[s.createBtn, !newName.trim() && s.modalBtnDisabled]}
+              disabled={!newName.trim() || create.isPending}
+              onPress={() => create.mutate(newName.trim())}
+            >
+              <Text style={s.modalBtnText}>Agregar</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Items list */}
           <FlatList
             data={currentItems}
@@ -129,9 +179,17 @@ export default function ConfiguratorScreen() {
                 <View style={s.itemInfo}>
                   <Text style={s.itemName}>{item.name}</Text>
                   <View style={s.itemMeta}>
-                    <Text style={[s.badge, item.usageCount > 0 ? s.badgeUsed : s.badgeEmpty]}>
-                      {item.usageCount} receta{item.usageCount !== 1 ? 's' : ''}
-                    </Text>
+                    <TouchableOpacity
+                      testID={`config-usage-${item.id}`}
+                      accessibilityRole="button"
+                      accessibilityLabel={usageBadgeLabel(item)}
+                      disabled={item.usageCount === 0}
+                      onPress={() => setUsageItem(item)}
+                    >
+                      <Text style={[s.badge, item.usageCount > 0 ? s.badgeUsed : s.badgeEmpty]}>
+                        {item.usageCount} receta{item.usageCount !== 1 ? 's' : ''}
+                      </Text>
+                    </TouchableOpacity>
                     {item.isSystem && <Text style={s.systemBadge}>Sistema</Text>}
                   </View>
                 </View>
@@ -174,6 +232,44 @@ export default function ConfiguratorScreen() {
               </View>
             )}
           />
+
+          {/* Recipes behind a usage badge */}
+          <Modal visible={!!usageItem} transparent animationType="slide">
+            <View style={s.modalOverlay}>
+              <View style={s.modalCard}>
+                <Text style={s.modalTitle}>{usageModalTitle(usageItem)}</Text>
+                {usage.isLoading ? (
+                  <ActivityIndicator />
+                ) : usage.isError ? (
+                  <Text style={s.modalSubtitle}>No se pudieron cargar las recetas.</Text>
+                ) : (
+                  <ScrollView style={s.usageList}>
+                    {(usage.data ?? []).map((r) => (
+                      <TouchableOpacity
+                        key={r.id}
+                        testID={`config-usage-recipe-${r.id}`}
+                        accessibilityRole="link"
+                        style={s.usageRow}
+                        onPress={() => {
+                          setUsageItem(null)
+                          router.push({ pathname: '/recipe/[id]', params: { id: r.id } })
+                        }}
+                      >
+                        <Text style={s.usageRowText}>{r.title}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
+                <TouchableOpacity
+                  testID="config-usage-close"
+                  style={s.cancelBtn}
+                  onPress={() => setUsageItem(null)}
+                >
+                  <Text style={s.cancelBtnText}>Cerrar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
 
           {/* Rename modal */}
           <Modal visible={!!editingItem} transparent animationType="slide">
@@ -311,6 +407,27 @@ const makeStyles = (c: ThemeColors) =>
     tabBtnText: { fontSize: 13, color: c.inkSoft, fontWeight: '500' },
     tabBtnTextActive: { color: c.surface, fontWeight: '600' },
     list: { padding: 16, gap: 8 },
+    createRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12 },
+    createInput: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: c.line,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: 15,
+      color: c.ink,
+      backgroundColor: c.surface,
+    },
+    createBtn: {
+      backgroundColor: c.terracotta,
+      borderRadius: 8,
+      paddingHorizontal: 16,
+      justifyContent: 'center',
+    },
+    usageList: { maxHeight: 320, marginBottom: 8 },
+    usageRow: { paddingVertical: 12, borderBottomWidth: 1, borderColor: c.sand },
+    usageRowText: { fontSize: 15, color: c.ink },
     empty: { color: c.inkSoft, textAlign: 'center', marginTop: 32 },
     itemRow: {
       flexDirection: 'row',

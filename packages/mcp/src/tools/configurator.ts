@@ -49,6 +49,22 @@ export function registerConfiguratorTools(
   )
 
   server.tool(
+    'createTaxonomyItem',
+    'Create a category, food type or tag (409 if one with the same slug already exists)',
+    {
+      type: z.enum(['categories', 'food-types', 'tags']),
+      name: z.string().min(1).max(100),
+    },
+    async ({ type, name }) => {
+      const result = await api.request(`/v1/config/${type}`, {
+        method: 'POST',
+        body: JSON.stringify({ name }),
+      })
+      return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] }
+    },
+  )
+
+  server.tool(
     'getTaxonomyUsage',
     'Get which recipes use a specific taxonomy item',
     {
@@ -56,25 +72,21 @@ export function registerConfiguratorTools(
       id: z.uuid(),
     },
     async ({ type, id }) => {
-      const overview = (await api.request('/v1/config/taxonomy')) as {
-        mealCategories: Array<{ id: string; name: string; usageCount: number }>
-        foodTypes: Array<{ id: string; name: string; usageCount: number }>
-        tags: Array<{ id: string; name: string; usageCount: number }>
+      let recipes: Array<{ id: string; title: string }>
+      try {
+        recipes = (await api.request(`/v1/config/${type}/${id}/recipes`)) as typeof recipes
+      } catch (err) {
+        if (String(err).includes('API error 404')) {
+          return { content: [{ type: 'text' as const, text: 'Item not found.' }] }
+        }
+        throw err
       }
-      const list =
-        type === 'categories'
-          ? overview.mealCategories
-          : type === 'food-types'
-            ? overview.foodTypes
-            : overview.tags
-      const item = list.find((i) => i.id === id)
+      const lines = recipes.map((r) => `- ${r.title} (${r.id})`)
       return {
         content: [
           {
             type: 'text' as const,
-            text: item
-              ? `"${item.name}" is used by ${item.usageCount} recipe(s).`
-              : 'Item not found.',
+            text: [`Used by ${recipes.length} recipe(s).`, ...lines].join('\n'),
           },
         ],
       }

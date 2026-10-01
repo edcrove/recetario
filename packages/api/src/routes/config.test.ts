@@ -8,6 +8,8 @@ const { config } = vi.hoisted(() => ({
     deleteTag: vi.fn(),
     deleteCategory: vi.fn(),
     mergeTags: vi.fn(),
+    create: vi.fn(),
+    usedBy: vi.fn(),
   },
 }))
 
@@ -153,5 +155,85 @@ describe('POST /v1/config/tags/merge', () => {
       body: JSON.stringify({ sourceId: ID, targetId: TARGET }),
     })
     expect(res.status).toBe(404)
+  })
+})
+
+// Story "App: pantalla Configurador con tabs y contadores": "Tap en badge abre
+// lista de recetas que lo usan. Crear nuevo ítem en cada tab."
+describe('POST /v1/config/:type', () => {
+  const post = (type: string, body: unknown) =>
+    app.request(`/v1/config/${type}`, { method: 'POST', headers: AUTH, body: JSON.stringify(body) })
+
+  it.each(['categories', 'food-types', 'tags'] as const)(
+    'creates a %s item for the caller (201)',
+    async (type) => {
+      const item = { id: ID, name: 'Brunch', slug: 'brunch', usageCount: 0, isDeletable: true }
+      config.create.mockResolvedValue(item)
+      const res = await post(type, { name: 'Brunch' })
+      expect(res.status).toBe(201)
+      expect(await res.json()).toEqual(item)
+      expect(config.create).toHaveBeenCalledWith(type, 'dev', 'Brunch')
+    },
+  )
+
+  it('a name that is already taken is a 409', async () => {
+    config.create.mockResolvedValue('duplicate')
+    const res = await post('categories', { name: 'Cena' })
+    expect(res.status).toBe(409)
+    expect(await res.json()).toEqual({ error: 'Already exists' })
+  })
+
+  it('a name with no usable characters is a 400', async () => {
+    config.create.mockResolvedValue('invalid')
+    const res = await post('tags', { name: '¡¡!!' })
+    expect(res.status).toBe(400)
+    expect(await res.json()).toEqual({ error: 'Invalid name' })
+  })
+
+  it('rejects an empty name and an unknown type (400) without touching the repository', async () => {
+    expect((await post('tags', { name: '' })).status).toBe(400)
+    expect((await post('ingredients', { name: 'x' })).status).toBe(400)
+    expect(config.create).not.toHaveBeenCalled()
+  })
+
+  it('requires auth (401)', async () => {
+    const res = await app.request('/v1/config/tags', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'x' }),
+    })
+    expect(res.status).toBe(401)
+  })
+})
+
+describe('GET /v1/config/:type/:id/recipes', () => {
+  it.each(['categories', 'food-types', 'tags'] as const)(
+    'lists the recipes behind a %s badge',
+    async (type) => {
+      const recipes = [{ id: TARGET, title: 'Milanesas' }]
+      config.usedBy.mockResolvedValue(recipes)
+      const res = await app.request(`/v1/config/${type}/${ID}/recipes`, { headers: AUTH })
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual(recipes)
+      expect(config.usedBy).toHaveBeenCalledWith(type, 'dev', ID)
+    },
+  )
+
+  it("someone else's (or a missing) item is a 404", async () => {
+    config.usedBy.mockResolvedValue(null)
+    const res = await app.request(`/v1/config/tags/${ID}/recipes`, { headers: AUTH })
+    expect(res.status).toBe(404)
+    expect(await res.json()).toEqual({ error: 'Not found' })
+  })
+
+  it('an unused item lists nothing (200, empty)', async () => {
+    config.usedBy.mockResolvedValue([])
+    const res = await app.request(`/v1/config/categories/${ID}/recipes`, { headers: AUTH })
+    expect(await res.json()).toEqual([])
+  })
+
+  it('rejects a non-uuid id (400) and requires auth (401)', async () => {
+    expect((await app.request('/v1/config/tags/abc/recipes', { headers: AUTH })).status).toBe(400)
+    expect((await app.request(`/v1/config/tags/${ID}/recipes`)).status).toBe(401)
   })
 })

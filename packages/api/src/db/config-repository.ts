@@ -255,6 +255,118 @@ export const configRepository = {
     })
   },
 
+  /**
+   * Creates the caller's own item. 'duplicate' when the slug is already taken
+   * by a visible item (a system category or food type, or one of their own);
+   * 'invalid' when the name has no usable characters for a slug.
+   */
+  async create(
+    type: ConfigType,
+    ownerId: string,
+    name: string,
+  ): Promise<TaxonomyItem | 'duplicate' | 'invalid'> {
+    const slug = slugify(name.trim())
+    if (!slug.replace(/-/g, '')) return 'invalid'
+    const db = currentDb()
+    const table =
+      type === 'categories'
+        ? schema.mealCategories
+        : type === 'food-types'
+          ? schema.foodTypes
+          : schema.tags
+    const visible =
+      type === 'tags' ? eq(schema.tags.ownerId, ownerId) : systemOrOwn(table.ownerId, ownerId)
+    const [taken] = await db
+      .select({ id: table.id })
+      .from(table)
+      .where(and(eq(table.slug, slug), visible))
+      .limit(1)
+    if (taken) return 'duplicate'
+    const clean = name.trim()
+    const [row] =
+      type === 'categories'
+        ? await db
+            .insert(schema.mealCategories)
+            .values({ name: clean, slug, ownerId, isSystem: 0 })
+            .returning({ id: table.id, name: table.name, slug: table.slug })
+        : type === 'food-types'
+          ? await db
+              .insert(schema.foodTypes)
+              .values({ name: clean, slug, ownerId, isSystem: 0 })
+              .returning({ id: table.id, name: table.name, slug: table.slug })
+          : await db
+              .insert(schema.tags)
+              .values({ name: clean, slug, ownerId })
+              .returning({ id: table.id, name: table.name, slug: table.slug })
+    return {
+      id: row!.id,
+      name: row!.name,
+      slug: row!.slug,
+      usageCount: 0,
+      isDeletable: true,
+      ...(type === 'tags' ? {} : { isSystem: false }),
+    }
+  },
+
+  /**
+   * The caller's recipes that use an item, matched exactly like `overview`
+   * counts them, so the list behind a badge always has as many rows as the
+   * badge says. Null when the item isn't visible to the caller.
+   */
+  async usedBy(
+    type: ConfigType,
+    ownerId: string,
+    id: string,
+  ): Promise<{ id: string; title: string }[] | null> {
+    const db = currentDb()
+    const recipe = { id: schema.recipes.id, title: schema.recipes.title }
+    const own = eq(schema.recipes.ownerId, ownerId)
+    if (type === 'categories') {
+      const [cat] = await db
+        .select({ slug: schema.mealCategories.slug })
+        .from(schema.mealCategories)
+        .where(
+          and(
+            eq(schema.mealCategories.id, id),
+            systemOrOwn(schema.mealCategories.ownerId, ownerId),
+          ),
+        )
+        .limit(1)
+      if (!cat) return null
+      return db
+        .select(recipe)
+        .from(schema.recipes)
+        .where(and(own, sql`lower(${schema.recipes.category}) = ${cat.slug}`))
+        .orderBy(schema.recipes.title)
+    }
+    if (type === 'food-types') {
+      const [ft] = await db
+        .select({ id: schema.foodTypes.id })
+        .from(schema.foodTypes)
+        .where(and(eq(schema.foodTypes.id, id), systemOrOwn(schema.foodTypes.ownerId, ownerId)))
+        .limit(1)
+      if (!ft) return null
+      return db
+        .select(recipe)
+        .from(schema.recipes)
+        .innerJoin(schema.recipeFoodTypes, eq(schema.recipeFoodTypes.recipeId, schema.recipes.id))
+        .where(and(own, eq(schema.recipeFoodTypes.foodTypeId, id)))
+        .orderBy(schema.recipes.title)
+    }
+    const [tag] = await db
+      .select({ id: schema.tags.id })
+      .from(schema.tags)
+      .where(and(eq(schema.tags.id, id), eq(schema.tags.ownerId, ownerId)))
+      .limit(1)
+    if (!tag) return null
+    return db
+      .select(recipe)
+      .from(schema.recipes)
+      .innerJoin(schema.recipeTags, eq(schema.recipeTags.recipeId, schema.recipes.id))
+      .where(eq(schema.recipeTags.tagId, id))
+      .orderBy(schema.recipes.title)
+  },
+
   /** Moves every recipe from `sourceId` to `targetId` and deletes the source; null unless both are the caller's. */
   async mergeTags(ownerId: string, sourceId: string, targetId: string): Promise<number | null> {
     return inTransaction(async () => {

@@ -1,6 +1,6 @@
 import { createRouter } from './router.js'
 import { createRoute as defineRoute, z } from '@hono/zod-openapi'
-import { TaxonomyOverviewSchema } from '@recetario/shared'
+import { TaxonomyItemSchema, TaxonomyOverviewSchema } from '@recetario/shared'
 import { configRepository } from '../db/config-repository.js'
 import { authMiddleware } from '../middleware/auth.js'
 
@@ -27,6 +27,76 @@ configRoute.openapi(
   async (c) => {
     const ownerId = c.get('ownerId')
     return c.json(await configRepository.overview(ownerId), 200)
+  },
+)
+
+// POST /v1/config/:type — create one of the caller's own items
+configRoute.openapi(
+  defineRoute({
+    method: 'post',
+    path: '/{type}',
+    security: [{ ApiKeyAuth: [] }],
+    request: {
+      params: z.object({ type: z.enum(['categories', 'food-types', 'tags']) }),
+      body: {
+        content: { 'application/json': { schema: z.object({ name: z.string().min(1).max(100) }) } },
+        required: true,
+      },
+    },
+    responses: {
+      201: {
+        content: { 'application/json': { schema: TaxonomyItemSchema } },
+        description: 'Created',
+      },
+      400: {
+        content: { 'application/json': { schema: errorSchema } },
+        description: 'Name has no usable characters',
+      },
+      409: {
+        content: { 'application/json': { schema: errorSchema } },
+        description: 'Already exists',
+      },
+    },
+  }),
+  async (c) => {
+    const ownerId = c.get('ownerId')
+    const { type } = c.req.valid('param')
+    const { name } = c.req.valid('json')
+    const created = await configRepository.create(type, ownerId, name)
+    if (created === 'invalid') return c.json({ error: 'Invalid name' }, 400)
+    if (created === 'duplicate') return c.json({ error: 'Already exists' }, 409)
+    return c.json(created, 201)
+  },
+)
+
+// GET /v1/config/:type/:id/recipes — the recipes behind an item's usage badge
+configRoute.openapi(
+  defineRoute({
+    method: 'get',
+    path: '/{type}/{id}/recipes',
+    security: [{ ApiKeyAuth: [] }],
+    request: {
+      params: z.object({
+        type: z.enum(['categories', 'food-types', 'tags']),
+        id: z.uuid(),
+      }),
+    },
+    responses: {
+      200: {
+        content: {
+          'application/json': { schema: z.array(z.object({ id: z.uuid(), title: z.string() })) },
+        },
+        description: 'OK',
+      },
+      404: { content: { 'application/json': { schema: errorSchema } }, description: 'Not found' },
+    },
+  }),
+  async (c) => {
+    const ownerId = c.get('ownerId')
+    const { type, id } = c.req.valid('param')
+    const recipes = await configRepository.usedBy(type, ownerId, id)
+    if (!recipes) return c.json({ error: 'Not found' }, 404)
+    return c.json(recipes, 200)
   },
 )
 
