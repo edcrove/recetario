@@ -181,7 +181,7 @@ taxonomyRoute.openapi(
 taxonomyRoute.openapi(
   defineRoute({
     method: 'delete',
-    path: '/collections/:id',
+    path: '/collections/{id}',
     security: [{ ApiKeyAuth: [] }],
     request: { params: z.object({ id: z.uuid() }) },
     responses: {
