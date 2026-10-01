@@ -116,7 +116,7 @@ describe('menu tools', () => {
 
       const [url] = mockFetch.mock.calls[0] as [string, RequestInit]
       expect(url).toMatch(new RegExp(`/v1/menu/2026-07-07/Cena/${rid}$`))
-      expect(result.content[0].text).toContain(`Removed recipe ${rid}`)
+      expect(result.content[0]?.text).toContain(`Removed recipe ${rid}`)
     })
 
     it('encodes slot with slashes (Snacks/Otros)', async () => {
