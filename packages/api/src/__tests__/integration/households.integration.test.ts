@@ -79,4 +79,16 @@ describe.skipIf(skip).sequential('Household invite by email', () => {
     const body = await res.json()
     expect(body.userId).toBe(thirdUserId)
   })
+
+  it('lists the pending invitee with no acceptedAt, the owner as accepted', async () => {
+    const res = await app.request('/v1/households/mine', {
+      headers: { Authorization: `Bearer ${ownerToken}` },
+    })
+    const [household] = (await res.json()) as {
+      members: { userId: string; role: string; acceptedAt: string | null }[]
+    }[]
+    const invitee = household!.members.find((m) => m.userId === inviteeUserId)
+    expect(invitee?.acceptedAt).toBeNull()
+    expect(household!.members.find((m) => m.role === 'owner')?.acceptedAt).not.toBeNull()
+  })
 })

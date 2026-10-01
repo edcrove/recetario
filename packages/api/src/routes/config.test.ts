@@ -1,180 +1,71 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockSelect, mockUpdate, mockDelete, mockInsert } = vi.hoisted(() => ({
-  mockSelect: vi.fn(),
-  mockUpdate: vi.fn(),
-  mockDelete: vi.fn(),
-  mockInsert: vi.fn(),
+const { config } = vi.hoisted(() => ({
+  config: {
+    overview: vi.fn(),
+    rename: vi.fn(),
+    deleteFoodType: vi.fn(),
+    deleteTag: vi.fn(),
+    deleteCategory: vi.fn(),
+    mergeTags: vi.fn(),
+  },
 }))
 
+// No database: the API-key lookup fails and DEV_API_KEY authenticates as 'dev'
 vi.mock('../db/index.js', () => ({
-  getDb: vi.fn(() => ({
-    select: () => ({
-      from: () => ({
-        leftJoin: () => ({
-          where: () => ({ groupBy: () => ({ orderBy: () => Promise.resolve(mockSelect()) }) }),
-        }),
-        where: () => ({
-          limit: () => Promise.resolve(mockSelect()),
-          // direct await on the query (for count queries)
-          then: (resolve: (v: unknown) => void, reject: (e: unknown) => void) => {
-            try {
-              resolve(mockSelect())
-            } catch (e) {
-              reject(e)
-            }
-          },
-        }),
-        orderBy: () => Promise.resolve(mockSelect()),
-      }),
-    }),
-    update: () => ({
-      set: () => ({ where: () => ({ returning: () => Promise.resolve(mockUpdate()) }) }),
-      // for update().where() without returning
-      where: () => Promise.resolve(mockUpdate()),
-    }),
-    delete: () => ({
-      where: () => ({
-        returning: () => Promise.resolve(mockDelete()),
-        then: (r: (v: unknown[]) => void) => r(mockDelete()),
-      }),
-    }),
-    insert: () => ({ values: () => ({ onConflictDoNothing: () => Promise.resolve([]) }) }),
-  })),
-  schema: {
-    mealCategories: {
-      id: 'id',
-      name: 'name',
-      slug: 'slug',
-      isSystem: 'is_system',
-      ownerId: 'owner_id',
-    },
-    foodTypes: { id: 'id', name: 'name', slug: 'slug', isSystem: 'is_system', ownerId: 'owner_id' },
-    tags: { id: 'id', name: 'name', slug: 'slug', ownerId: 'owner_id' },
-    recipes: { id: 'id', category: 'category' },
-    recipeFoodTypes: { foodTypeId: 'food_type_id', recipeId: 'recipe_id' },
-    recipeTags: { tagId: 'tag_id', recipeId: 'recipe_id' },
+  getDb: () => {
+    throw new Error('no database in unit tests')
   },
+  schema: new Proxy({}, { get: () => ({}) }),
 }))
-
-vi.mock('../db/repository.js', () => ({
-  recipeRepository: {
-    list: vi.fn().mockResolvedValue([]),
-    search: vi.fn().mockResolvedValue([]),
-    findById: vi.fn(),
-    create: vi.fn(),
-    update: vi.fn(),
-    delete: vi.fn(),
-    upsert: vi.fn(),
-  },
-}))
-vi.mock('../db/menu-repository.js', () => ({
-  menuRepository: {
-    getWeek: vi.fn().mockResolvedValue([]),
-    upsert: vi.fn(),
-    remove: vi.fn(),
-    getScaledIngredients: vi.fn().mockResolvedValue([]),
-  },
-}))
-vi.mock('../db/cook-sessions-repository.js', () => ({
-  cookSessionsRepository: {
-    create: vi.fn(),
-    listByRecipe: vi.fn().mockResolvedValue([]),
-    getStats: vi.fn(),
-  },
-}))
+vi.mock('../db/config-repository.js', () => ({ configRepository: config }))
 
 import { app } from '../index.js'
 import { requests as rateLimitStore } from '../middleware/rateLimit.js'
 
 const AUTH = { Authorization: 'Bearer test-key', 'Content-Type': 'application/json' }
-const UUID = '550e8400-e29b-41d4-a716-446655440000'
-const UUID2 = '550e8400-e29b-41d4-a716-446655440001'
+const ID = '11111111-1111-4111-8111-111111111111'
+const TARGET = '22222222-2222-4222-8222-222222222222'
 
 beforeEach(() => {
   process.env['DEV_API_KEY'] = 'test-key'
   rateLimitStore.clear()
-  mockSelect.mockReset()
-  mockUpdate.mockReset()
-  mockDelete.mockReset()
-  mockInsert.mockReset()
+  vi.clearAllMocks()
 })
 
 describe('GET /v1/config/taxonomy', () => {
-  it('returns taxonomy overview — system items with 0 usage are not deletable', async () => {
-    mockSelect
-      .mockReturnValueOnce([
-        { id: UUID, name: 'Desayuno', slug: 'desayuno', isSystem: 1, usageCount: 0 },
-      ])
-      .mockReturnValueOnce([{ id: UUID, name: 'Guiso', slug: 'guiso', isSystem: 1, usageCount: 0 }])
-      .mockReturnValueOnce([{ id: UUID2, name: 'vegano', slug: 'vegano', usageCount: 0 }])
-    const res = await app.request('/v1/config/taxonomy', {
-      headers: { Authorization: 'Bearer test-key' },
-    })
+  it('returns the overview for the caller', async () => {
+    const overview = {
+      mealCategories: [
+        { id: ID, name: 'Cena', slug: 'cena', usageCount: 0, isDeletable: false, isSystem: true },
+      ],
+      foodTypes: [],
+      tags: [{ id: TARGET, name: 'rápido', slug: 'rapido', usageCount: 2, isDeletable: false }],
+    }
+    config.overview.mockResolvedValue(overview)
+    const res = await app.request('/v1/config/taxonomy', { headers: AUTH })
     expect(res.status).toBe(200)
-    const body = await res.json()
-    // System items with 0 usage are NOT deletable
-    expect(body.mealCategories[0].isDeletable).toBe(false)
-    expect(body.mealCategories[0].isSystem).toBe(true)
-    expect(body.foodTypes[0].isDeletable).toBe(false)
-    // Tags are not system so 0 usage = deletable
-    expect(body.tags[0].isDeletable).toBe(true)
-  })
-
-  it('non-system items with usage > 0 are not deletable', async () => {
-    mockSelect
-      .mockReturnValueOnce([
-        { id: UUID, name: 'Desayuno', slug: 'desayuno', isSystem: 1, usageCount: 3 },
-      ])
-      .mockReturnValueOnce([{ id: UUID, name: 'Guiso', slug: 'guiso', isSystem: 1, usageCount: 5 }])
-      .mockReturnValueOnce([{ id: UUID2, name: 'vegano', slug: 'vegano', usageCount: 0 }])
-    const res = await app.request('/v1/config/taxonomy', {
-      headers: { Authorization: 'Bearer test-key' },
-    })
-    const body = await res.json()
-    expect(body.mealCategories[0].isDeletable).toBe(false)
-    expect(body.tags[0].isDeletable).toBe(true)
+    expect(await res.json()).toEqual(overview)
+    expect(config.overview).toHaveBeenCalledWith('dev')
   })
 })
 
 describe('PATCH /v1/config/:type/:id', () => {
-  it('renames a meal category', async () => {
-    mockUpdate.mockReturnValue([{ id: UUID, name: 'Brunch', slug: 'brunch' }])
-    const res = await app.request(`/v1/config/categories/${UUID}`, {
+  it.each(['categories', 'food-types', 'tags'] as const)('renames a %s item', async (type) => {
+    config.rename.mockResolvedValue({ id: ID, name: 'Nuevo' })
+    const res = await app.request(`/v1/config/${type}/${ID}`, {
       method: 'PATCH',
       headers: AUTH,
-      body: JSON.stringify({ name: 'Brunch' }),
+      body: JSON.stringify({ name: 'Nuevo' }),
     })
     expect(res.status).toBe(200)
-    const body = await res.json()
-    expect(body.name).toBe('Brunch')
+    expect(await res.json()).toEqual({ id: ID, name: 'Nuevo' })
+    expect(config.rename).toHaveBeenCalledWith(type, 'dev', ID, 'Nuevo')
   })
 
-  it('renames a food type', async () => {
-    mockUpdate.mockReturnValue([{ id: UUID, name: 'Estofado', slug: 'estofado' }])
-    const res = await app.request(`/v1/config/food-types/${UUID}`, {
-      method: 'PATCH',
-      headers: AUTH,
-      body: JSON.stringify({ name: 'Estofado' }),
-    })
-    expect(res.status).toBe(200)
-    const body = await res.json()
-    expect(body.name).toBe('Estofado')
-  })
-
-  it('renames a tag', async () => {
-    mockUpdate.mockReturnValue([{ id: UUID, name: 'vegetariano', slug: 'vegetariano' }])
-    const res = await app.request(`/v1/config/tags/${UUID}`, {
-      method: 'PATCH',
-      headers: AUTH,
-      body: JSON.stringify({ name: 'vegetariano' }),
-    })
-    expect(res.status).toBe(200)
-  })
-
-  it('returns 404 when category not found', async () => {
-    mockUpdate.mockReturnValue([])
-    const res = await app.request(`/v1/config/categories/${UUID}`, {
+  it("returns 404 when the item isn't the caller's", async () => {
+    config.rename.mockResolvedValue(null)
+    const res = await app.request(`/v1/config/tags/${ID}`, {
       method: 'PATCH',
       headers: AUTH,
       body: JSON.stringify({ name: 'X' }),
@@ -182,186 +73,84 @@ describe('PATCH /v1/config/:type/:id', () => {
     expect(res.status).toBe(404)
   })
 
-  it('returns 404 when food-type not found', async () => {
-    mockUpdate.mockReturnValue([])
-    const res = await app.request(`/v1/config/food-types/${UUID}`, {
+  it('returns 400 for an unknown type', async () => {
+    const res = await app.request(`/v1/config/colors/${ID}`, {
       method: 'PATCH',
       headers: AUTH,
       body: JSON.stringify({ name: 'X' }),
     })
-    expect(res.status).toBe(404)
-  })
-
-  it('returns 404 when tag not found', async () => {
-    mockUpdate.mockReturnValue([])
-    const res = await app.request(`/v1/config/tags/${UUID}`, {
-      method: 'PATCH',
-      headers: AUTH,
-      body: JSON.stringify({ name: 'X' }),
-    })
-    expect(res.status).toBe(404)
-  })
-
-  // Regression tests for the 2026-07-03 audit IDOR finding: the update's WHERE
-  // clause now includes ownerId, so a rename of another user's row can never
-  // match — the DB layer (mocked here) is what actually enforces this; these
-  // tests confirm the route still surfaces that as a plain 404, not a crash.
-  it('returns 404 renaming a category owned by another user (mocked as not-found)', async () => {
-    mockUpdate.mockReturnValue([])
-    const res = await app.request(`/v1/config/categories/${UUID}`, {
-      method: 'PATCH',
-      headers: AUTH,
-      body: JSON.stringify({ name: 'Otro nombre' }),
-    })
-    expect(res.status).toBe(404)
+    expect(res.status).toBe(400)
   })
 })
 
 describe('DELETE /v1/config/:type/:id', () => {
-  it('deletes a food type with 0 usage', async () => {
-    mockSelect.mockReturnValueOnce([{ id: UUID }]).mockReturnValueOnce([{ count: 0 }])
-    mockDelete.mockReturnValue([{ id: UUID }])
-    const res = await app.request(`/v1/config/food-types/${UUID}`, {
+  it.each([
+    ['food-types', 'deleteFoodType'],
+    ['tags', 'deleteTag'],
+    ['categories', 'deleteCategory'],
+  ] as const)('deletes a %s item, passing reassignTo', async (type, method) => {
+    config[method].mockResolvedValue('deleted')
+    const res = await app.request(`/v1/config/${type}/${ID}?reassignTo=${TARGET}`, {
       method: 'DELETE',
-      headers: { Authorization: 'Bearer test-key' },
+      headers: AUTH,
     })
     expect(res.status).toBe(204)
+    expect(config[method]).toHaveBeenCalledWith('dev', ID, TARGET)
   })
 
-  it('reassigns recipes before deleting food type', async () => {
-    mockSelect.mockReturnValueOnce([{ id: UUID }]).mockReturnValueOnce([{ count: 3 }])
-    mockDelete.mockReturnValue([{ id: UUID }])
-    const res = await app.request(`/v1/config/food-types/${UUID}?reassignTo=${UUID2}`, {
-      method: 'DELETE',
-      headers: { Authorization: 'Bearer test-key' },
-    })
+  it('deletes without reassignment', async () => {
+    config.deleteTag.mockResolvedValue('deleted')
+    const res = await app.request(`/v1/config/tags/${ID}`, { method: 'DELETE', headers: AUTH })
     expect(res.status).toBe(204)
+    expect(config.deleteTag).toHaveBeenCalledWith('dev', ID, undefined)
   })
 
-  it('deletes food type recipes without reassignment when in use', async () => {
-    mockSelect.mockReturnValueOnce([{ id: UUID }]).mockReturnValueOnce([{ count: 2 }])
-    mockDelete.mockReturnValue([{ id: UUID }])
-    const res = await app.request(`/v1/config/food-types/${UUID}`, {
+  it('returns 400 for a reassign target the caller cannot use', async () => {
+    config.deleteFoodType.mockResolvedValue('bad_target')
+    const res = await app.request(`/v1/config/food-types/${ID}?reassignTo=${TARGET}`, {
       method: 'DELETE',
-      headers: { Authorization: 'Bearer test-key' },
-    })
-    expect(res.status).toBe(204)
-  })
-
-  it('returns 400 when trying to delete a system food type (not owned)', async () => {
-    // Ownership check (id + ownerId + not-system) finds nothing for a system item.
-    mockSelect.mockReturnValueOnce([])
-    const res = await app.request(`/v1/config/food-types/${UUID}`, {
-      method: 'DELETE',
-      headers: { Authorization: 'Bearer test-key' },
+      headers: AUTH,
     })
     expect(res.status).toBe(400)
+    expect((await res.json()).error).toBe('Invalid reassignTo')
   })
 
-  it("returns 400 deleting another user's food type (not owned)", async () => {
-    mockSelect.mockReturnValueOnce([])
-    const res = await app.request(`/v1/config/food-types/${UUID}`, {
-      method: 'DELETE',
-      headers: { Authorization: 'Bearer test-key' },
-    })
-    expect(res.status).toBe(400)
-  })
-
-  it('deletes a tag with reassignment', async () => {
-    mockSelect.mockReturnValueOnce([{ id: UUID }])
-    mockDelete.mockReturnValue([])
-    const res = await app.request(`/v1/config/tags/${UUID}?reassignTo=${UUID2}`, {
-      method: 'DELETE',
-      headers: { Authorization: 'Bearer test-key' },
-    })
-    expect(res.status).toBe(204)
-  })
-
-  it('deletes a tag without reassignment', async () => {
-    mockSelect.mockReturnValueOnce([{ id: UUID }])
-    mockDelete.mockReturnValue([])
-    const res = await app.request(`/v1/config/tags/${UUID}`, {
-      method: 'DELETE',
-      headers: { Authorization: 'Bearer test-key' },
-    })
-    expect(res.status).toBe(204)
-  })
-
-  it("returns 404 deleting another user's tag (not owned)", async () => {
-    mockSelect.mockReturnValueOnce([])
-    const res = await app.request(`/v1/config/tags/${UUID}`, {
-      method: 'DELETE',
-      headers: { Authorization: 'Bearer test-key' },
-    })
+  it('returns 404 for a tag that is not the caller’s', async () => {
+    config.deleteTag.mockResolvedValue('not_found')
+    const res = await app.request(`/v1/config/tags/${ID}`, { method: 'DELETE', headers: AUTH })
     expect(res.status).toBe(404)
   })
 
-  it('deletes an owned category (no reassignTo)', async () => {
-    mockSelect.mockReturnValueOnce([{ id: UUID, slug: 'mi-categoria' }])
-    mockDelete.mockReturnValue([])
-    const res = await app.request(`/v1/config/categories/${UUID}`, {
-      method: 'DELETE',
-      headers: { Authorization: 'Bearer test-key' },
-    })
-    expect(res.status).toBe(204)
-  })
-
-  it('reassigns matching recipes to the target category before deleting', async () => {
-    mockSelect
-      .mockReturnValueOnce([{ id: UUID, slug: 'mi-categoria' }])
-      .mockReturnValueOnce([{ name: 'Otra Categoria' }])
-    mockUpdate.mockReturnValue([])
-    mockDelete.mockReturnValue([])
-    const res = await app.request(`/v1/config/categories/${UUID}?reassignTo=${UUID2}`, {
-      method: 'DELETE',
-      headers: { Authorization: 'Bearer test-key' },
-    })
-    expect(res.status).toBe(204)
-  })
-
-  it('skips reassignment and still deletes when reassignTo target does not exist', async () => {
-    mockSelect.mockReturnValueOnce([{ id: UUID, slug: 'mi-categoria' }]).mockReturnValueOnce([])
-    mockDelete.mockReturnValue([])
-    const res = await app.request(`/v1/config/categories/${UUID}?reassignTo=${UUID2}`, {
-      method: 'DELETE',
-      headers: { Authorization: 'Bearer test-key' },
-    })
-    expect(res.status).toBe(204)
-  })
-
-  it('returns 400 when trying to delete a system category (not owned)', async () => {
-    mockSelect.mockReturnValueOnce([])
-    const res = await app.request(`/v1/config/categories/${UUID}`, {
-      method: 'DELETE',
-      headers: { Authorization: 'Bearer test-key' },
-    })
+  it.each([
+    ['food-types', 'deleteFoodType', 'Not found or system type'],
+    ['categories', 'deleteCategory', 'Not found or system category'],
+  ] as const)('returns 400 for a system or foreign %s item', async (type, method, error) => {
+    config[method].mockResolvedValue('not_found')
+    const res = await app.request(`/v1/config/${type}/${ID}`, { method: 'DELETE', headers: AUTH })
     expect(res.status).toBe(400)
+    expect((await res.json()).error).toBe(error)
   })
 })
 
 describe('POST /v1/config/tags/merge', () => {
-  it('merges source tag into target', async () => {
-    mockSelect
-      .mockReturnValueOnce([{ id: UUID }, { id: UUID2 }])
-      .mockReturnValueOnce([{ recipeId: UUID2, tagId: UUID }])
-    mockDelete.mockReturnValue([])
+  it('merges source into target and reports how many recipes moved', async () => {
+    config.mergeTags.mockResolvedValue(3)
     const res = await app.request('/v1/config/tags/merge', {
       method: 'POST',
       headers: AUTH,
-      body: JSON.stringify({ sourceId: UUID, targetId: UUID2 }),
+      body: JSON.stringify({ sourceId: ID, targetId: TARGET }),
     })
     expect(res.status).toBe(200)
-    const body = await res.json()
-    expect(body.merged).toBe(1)
+    expect(await res.json()).toEqual({ merged: 3 })
+    expect(config.mergeTags).toHaveBeenCalledWith('dev', ID, TARGET)
   })
 
-  it('returns 404 merging a tag not owned by the caller', async () => {
-    // Only one of the two tags (or neither) belongs to the caller.
-    mockSelect.mockReturnValueOnce([{ id: UUID }])
+  it("returns 404 unless both tags are the caller's", async () => {
+    config.mergeTags.mockResolvedValue(null)
     const res = await app.request('/v1/config/tags/merge', {
       method: 'POST',
       headers: AUTH,
-      body: JSON.stringify({ sourceId: UUID, targetId: UUID2 }),
+      body: JSON.stringify({ sourceId: ID, targetId: TARGET }),
     })
     expect(res.status).toBe(404)
   })
