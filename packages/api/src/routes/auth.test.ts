@@ -16,7 +16,6 @@ vi.mock('../db/index.js', () => ({
         }),
       }),
     }),
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     insert: (_t: unknown) => ({
       values: () => ({
         returning: () => Promise.resolve(mockUsersInsert()),

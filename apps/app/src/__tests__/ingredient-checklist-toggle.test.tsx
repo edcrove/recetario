@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useState } from 'react'
 
-function useChecklistState(count: number) {
+function useChecklistState(_count: number) {
   const [checked, setChecked] = useState<Set<number>>(new Set())
   const toggle = (i: number) =>
     setChecked((prev) => {
