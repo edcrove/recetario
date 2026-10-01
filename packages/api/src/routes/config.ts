@@ -1,9 +1,10 @@
-import { createRoute as defineRoute, OpenAPIHono, z } from '@hono/zod-openapi'
+import { createRouter } from './router.js'
+import { createRoute as defineRoute, z } from '@hono/zod-openapi'
 import { eq, sql, and, ne, or, isNull } from 'drizzle-orm'
 import { getDb, schema } from '../db/index.js'
 import { authMiddleware } from '../middleware/auth.js'
 
-export const configRoute = new OpenAPIHono()
+export const configRoute = createRouter()
 configRoute.use('*', authMiddleware)
 
 const errorSchema = z.object({ error: z.string() })

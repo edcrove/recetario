@@ -1,8 +1,9 @@
-import { createRoute as defineRoute, OpenAPIHono, z } from '@hono/zod-openapi'
+import { createRouter } from './router.js'
+import { createRoute as defineRoute, z } from '@hono/zod-openapi'
 import { authMiddleware } from '../middleware/auth.js'
 import { cookSessionsRepository } from '../db/cook-sessions-repository.js'
 
-export const cookSessionsRoute = new OpenAPIHono()
+export const cookSessionsRoute = createRouter()
 
 cookSessionsRoute.use('*', authMiddleware)
 
@@ -127,10 +128,7 @@ const statsRoute = defineRoute({
   security: [{ ApiKeyAuth: [] }],
   request: {
     query: z.object({
-      since: z
-        .string()
-        .regex(/^\d{4}-\d{2}-\d{2}$/)
-        .optional(),
+      since: z.iso.date().optional(),
     }),
   },
   responses: {

@@ -198,10 +198,12 @@ export class IngredientRepository {
       .onConflictDoUpdate({
         target: schema.ingredientSynonyms.synonym,
         set: { canonicalId },
+        // Curated system synonyms are shared by every household: never remap them
+        setWhere: eq(schema.ingredientSynonyms.isSystem, false),
       })
       .returning({ id: schema.ingredientSynonyms.id })
-    // An upsert always returns its row (inserted or updated).
-    return { id: row!.id, synonym }
+    if (!row) throw new SystemSynonymError(synonym)
+    return { id: row.id, synonym }
   }
 
   async getCanonicalById(id: string) {
@@ -238,3 +240,11 @@ export class IngredientRepository {
 }
 
 export const ingredientRepository = new IngredientRepository()
+
+/** Tried to remap a curated (system) synonym. */
+export class SystemSynonymError extends Error {
+  constructor(synonym: string) {
+    super(`"${synonym}" is a system synonym and can't be remapped`)
+    this.name = 'SystemSynonymError'
+  }
+}

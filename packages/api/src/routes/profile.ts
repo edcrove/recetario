@@ -1,12 +1,15 @@
-import { createRoute as defineRoute, OpenAPIHono, z } from '@hono/zod-openapi'
+import { createRouter } from './router.js'
+import { createRoute as defineRoute, z } from '@hono/zod-openapi'
 import { eq } from 'drizzle-orm'
 import { getDb, schema } from '../db/index.js'
 import { HTTP_URL_PROTOCOL, NutritionTargetsSchema } from '@recetario/shared'
 import { authMiddleware } from '../middleware/auth.js'
 
-export const profileRoute = new OpenAPIHono()
+export const profileRoute = createRouter()
 
-profileRoute.use('*', authMiddleware)
+// Mounted on /auth next to login/register: scope auth to this router's own paths
+profileRoute.use('/me', authMiddleware)
+profileRoute.use('/profile', authMiddleware)
 
 const errorSchema = z.object({ error: z.string() })
 
