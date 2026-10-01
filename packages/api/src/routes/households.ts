@@ -3,6 +3,7 @@ import { createRoute as defineRoute, z } from '@hono/zod-openapi'
 import { eq, and, inArray, isNull } from 'drizzle-orm'
 import { getDb, schema } from '../db/index.js'
 import { emailMatches } from '../db/email.js'
+import { householdRepository } from '../db/household-repository.js'
 import { authMiddleware } from '../middleware/auth.js'
 
 export const householdsRoute = createRouter()
@@ -86,51 +87,7 @@ const listMineRoute = defineRoute({
 })
 
 householdsRoute.openapi(listMineRoute, async (c) => {
-  const ownerId = c.get('ownerId')
-  const db = getDb()
-
-  const memberships = await db
-    .select({ household: schema.households, member: schema.householdMembers })
-    .from(schema.householdMembers)
-    .innerJoin(schema.households, eq(schema.householdMembers.householdId, schema.households.id))
-    .where(eq(schema.householdMembers.userId, ownerId))
-
-  // One query for every member of every household (with name/email so the app can
-  // show people, not UUIDs). Covered by the integration suite (households.integration).
-  /* v8 ignore start */
-  const householdIds = memberships.map(({ household }) => household.id)
-  const members =
-    householdIds.length === 0
-      ? []
-      : await db
-          .select({
-            member: schema.householdMembers,
-            displayName: schema.users.displayName,
-            email: schema.users.email,
-          })
-          .from(schema.householdMembers)
-          .innerJoin(schema.users, eq(schema.householdMembers.userId, schema.users.id))
-          .where(inArray(schema.householdMembers.householdId, householdIds))
-
-  return c.json(
-    memberships.map(({ household }) => ({
-      id: household.id,
-      name: household.name,
-      ownerId: household.ownerId,
-      createdAt: household.createdAt.toISOString(),
-      members: members
-        .filter(({ member }) => member.householdId === household.id)
-        .map(({ member: m, displayName, email }) => ({
-          userId: m.userId,
-          role: m.role,
-          invitedAt: m.invitedAt.toISOString(),
-          acceptedAt: m.acceptedAt?.toISOString() ?? null,
-          displayName,
-          email,
-        })),
-    })),
-  )
-  /* v8 ignore stop */
+  return c.json(await householdRepository.listForUser(c.get('ownerId')), 200)
 })
 
 // POST /households/:id/invite

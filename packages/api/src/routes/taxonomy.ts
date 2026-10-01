@@ -262,10 +262,11 @@ taxonomyRoute.openapi(collectionRecipesRoute as any, async (c: any) => {
   // linked recipe against the caller's full visible-owner set — otherwise a
   // housemate's recipe added to the collection silently vanishes from the list.
   const visibleOwners = await getVisibleOwnerIds(ownerId)
-  const recipes = await Promise.all(
-    links.map((link) => recipeRepository.findById(link.recipeId, visibleOwners)),
+  const recipes = await recipeRepository.findByIds(
+    links.map((link) => link.recipeId),
+    visibleOwners,
   )
-  return c.json(recipes.filter((r): r is NonNullable<typeof r> => r !== null))
+  return c.json(recipes)
 })
 
 // DELETE /v1/collections/:id/recipes/:recipeId
