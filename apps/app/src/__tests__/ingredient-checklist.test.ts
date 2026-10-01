@@ -1,29 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { formatQty, formatIngredient } from '../utils/ingredientFormat'
+import { displayIngredient } from '../utils/displayIngredient'
 import type { Ingredient } from '@recetario/shared'
 
-describe('formatQty', () => {
-  it('returns c/n for null quantity', () => {
-    expect(formatQty(null)).toBe('c/n')
-  })
+// The cook-mode checklist renders with displayIngredient (cooking mode by default).
+const formatIngredient = (ing: Ingredient, base: number, target: number) =>
+  displayIngredient(ing, base, target, 'cooking')
 
-  it('returns integer string for whole numbers', () => {
-    expect(formatQty(2)).toBe('2')
-    expect(formatQty(100)).toBe('100')
-  })
-
-  it('formats decimals without trailing zeros', () => {
-    expect(formatQty(1.5)).toBe('1.5')
-    expect(formatQty(0.33)).toBe('0.33')
-    expect(formatQty(2.1)).toBe('2.1')
-  })
-
-  it('handles zero', () => {
-    expect(formatQty(0)).toBe('0')
-  })
-})
-
-describe('formatIngredient', () => {
+describe('checklist ingredient line', () => {
   const base: Ingredient = {
     name: 'Harina',
     quantity: 200,
@@ -56,5 +39,12 @@ describe('formatIngredient', () => {
   it('handles ingredient with no unit', () => {
     const ing: Ingredient = { name: 'Huevos', quantity: 3, unit: null }
     expect(formatIngredient(ing, 4, 4)).toBe('3 Huevos')
+  })
+
+  it('uses Spanish unit labels (clove → diente, tbsp → cda)', () => {
+    expect(formatIngredient({ name: 'ajo', quantity: 2, unit: 'clove' }, 2, 2)).toBe('2 diente ajo')
+    expect(formatIngredient({ name: 'aceite', quantity: 1, unit: 'tbsp' }, 2, 4)).toBe(
+      '2 cda aceite',
+    )
   })
 })

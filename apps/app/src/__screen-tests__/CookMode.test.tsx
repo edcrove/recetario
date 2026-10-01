@@ -2,15 +2,22 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
-const { mockGet } = vi.hoisted(() => ({ mockGet: vi.fn() }))
+const { mockGet, mockLog, mockConfirm, router, params } = vi.hoisted(() => ({
+  mockGet: vi.fn(),
+  mockLog: vi.fn(),
+  mockConfirm: vi.fn(),
+  router: { back: vi.fn(), push: vi.fn(), replace: vi.fn(), canGoBack: vi.fn(() => true) },
+  params: { current: { id: 'r1' } as Record<string, string> },
+}))
 
 vi.mock('../api/client', () => ({
-  api: { recipes: { get: mockGet }, cookSessions: { create: vi.fn() } },
+  api: { recipes: { get: mockGet }, cookSessions: { log: mockLog } },
 }))
 vi.mock('expo-router', () => ({
-  useLocalSearchParams: () => ({ id: 'r1' }),
-  useRouter: () => ({ back: vi.fn(), push: vi.fn(), replace: vi.fn() }),
+  useLocalSearchParams: () => params.current,
+  useRouter: () => router,
 }))
+vi.mock('../utils/platformAlert', () => ({ confirmAsync: mockConfirm, notify: vi.fn() }))
 vi.mock('expo-keep-awake', () => ({
   activateKeepAwakeAsync: vi.fn().mockResolvedValue(undefined),
   deactivateKeepAwake: vi.fn(),
@@ -22,6 +29,7 @@ vi.mock('../utils/cookEffects', () => ({
 }))
 
 import CookModeScreen from '../../app/recipe/[id]/cook'
+import { stopSpeech } from '../utils/cookEffects'
 
 function wrap() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -34,6 +42,13 @@ function wrap() {
 
 describe('CookModeScreen step timer (tap-to-start)', () => {
   beforeEach(() => {
+    params.current = { id: 'r1' }
+    router.back.mockReset()
+    router.replace.mockReset()
+    router.canGoBack.mockReset().mockReturnValue(true)
+    mockConfirm.mockReset()
+    mockLog.mockReset().mockResolvedValue({ id: 's1' })
+    vi.mocked(stopSpeech).mockClear()
     mockGet.mockReset().mockResolvedValue({
       id: 'r1',
       title: 'Guiso',
@@ -41,7 +56,10 @@ describe('CookModeScreen step timer (tap-to-start)', () => {
       category: 'Cena',
       tags: [],
       images: [],
-      ingredients: [{ name: 'Agua', quantity: 1, unit: 'l' }],
+      ingredients: [
+        { name: 'Agua', quantity: 1, unit: 'l' },
+        { name: 'ajo', quantity: 2, unit: 'clove' },
+      ],
       steps: [{ text: 'Hervir.', durationSeconds: 180 }, { text: 'Servir.' }],
     })
   })
@@ -65,5 +83,101 @@ describe('CookModeScreen step timer (tap-to-start)', () => {
     // Advance to step 2 (no durationSeconds) → timer disappears.
     fireEvent.click(screen.getByTestId('cook-next'))
     await waitFor(() => expect(screen.queryByTestId('cook-timer')).not.toBeInTheDocument())
+  })
+
+  it('scales the ingredient list to the servings chosen on the detail screen', async () => {
+    params.current = { id: 'r1', servings: '4', mode: 'cooking' }
+    wrap()
+    fireEvent.click(await screen.findByTestId('cook-tab-ingredients'))
+    expect(screen.getByText('2 l Agua')).toBeInTheDocument()
+    expect(screen.getByText('4 diente ajo')).toBeInTheDocument()
+  })
+
+  it('falls back to the recipe servings and cooking mode without params', async () => {
+    params.current = { id: 'r1', servings: 'abc', mode: 'bogus' }
+    wrap()
+    fireEvent.click(await screen.findByTestId('cook-tab-ingredients'))
+    expect(screen.getByText('1 l Agua')).toBeInTheDocument()
+  })
+
+  it('honours the metric mode from the detail screen', async () => {
+    params.current = { id: 'r1', mode: 'metric' }
+    wrap()
+    fireEvent.click(await screen.findByTestId('cook-tab-ingredients'))
+    expect(screen.getByText('1 l Agua')).toBeInTheDocument()
+  })
+
+  it('keeps a running timer visible in the top bar after moving on, and jumps back', async () => {
+    wrap()
+    fireEvent.click(await screen.findByTestId('cook-timer-toggle'))
+    fireEvent.click(screen.getByTestId('cook-next'))
+    const chip = await screen.findByTestId('cook-running-timer-0')
+    expect(chip).toHaveTextContent('Paso 1')
+    fireEvent.click(chip)
+    await waitFor(() => expect(screen.getByTestId('cook-timer-toggle')).toHaveTextContent('Pausar'))
+    expect(screen.queryByTestId('cook-running-timer-0')).not.toBeInTheDocument()
+  })
+
+  it('pauses and resets the current step timer', async () => {
+    wrap()
+    const toggle = await screen.findByTestId('cook-timer-toggle')
+    fireEvent.click(toggle)
+    fireEvent.click(toggle)
+    await waitFor(() => expect(toggle).toHaveTextContent('Reanudar'))
+    fireEvent.click(screen.getByTestId('cook-timer-reset'))
+    await waitFor(() => expect(toggle).toHaveTextContent('Iniciar'))
+  })
+
+  it('exits without asking on step 1 with no timer running', async () => {
+    wrap()
+    fireEvent.click(await screen.findByTestId('cook-exit'))
+    await waitFor(() => expect(router.back).toHaveBeenCalled())
+    expect(mockConfirm).not.toHaveBeenCalled()
+  })
+
+  it('asks before exiting past step 1 and stays when cancelled', async () => {
+    mockConfirm.mockResolvedValue(false)
+    wrap()
+    fireEvent.click(await screen.findByTestId('cook-next'))
+    fireEvent.click(screen.getByTestId('cook-exit'))
+    await waitFor(() => expect(mockConfirm).toHaveBeenCalled())
+    expect(router.back).not.toHaveBeenCalled()
+  })
+
+  it('asks before exiting with a running timer and leaves when confirmed', async () => {
+    mockConfirm.mockResolvedValue(true)
+    router.canGoBack.mockReturnValue(false)
+    const view = wrap()
+    fireEvent.click(await screen.findByTestId('cook-timer-toggle'))
+    fireEvent.click(screen.getByTestId('cook-exit'))
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/recipe/r1'))
+    view.unmount()
+    expect(stopSpeech).toHaveBeenCalled()
+  })
+
+  it('skipping the rating still logs the session, unrated', async () => {
+    wrap()
+    fireEvent.click(await screen.findByTestId('cook-next'))
+    fireEvent.click(screen.getByTestId('cook-finish'))
+    fireEvent.click(await screen.findByTestId('cook-rating-skip'))
+    await waitFor(() =>
+      expect(mockLog).toHaveBeenCalledWith({ recipeId: 'r1', rating: null, notes: undefined }),
+    )
+    await waitFor(() => expect(router.back).toHaveBeenCalled())
+  })
+
+  it('saving the rating logs it with the note', async () => {
+    wrap()
+    fireEvent.click(await screen.findByTestId('cook-next'))
+    fireEvent.click(screen.getByTestId('cook-finish'))
+    await screen.findByTestId('cook-rating-save')
+    fireEvent.click(screen.getAllByText('★')[3]!)
+    fireEvent.change(screen.getByPlaceholderText('Agregar nota (opcional)'), {
+      target: { value: ' rico ' },
+    })
+    fireEvent.click(screen.getByTestId('cook-rating-save'))
+    await waitFor(() =>
+      expect(mockLog).toHaveBeenCalledWith({ recipeId: 'r1', rating: 4, notes: 'rico' }),
+    )
   })
 })
