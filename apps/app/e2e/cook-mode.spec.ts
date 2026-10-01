@@ -419,6 +419,37 @@ test.describe('Cook mode: full session flows', () => {
     await expect(page.getByTestId('cook-timer')).toHaveText('00:00')
   })
 
+  // A browser that blocks Web Audio (autoplay policy) and has no speech engine
+  // must still show the alert: the banner is the cue that can't be lost.
+  test('with audio blocked and no speech engine the 0:00 alert still shows', async ({ page }) => {
+    await page.addInitScript(() => {
+      const w = window as unknown as Record<string, unknown>
+      w['AudioContext'] = class {
+        constructor() {
+          throw new Error('NotAllowedError')
+        }
+      }
+      delete w['webkitAudioContext']
+      // speechSynthesis is a Window.prototype getter: shadow it, delete won't do
+      Object.defineProperty(window, 'speechSynthesis', { value: undefined, configurable: true })
+    })
+    const recipe = await createRecipe(page, {
+      steps: [{ text: 'Esperar un segundo.', durationSeconds: 1 }, { text: 'Servir.' }],
+    })
+    await openCookMode(page, recipe.title)
+
+    // Read-aloud can't start without a speech engine: the icon stays off.
+    await page.getByTestId('cook-speech-toggle').click()
+    await expect(page.getByTestId('cook-speech-toggle')).toHaveText('🔈')
+
+    await page.getByTestId('cook-timer-toggle').click()
+    await expect(page.getByTestId('cook-timer-done-0')).toContainText('Terminó el paso 1', {
+      timeout: 10_000,
+    })
+    await page.getByTestId('cook-timer-done-dismiss-0').click()
+    await expect(page.getByTestId('cook-timer-done-0')).toHaveCount(0)
+  })
+
   test('a recipe without steps shows the cook-mode empty state', async ({ page }) => {
     // The detail screen doesn't render the Cocinar button for step-less
     // recipes, so the empty state is only reachable by direct URL.

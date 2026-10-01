@@ -15,6 +15,7 @@ vi.mock('expo-speech', () => ({
 import {
   onStepTimerComplete,
   playChime,
+  speechAvailable,
   startSpeech,
   stopSpeech,
   timerDoneMessage,
@@ -65,6 +66,9 @@ beforeEach(() => {
   oscillators = []
   gains = []
   vi.stubGlobal('AudioContext', FakeAudioContext)
+  // A browser with the Web Speech API (each test can take it away)
+  vi.stubGlobal('speechSynthesis', {})
+  vi.stubGlobal('SpeechSynthesisUtterance', class {})
 })
 
 afterEach(() => {
@@ -144,11 +148,10 @@ describe('onStepTimerComplete (AC: audible notification at 0:00)', () => {
     expect(mockAlert).not.toHaveBeenCalled()
   })
 
-  it('still beeps and vibrates when no speech engine is available', () => {
-    mockSpeak.mockImplementationOnce(() => {
-      throw new Error('speechSynthesis is not defined')
-    })
-    expect(() => onStepTimerComplete(0)).not.toThrow()
+  it('still beeps and vibrates when no speech engine is available, without speaking', () => {
+    vi.stubGlobal('speechSynthesis', undefined)
+    onStepTimerComplete(0)
+    expect(mockSpeak).not.toHaveBeenCalled()
     expect(oscillators).toHaveLength(2)
     expect(mockVibrate).toHaveBeenCalledTimes(1)
   })
@@ -159,6 +162,28 @@ describe('onStepTimerComplete (AC: audible notification at 0:00)', () => {
     expect(oscillators).toHaveLength(0)
     expect(mockSpeak).toHaveBeenCalledWith('¡Tiempo! Terminó el paso 2.', { language: 'es' })
     expect(mockVibrate).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('speechAvailable', () => {
+  it('is true in a browser with speechSynthesis and SpeechSynthesisUtterance', () => {
+    expect(speechAvailable()).toBe(true)
+  })
+
+  it('is false when the browser has no speechSynthesis', () => {
+    vi.stubGlobal('speechSynthesis', undefined)
+    expect(speechAvailable()).toBe(false)
+  })
+
+  it('is false when SpeechSynthesisUtterance is missing (expo-speech needs it)', () => {
+    vi.stubGlobal('SpeechSynthesisUtterance', undefined)
+    expect(speechAvailable()).toBe(false)
+  })
+
+  it('is always true on native', () => {
+    platform.OS = 'ios'
+    vi.stubGlobal('speechSynthesis', undefined)
+    expect(speechAvailable()).toBe(true)
   })
 })
 
@@ -176,11 +201,10 @@ describe('startSpeech', () => {
     expect(startSpeech('Texto', vi.fn(), vi.fn(), vi.fn())).toBe(true)
   })
 
-  it('returns false when speak throws (Web Speech API unavailable)', () => {
-    mockSpeak.mockImplementationOnce(() => {
-      throw new Error('speechSynthesis is not defined')
-    })
+  it('returns false without the Web Speech API and does not call speak', () => {
+    vi.stubGlobal('speechSynthesis', undefined)
     expect(startSpeech('Texto', vi.fn(), vi.fn(), vi.fn())).toBe(false)
+    expect(mockSpeak).not.toHaveBeenCalled()
   })
 
   it('passes callbacks to Speech.speak options', () => {
