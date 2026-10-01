@@ -1,16 +1,22 @@
 import { useState } from 'react'
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native'
 import type { Ingredient } from '@recetario/shared'
-import { formatIngredient } from '../utils/ingredientFormat'
+import { displayIngredient, type DisplayMode } from '../utils/displayIngredient'
 import { useThemeColors, type ThemeColors } from '../theme/tokens'
 
 interface Props {
   ingredients: Ingredient[]
   baseServings: number
   targetServings: number
+  mode?: DisplayMode
 }
 
-export function IngredientChecklist({ ingredients, baseServings, targetServings }: Props) {
+export function IngredientChecklist({
+  ingredients,
+  baseServings,
+  targetServings,
+  mode = 'cooking',
+}: Props) {
   const colors = useThemeColors()
   const s = makeStyles(colors)
   const [checked, setChecked] = useState<Set<number>>(new Set())
@@ -39,7 +45,7 @@ export function IngredientChecklist({ ingredients, baseServings, targetServings 
               {done && <Text style={s.checkmark}>✓</Text>}
             </View>
             <Text style={[s.label, done && s.labelDone]}>
-              {formatIngredient(ing, baseServings, targetServings)}
+              {displayIngredient(ing, baseServings, targetServings, mode)}
             </Text>
           </TouchableOpacity>
         )

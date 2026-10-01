@@ -240,6 +240,59 @@ test.describe('Cook mode: full session flows', () => {
     await expect(page.getByText('¿Cómo salió?')).toBeVisible({ timeout: 5000 })
     await page.getByTestId('cook-rating-skip').click()
     await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 8000 })
+
+    // The unrated session is still recorded
+    const token = await page.evaluate(() => localStorage.getItem('auth_token'))
+    const res = await page.request.get(`${API_URL}/v1/cook-sessions/recipes/${recipe.id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const sessions = (await res.json()) as Array<{ rating: number | null }>
+    expect(sessions).toHaveLength(1)
+    expect(sessions[0]!.rating).toBeNull()
+  })
+
+  test('cook mode uses the servings chosen on the detail screen', async ({ page }) => {
+    const recipe = await createRecipe(page, {
+      ingredients: [
+        { name: 'agua', quantity: 1, unit: 'l' },
+        { name: 'ajo', quantity: 1, unit: 'clove' },
+      ],
+    })
+    await page.goto('/')
+    await page.getByPlaceholder(/buscar recetas/i).fill(recipe.title)
+    await page.getByText(recipe.title).first().click()
+    await expect(page.getByTestId('servings-plus')).toBeVisible({ timeout: 20000 })
+    await page.getByTestId('servings-plus').click()
+    await page.getByTestId('servings-plus').click() // 2 → 4
+    await page.getByTestId('recipe-detail-cook').click()
+    await page.getByTestId('cook-tab-ingredients').click()
+    await expect(page.getByTestId('ingredient-checklist-row-0')).toContainText('2 l agua', {
+      timeout: 8000,
+    })
+    await expect(page.getByTestId('ingredient-checklist-row-1')).toContainText('2 diente ajo')
+  })
+
+  test('leaving past step 1 asks first; a running timer shows in the top bar', async ({ page }) => {
+    const recipe = await createRecipe(page, {
+      steps: [{ text: 'Hervir el agua.', durationSeconds: 600 }, { text: 'Servir.' }],
+    })
+    await openCookMode(page, recipe.title)
+    await page.getByTestId('cook-timer-toggle').click()
+    await page.getByTestId('cook-next').click()
+    await expect(page.getByTestId('cook-running-timer-0')).toContainText('Paso 1')
+
+    let dialogs = 0
+    page.once('dialog', (d) => {
+      dialogs++
+      void d.dismiss()
+    })
+    await page.getByTestId('cook-exit').click()
+    await expect.poll(() => dialogs).toBe(1)
+    await expect(page.getByText(/Paso 2 \/ 2/)).toBeVisible()
+
+    page.once('dialog', (d) => void d.accept())
+    await page.getByTestId('cook-exit').click()
+    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 8000 })
   })
 
   test('speech toggle switches the speaker icon on and off', async ({ page }) => {
@@ -304,9 +357,9 @@ test.describe('Cook mode: full session flows', () => {
     const recipe = await createRecipe(page, { steps: [] })
     await page.goto(`/recipe/${recipe.id}/cook`)
     await expect(page.getByText('Esta receta no tiene pasos.')).toBeVisible({ timeout: 10000 })
-    // ✕ triggers router.back(); with no history (direct URL) navigation
-    // no-ops on web, but the handler still runs — the screen must not crash.
+    // Opened by direct URL there is no history: ✕ replaces the route with the recipe.
     await page.getByText('✕').click()
-    await expect(page.getByText('Esta receta no tiene pasos.')).toBeVisible()
+    await expect(page).toHaveURL(new RegExp(`/recipe/${recipe.id}$`), { timeout: 8000 })
+    await expect(page.getByText(recipe.title).first()).toBeVisible({ timeout: 8000 })
   })
 })

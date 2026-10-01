@@ -12,18 +12,20 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../src/api/client'
-import { useStepTimer, formatTime } from '../../../src/hooks/useStepTimer'
+import { useCookTimers, formatTime } from '../../../src/hooks/useStepTimer'
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake'
 import { IngredientChecklist } from '../../../src/components/IngredientChecklist'
 import { onStepTimerComplete, startSpeech, stopSpeech } from '../../../src/utils/cookEffects'
 import { cookModeNav } from '../../../src/utils/cookModeNav'
-import { notify } from '../../../src/utils/platformAlert'
+import { confirmAsync, notify } from '../../../src/utils/platformAlert'
+import type { DisplayMode } from '../../../src/utils/displayIngredient'
 import { useThemeColors, fonts, type ThemeColors } from '../../../src/theme/tokens'
 
 export default function CookModeScreen() {
   const colors = useThemeColors()
   const s = makeStyles(colors)
-  const { id } = useLocalSearchParams<{ id: string }>()
+  const params = useLocalSearchParams<{ id: string; servings?: string; mode?: string }>()
+  const id = params.id
   const router = useRouter()
   const queryClient = useQueryClient()
   const [stepIndex, setStepIndex] = useState(0)
@@ -38,19 +40,21 @@ export default function CookModeScreen() {
     queryFn: () => api.recipes.get(id),
   })
 
+  // Skipping the rating still records the session (rating null): unrated cooks
+  // count for history and stats.
   const logSessionMutation = useMutation({
-    mutationFn: () =>
+    mutationFn: (rated: boolean) =>
       api.cookSessions.log({
         recipeId: id,
-        rating: rating ?? undefined,
-        notes: ratingNote.trim() || undefined,
+        rating: rated ? (rating ?? undefined) : null,
+        notes: rated ? ratingNote.trim() || undefined : undefined,
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['cook-sessions', id] })
       void queryClient.invalidateQueries({ queryKey: ['cook-stats'] })
       void queryClient.invalidateQueries({ queryKey: ['cook-stats-suggestions'] })
       setShowRating(false)
-      router.back()
+      leave()
     },
     onError: () => notify('Error', 'No se pudo guardar la sesión de cocina.'),
   })
@@ -59,8 +63,15 @@ export default function CookModeScreen() {
     void activateKeepAwakeAsync()
     return () => {
       void deactivateKeepAwake()
+      // Leaving cook mode by any route (✕, finish, browser back) silences it.
+      stopSpeech()
     }
   }, [])
+
+  function leave() {
+    if (router.canGoBack()) router.back()
+    else router.replace(`/recipe/${id}`)
+  }
 
   const steps = recipe?.steps ?? []
   const current = steps[stepIndex]
@@ -89,10 +100,27 @@ export default function CookModeScreen() {
     onStepTimerComplete()
   }, [])
 
-  const { secondsLeft, isRunning, started, toggle, reset } = useStepTimer(
+  const timers = useCookTimers(handleTimerComplete)
+  const { secondsLeft, isRunning, started } = timers.view(
+    stepIndex,
     current?.durationSeconds ?? null,
-    handleTimerComplete,
   )
+  const otherRunning = timers.running.filter((t) => t.step !== stepIndex)
+
+  async function requestExit() {
+    if (stepIndex > 0 || timers.running.length > 0) {
+      const ok = await confirmAsync(
+        '¿Salir del modo cocina?',
+        'Vas a perder el paso en el que estás y los timers en marcha.',
+      )
+      if (!ok) return
+    }
+    leave()
+  }
+
+  const targetServings = Number(params.servings) > 0 ? Number(params.servings) : recipe?.servings
+  const mode: DisplayMode =
+    params.mode === 'metric' || params.mode === 'imperial' ? params.mode : 'cooking'
 
   if (isLoading)
     return (
@@ -109,7 +137,7 @@ export default function CookModeScreen() {
   if (total === 0)
     return (
       <SafeAreaView style={s.container}>
-        <TouchableOpacity style={s.closeBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={s.closeBtn} onPress={leave}>
           <Text style={s.closeBtnText}>✕</Text>
         </TouchableOpacity>
         <View style={s.center}>
@@ -121,7 +149,7 @@ export default function CookModeScreen() {
   return (
     <SafeAreaView style={s.container}>
       <View style={s.topBar}>
-        <TouchableOpacity style={s.closeBtn} onPress={() => router.back()}>
+        <TouchableOpacity testID="cook-exit" style={s.closeBtn} onPress={() => void requestExit()}>
           <Text style={s.closeBtnText}>✕</Text>
         </TouchableOpacity>
         <Text style={s.counter}>
@@ -137,6 +165,26 @@ export default function CookModeScreen() {
           <View style={s.closePlaceholder} />
         )}
       </View>
+
+      {otherRunning.length > 0 && (
+        <View style={s.runningRow}>
+          {otherRunning.map((t) => (
+            <TouchableOpacity
+              key={t.step}
+              testID={`cook-running-timer-${t.step}`}
+              style={s.runningChip}
+              onPress={() => {
+                setTab('steps')
+                goTo(t.step)
+              }}
+            >
+              <Text style={s.runningChipText}>
+                ⏱ Paso {t.step + 1} · {formatTime(t.secondsLeft)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       <View style={s.tabBar}>
         {(['steps', 'ingredients'] as const).map((t) => (
@@ -157,7 +205,8 @@ export default function CookModeScreen() {
         <IngredientChecklist
           ingredients={recipe?.ingredients ?? []}
           baseServings={recipe?.servings ?? 1}
-          targetServings={recipe?.servings ?? 1}
+          targetServings={targetServings ?? 1}
+          mode={mode}
         />
       ) : (
         <View style={s.body}>
@@ -168,12 +217,20 @@ export default function CookModeScreen() {
               <Text testID="cook-timer" style={[s.timerChip, secondsLeft === 0 && s.timerChipDone]}>
                 {formatTime(secondsLeft)}
               </Text>
-              <TouchableOpacity testID="cook-timer-toggle" style={s.timerBtn} onPress={toggle}>
+              <TouchableOpacity
+                testID="cook-timer-toggle"
+                style={s.timerBtn}
+                onPress={() => timers.toggle(stepIndex, current.durationSeconds ?? null)}
+              >
                 <Text style={s.timerBtnText}>
                   {isRunning ? 'Pausar' : started ? 'Reanudar' : 'Iniciar'}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity testID="cook-timer-reset" style={s.timerBtn} onPress={reset}>
+              <TouchableOpacity
+                testID="cook-timer-reset"
+                style={s.timerBtn}
+                onPress={() => timers.reset(stepIndex)}
+              >
                 <Text style={s.timerBtnText}>↺</Text>
               </TouchableOpacity>
             </View>
@@ -227,7 +284,7 @@ export default function CookModeScreen() {
               testID="cook-rating-save"
               style={[s.modalBtn, logSessionMutation.isPending && s.modalBtnDisabled]}
               disabled={logSessionMutation.isPending}
-              onPress={() => logSessionMutation.mutate()}
+              onPress={() => logSessionMutation.mutate(true)}
             >
               <Text style={s.modalBtnText}>
                 {logSessionMutation.isPending ? 'Guardando…' : 'Guardar y terminar'}
@@ -237,10 +294,8 @@ export default function CookModeScreen() {
             <TouchableOpacity
               testID="cook-rating-skip"
               style={s.skipBtn}
-              onPress={() => {
-                setShowRating(false)
-                router.back()
-              }}
+              disabled={logSessionMutation.isPending}
+              onPress={() => logSessionMutation.mutate(false)}
             >
               <Text style={s.skipText}>Omitir</Text>
             </TouchableOpacity>
@@ -253,6 +308,14 @@ export default function CookModeScreen() {
 
 const makeStyles = (c: ThemeColors) =>
   StyleSheet.create({
+    runningRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 16 },
+    runningChip: {
+      backgroundColor: c.terracotta,
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+    },
+    runningChipText: { color: c.terracottaInk, fontWeight: '700', fontSize: 13 },
     container: { flex: 1, backgroundColor: c.surface },
     loader: { flex: 1 },
     center: {
