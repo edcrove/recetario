@@ -1,6 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
 import type { createApiClient } from '../index.js'
+import { AllergenSchema } from '@recetario/shared'
 
 export function registerIdentityTools(server: McpServer, api: ReturnType<typeof createApiClient>) {
   server.tool('whoami', 'Get the current authenticated user profile', async () => {
@@ -31,7 +32,12 @@ export function registerIdentityTools(server: McpServer, api: ReturnType<typeof 
         .array(z.enum(['vegano', 'vegetariano', 'sin-gluten', 'sin-lactosa', 'keto', 'paleo']))
         .optional()
         .describe('Dietary restrictions'),
-      allergens: z.array(z.string()).optional().describe('Allergen list'),
+      allergens: z
+        .array(AllergenSchema)
+        .optional()
+        .describe(
+          'Allergens to warn about, as keys of the 14 major allergens. Map the user\'s words: "lácteos" → leche, "nueces" → frutos_secos, "mariscos" → crustaceos/moluscos, "TACC" → gluten.',
+        ),
       goals: z.array(z.string()).optional().describe('Nutrition or meal goals'),
     },
     async (args) => {

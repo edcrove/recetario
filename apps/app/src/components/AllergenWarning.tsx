@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
-import type { Recipe } from '@recetario/shared'
+import { allergenLabel, type Recipe } from '@recetario/shared'
 import { checkAllergens, DIETARY_LABELS } from '../utils/allergenCheck'
 
 interface Props {
@@ -28,7 +28,7 @@ export function AllergenWarning({ recipe }: Props) {
           <Text style={s.icon}>⚠️</Text>
           <Text style={s.text}>
             <Text style={s.bold}>Alérgenos: </Text>
-            {matchedAllergens.join(', ')}
+            {matchedAllergens.map(allergenLabel).join(', ')}
           </Text>
         </View>
       )}

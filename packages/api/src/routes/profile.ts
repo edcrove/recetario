@@ -2,7 +2,13 @@ import { createRouter } from './router.js'
 import { createRoute as defineRoute, z } from '@hono/zod-openapi'
 import { eq } from 'drizzle-orm'
 import { getDb, schema } from '../db/index.js'
-import { HTTP_URL_PROTOCOL, NutritionTargetsSchema } from '@recetario/shared'
+import {
+  ALLERGENS,
+  HTTP_URL_PROTOCOL,
+  NutritionTargetsSchema,
+  normalizeAllergens,
+  toAllergenKey,
+} from '@recetario/shared'
 import { authMiddleware } from '../middleware/auth.js'
 
 export const profileRoute = createRouter()
@@ -107,7 +113,7 @@ profileRoute.openapi(getProfileRoute as any, async (c: any) => {
   return c.json({
     preferredServings: profile.preferredServings,
     dietaryRestrictions: (profile.dietaryRestrictions as string[]) ?? [],
-    allergens: (profile.allergens as string[]) ?? [],
+    allergens: normalizeAllergens((profile.allergens as string[]) ?? []),
     goals: (profile.goals as string[]) ?? [],
     timezone: profile.timezone,
     nutritionTargets:
@@ -141,7 +147,12 @@ const patchProfileRoute = defineRoute({
           schema: z.object({
             preferredServings: z.number().int().min(1).max(20).optional(),
             dietaryRestrictions: z.array(z.enum(VALID_DIETARY)).optional(),
-            allergens: z.array(z.string().min(1).max(50)).optional(),
+            allergens: z
+              .array(z.string().min(1).max(50))
+              .optional()
+              .describe(
+                `Allergen keys (${ALLERGENS.join(', ')}). Spanish names such as "maní" or "lácteos" are mapped to their key.`,
+              ),
             goals: z.array(z.string().min(1).max(100)).optional(),
             timezone: z.string().optional(),
             nutritionTargets: NutritionTargetsSchema.optional(),
@@ -153,13 +164,30 @@ const patchProfileRoute = defineRoute({
   },
   responses: {
     200: { content: { 'application/json': { schema: profileSchema } }, description: 'Updated' },
+    400: {
+      content: { 'application/json': { schema: errorSchema } },
+      description: 'Unknown allergen',
+    },
   },
 })
 
 profileRoute.openapi(patchProfileRoute, async (c) => {
   const ownerId = c.get('ownerId')
-  const updates = c.req.valid('json')
+  const body = c.req.valid('json')
   const db = getDb()
+
+  let updates = body
+  if (body.allergens) {
+    const keys = body.allergens.map(toAllergenKey)
+    const unknown = body.allergens.filter((_, i) => keys[i] === null)
+    if (unknown.length > 0) {
+      return c.json(
+        { error: `Unknown allergen: ${unknown.join(', ')}. Use one of: ${ALLERGENS.join(', ')}` },
+        400,
+      )
+    }
+    updates = { ...body, allergens: [...new Set(keys as string[])] }
+  }
 
   await db
     .insert(schema.userProfiles)
@@ -175,13 +203,16 @@ profileRoute.openapi(patchProfileRoute, async (c) => {
     .where(eq(schema.userProfiles.userId, ownerId))
     .limit(1)
 
-  return c.json({
-    preferredServings: profile?.preferredServings ?? null,
-    dietaryRestrictions: (profile?.dietaryRestrictions as string[]) ?? [],
-    allergens: (profile?.allergens as string[]) ?? [],
-    goals: (profile?.goals as string[]) ?? [],
-    timezone: profile?.timezone ?? null,
-    nutritionTargets:
-      (profile?.nutritionTargets as import('@recetario/shared').NutritionTargets | null) ?? null,
-  })
+  return c.json(
+    {
+      preferredServings: profile?.preferredServings ?? null,
+      dietaryRestrictions: (profile?.dietaryRestrictions as string[]) ?? [],
+      allergens: normalizeAllergens((profile?.allergens as string[]) ?? []),
+      goals: (profile?.goals as string[]) ?? [],
+      timezone: profile?.timezone ?? null,
+      nutritionTargets:
+        (profile?.nutritionTargets as import('@recetario/shared').NutritionTargets | null) ?? null,
+    },
+    200,
+  )
 })
