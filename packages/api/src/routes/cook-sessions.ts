@@ -187,8 +187,7 @@ const listRoute = defineRoute({
   },
 })
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-cookSessionsRoute.openapi(listRoute as any, async (c: any) => {
+cookSessionsRoute.openapi(listRoute, async (c) => {
   const ownerId = c.get('ownerId')
   const { recipeId, limit = 20, offset = 0 } = c.req.valid('query')
 

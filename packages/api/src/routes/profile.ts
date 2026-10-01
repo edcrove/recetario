@@ -73,8 +73,7 @@ const patchMeRoute = defineRoute({
   },
 })
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-profileRoute.openapi(patchMeRoute as any, async (c: any) => {
+profileRoute.openapi(patchMeRoute, async (c) => {
   const ownerId = c.get('ownerId')
   const updates = c.req.valid('json')
   const db = getDb()
@@ -85,15 +84,18 @@ profileRoute.openapi(patchMeRoute as any, async (c: any) => {
     .where(eq(schema.users.id, ownerId))
     .returning()
 
-  if (!user) return c.json({ error: 'User not found' } as never, 404)
+  if (!user) return c.json({ error: 'User not found' }, 404)
 
-  return c.json({
-    id: user.id,
-    email: user.email,
-    displayName: user.displayName,
-    avatarUrl: user.avatarUrl,
-    createdAt: user.createdAt.toISOString(),
-  })
+  return c.json(
+    {
+      id: user.id,
+      email: user.email,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+      createdAt: user.createdAt.toISOString(),
+    },
+    200,
+  )
 })
 
 // GET /auth/profile
@@ -107,8 +109,7 @@ const getProfileRoute = defineRoute({
   },
 })
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-profileRoute.openapi(getProfileRoute as any, async (c: any) => {
+profileRoute.openapi(getProfileRoute, async (c) => {
   const ownerId = c.get('ownerId')
   const db = getDb()
 
@@ -118,22 +119,25 @@ profileRoute.openapi(getProfileRoute as any, async (c: any) => {
     .where(eq(schema.userProfiles.userId, ownerId))
     .limit(1)
 
-  if (!profile) return c.json({ error: 'Profile not found' } as never, 404)
+  if (!profile) return c.json({ error: 'Profile not found' }, 404)
 
-  return c.json({
-    preferredServings: profile.preferredServings,
-    dietaryRestrictions: (profile.dietaryRestrictions as string[]) ?? [],
-    allergens: normalizeAllergens((profile.allergens as string[]) ?? []),
-    goals: (profile.goals as string[]) ?? [],
-    timezone: profile.timezone,
-    nutritionTargets:
-      (profile.nutritionTargets as {
-        daily_calories: number
-        daily_protein_g: number
-        daily_carbs_g: number
-        daily_fat_g: number
-      } | null) ?? null,
-  })
+  return c.json(
+    {
+      preferredServings: profile.preferredServings,
+      dietaryRestrictions: (profile.dietaryRestrictions as string[]) ?? [],
+      allergens: normalizeAllergens((profile.allergens as string[]) ?? []),
+      goals: (profile.goals as string[]) ?? [],
+      timezone: profile.timezone,
+      nutritionTargets:
+        (profile.nutritionTargets as {
+          daily_calories: number
+          daily_protein_g: number
+          daily_carbs_g: number
+          daily_fat_g: number
+        } | null) ?? null,
+    },
+    200,
+  )
 })
 
 // PATCH /auth/profile
