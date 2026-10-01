@@ -319,6 +319,34 @@ describe.skipIf(skip).sequential('Recipe foodTypeIds', () => {
     expect(body.foodTypeIds).toEqual([foodTypeA])
   })
 
+  it('GET /v1/recipes/search?foodTypeId returns only recipes of that type', async () => {
+    const res = await app.request(`/v1/recipes/search?foodTypeId=${foodTypeA}`, {
+      headers: { Authorization: authHeader },
+    })
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as Array<{ id: string; foodTypeIds: string[] }>
+    expect(body.map((r) => r.id)).toContain(recipeId)
+    expect(body.every((r) => r.foodTypeIds.includes(foodTypeA))).toBe(true)
+
+    const other = await app.request(`/v1/recipes/search?foodTypeId=${foodTypeB}`, {
+      headers: { Authorization: authHeader },
+    })
+    const otherBody = (await other.json()) as Array<{ id: string }>
+    expect(otherBody.map((r) => r.id)).not.toContain(recipeId)
+  })
+
+  it('GET /v1/recipes/search combines foodTypeId with a text query', async () => {
+    const hit = await app.request(`/v1/recipes/search?q=Con+tipos&foodTypeId=${foodTypeA}`, {
+      headers: { Authorization: authHeader },
+    })
+    expect(((await hit.json()) as Array<{ id: string }>).map((r) => r.id)).toContain(recipeId)
+
+    const miss = await app.request(`/v1/recipes/search?q=Con+tipos&foodTypeId=${foodTypeB}`, {
+      headers: { Authorization: authHeader },
+    })
+    expect(await miss.json()).toEqual([])
+  })
+
   it('GET /v1/recipes includes foodTypeIds for listed recipes', async () => {
     const res = await app.request('/v1/recipes?limit=100', {
       headers: { Authorization: authHeader },
