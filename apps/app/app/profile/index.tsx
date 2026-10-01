@@ -10,7 +10,12 @@ import {
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ALLERGENS, ALLERGEN_LABELS, type Allergen } from '@recetario/shared'
+import {
+  ALLERGENS,
+  ALLERGEN_LABELS,
+  DEFAULT_NUTRITION_TARGETS,
+  type Allergen,
+} from '@recetario/shared'
 import { api } from '../../src/api/client'
 import { useAuth } from '../../src/providers/AuthProvider'
 import { confirmAsync } from '../../src/utils/platformAlert'
@@ -28,6 +33,14 @@ const DIETARY_OPTIONS = [
 ] as const
 
 type DietaryOption = (typeof DIETARY_OPTIONS)[number]
+
+// Same bounds as NutritionTargetsSchema, so the stepper never sends a 400.
+const TARGET_MAX = {
+  daily_calories: 10000,
+  daily_protein_g: 600,
+  daily_carbs_g: 1500,
+  daily_fat_g: 600,
+} as const
 
 export default function ProfileScreen() {
   const colors = useThemeColors()
@@ -89,20 +102,17 @@ export default function ProfileScreen() {
     field: 'daily_calories' | 'daily_protein_g' | 'daily_carbs_g' | 'daily_fat_g',
     delta: number,
   ) {
-    const t = (profile?.nutritionTargets as Record<string, number> | null) ?? {
-      daily_calories: 2000,
-      daily_protein_g: 50,
-      daily_carbs_g: 250,
-      daily_fat_g: 70,
-    }
+    const t =
+      (profile?.nutritionTargets as Record<string, number> | null) ??
+      (DEFAULT_NUTRITION_TARGETS as Record<string, number>)
     const current = t[field] ?? 0
-    const next = Math.max(0, current + delta)
+    const next = Math.min(TARGET_MAX[field], Math.max(0, current + delta))
     updateProfile.mutate({
       nutritionTargets: {
-        daily_calories: t['daily_calories'] ?? 2000,
-        daily_protein_g: t['daily_protein_g'] ?? 50,
-        daily_carbs_g: t['daily_carbs_g'] ?? 250,
-        daily_fat_g: t['daily_fat_g'] ?? 70,
+        daily_calories: t['daily_calories'] ?? DEFAULT_NUTRITION_TARGETS.daily_calories,
+        daily_protein_g: t['daily_protein_g'] ?? DEFAULT_NUTRITION_TARGETS.daily_protein_g,
+        daily_carbs_g: t['daily_carbs_g'] ?? DEFAULT_NUTRITION_TARGETS.daily_carbs_g,
+        daily_fat_g: t['daily_fat_g'] ?? DEFAULT_NUTRITION_TARGETS.daily_fat_g,
         [field]: next,
       },
     } as never)

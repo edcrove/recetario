@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseRecipeFromHtml, parseIsoDuration, htmlToText } from './recipeImport.js'
+import { parseRecipeFromHtml, parseIsoDuration, htmlToText, firstNumber } from './recipeImport.js'
 
 const ldBlock = (obj: unknown) =>
   `<html><head><script type="application/ld+json">${JSON.stringify(obj)}</script></head><body>x</body></html>`
@@ -214,5 +214,31 @@ describe('htmlToText', () => {
       '<html><head><style>.a{}</style><script>var x=1</script></head><body><h1>Hola</h1> <p>Mundo &amp; más</p></body></html>',
     )
     expect(t).toBe('Hola Mundo & más')
+  })
+})
+
+describe('nutrition number parsing', () => {
+  it('reads thousands separators and decimal commas', () => {
+    expect(firstNumber('1,200 kcal')).toBe(1200)
+    expect(firstNumber('1.200 kcal')).toBe(1200)
+    expect(firstNumber('12,5 g')).toBe(12.5)
+    expect(firstNumber('12.5 g')).toBe(12.5)
+    expect(firstNumber('1.200,5')).toBe(1200.5)
+    expect(firstNumber('1,200.5')).toBe(1200.5)
+    expect(firstNumber('420.')).toBe(420)
+    expect(firstNumber(7)).toBe(7)
+    expect(firstNumber('sin dato')).toBeUndefined()
+    expect(firstNumber(null)).toBeUndefined()
+  })
+
+  it('converts kJ to kcal and keeps fiber', () => {
+    const r = parseRecipeFromHtml(
+      ldBlock({
+        '@type': 'Recipe',
+        name: 'K',
+        nutrition: { calories: '1674 kJ', fiberContent: '6,5 g', proteinContent: '10 g' },
+      }),
+    )
+    expect(r?.nutrition).toEqual({ calories: 400, protein_g: 10, fiber_g: 6.5 })
   })
 })
