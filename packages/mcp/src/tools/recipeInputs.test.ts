@@ -74,4 +74,8 @@ describe('recipe input contract (shared schemas)', () => {
     ).toBe(false)
     expect(schema.safeParse({ ...base, steps: [{ text: '' }] }).success).toBe(false)
   })
+
+  it('updateRecipe accepts nutrition: null to clear stale values', () => {
+    expect(inputSchema('updateRecipe').safeParse({ id: ID, nutrition: null }).success).toBe(true)
+  })
 })

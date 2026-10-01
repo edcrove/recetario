@@ -40,7 +40,11 @@ export function registerMutationTools(server: McpServer, api: ReturnType<typeof 
         "Owner-only publish/unpublish: 'public' lists the recipe in the shared library; 'private' hides it again (existing forks are unaffected).",
       ),
       dietaryTags: DietaryTagsInput.optional(),
-      nutrition: NutritionInput.optional(),
+      nutrition: NutritionInput.nullable()
+        .optional()
+        .describe(
+          'Per-serving nutrition. null clears it. If omitted, a servings-only edit rescales it and an ingredient change clears it (re-estimate and send it again).',
+        ),
       foodTypeIds: FoodTypeIdsInput.optional(),
     },
     async ({ id, ...updates }) => {
