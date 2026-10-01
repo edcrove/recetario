@@ -751,7 +751,9 @@ test.describe('Small interaction branches', () => {
 })
 
 test.describe('Save to collection from recipe detail', () => {
-  test('saves into an existing collection and into a new one, both list the recipe', async ({
+  // Coverage is collected from the page at the end of each test, so each test
+  // ends on the screen it exercises (no page.goto afterwards).
+  test('saves into an existing and a new collection, closes and reports errors', async ({
     page,
   }) => {
     const headers = await authHeaders(page)
@@ -764,6 +766,12 @@ test.describe('Save to collection from recipe detail', () => {
     const recipe = await createRecipeViaApi(page)
     try {
       await page.goto(`/recipe/${recipe.id}`)
+      // open + close without saving
+      await page.getByTestId('recipe-save-to-collection').click()
+      await expect(page.getByTestId('collection-picker')).toBeVisible({ timeout: 8000 })
+      await page.getByTestId('recipe-save-to-collection').click()
+      await expect(page.getByTestId('collection-picker')).toHaveCount(0)
+
       await page.getByTestId('recipe-save-to-collection').click()
       await page.getByTestId(`collection-pick-${existing.id}`).click()
       await expect(page.getByTestId('collection-saved-msg')).toContainText(`E2E Existente ${stamp}`)
@@ -773,23 +781,48 @@ test.describe('Save to collection from recipe detail', () => {
       await page.getByTestId('collection-new-save').click()
       await expect(page.getByTestId('collection-saved-msg')).toContainText(`E2E Nueva ${stamp}`)
 
-      // Opened by link: the name comes from the list, and the recipe is there
-      await page.goto(`/collections/${existing.id}`)
-      await expect(page.getByTestId(`collection-recipe-${recipe.id}`)).toBeVisible({
-        timeout: 10000,
-      })
-      await expect(page.getByTestId('collection-detail-title')).toContainText(
-        `E2E Existente ${stamp}`,
+      // a failed save notifies
+      await page.route('**/v1/collections/*/recipes', (route) =>
+        route.request().method() === 'POST'
+          ? route.fulfill({ status: 500, body: JSON.stringify({ error: 'boom' }) })
+          : route.fallback(),
       )
+      let dialogMessage = ''
+      page.once('dialog', (d) => {
+        dialogMessage = d.message()
+        void d.accept()
+      })
+      await page.getByTestId('recipe-save-to-collection').click()
+      await page.getByTestId(`collection-pick-${existing.id}`).click()
+      await expect.poll(() => dialogMessage).toContain('No se pudo guardar')
+      await page.unroute('**/v1/collections/*/recipes')
 
+      const inExisting = (await (
+        await page.request.get(`${API_URL}/v1/collections/${existing.id}/recipes`, { headers })
+      ).json()) as Array<{ id: string }>
+      expect(inExisting.map((r) => r.id)).toContain(recipe.id)
       const list = (await (
         await page.request.get(`${API_URL}/v1/collections`, { headers })
-      ).json()) as Array<{ id: string; name: string; recipeCount: number }>
-      const created = list.find((c) => c.name === `E2E Nueva ${stamp}`)
-      expect(created?.recipeCount).toBe(1)
+      ).json()) as Array<{ name: string; recipeCount: number }>
+      expect(list.find((c) => c.name === `E2E Nueva ${stamp}`)?.recipeCount).toBe(1)
     } finally {
       await deleteRecipeViaApi(page, recipe.id)
     }
+  })
+
+  test('a collection opened from a link takes its name from the list', async ({ page }) => {
+    const headers = await authHeaders(page)
+    const stamp = Date.now()
+    const colRes = await page.request.post(`${API_URL}/v1/collections`, {
+      headers,
+      data: { name: `E2E Enlace ${stamp}` },
+    })
+    const col = (await colRes.json()) as { id: string }
+    await page.goto(`/collections/${col.id}`)
+    await expect(page.getByTestId('collection-detail-title')).toContainText(`E2E Enlace ${stamp}`, {
+      timeout: 10000,
+    })
+    await expect(page.getByTestId('collection-detail-empty')).toContainText('Guardar en colección')
   })
 })
 
