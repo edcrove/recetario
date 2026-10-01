@@ -40,6 +40,8 @@ export default function CookModeScreen() {
     queryFn: () => api.recipes.get(id),
   })
 
+  const targetServings = Number(params.servings) > 0 ? Number(params.servings) : recipe?.servings
+
   // Skipping the rating still records the session (rating null): unrated cooks
   // count for history and stats.
   const logSessionMutation = useMutation({
@@ -48,6 +50,8 @@ export default function CookModeScreen() {
         recipeId: id,
         rating: rated ? (rating ?? undefined) : null,
         notes: rated ? ratingNote.trim() || undefined : undefined,
+        servings: targetServings,
+        source: 'app',
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['cook-sessions', id] })
@@ -118,7 +122,6 @@ export default function CookModeScreen() {
     leave()
   }
 
-  const targetServings = Number(params.servings) > 0 ? Number(params.servings) : recipe?.servings
   const mode: DisplayMode =
     params.mode === 'metric' || params.mode === 'imperial' ? params.mode : 'cooking'
 

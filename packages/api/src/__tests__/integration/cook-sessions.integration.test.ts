@@ -3,6 +3,8 @@ import { describe, it, expect, beforeAll } from 'vitest'
 const skip = process.env['SKIP_INTEGRATION'] === 'true'
 import app from '../../index.js'
 import { resetTestDb } from './globalSetup.js'
+import { getDb, schema } from '../../db/index.js'
+import { eq } from 'drizzle-orm'
 
 async function register(email: string): Promise<{ token: string }> {
   const res = await app.request('/auth/register', {
@@ -67,5 +69,53 @@ describe.skipIf(skip).sequential('Cook sessions — cross-tenant title leak (IDO
     expect(res.status).toBe(201)
     const body = await res.json()
     expect(body.recipeTitle).toBe(SECRET_TITLE)
+  })
+})
+
+// 2026-10-01 audit: context that can't be recovered later is captured at cook time.
+describe.skipIf(skip).sequential('Cook sessions — captured context', () => {
+  it('stores servings, source and the per-serving nutrition snapshot', async () => {
+    const cook = await register(`cook-ctx-${Date.now()}@example.com`)
+    const nutrition = { calories: 450, protein_g: 20, carbs_g: 50, fat_g: 15 }
+    const rec = await app.request('/v1/recipes', {
+      method: 'POST',
+      headers: auth(cook.token),
+      body: JSON.stringify({
+        title: 'Guiso medido',
+        servings: 4,
+        category: 'Cena',
+        nutrition,
+        ingredients: [{ name: 'lentejas', quantity: 300, unit: 'g' }],
+      }),
+    })
+    const recipeId = (await rec.json()).id as string
+
+    const res = await app.request('/v1/cook-sessions', {
+      method: 'POST',
+      headers: auth(cook.token),
+      body: JSON.stringify({ recipeId, servings: 3, source: 'app' }),
+    })
+    expect(res.status).toBe(201)
+    const body = await res.json()
+    expect(body).toMatchObject({ servings: 3, source: 'app' })
+
+    const [row] = await getDb()
+      .select()
+      .from(schema.cookSessions)
+      .where(eq(schema.cookSessions.id, body.id))
+    expect(row?.nutritionSnapshot).toEqual(nutrition)
+  })
+
+  it('a password login records lastLoginAt', async () => {
+    const email = `login-ctx-${Date.now()}@example.com`
+    await register(email)
+    const res = await app.request('/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: 'password123' }),
+    })
+    expect(res.status).toBe(200)
+    const [user] = await getDb().select().from(schema.users).where(eq(schema.users.email, email))
+    expect(user?.lastLoginAt).toBeInstanceOf(Date)
   })
 })

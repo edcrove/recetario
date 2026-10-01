@@ -369,7 +369,13 @@ export const api = {
       ),
   },
   cookSessions: {
-    log: (data: { recipeId: string; rating?: number | null; notes?: string }) =>
+    log: (data: {
+      recipeId: string
+      rating?: number | null
+      notes?: string
+      servings?: number
+      source?: 'app' | 'mcp'
+    }) =>
       request<{
         id: string
         recipeId: string

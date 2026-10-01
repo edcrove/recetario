@@ -157,6 +157,8 @@ export const users = pgTable('users', {
   avatarUrl: text('avatar_url'),
   // Set when the password is reset; JWTs issued before it are rejected.
   passwordChangedAt: timestamp('password_changed_at'),
+  // Last successful password login, for activity/retention analysis.
+  lastLoginAt: timestamp('last_login_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 })
@@ -334,6 +336,12 @@ export const cookSessions = pgTable(
     cookedAt: timestamp('cooked_at').notNull().defaultNow(),
     rating: integer('rating'), // 1–5, nullable
     notes: text('notes'),
+    // Context captured at cook time — not recoverable later (2026-10-01 audit):
+    // how many servings were cooked, where it was logged from, and the
+    // recipe's per-serving nutrition as it was that day.
+    servings: integer('servings'),
+    source: text('source'), // 'app' | 'mcp'
+    nutritionSnapshot: jsonb('nutrition_snapshot'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (t) => [

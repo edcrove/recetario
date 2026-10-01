@@ -161,7 +161,13 @@ describe('CookModeScreen step timer (tap-to-start)', () => {
     fireEvent.click(screen.getByTestId('cook-finish'))
     fireEvent.click(await screen.findByTestId('cook-rating-skip'))
     await waitFor(() =>
-      expect(mockLog).toHaveBeenCalledWith({ recipeId: 'r1', rating: null, notes: undefined }),
+      expect(mockLog).toHaveBeenCalledWith({
+        recipeId: 'r1',
+        rating: null,
+        notes: undefined,
+        servings: 2,
+        source: 'app',
+      }),
     )
     await waitFor(() => expect(router.back).toHaveBeenCalled())
   })
@@ -177,7 +183,13 @@ describe('CookModeScreen step timer (tap-to-start)', () => {
     })
     fireEvent.click(screen.getByTestId('cook-rating-save'))
     await waitFor(() =>
-      expect(mockLog).toHaveBeenCalledWith({ recipeId: 'r1', rating: 4, notes: 'rico' }),
+      expect(mockLog).toHaveBeenCalledWith({
+        recipeId: 'r1',
+        rating: 4,
+        notes: 'rico',
+        servings: 2,
+        source: 'app',
+      }),
     )
   })
 })

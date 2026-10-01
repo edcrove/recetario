@@ -133,6 +133,7 @@ authRoute.openapi(loginRoute, async (c) => {
     return c.json({ error: 'Invalid email or password' }, 401)
   }
 
+  await db.update(schema.users).set({ lastLoginAt: new Date() }).where(eq(schema.users.id, user.id))
   const token = await signJwt({ sub: user.id, email: user.email })
   return c.json(
     {
