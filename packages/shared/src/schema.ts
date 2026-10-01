@@ -59,14 +59,31 @@ export type MealTarget = z.infer<typeof MealTargetSchema>
 // keyed by meal category slug (desayuno/almuerzo/cena/...). Stored in the
 // existing user_profiles.nutrition_targets jsonb — per_meal is additive and
 // backward compatible, so no migration.
+// Upper bounds well above any real adult need; they catch typos (20000 kcal).
 export const NutritionTargetsSchema = z.object({
-  daily_calories: z.number().int().min(0),
-  daily_protein_g: z.number().min(0),
-  daily_carbs_g: z.number().min(0),
-  daily_fat_g: z.number().min(0),
+  daily_calories: z.number().int().min(0).max(10000),
+  daily_protein_g: z.number().min(0).max(600),
+  daily_carbs_g: z.number().min(0).max(1500),
+  daily_fat_g: z.number().min(0).max(600),
   per_meal: z.record(z.string(), MealTargetSchema).optional(),
 })
 export type NutritionTargets = z.infer<typeof NutritionTargetsSchema>
+
+/** kcal implied by macros (Atwater: 4 kcal/g protein and carbs, 9 kcal/g fat). */
+export function atwaterKcal(m: { protein_g: number; carbs_g: number; fat_g: number }): number {
+  return Math.round(m.protein_g * 4 + m.carbs_g * 4 + m.fat_g * 9)
+}
+
+/**
+ * Starting targets for a typical adult: 2000 kcal whose macros add up
+ * (75 g protein 15% · 250 g carbs 50% · 78 g fat 35% ≈ 2002 kcal).
+ */
+export const DEFAULT_NUTRITION_TARGETS = {
+  daily_calories: 2000,
+  daily_protein_g: 75,
+  daily_carbs_g: 250,
+  daily_fat_g: 78,
+} as const
 
 // Category enum
 export const CategorySchema = z.enum([

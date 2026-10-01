@@ -9,6 +9,9 @@ import {
   TranslationSchema,
   UnitSchema,
   UpdateRecipeSchema,
+  NutritionTargetsSchema,
+  DEFAULT_NUTRITION_TARGETS,
+  atwaterKcal,
 } from './schema.js'
 
 const validIngredient = {
@@ -326,5 +329,27 @@ describe('recipe size limits', () => {
         .success,
     ).toBe(false)
     expect(CreateRecipeSchema.safeParse(base).success).toBe(true)
+  })
+})
+
+describe('nutrition targets', () => {
+  it('default macros add up to the default calories', () => {
+    const d = DEFAULT_NUTRITION_TARGETS
+    expect(
+      Math.abs(
+        atwaterKcal({
+          protein_g: d.daily_protein_g,
+          carbs_g: d.daily_carbs_g,
+          fat_g: d.daily_fat_g,
+        }) - d.daily_calories,
+      ),
+    ).toBeLessThanOrEqual(20)
+  })
+  it('rejects absurd targets', () => {
+    expect(NutritionTargetsSchema.safeParse({ ...DEFAULT_NUTRITION_TARGETS }).success).toBe(true)
+    expect(
+      NutritionTargetsSchema.safeParse({ ...DEFAULT_NUTRITION_TARGETS, daily_calories: 20000 })
+        .success,
+    ).toBe(false)
   })
 })
