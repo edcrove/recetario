@@ -203,6 +203,23 @@ describe('GET /v1/recipes/search', () => {
     const body = await res.json()
     expect(Array.isArray(body)).toBe(true)
   })
+
+  it('passes foodTypeId through to the repository', async () => {
+    mockRepo.search.mockResolvedValue([])
+    const ft = '550e8400-e29b-41d4-a716-446655440001'
+
+    const res = await app.request(`/v1/recipes/search?foodTypeId=${ft}`, { headers: AUTH_HEADERS })
+    expect(res.status).toBe(200)
+    expect(mockRepo.search).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({ foodTypeId: ft }),
+    )
+  })
+
+  it('returns 400 when foodTypeId is not a uuid', async () => {
+    const res = await app.request('/v1/recipes/search?foodTypeId=guiso', { headers: AUTH_HEADERS })
+    expect(res.status).toBe(400)
+  })
 })
 
 describe('PUT /v1/recipes/:id', () => {

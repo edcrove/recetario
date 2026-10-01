@@ -442,8 +442,9 @@ test.describe('Edit recipe form: validation and error branches', () => {
       // touch category + ingredient field branches while we're here
       await page.getByText('Almuerzo', { exact: true }).click()
       await page.getByPlaceholder('Cant.').first().fill('3')
-      await page.getByPlaceholder('Unidad').first().fill('l')
-      await page.getByPlaceholder('Picado...').first().fill('fría')
+      await page.getByTestId('ingredient-unit-0').click()
+      await page.getByTestId('unit-option-0-l').click()
+      await page.getByPlaceholder('Picado, etc.').first().fill('fría')
       await page.getByText('Guardar Cambios').click()
       await expect(page.getByText(/Too small|obligatorio|título/i).first()).toBeVisible({
         timeout: 8000,

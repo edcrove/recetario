@@ -69,6 +69,7 @@ export const api = {
       category?: string
       ingredient?: string
       dietary?: string
+      foodTypeId?: string
     }) => {
       const qs = new URLSearchParams(
         Object.entries(params).filter(([, v]) => v != null) as [string, string][],
