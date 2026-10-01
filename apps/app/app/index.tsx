@@ -59,8 +59,11 @@ export default function HomeScreen() {
   } = useQuery({
     queryKey: ['recipes', query, activeType],
     queryFn: () =>
-      getQueryFnKey(query) === 'search'
-        ? api.recipes.search({ q: query, ...(activeType ? { tag: activeType } : {}) })
+      getQueryFnKey(query, activeType) === 'search'
+        ? api.recipes.search({
+            ...(query.trim() ? { q: query.trim() } : {}),
+            ...(activeType ? { foodTypeId: activeType } : {}),
+          })
         : api.recipes.list({ limit: 50 }),
     placeholderData: (prev) => prev,
   })
@@ -69,6 +72,8 @@ export default function HomeScreen() {
     ...(maxTotalTime != null && { maxTotalTime }),
     ...(difficulty != null && { difficulty }),
   })
+
+  const hasActiveFilters = activeType != null || maxTotalTime != null || difficulty != null
 
   // Only show full-screen loader on first load, not on subsequent searches
   if (isLoading && recipes.length === 0)
@@ -128,6 +133,7 @@ export default function HomeScreen() {
             contentContainerStyle={styles.filterRow}
           >
             <TouchableOpacity
+              testID="home-type-chip-all"
               style={[styles.filterChip, activeType === null && styles.filterChipActive]}
               onPress={() => setActiveType(null)}
             >
@@ -140,6 +146,7 @@ export default function HomeScreen() {
             {foodTypes.slice(0, 8).map((t) => (
               <TouchableOpacity
                 key={t.id}
+                testID={`home-type-chip-${t.id}`}
                 style={[styles.filterChip, activeType === t.id && styles.filterChipActive]}
                 onPress={() => setActiveType(activeType === t.id ? null : t.id)}
               >
@@ -270,7 +277,9 @@ export default function HomeScreen() {
           </TouchableOpacity>
         )}
         ListEmptyComponent={
-          <Text style={styles.empty}>{getEmptyMessage(query, visibleRecipes)}</Text>
+          <Text style={styles.empty}>
+            {getEmptyMessage(query, visibleRecipes, hasActiveFilters)}
+          </Text>
         }
       />
     </View>
