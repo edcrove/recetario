@@ -9,6 +9,7 @@ import type {
   DayNutritionEntry,
   NutritionTargets,
 } from '@recetario/shared'
+import { addIsoDays } from '@recetario/shared'
 import { getDb, schema } from './index.js'
 import { getVisibleOwnerIds, UUID_RE } from './household-visibility.js'
 
@@ -31,12 +32,6 @@ function mapToMenuEntry(row: MenuRow, recipe?: Pick<RecipeRow, 'title'>): MenuEn
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }
-}
-
-function addDays(isoDate: string, days: number): string {
-  const d = new Date(isoDate)
-  d.setUTCDate(d.getUTCDate() + days)
-  return d.toISOString().slice(0, 10)
 }
 
 export class MenuRepository {
@@ -142,7 +137,7 @@ export class MenuRepository {
 
   async getWeek(ownerId: string, weekStart: string): Promise<MenuEntry[]> {
     const db = this.db
-    const weekEndDate = addDays(weekStart, 6)
+    const weekEndDate = addIsoDays(weekStart, 6)
 
     // Household-shared read: the week view shows every housemate's entries.
     // Writes (upsert/remove/updateServings) stay strictly owner-scoped.
@@ -189,7 +184,7 @@ export class MenuRepository {
 
   async getScaledIngredients(ownerId: string, weekStart: string): Promise<ScaledIngredient[]> {
     const db = this.db
-    const weekEndDate = addDays(weekStart, 6)
+    const weekEndDate = addIsoDays(weekStart, 6)
 
     // Same household-shared rule as getWeek: the shopping list aggregates the
     // whole household's planned week, not just the caller's entries.
@@ -310,11 +305,29 @@ export class MenuRepository {
     ownerId: string,
     date: string,
   ): Promise<{ entries: DayNutritionEntry[]; target: NutritionTargets | null }> {
+    const { entries, target } = await this.getNutritionInputs(ownerId, date, date)
+    return { entries: entries.map(({ date: _date, ...e }) => e), target }
+  }
+
+  /**
+   * Nutrition inputs for an inclusive date range. Household-shared like the
+   * week view and the day rollup, so /menu/nutrition and /menu/day-nutrition
+   * always agree on what was planned.
+   */
+  async getNutritionInputs(
+    ownerId: string,
+    from: string,
+    to: string,
+  ): Promise<{
+    entries: (DayNutritionEntry & { date: string })[]
+    target: NutritionTargets | null
+  }> {
     const db = this.db
     const visibleOwners = await getVisibleOwnerIds(ownerId)
 
     const rows = await db
       .select({
+        date: schema.menuEntries.date,
         slot: schema.menuEntries.slot,
         nutrition: schema.recipes.nutrition,
       })
@@ -325,11 +338,13 @@ export class MenuRepository {
           inArray(schema.menuEntries.ownerId, visibleOwners),
           // A planted foreign recipe id must not leak the victim's nutrition.
           inArray(schema.recipes.ownerId, visibleOwners),
-          eq(schema.menuEntries.date, date),
+          gte(schema.menuEntries.date, from),
+          lte(schema.menuEntries.date, to),
         ),
       )
 
-    const entries: DayNutritionEntry[] = rows.map((r) => ({
+    const entries = rows.map((r) => ({
+      date: r.date,
       mealCategory: r.slot,
       nutrition: (r.nutrition as Nutrition | null) ?? null,
     }))

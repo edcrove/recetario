@@ -32,3 +32,10 @@ export const MenuWeekSchema = z.object({
   entries: z.array(MenuEntrySchema),
 })
 export type MenuWeek = z.infer<typeof MenuWeekSchema>
+
+/** Shifts a YYYY-MM-DD date by whole days in UTC (no DST or local-zone drift). */
+export function addIsoDays(isoDate: string, days: number): string {
+  const d = new Date(isoDate + 'T00:00:00Z')
+  d.setUTCDate(d.getUTCDate() + days)
+  return d.toISOString().slice(0, 10)
+}
