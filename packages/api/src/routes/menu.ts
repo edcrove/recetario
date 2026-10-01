@@ -348,7 +348,7 @@ menuRoute.openapi(getMissingRoute, async (c) => {
   return c.json({ missing, meals }, 200)
 })
 
-// GET /v1/menu/nutrition — daily nutrition totals vs user targets
+// GET /v1/menu/nutrition — per-person daily nutrition totals vs user targets
 const dayNutritionSchema = z.object({
   date: z.string(),
   calories: z.number(),
@@ -402,8 +402,6 @@ menuRoute.openapi(getMenuNutritionRoute as any, async (c: any) => {
   const entries = await db
     .select({
       date: dbSchema.menuEntries.date,
-      servings: dbSchema.menuEntries.servings,
-      recipeServings: dbSchema.recipes.servings,
       nutrition: dbSchema.recipes.nutrition,
     })
     .from(dbSchema.menuEntries)
@@ -438,14 +436,14 @@ menuRoute.openapi(getMenuNutritionRoute as any, async (c: any) => {
       fat_g: number
     } | null
     if (!n) continue
-    // Nutrition is stored per serving; a day's contribution is per-serving ×
-    // planned servings (NOT divided by recipeServings — that was a scaling bug).
-    const s = entry.servings
+    // Nutrition is stored per serving. Days are compared against one person's
+    // target, so each planned dish counts as one portion, however many servings
+    // the household cooks (D-2026-10-01-5).
     const day = dayMap.get(entry.date) ?? { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 }
-    day.calories += Math.round(n.calories * s)
-    day.protein_g += Math.round(n.protein_g * s * 10) / 10
-    day.carbs_g += Math.round(n.carbs_g * s * 10) / 10
-    day.fat_g += Math.round(n.fat_g * s * 10) / 10
+    day.calories += Math.round(n.calories)
+    day.protein_g += Math.round(n.protein_g * 10) / 10
+    day.carbs_g += Math.round(n.carbs_g * 10) / 10
+    day.fat_g += Math.round(n.fat_g * 10) / 10
     dayMap.set(entry.date, day)
   }
 
