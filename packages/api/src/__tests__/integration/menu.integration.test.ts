@@ -554,6 +554,42 @@ describe.skipIf(skip).sequential('Day nutrition rollup', () => {
     ).toBeTruthy()
   })
 
+  it('a skipped meal stays as history but leaves the intake; cooked still counts', async () => {
+    const date = '2026-08-04'
+    const post = await app.request('/v1/menu', {
+      method: 'POST',
+      headers: authFor(),
+      body: JSON.stringify({ date, slot: 'Almuerzo', recipeId: recipeWithNutrition, servings: 2 }),
+    })
+    expect((await post.json()).status).toBe('planned')
+
+    const skip = await app.request(`/v1/menu/${date}/Almuerzo/${recipeWithNutrition}`, {
+      method: 'PATCH',
+      headers: authFor(),
+      body: JSON.stringify({ status: 'skipped' }),
+    })
+    expect((await skip.json()).status).toBe('skipped')
+    let day = await (
+      await app.request(`/v1/menu/day-nutrition?date=${date}`, { headers: authFor() })
+    ).json()
+    expect(day.totals.calories).toBe(0)
+
+    const week = (await (
+      await app.request('/v1/menu?weekStart=2026-08-03', { headers: authFor() })
+    ).json()) as { date: string; status: string }[]
+    expect(week.find((e) => e.date === date)?.status).toBe('skipped')
+
+    await app.request(`/v1/menu/${date}/Almuerzo/${recipeWithNutrition}`, {
+      method: 'PATCH',
+      headers: authFor(),
+      body: JSON.stringify({ status: 'cooked' }),
+    })
+    day = await (
+      await app.request(`/v1/menu/day-nutrition?date=${date}`, { headers: authFor() })
+    ).json()
+    expect(day.totals.calories).toBe(500)
+  })
+
   it('returns zeros and a full negative delta for an empty day', async () => {
     const res = await app.request('/v1/menu/day-nutrition?date=2026-08-15', { headers: authFor() })
     const body = await res.json()

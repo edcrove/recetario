@@ -294,6 +294,23 @@ test.describe('Menu planner: deep flows', () => {
     })
   })
 
+  test('the edit modal marks a dish cooked, and back to planned', async ({ page }) => {
+    const created = await ensureRecipeInMenu(page)
+    try {
+      const chip = page.locator('[data-testid^="menu-entry-"]').first()
+      await chip.click()
+      await page.getByTestId('menu-modal-status-cooked').click()
+      await expect(page.getByTestId('menu-modal-save')).not.toBeVisible({ timeout: 8000 })
+      await expect(chip).toContainText('✓', { timeout: 8000 })
+      // Undo, so later tests find the entry planned again
+      await chip.click()
+      await page.getByTestId('menu-modal-status-planned').click()
+      await expect(chip).not.toContainText('✓', { timeout: 8000 })
+    } finally {
+      await cleanupCreatedEntry(page, created)
+    }
+  })
+
   test('the edit modal can decrement servings and delete the entry', async ({ page }) => {
     await ensureRecipeInMenu(page)
     const chip = page.locator('[data-testid^="menu-entry-"]').first()

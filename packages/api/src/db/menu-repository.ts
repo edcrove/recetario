@@ -1,8 +1,9 @@
-import { eq, and, gte, lte, inArray } from 'drizzle-orm'
+import { eq, and, gte, lte, inArray, ne } from 'drizzle-orm'
 import type {
   MenuEntry,
   CreateMenuEntry,
   MenuSlot,
+  MenuEntryStatus,
   ScaledIngredient,
   Unit,
   Nutrition,
@@ -29,6 +30,7 @@ function mapToMenuEntry(row: MenuRow, recipe?: Pick<RecipeRow, 'title'>): MenuEn
     // The final `?? undefined` only matters for rows predating this column.
     /* v8 ignore next -- fallback chain: live title, else snapshot; both arms hit only with legacy rows */
     recipeName: recipe?.title ?? row.recipeTitle ?? undefined,
+    status: row.status,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }
@@ -101,17 +103,17 @@ export class MenuRepository {
   }
 
   /* v8 ignore next -- the whole method; covered by integration tests */
-  async updateServings(
+  async updateEntry(
     ownerId: string,
     date: string,
     slot: MenuSlot,
     recipeId: string,
-    servings: number,
+    changes: { servings?: number; status?: MenuEntryStatus },
   ): Promise<MenuEntry | null> {
     const db = this.db
     const [row] = await db
       .update(schema.menuEntries)
-      .set({ servings, updatedAt: new Date() })
+      .set({ ...changes, updatedAt: new Date() })
       .where(
         and(
           eq(schema.menuEntries.ownerId, ownerId),
@@ -342,6 +344,8 @@ export class MenuRepository {
           inArray(schema.recipes.ownerId, visibleOwners),
           gte(schema.menuEntries.date, from),
           lte(schema.menuEntries.date, to),
+          // A skipped meal wasn't eaten: it doesn't count toward intake.
+          ne(schema.menuEntries.status, 'skipped'),
         ),
       )
 
