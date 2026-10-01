@@ -123,10 +123,11 @@ export default function ProfileScreen() {
   function updateMealTarget(slot: string, delta: number) {
     const t = (profile?.nutritionTargets as Record<string, unknown> | null) ?? {}
     const daily = {
-      daily_calories: (t['daily_calories'] as number) ?? 2000,
-      daily_protein_g: (t['daily_protein_g'] as number) ?? 50,
-      daily_carbs_g: (t['daily_carbs_g'] as number) ?? 250,
-      daily_fat_g: (t['daily_fat_g'] as number) ?? 70,
+      daily_calories: (t['daily_calories'] as number) ?? DEFAULT_NUTRITION_TARGETS.daily_calories,
+      daily_protein_g:
+        (t['daily_protein_g'] as number) ?? DEFAULT_NUTRITION_TARGETS.daily_protein_g,
+      daily_carbs_g: (t['daily_carbs_g'] as number) ?? DEFAULT_NUTRITION_TARGETS.daily_carbs_g,
+      daily_fat_g: (t['daily_fat_g'] as number) ?? DEFAULT_NUTRITION_TARGETS.daily_fat_g,
     }
     const perMeal = { ...((t['per_meal'] as Record<string, { calories?: number }>) ?? {}) }
     const currentCal = perMeal[slot]?.calories ?? 0

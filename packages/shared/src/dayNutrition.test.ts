@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeDayNutrition, type DayNutritionEntry } from './dayNutrition.js'
+import { computeDayNutrition, mealTargetFor, type DayNutritionEntry } from './dayNutrition.js'
 import type { NutritionTargets } from './schema.js'
 
 const N = (c: number, p: number, cb: number, f: number) => ({
@@ -65,9 +65,45 @@ describe('computeDayNutrition', () => {
       {
         mealCategory: 'almuerzo',
         totals: { calories: 500, protein_g: 25, carbs_g: 50, fat_g: 12 },
+        target: null,
+        calorieDelta: null,
       },
-      { mealCategory: 'cena', totals: { calories: 600, protein_g: 30, carbs_g: 60, fat_g: 15 } },
+      {
+        mealCategory: 'cena',
+        totals: { calories: 600, protein_g: 30, carbs_g: 60, fat_g: 15 },
+        target: null,
+        calorieDelta: null,
+      },
     ])
+  })
+
+  it('compares each meal against its per-meal goal (slot keys, any case)', () => {
+    const r = computeDayNutrition(
+      [
+        { mealCategory: 'Cena', nutrition: N(800, 30, 60, 15) },
+        { mealCategory: 'Almuerzo', nutrition: N(500, 20, 40, 10) },
+        { mealCategory: 'Desayuno', nutrition: N(300, 10, 40, 5) },
+      ],
+      {
+        ...target,
+        // 'Cena' as the app writes it; 'almuerzo' as an older slug; protein-only breakfast goal
+        per_meal: {
+          Cena: { calories: 650 },
+          almuerzo: { calories: 600 },
+          Desayuno: { protein_g: 20 },
+        },
+      },
+    )
+    const byMeal = Object.fromEntries(r.byMeal.map((m) => [m.mealCategory, m]))
+    expect(byMeal['Cena']).toMatchObject({ target: { calories: 650 }, calorieDelta: 150 })
+    expect(byMeal['Almuerzo']).toMatchObject({ target: { calories: 600 }, calorieDelta: -100 })
+    expect(byMeal['Desayuno']).toMatchObject({ target: { protein_g: 20 }, calorieDelta: null })
+  })
+
+  it('mealTargetFor matches accents and returns null without goals', () => {
+    expect(mealTargetFor(undefined, 'Cena')).toBeNull()
+    expect(mealTargetFor({ Merienda: { calories: 200 } }, 'merienda')).toEqual({ calories: 200 })
+    expect(mealTargetFor({ Cena: { calories: 1 } }, 'Snacks/Otros')).toBeNull()
   })
 
   it('leaves a macro delta null when that target is zero/unset', () => {
