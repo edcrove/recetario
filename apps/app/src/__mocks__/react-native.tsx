@@ -46,13 +46,16 @@ export const FlatList = ({
   renderItem,
   keyExtractor,
   ListEmptyComponent,
+  ListHeaderComponent,
 }: {
   data: unknown[]
   renderItem: (arg: { item: unknown; index: number }) => React.ReactNode
   keyExtractor?: (item: unknown, index: number) => string
   ListEmptyComponent?: React.ReactNode
+  ListHeaderComponent?: React.ReactNode
 }) => (
   <div>
+    {ListHeaderComponent}
     {data.length === 0 && ListEmptyComponent}
     {data.map((item, index) => (
       <div key={keyExtractor ? keyExtractor(item, index) : index}>
