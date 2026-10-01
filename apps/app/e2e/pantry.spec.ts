@@ -56,6 +56,7 @@ test('add, toggle and delete a pantry item from the Despensa screen', async ({ p
     await expect(page.getByText('Se acabó')).toBeVisible({ timeout: 10000 })
 
     // Delete
+    page.once('dialog', (d) => void d.accept())
     await page.getByTestId(`pantry-delete-${created.id}`).click()
     await expect(page.getByText(name, { exact: true })).toBeHidden({ timeout: 10000 })
 

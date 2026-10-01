@@ -13,8 +13,11 @@ vi.mock('../api/client', () => ({
   api: { pantry: { list: mockList, create: mockCreate, update: mockUpdate, remove: mockRemove } },
 }))
 vi.mock('expo-router', () => ({ useRouter: () => ({ back: vi.fn(), push: vi.fn() }) }))
-const { mockNotify } = vi.hoisted(() => ({ mockNotify: vi.fn() }))
-vi.mock('../utils/platformAlert', () => ({ notify: mockNotify }))
+const { mockNotify, mockConfirm } = vi.hoisted(() => ({
+  mockNotify: vi.fn(),
+  mockConfirm: vi.fn(async () => true),
+}))
+vi.mock('../utils/platformAlert', () => ({ notify: mockNotify, confirmAsync: mockConfirm }))
 
 const { mockIsViewer } = vi.hoisted(() => ({ mockIsViewer: vi.fn(() => false) }))
 vi.mock('../hooks/useIsViewer', () => ({ useIsViewer: mockIsViewer }))
@@ -102,6 +105,21 @@ describe('PantryScreen', () => {
     await screen.findByText('En casa')
     fireEvent.click(screen.getByTestId('pantry-delete-sal'))
     await waitFor(() => expect(mockRemove).toHaveBeenCalledWith('sal'))
+  })
+
+  it('asks before deleting and keeps the item when cancelled', async () => {
+    mockRemove.mockClear()
+    mockConfirm.mockResolvedValueOnce(false)
+    wrap()
+    await screen.findByText('En casa')
+    fireEvent.click(screen.getByTestId('pantry-delete-sal'))
+    await waitFor(() =>
+      expect(mockConfirm).toHaveBeenCalledWith(
+        'Eliminar de la despensa',
+        expect.stringContaining('Sal'),
+      ),
+    )
+    expect(mockRemove).not.toHaveBeenCalled()
   })
 
   it('notifies when a mutation fails', async () => {

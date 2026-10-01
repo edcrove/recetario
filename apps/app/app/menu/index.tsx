@@ -16,7 +16,7 @@ import { invalidateMenuWeek } from '../../src/utils/menuCache'
 import type { MenuEntry, MenuSlot } from '@recetario/shared'
 import { getWeekStart, addDays, formatDate } from '../../src/utils/weekMath'
 import { buildEntryMap } from '../../src/utils/menuLogic'
-import { notify } from '../../src/utils/platformAlert'
+import { confirmAsync, notify } from '../../src/utils/platformAlert'
 import { useIsViewer } from '../../src/hooks/useIsViewer'
 import { ViewerNotice } from '../../src/components/ViewerNotice'
 import { DayNutritionSummary } from '../../src/components/DayNutritionSummary'
@@ -145,9 +145,18 @@ export default function MenuWeekScreen() {
                             accessibilityRole="button"
                             accessibilityLabel="Quitar del menú"
                             style={s.removeChipBtn}
-                            onPress={() =>
-                              removeMutation.mutate({ date: day, slot, recipeId: entry.recipeId! })
-                            }
+                            onPress={async () => {
+                              const ok = await confirmAsync(
+                                'Quitar del menú',
+                                `¿Quitar "${entry.recipeName ?? 'Receta'}" de ${slot.toLowerCase()}?`,
+                              )
+                              if (ok)
+                                removeMutation.mutate({
+                                  date: day,
+                                  slot,
+                                  recipeId: entry.recipeId!,
+                                })
+                            }}
                           >
                             <Text style={s.removeChipText}>✕</Text>
                           </TouchableOpacity>

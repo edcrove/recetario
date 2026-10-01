@@ -272,7 +272,7 @@ With `NODE_ENV=production` the API refuses to start (`src/config/production.ts`)
 - **Component testing**: use `vitest.screen.config.ts` (jsdom + `src/__mocks__/react-native.tsx`). Do not use jest-expo (version conflicts with Vite 7).
 - **Screen logic**: extract to pure utils in `src/utils/` before testing. Do not test JSX directly unless necessary.
 - **MCP server tools**: registered via `registerAllTools()` — add new tools there.
-- **React Native Web gotchas**: `Alert.alert()` is a documented no-op on web (`static alert() {}` in react-native-web). Use `src/utils/platformAlert.ts` (`confirmAsync`/`notify`) instead of `Alert.alert` directly for any confirm dialog or error notification that must work on web. Audit other RN-only APIs (`Vibration`, `Share`, `Clipboard`, `Linking`) for the same class of silent-no-op bug before relying on them in web-facing flows.
+- **React Native Web gotchas**: `Alert.alert()` is a documented no-op on web (`static alert() {}` in react-native-web). Use `src/utils/platformAlert.ts` (`confirmAsync`/`notify`) instead of `Alert.alert` directly for any confirm dialog or error notification that must work on web. Audit other RN-only APIs (`Vibration`, `Share`, `Clipboard`, `Linking`) for the same class of silent-no-op bug before relying on them in web-facing flows. Every action that deletes user data (recipe, menu entry, pantry item, member, collection item) asks first with `confirmAsync`.
 
 ## Agent harness (Claude Code)
 
