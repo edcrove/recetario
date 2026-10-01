@@ -12,6 +12,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../src/api/client'
 import { useAuth } from '../../src/providers/AuthProvider'
 import { confirmAsync, notify } from '../../src/utils/platformAlert'
+import { inviteErrorMessage, memberLabel, pendingInvitations } from '../../src/utils/roles'
 import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 
 const ROLE_LABELS: Record<string, string> = {
@@ -67,14 +68,35 @@ export default function HouseholdScreen() {
       setInviteEmail('')
       setInvitingFor(null)
     },
-    onError: () => notify('Error', 'No se encontró ningún usuario con ese email.'),
+    onError: (err) => notify('No se pudo invitar', inviteErrorMessage(err)),
+  })
+
+  // Accepting or declining changes what every shared screen shows
+  const refreshShared = () => {
+    for (const key of ['households', 'recipes', 'menu', 'library', 'shopping-list']) {
+      void queryClient.invalidateQueries({ queryKey: [key] })
+    }
+  }
+  const acceptInvite = useMutation({
+    mutationFn: (householdId: string) => api.households.accept(householdId),
+    onSuccess: refreshShared,
+    onError: () => notify('Error', 'No se pudo aceptar la invitación. Probá de nuevo.'),
+  })
+  const declineInvite = useMutation({
+    mutationFn: (householdId: string) => api.households.decline(householdId),
+    onSuccess: refreshShared,
+    onError: () => notify('Error', 'No se pudo rechazar la invitación. Probá de nuevo.'),
   })
 
   const removeMember = useMutation({
     mutationFn: ({ householdId, userId }: { householdId: string; userId: string }) =>
       api.households.removeMember(householdId, userId),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['households'] }),
+    onError: () => notify('Error', 'No se pudo quitar al miembro. Probá de nuevo.'),
   })
+
+  const pending = pendingInvitations(households, userId)
+  const joined = households.filter((h) => !pending.includes(h))
 
   if (isLoading) {
     return (
@@ -86,8 +108,47 @@ export default function HouseholdScreen() {
 
   return (
     <ScrollView style={s.container} contentContainerStyle={s.content}>
+      {/* Invitations waiting for me */}
+      {pending.map((hh) => {
+        const me = hh.members?.find((m) => m.userId === userId)
+        const owner = hh.members?.find((m) => m.role === 'owner')
+        return (
+          <View key={hh.id} testID={`household-invitation-${hh.id}`} style={s.inviteCard}>
+            <Text style={s.householdName}>✉️ Te invitaron a {hh.name}</Text>
+            <Text style={s.emptyBody}>
+              {owner ? `${memberLabel(owner)} te invitó` : 'Te invitaron'} como{' '}
+              {(ROLE_LABELS[me?.role ?? ''] ?? me?.role ?? '').toLowerCase()}. Al aceptar, van a
+              compartir recetas, el menú semanal y la lista de compras.
+            </Text>
+            <View style={s.inviteActions}>
+              <TouchableOpacity
+                testID={`household-accept-${hh.id}`}
+                style={[s.btn, s.btnSm]}
+                disabled={acceptInvite.isPending}
+                onPress={() => acceptInvite.mutate(hh.id)}
+              >
+                <Text style={s.btnText}>Aceptar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                testID={`household-decline-${hh.id}`}
+                disabled={declineInvite.isPending}
+                onPress={async () => {
+                  const confirmed = await confirmAsync(
+                    'Rechazar invitación',
+                    `¿Rechazar la invitación a ${hh.name}?`,
+                  )
+                  if (confirmed) declineInvite.mutate(hh.id)
+                }}
+              >
+                <Text style={s.cancelText}>Rechazar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )
+      })}
+
       {/* Create household */}
-      {households.length === 0 && (
+      {joined.length === 0 && (
         <View style={s.emptyCard}>
           <Text style={s.emptyTitle}>Creá tu hogar</Text>
           <Text style={s.emptyBody}>
@@ -114,7 +175,7 @@ export default function HouseholdScreen() {
       )}
 
       {/* Households list */}
-      {households.map((hh) => {
+      {joined.map((hh) => {
         const myRole = hh.members?.find((m) => m.userId === userId)?.role
         const canManageMembers = myRole === 'owner' || myRole === 'admin'
         return (
@@ -132,7 +193,7 @@ export default function HouseholdScreen() {
                     <Text style={s.roleBadgeText}>{ROLE_LABELS[m.role] ?? m.role}</Text>
                   </View>
                   <Text style={s.memberUserId} numberOfLines={1}>
-                    {m.userId.slice(0, 8)}…
+                    {memberLabel(m)}
                   </Text>
                   {!m.acceptedAt && <Text style={s.pending}>Pendiente</Text>}
                 </View>
@@ -142,7 +203,7 @@ export default function HouseholdScreen() {
                     onPress={async () => {
                       const confirmed = await confirmAsync(
                         'Quitar miembro',
-                        '¿Quitar a este miembro del hogar?',
+                        `¿Quitar a ${memberLabel(m)} de ${hh.name}?`,
                       )
                       if (confirmed) removeMember.mutate({ householdId: hh.id, userId: m.userId })
                     }}
@@ -158,6 +219,10 @@ export default function HouseholdScreen() {
               (invitingFor === hh.id ? (
                 <View style={s.inviteBox}>
                   <Text style={s.inviteLabel}>Email a invitar</Text>
+                  <Text style={s.hint}>
+                    La persona tiene que tener una cuenta en Recetario. Va a ver la invitación en Mi
+                    hogar.
+                  </Text>
                   <TextInput
                     placeholderTextColor={colors.inkSoft}
                     testID="household-invite-email-input"
@@ -219,7 +284,7 @@ export default function HouseholdScreen() {
       })}
 
       {/* Add another household */}
-      {households.length > 0 && (
+      {joined.length > 0 && (
         <View style={s.addCard}>
           <TextInput
             placeholderTextColor={colors.inkSoft}
@@ -256,6 +321,12 @@ const makeStyles = (c: ThemeColors) =>
     },
     emptyBody: { fontSize: 14, color: c.inkSoft, lineHeight: 20, marginBottom: 16 },
     card: { backgroundColor: c.surface, borderRadius: 12, padding: 16, marginBottom: 16 },
+    inviteCard: {
+      backgroundColor: c.terracottaSoft,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+    },
     addCard: { backgroundColor: c.surface, borderRadius: 12, padding: 16 },
     householdName: { fontSize: 18, fontWeight: '700', color: c.ink, marginBottom: 12 },
     sectionLabel: {
@@ -275,10 +346,11 @@ const makeStyles = (c: ThemeColors) =>
     memberInfo: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
     roleBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
     roleBadgeText: { color: c.surface, fontSize: 11, fontWeight: '700' },
-    memberUserId: { fontSize: 13, color: c.inkSoft, flex: 1 },
+    memberUserId: { fontSize: 14, color: c.ink, flex: 1 },
     pending: { fontSize: 11, color: '#f59e0b', fontWeight: '600' },
     removeText: { color: c.danger, fontSize: 16, paddingHorizontal: 8 },
     inviteBox: { marginTop: 12, borderTopWidth: 1, borderColor: c.line, paddingTop: 12 },
+    hint: { fontSize: 12, color: c.inkSoft, marginBottom: 8, lineHeight: 17 },
     inviteLabel: { fontSize: 13, fontWeight: '600', color: c.ink, marginBottom: 6 },
     roleRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
     roleChip: {

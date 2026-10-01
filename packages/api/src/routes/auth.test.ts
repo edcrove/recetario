@@ -201,7 +201,8 @@ describe('GET /auth/me', () => {
     expect(res.status).toBe(401)
   })
 
-  it('returns 401 with invalid JWT', async () => {
+  it('returns 401 with invalid JWT (and no matching API key)', async () => {
+    mockUsersSelect.mockReturnValue([])
     const res = await app.request('/auth/me', {
       headers: { Authorization: 'Bearer invalid.token.here' },
     })
@@ -210,8 +211,9 @@ describe('GET /auth/me', () => {
 
   it('returns 200 with user data for valid JWT', async () => {
     const { signJwt } = await import('../auth/service.js')
-    const token = await signJwt({ sub: DEMO_USER.id, email: DEMO_USER.email })
-    mockUsersSelect.mockReturnValue([DEMO_USER])
+    const id = '0f8fad5b-d9cb-469f-a165-70867728950e'
+    const token = await signJwt({ sub: id, email: DEMO_USER.email })
+    mockUsersSelect.mockReturnValue([{ ...DEMO_USER, id }])
 
     const res = await app.request('/auth/me', {
       headers: { Authorization: `Bearer ${token}` },
@@ -219,12 +221,28 @@ describe('GET /auth/me', () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.email).toBe('test@test.com')
-    expect(body.id).toBe('user-001')
+    expect(body.id).toBe(id)
+  })
+
+  it('returns 401 for a legacy non-user owner (DEV_API_KEY → "dev")', async () => {
+    vi.stubEnv('DEV_API_KEY', 'dev-key')
+    // getDb throws on the API-key lookup → DEV_API_KEY fallback sets ownerId 'dev'
+    mockUsersSelect.mockImplementation(() => {
+      throw new Error('db down')
+    })
+    const res = await app.request('/auth/me', { headers: { Authorization: 'Bearer dev-key' } })
+    vi.unstubAllEnvs()
+    mockUsersSelect.mockReset()
+    expect(res.status).toBe(401)
+    expect((await res.json()).error).toBe('User not found')
   })
 
   it('returns 401 when user from JWT no longer exists in DB', async () => {
     const { signJwt } = await import('../auth/service.js')
-    const token = await signJwt({ sub: 'deleted-user', email: 'gone@test.com' })
+    const token = await signJwt({
+      sub: '1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed',
+      email: 'gone@test.com',
+    })
     mockUsersSelect.mockReturnValue([])
 
     const res = await app.request('/auth/me', {

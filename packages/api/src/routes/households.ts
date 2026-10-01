@@ -1,6 +1,6 @@
 import { createRouter } from './router.js'
 import { createRoute as defineRoute, z } from '@hono/zod-openapi'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, inArray, isNull } from 'drizzle-orm'
 import { getDb, schema } from '../db/index.js'
 import { authMiddleware } from '../middleware/auth.js'
 
@@ -15,6 +15,8 @@ const memberSchema = z.object({
   role: z.enum(['owner', 'admin', 'member', 'viewer']),
   invitedAt: z.string(),
   acceptedAt: z.string().nullable(),
+  displayName: z.string().nullable().optional(),
+  email: z.string().optional(),
 })
 
 const householdSchema = z.object({
@@ -92,30 +94,39 @@ householdsRoute.openapi(listMineRoute, async (c) => {
     .innerJoin(schema.households, eq(schema.householdMembers.householdId, schema.households.id))
     .where(eq(schema.householdMembers.userId, ownerId))
 
-  // full coverage via integration tests
+  // One query for every member of every household (with name/email so the app can
+  // show people, not UUIDs). Covered by the integration suite (households.integration).
   /* v8 ignore start */
-  const allMembers = await Promise.all(
-    memberships.map(async ({ household }) => {
-      const members = await db
-        .select()
-        .from(schema.householdMembers)
-        .where(eq(schema.householdMembers.householdId, household.id))
-      return { household, members }
-    }),
-  )
+  const householdIds = memberships.map(({ household }) => household.id)
+  const members =
+    householdIds.length === 0
+      ? []
+      : await db
+          .select({
+            member: schema.householdMembers,
+            displayName: schema.users.displayName,
+            email: schema.users.email,
+          })
+          .from(schema.householdMembers)
+          .innerJoin(schema.users, eq(schema.householdMembers.userId, schema.users.id))
+          .where(inArray(schema.householdMembers.householdId, householdIds))
 
   return c.json(
-    allMembers.map(({ household, members }) => ({
+    memberships.map(({ household }) => ({
       id: household.id,
       name: household.name,
       ownerId: household.ownerId,
       createdAt: household.createdAt.toISOString(),
-      members: members.map((m) => ({
-        userId: m.userId,
-        role: m.role,
-        invitedAt: m.invitedAt.toISOString(),
-        acceptedAt: m.acceptedAt?.toISOString() ?? null,
-      })),
+      members: members
+        .filter(({ member }) => member.householdId === household.id)
+        .map(({ member: m, displayName, email }) => ({
+          userId: m.userId,
+          role: m.role,
+          invitedAt: m.invitedAt.toISOString(),
+          acceptedAt: m.acceptedAt?.toISOString() ?? null,
+          displayName,
+          email,
+        })),
     })),
   )
   /* v8 ignore stop */
@@ -168,7 +179,10 @@ householdsRoute.openapi(inviteRoute as any, async (c: any) => {
     .limit(1)
 
   if (!myMembership) return c.json({ error: 'Household not found' } as never, 404)
-  if (!['owner', 'admin'].includes(myMembership.role)) return c.json({ error: 'Forbidden' }, 403)
+  // A pending invite grants nothing, including management rights
+  if (!myMembership.acceptedAt || !['owner', 'admin'].includes(myMembership.role)) {
+    return c.json({ error: 'Forbidden' }, 403)
+  }
 
   let invitedUserId = userId
   if (!invitedUserId && email) {
@@ -263,16 +277,52 @@ householdsRoute.openapi(removeMemberRoute, async (c) => {
     .limit(1)
 
   if (!myMembership) return c.json({ error: 'Household not found' } as never, 404)
-  if (!['owner', 'admin'].includes(myMembership.role)) return c.json({ error: 'Forbidden' }, 403)
+  if (!myMembership.acceptedAt || !['owner', 'admin'].includes(myMembership.role)) {
+    return c.json({ error: 'Forbidden' }, 403)
+  }
 
   const deleted = await db
     .delete(schema.householdMembers)
     .where(
-      and(eq(schema.householdMembers.householdId, id), eq(schema.householdMembers.userId, userId)),
+      and(
+        eq(schema.householdMembers.householdId, id),
+        eq(schema.householdMembers.userId, userId),
+        // The owner can't be removed (the household would have no owner)
+        inArray(schema.householdMembers.role, ['admin', 'member', 'viewer']),
+      ),
     )
     .returning()
 
   if (deleted.length === 0) return c.json({ error: 'Member not found' } as never, 404)
 
+  return c.body(null, 204)
+})
+
+// POST /households/:id/decline — the invitee turns down a pending invitation
+const declineRoute = defineRoute({
+  method: 'post',
+  path: '/{id}/decline',
+  security: [{ ApiKeyAuth: [] }],
+  request: { params: z.object({ id: z.uuid() }) },
+  responses: {
+    204: { description: 'Declined' },
+    404: { content: { 'application/json': { schema: errorSchema } }, description: 'Not found' },
+  },
+})
+
+householdsRoute.openapi(declineRoute, async (c) => {
+  const ownerId = c.get('ownerId')
+  const { id } = c.req.valid('param')
+  const deleted = await getDb()
+    .delete(schema.householdMembers)
+    .where(
+      and(
+        eq(schema.householdMembers.householdId, id),
+        eq(schema.householdMembers.userId, ownerId),
+        isNull(schema.householdMembers.acceptedAt),
+      ),
+    )
+    .returning()
+  if (deleted.length === 0) return c.json({ error: 'Invitation not found' }, 404)
   return c.body(null, 204)
 })

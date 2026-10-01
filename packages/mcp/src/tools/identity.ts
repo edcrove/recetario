@@ -47,7 +47,7 @@ export function registerIdentityTools(server: McpServer, api: ReturnType<typeof 
 
   server.tool(
     'listHouseholdMembers',
-    'List members of all households the current user belongs to',
+    "List the households the current user belongs to, with each member's name, email, role and whether they accepted. A membership with acceptedAt null is a pending invitation (use respondToHouseholdInvitation).",
     async () => {
       const households = (await api.request('/v1/households/mine')) as Array<{
         id: string
@@ -56,6 +56,29 @@ export function registerIdentityTools(server: McpServer, api: ReturnType<typeof 
       }>
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(households, null, 2) }],
+      }
+    },
+  )
+
+  server.tool(
+    'respondToHouseholdInvitation',
+    "Accept or decline a pending household invitation for the current user. Sharing (recipes, weekly menu, shopping list) starts only after accepting. Get the householdId from listHouseholdMembers (the user's membership has acceptedAt null).",
+    {
+      householdId: z.string().uuid().describe('Household with the pending invitation'),
+      accept: z.boolean().describe('true = accept, false = decline'),
+    },
+    async ({ householdId, accept }) => {
+      const result = await api.request(
+        `/v1/households/${householdId}/${accept ? 'accept' : 'decline'}`,
+        { method: 'POST' },
+      )
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: accept ? JSON.stringify(result, null, 2) : 'Invitation declined.',
+          },
+        ],
       }
     },
   )

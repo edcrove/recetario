@@ -54,17 +54,27 @@ test('a household viewer sees shared content without mutation affordances', asyn
     data: { userId: viewer.user.id, role: 'viewer' },
   })
   expect(inviteRes.status()).toBe(201)
-  // Sharing (and the viewer restriction) only applies once the invite is accepted.
-  const acceptRes = await page.request.post(`${API_URL}/v1/households/${householdId}/accept`, {
-    headers: { Authorization: `Bearer ${viewer.token}` },
-  })
-  expect(acceptRes.status()).toBe(200)
 
   try {
     // Become the viewer in the browser
     await page.evaluate((jwt) => localStorage.setItem('auth_token', jwt), viewer.token)
     await page.goto('/')
     await page.waitForLoadState('networkidle', { timeout: 15000 })
+
+    // Sharing (and the viewer restriction) only starts once the invite is accepted,
+    // which the invitee does in the app: home banner → Mi hogar → Aceptar.
+    await page.getByTestId('home-invitation-banner').click()
+    await expect(page.getByTestId(`household-invitation-${householdId}`)).toBeVisible({
+      timeout: 10000,
+    })
+    await page.getByTestId(`household-accept-${householdId}`).click()
+    await expect(page.getByTestId(`household-invitation-${householdId}`)).toHaveCount(0, {
+      timeout: 10000,
+    })
+    // Members are shown by name/email, not by id
+    await expect(page.getByText(viewerEmail)).toBeVisible()
+    await page.goto('/')
+    await expect(page.getByTestId('home-invitation-banner')).toHaveCount(0)
 
     // Shared recipe is visible…
     await page.getByPlaceholder(/buscar recetas/i).fill(recipe.title)
