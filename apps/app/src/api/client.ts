@@ -410,6 +410,8 @@ export const api = {
             role: string
             invitedAt: string
             acceptedAt: string | null
+            displayName?: string | null
+            email?: string
           }>
         }>
       >('/v1/households/mine'),
@@ -422,6 +424,8 @@ export const api = {
       request<{ userId: string; role: string }>(`/v1/households/${householdId}/accept`, {
         method: 'POST',
       }),
+    decline: (householdId: string) =>
+      request<void>(`/v1/households/${householdId}/decline`, { method: 'POST' }),
     removeMember: (householdId: string, userId: string) =>
       request<void>(`/v1/households/${householdId}/members/${userId}`, { method: 'DELETE' }),
   },
