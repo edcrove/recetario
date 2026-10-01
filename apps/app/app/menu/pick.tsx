@@ -18,6 +18,8 @@ import { notify } from '../../src/utils/platformAlert'
 import { AllergenBadge } from '../../src/components/AllergenBadge'
 import type { Recipe, RecipeDifficulty } from '@recetario/shared'
 import { macroStrip } from '../../src/utils/macroStrip'
+import { pickProjection, sameSlot } from '../../src/utils/nutritionGoals'
+import { useProfile } from '../../src/hooks/useProfile'
 import {
   DIFFICULTIES,
   TIME_FILTERS,
@@ -46,6 +48,25 @@ export default function PickRecipeScreen() {
     queryFn: () =>
       query.trim() ? api.recipes.search({ q: query }) : api.recipes.list({ limit: 50 }),
   })
+
+  // Goal preview: where the slot (or the day) lands if this recipe is added
+  const { data: profile } = useProfile()
+  const targets = profile?.nutritionTargets ?? null
+  const { data: day } = useQuery({
+    queryKey: ['day-nutrition', date],
+    // enabled guarantees a date
+    queryFn: () => api.menu.dayNutrition(date as string),
+    enabled: !!date && !!targets,
+  })
+  const dayCalories = day?.totals.calories ?? 0
+  const mealCalories =
+    day?.byMeal.find((m) => sameSlot(m.mealCategory, slot ?? ''))?.totals.calories ?? 0
+  const projectionColor = {
+    ok: colors.sage,
+    over: colors.terracotta,
+    under: colors.inkSoft,
+    none: colors.inkSoft,
+  } as const
 
   const visibleRecipes = filterByTimeDifficulty(recipes, {
     ...(maxTotalTime != null && { maxTotalTime }),
@@ -166,6 +187,25 @@ export default function PickRecipeScreen() {
               {macroStrip(item.nutrition) ? (
                 <Text style={styles.cardMacros}>{macroStrip(item.nutrition)}</Text>
               ) : null}
+              {(() => {
+                const projection = pickProjection({
+                  slot: slot ?? '',
+                  recipeCalories: item.nutrition?.calories,
+                  dayCalories,
+                  mealCalories,
+                  // Until the day loads the totals are unknown, not zero
+                  targets: day ? targets : null,
+                })
+                return projection ? (
+                  <Text
+                    testID={`pick-projection-${item.id}`}
+                    data-status={projection.status}
+                    style={[styles.cardProjection, { color: projectionColor[projection.status] }]}
+                  >
+                    {projection.text}
+                  </Text>
+                ) : null
+              })()}
             </TouchableOpacity>
           )}
           ListEmptyComponent={
@@ -182,6 +222,7 @@ export default function PickRecipeScreen() {
 const makeStyles = (c: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: c.surface },
+    cardProjection: { fontSize: 12, fontWeight: '600', marginTop: 4 },
     center: { flex: 1, backgroundColor: c.paper, justifyContent: 'center', alignItems: 'center' },
     header: { padding: 16, borderBottomWidth: 1, borderBottomColor: c.line },
     subtitle: { fontSize: 16, fontWeight: '600', marginBottom: 8, color: c.ink },
