@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { pathToFileURL } from 'node:url'
-import { eq } from 'drizzle-orm'
 import { getDb, schema } from '../db/index.js'
+import { emailMatches } from '../db/email.js'
 import { hashPassword } from '../auth/service.js'
 
 /**
@@ -31,7 +31,7 @@ export async function resetPassword(email: string, db: Db = getDb()): Promise<st
   const updated = await db
     .update(schema.users)
     .set({ passwordHash: await hashPassword(temp), updatedAt: new Date() })
-    .where(eq(schema.users.email, email.trim()))
+    .where(emailMatches(email))
     .returning({ id: schema.users.id })
   return updated.length > 0 ? temp : null
 }

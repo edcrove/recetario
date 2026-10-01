@@ -2,6 +2,7 @@ import { createRouter } from './router.js'
 import { createRoute as defineRoute, z } from '@hono/zod-openapi'
 import { eq } from 'drizzle-orm'
 import { getDb, schema } from '../db/index.js'
+import { emailMatches, normalizeEmail } from '../db/email.js'
 import { hashPassword, verifyPassword, signJwt } from '../auth/service.js'
 import { authRateLimitMiddleware } from '../middleware/rateLimit.js'
 import { registrationOpen } from '../config/production.js'
@@ -67,11 +68,7 @@ authRoute.openapi(registerRoute, async (c) => {
   const { email, password, displayName } = c.req.valid('json')
   const db = getDb()
 
-  const existing = await db
-    .select()
-    .from(schema.users)
-    .where(eq(schema.users.email, email))
-    .limit(1)
+  const existing = await db.select().from(schema.users).where(emailMatches(email)).limit(1)
   if (existing.length > 0) {
     return c.json({ error: 'Email already registered' }, 409)
   }
@@ -79,7 +76,7 @@ authRoute.openapi(registerRoute, async (c) => {
   const passwordHash = await hashPassword(password)
   const [user] = await db
     .insert(schema.users)
-    .values({ email, passwordHash, displayName: displayName ?? null })
+    .values({ email: normalizeEmail(email), passwordHash, displayName: displayName ?? null })
     .returning()
 
   // Create empty profile
@@ -130,7 +127,7 @@ authRoute.openapi(loginRoute, async (c) => {
   const { email, password } = c.req.valid('json')
   const db = getDb()
 
-  const [user] = await db.select().from(schema.users).where(eq(schema.users.email, email)).limit(1)
+  const [user] = await db.select().from(schema.users).where(emailMatches(email)).limit(1)
   if (!user || !(await verifyPassword(password, user.passwordHash))) {
     return c.json({ error: 'Invalid email or password' } as never, 401)
   }

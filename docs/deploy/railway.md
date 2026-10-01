@@ -26,6 +26,7 @@ written so the whole setup can be rebuilt from scratch. The app (PWA) is a separ
    | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}`                                                         |
    | `NODE_ENV`     | `production`                                                                         |
    | `JWT_SECRET`   | output of `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"` |
+   | `TRUST_PROXY`  | `true` — Railway's proxy sets X-Forwarded-For; the auth rate limit keys on it        |
    | `CORS_ORIGIN`  | the PWA's URL once it exists (comma-separated list)                                  |
 
    Do **not** set `DEV_API_KEY` or `ALLOW_DEV_SECRETS` (the API refuses to start or

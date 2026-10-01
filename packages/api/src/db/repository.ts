@@ -1,4 +1,16 @@
-import { eq, and, ilike, or, sql, inArray, desc, lte, isNull } from 'drizzle-orm'
+import {
+  eq,
+  and,
+  ilike,
+  or,
+  sql,
+  inArray,
+  desc,
+  lte,
+  isNull,
+  type AnyColumn,
+  type SQL,
+} from 'drizzle-orm'
 import {
   parseStepDurationSeconds,
   type CreateRecipe,
@@ -76,6 +88,17 @@ function mapToRecipe(
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }
+}
+
+/** Accent- and case-insensitive "contains" on a text column (no unaccent extension needed). */
+const FOLD_FROM = 'áéíóúüñàèìòùâêîôûäëïöÁÉÍÓÚÜÑÀÈÌÒÙÂÊÎÔÛÄËÏÖ'
+const FOLD_TO = 'aeiouunaeiouaeiouaeioaeiouunaeiouaeiouaeio'
+export function foldedContains(column: AnyColumn | SQL, term: string): SQL {
+  const folded = term
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+  return sql`translate(lower(${column}), ${FOLD_FROM}, ${FOLD_TO}) like ${`%${folded}%`}`
 }
 
 export class RecipeRepository {
@@ -337,7 +360,7 @@ export class RecipeRepository {
     const conditions = [ownerCondition(owner)]
 
     if (q.q) {
-      conditions.push(ilike(schema.recipes.title, `%${q.q}%`))
+      conditions.push(foldedContains(schema.recipes.title, q.q))
     }
 
     if (q.category) {
@@ -367,10 +390,24 @@ export class RecipeRepository {
       )
     }
 
+    // Ingredient filter runs in SQL so LIMIT applies to matching recipes only.
+    if (q.ingredient) {
+      conditions.push(
+        inArray(
+          schema.recipes.id,
+          db
+            .select({ id: schema.ingredients.recipeId })
+            .from(schema.ingredients)
+            .where(foldedContains(schema.ingredients.name, q.ingredient)),
+        ),
+      )
+    }
+
     const recipes = await db
       .select()
       .from(schema.recipes)
       .where(and(...conditions))
+      .orderBy(desc(schema.recipes.updatedAt), schema.recipes.id)
       .limit(50)
 
     if (recipes.length === 0) return []
@@ -393,7 +430,7 @@ export class RecipeRepository {
 
     const foodTypesByRecipe = await this.getFoodTypeIdsByRecipe(ids)
 
-    let results = recipes.map((recipe) =>
+    return recipes.map((recipe) =>
       mapToRecipe(
         recipe,
         ingredientRows.filter((i) => i.recipeId === recipe.id),
@@ -401,16 +438,6 @@ export class RecipeRepository {
         foodTypesByRecipe.get(recipe.id) ?? [],
       ),
     )
-
-    // Filter by ingredient name at application level (ILIKE on joined table)
-    if (q.ingredient) {
-      const term = q.ingredient.toLowerCase()
-      results = results.filter((r) =>
-        r.ingredients.some((i) => i.name.toLowerCase().includes(term)),
-      )
-    }
-
-    return results
   }
 
   async update(id: string, ownerId: string, data: UpdateRecipe): Promise<Recipe | null> {
@@ -487,7 +514,7 @@ export class RecipeRepository {
     const db = this.db
 
     const conditions = [eq(schema.recipes.visibility, 'public' as const)]
-    if (q.search) conditions.push(ilike(schema.recipes.title, `%${q.search}%`))
+    if (q.search) conditions.push(foldedContains(schema.recipes.title, q.search))
 
     const rows = await db
       .select({
