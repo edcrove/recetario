@@ -7,7 +7,7 @@
     "dev": "expo start",
     "build": "expo export --platform web",
     "build:coverage": "BABEL_ENV=coverage expo export --platform web --output-dir dist-coverage",
-    "lint": "eslint app",
+    "lint": "eslint app src e2e",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",

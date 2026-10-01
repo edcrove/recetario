@@ -24,7 +24,7 @@ pnpm --filter @recetario/api dev        # Start only the API
 pnpm build                      # Build all packages (turbo)
 
 # Lint & format
-pnpm lint                       # ESLint across all packages
+pnpm lint                       # ESLint across all packages (app: app/, src/, e2e/)
 
 # Tests
 pnpm test                       # Run all Vitest suites (no DB required)
@@ -237,6 +237,8 @@ Include the PR link in the story's PR field.
 | `REGISTRATION_OPEN`            | api     | ❌               | `true` opens sign-up in production (closed by default there).                    |
 | `ALLOW_DEV_SECRETS`            | api     | ❌               | docker-compose/CI only: relaxes the production secret checks. Never on a deploy. |
 | `AUTH_RATE_LIMIT_MAX_REQUESTS` | api     | ❌               | Per-IP login/register attempts per minute (default 10). Raised only in CI/E2E.   |
+| `RATE_LIMIT_MAX_REQUESTS`      | api     | ❌               | Recipe writes per account per minute (default 100). Raised only in CI/E2E.       |
+| `CORS_ORIGIN`                  | api     | ✅ (web)         | Comma-separated allowed origins for the deployed web app; localhost is built in. |
 | `API_BASE_URL`                 | mcp     | ✅               | URL of the API the MCP server calls                                              |
 | `MCP_API_KEY`                  | mcp     | ✅               | API key for MCP→API auth (from api_keys table)                                   |
 | `EXPO_PUBLIC_API_URL`          | app     | ✅               | Public — embedded at build time                                                  |

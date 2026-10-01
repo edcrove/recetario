@@ -1,11 +1,4 @@
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-  ActivityIndicator,
-} from 'react-native'
+import { Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
 import { useThemeColors, type ThemeColors } from '../theme/tokens'

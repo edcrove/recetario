@@ -21,7 +21,12 @@ export default [
     },
     rules: {
       ...tsPlugin.configs.recommended.rules,
-      '@typescript-eslint/no-unused-vars': 'warn',
+      // A leading underscore marks an intentionally unused binding (e.g. props a
+      // test mock receives but drops).
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true },
+      ],
       '@typescript-eslint/no-explicit-any': 'warn',
     },
   },
