@@ -15,8 +15,13 @@ import { api } from '../../../src/api/client'
 import { useCookTimers, formatTime } from '../../../src/hooks/useStepTimer'
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake'
 import { IngredientChecklist } from '../../../src/components/IngredientChecklist'
-import { onStepTimerComplete, startSpeech, stopSpeech } from '../../../src/utils/cookEffects'
-import { cookModeNav } from '../../../src/utils/cookModeNav'
+import {
+  onStepTimerComplete,
+  startSpeech,
+  stopSpeech,
+  timerDoneMessage,
+} from '../../../src/utils/cookEffects'
+import { addFinishedStep, cookModeNav, dismissFinishedStep } from '../../../src/utils/cookModeNav'
 import { confirmAsync, notify } from '../../../src/utils/platformAlert'
 import type { DisplayMode } from '../../../src/utils/displayIngredient'
 import { useThemeColors, fonts, type ThemeColors } from '../../../src/theme/tokens'
@@ -34,6 +39,7 @@ export default function CookModeScreen() {
   const [showRating, setShowRating] = useState(false)
   const [rating, setRating] = useState<number | null>(null)
   const [ratingNote, setRatingNote] = useState('')
+  const [finishedSteps, setFinishedSteps] = useState<number[]>([])
 
   const { data: recipe, isLoading } = useQuery({
     queryKey: ['recipe', id],
@@ -99,8 +105,9 @@ export default function CookModeScreen() {
     setIsSpeaking(false)
   }, [stepIndex])
 
-  const handleTimerComplete = useCallback(() => {
-    onStepTimerComplete()
+  const handleTimerComplete = useCallback((step: number) => {
+    onStepTimerComplete(step)
+    setFinishedSteps((prev) => addFinishedStep(prev, step))
   }, [])
 
   const timers = useCookTimers(handleTimerComplete)
@@ -184,6 +191,39 @@ export default function CookModeScreen() {
           <View style={s.closePlaceholder} />
         )}
       </View>
+
+      {finishedSteps.map((step) => (
+        <View
+          key={step}
+          testID={`cook-timer-done-${step}`}
+          role="alert"
+          aria-live="assertive"
+          style={s.doneBanner}
+        >
+          <Text style={s.doneBannerText}>⏰ {timerDoneMessage(step)}</Text>
+          {step !== stepIndex && (
+            <TouchableOpacity
+              testID={`cook-timer-done-goto-${step}`}
+              style={s.doneBannerBtn}
+              onPress={() => {
+                setTab('steps')
+                goTo(step)
+                setFinishedSteps((prev) => dismissFinishedStep(prev, step))
+              }}
+            >
+              <Text style={s.doneBannerBtnText}>Ver paso</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            testID={`cook-timer-done-dismiss-${step}`}
+            accessibilityLabel="Cerrar aviso"
+            style={s.doneBannerBtn}
+            onPress={() => setFinishedSteps((prev) => dismissFinishedStep(prev, step))}
+          >
+            <Text style={s.doneBannerBtnText}>OK</Text>
+          </TouchableOpacity>
+        </View>
+      ))}
 
       {otherRunning.length > 0 && (
         <View style={s.runningRow}>
@@ -329,6 +369,25 @@ export default function CookModeScreen() {
 
 const makeStyles = (c: ThemeColors) =>
   StyleSheet.create({
+    doneBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginHorizontal: 16,
+      marginTop: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderRadius: 10,
+      backgroundColor: c.danger,
+    },
+    doneBannerText: { flex: 1, color: c.surface, fontWeight: '700', fontSize: 15 },
+    doneBannerBtn: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 8,
+      backgroundColor: c.surface,
+    },
+    doneBannerBtnText: { color: c.danger, fontWeight: '700', fontSize: 13 },
     runningRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 16 },
     runningChip: {
       backgroundColor: c.terracotta,

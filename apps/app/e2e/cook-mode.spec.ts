@@ -331,8 +331,6 @@ test.describe('Cook mode: full session flows', () => {
     const recipe = await createRecipe(page, {
       steps: [{ text: 'Paso cronometrado.', durationSeconds: 3 }, { text: 'Fin.' }],
     })
-    // notify() fires window.alert when the timer completes — auto-accept it
-    page.on('dialog', (dialog) => void dialog.accept())
     await openCookMode(page, recipe.title)
 
     const toggle = page.getByTestId('cook-timer-toggle')
@@ -354,6 +352,71 @@ test.describe('Cook mode: full session flows', () => {
     // Run to completion.
     await toggle.click()
     await expect(timer).toHaveText('00:00')
+  })
+
+  // AC: "When the timer reaches 0:00, a visible alert (banner or modal) and an
+  // audible notification are triggered." Web Audio and speech are recorded by
+  // an init script, so the test asserts the cook would actually hear it.
+  test('reaching 0:00 shows an alert banner and plays an audible cue', async ({ page }) => {
+    await page.addInitScript(() => {
+      const w = window as unknown as {
+        __beeps: number
+        __spoken: string[]
+        AudioContext: unknown
+      }
+      w.__beeps = 0
+      w.__spoken = []
+      w.AudioContext = class {
+        currentTime = 0
+        destination = {}
+        createGain() {
+          return { gain: { value: 0 }, connect() {} }
+        }
+        createOscillator() {
+          return {
+            type: '',
+            frequency: { value: 0 },
+            connect() {},
+            start() {
+              w.__beeps++
+            },
+            stop() {},
+          }
+        }
+      }
+      const synth = window.speechSynthesis as unknown as { speak?: (u: { text: string }) => void }
+      if (synth) synth.speak = (u) => void w.__spoken.push(u.text)
+    })
+    // The old blocking window.alert froze every other timer: none must open now.
+    let dialogs = 0
+    page.on('dialog', (d) => {
+      dialogs++
+      void d.accept()
+    })
+    const recipe = await createRecipe(page, {
+      steps: [{ text: 'Hervir dos segundos.', durationSeconds: 2 }, { text: 'Servir.' }],
+    })
+    await openCookMode(page, recipe.title)
+
+    await page.getByTestId('cook-timer-toggle').click()
+    // Move on: the alert must reach the cook on whichever step they are.
+    await page.getByTestId('cook-next').click()
+    const banner = page.getByTestId('cook-timer-done-0')
+    await expect(banner).toBeVisible({ timeout: 10_000 })
+    await expect(banner).toContainText('¡Tiempo! Terminó el paso 1.')
+    await expect(banner).toHaveAttribute('role', 'alert')
+
+    const beeps = await page.evaluate(() => (window as unknown as { __beeps: number }).__beeps)
+    expect(beeps).toBe(2)
+    const spoken = await page.evaluate(() => (window as unknown as { __spoken: string[] }).__spoken)
+    expect(spoken.join(' ')).toContain('Terminó el paso 1')
+    expect(dialogs).toBe(0)
+
+    // "Ver paso" brings the cook back to the finished step and clears the alert.
+    await page.getByTestId('cook-timer-done-goto-0').click()
+    await expect(page.getByText(/Paso 1 \/ 2/)).toBeVisible()
+    await expect(banner).toHaveCount(0)
+    await expect(page.getByTestId('cook-timer')).toHaveText('00:00')
   })
 
   test('a recipe without steps shows the cook-mode empty state', async ({ page }) => {
