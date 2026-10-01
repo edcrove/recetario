@@ -313,4 +313,67 @@ describe.skipIf(skip).sequential('Household sharing: reads and viewer enforcemen
       expect(res.status).toBe(200)
     })
   })
+
+  describe('invitation lifecycle and management rules', () => {
+    it('GET /households/mine names every member (display name or email), not just ids', async () => {
+      const res = await app.request('/v1/households/mine', { headers: auth(owner.token) })
+      const [hh] = (await res.json()) as Array<{
+        id: string
+        members: Array<{ userId: string; email?: string; acceptedAt: string | null }>
+      }>
+      const me = hh!.members.find((m) => m.userId === owner.userId)
+      expect(me?.email).toMatch(/^owner-.*@example\.com$/)
+      expect(hh!.members.every((m) => typeof m.email === 'string')).toBe(true)
+    })
+
+    it('the invitee can decline a pending invitation, and then it is gone', async () => {
+      const guest = await register(`guest-${Date.now()}@example.com`)
+      await app.request(`/v1/households/${householdId}/invite`, {
+        method: 'POST',
+        headers: auth(owner.token),
+        body: JSON.stringify({ userId: guest.userId, role: 'member' }),
+      })
+      const decline = await app.request(`/v1/households/${householdId}/decline`, {
+        method: 'POST',
+        headers: auth(guest.token),
+      })
+      expect(decline.status).toBe(204)
+      const mine = await app.request('/v1/households/mine', { headers: auth(guest.token) })
+      expect(await mine.json()).toEqual([])
+      // An accepted membership can't be "declined"
+      const again = await app.request(`/v1/households/${householdId}/decline`, {
+        method: 'POST',
+        headers: auth(member.token),
+      })
+      expect(again.status).toBe(404)
+    })
+
+    it('a pending admin cannot invite or remove anyone', async () => {
+      const pendingAdmin = await register(`padmin-${Date.now()}@example.com`)
+      await app.request(`/v1/households/${householdId}/invite`, {
+        method: 'POST',
+        headers: auth(owner.token),
+        body: JSON.stringify({ userId: pendingAdmin.userId, role: 'admin' }),
+      })
+      const invite = await app.request(`/v1/households/${householdId}/invite`, {
+        method: 'POST',
+        headers: auth(pendingAdmin.token),
+        body: JSON.stringify({ userId: outsider.userId, role: 'member' }),
+      })
+      expect(invite.status).toBe(403)
+      const remove = await app.request(`/v1/households/${householdId}/members/${member.userId}`, {
+        method: 'DELETE',
+        headers: auth(pendingAdmin.token),
+      })
+      expect(remove.status).toBe(403)
+    })
+
+    it('the owner cannot be removed', async () => {
+      const res = await app.request(`/v1/households/${householdId}/members/${owner.userId}`, {
+        method: 'DELETE',
+        headers: auth(owner.token),
+      })
+      expect(res.status).toBe(404)
+    })
+  })
 })

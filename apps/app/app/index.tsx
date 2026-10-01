@@ -24,6 +24,7 @@ import { getEmptyMessage, getQueryFnKey } from '../src/utils/homeScreen'
 import { useAuth } from '../src/providers/AuthProvider'
 import { UserMenu } from '../src/components/UserMenu'
 import { getWeekStart } from '../src/utils/weekMath'
+import { pendingInvitations } from '../src/utils/roles'
 import { useThemeColors, fonts, type ThemeColors } from '../src/theme/tokens'
 
 export default function HomeScreen() {
@@ -31,7 +32,7 @@ export default function HomeScreen() {
   const styles = makeStyles(colors)
   const [query, setQuery] = useState('')
   const router = useRouter()
-  const { token } = useAuth()
+  const { token, userId } = useAuth()
   const [activeType, setActiveType] = useState<string | null>(null)
   const [maxTotalTime, setMaxTotalTime] = useState<number | null>(null)
   const [difficulty, setDifficulty] = useState<RecipeDifficulty | null>(null)
@@ -42,6 +43,13 @@ export default function HomeScreen() {
     queryFn: () => api.taxonomy.foodTypes(),
     enabled: !!token,
   })
+
+  const { data: households } = useQuery({
+    queryKey: ['households'],
+    queryFn: () => api.households.mine(),
+    enabled: !!token,
+  })
+  const invitations = pendingInvitations(households, userId)
 
   const {
     data: recipes = [],
@@ -225,6 +233,20 @@ export default function HomeScreen() {
         </View>
       </View>
 
+      {invitations.length > 0 && (
+        <TouchableOpacity
+          testID="home-invitation-banner"
+          style={styles.invitationBanner}
+          onPress={() => router.push('/household')}
+        >
+          <Text style={styles.invitationText}>
+            ✉️ Te invitaron a {invitations[0]!.name}
+            {invitations.length > 1 ? ` y ${invitations.length - 1} hogar(es) más` : ''}. Tocá para
+            aceptar o rechazar.
+          </Text>
+        </TouchableOpacity>
+      )}
+
       {/* Scrollable recipe list — takes remaining space */}
       <UserMenu visible={menuOpen} onClose={() => setMenuOpen(false)} />
       <FlatList
@@ -266,8 +288,16 @@ export default function HomeScreen() {
 
 const makeStyles = (c: ThemeColors) =>
   StyleSheet.create({
+    invitationBanner: {
+      backgroundColor: c.terracottaSoft,
+      marginHorizontal: 16,
+      marginTop: 8,
+      borderRadius: 10,
+      padding: 12,
+    },
+    invitationText: { color: c.ink, fontSize: 14, lineHeight: 20 },
     container: { flex: 1, backgroundColor: c.paper },
-    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    center: { flex: 1, backgroundColor: c.paper, justifyContent: 'center', alignItems: 'center' },
     header: {
       paddingHorizontal: 16,
       paddingTop: 16,
