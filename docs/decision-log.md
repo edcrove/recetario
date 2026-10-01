@@ -77,7 +77,10 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
   against one adult's goal, so deltas and `goalFit` were inflated ~N×. Planned servings
   still drive the shopping list and scaling, not intake.
 - **Where it lives**: `packages/shared/src/dayNutrition.ts`, `routes/menu.ts`,
-  `DayNutritionSummary` ("Por persona"), MCP `getDayNutrition` description.
+  `DayNutritionSummary` ("Por persona"), MCP `getDayNutrition` description. Both views read
+  the same household-shared entries through `menuRepository.getNutritionInputs` and the
+  same `computeDayNutrition` rollup (2026-10-01 audit: the week used only the caller's own
+  entries).
 - **Status**: active — revisit when households track per-member portions.
 
 ### D-2026-10-01-6 · Household viewers are read-only on every shared surface

@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { MenuSlotSchema, MenuEntrySchema, CreateMenuEntrySchema, MenuWeekSchema } from './menu.js'
+import {
+  MenuSlotSchema,
+  MenuEntrySchema,
+  CreateMenuEntrySchema,
+  MenuWeekSchema,
+  addIsoDays,
+} from './menu.js'
 
 describe('MenuSlotSchema', () => {
   it.each(['Desayuno', 'Almuerzo', 'Merienda', 'Cena', 'Snacks/Otros'])(
@@ -95,5 +101,13 @@ describe('MenuWeekSchema', () => {
 
   it('rejects invalid weekStart format', () => {
     expect(() => MenuWeekSchema.parse({ weekStart: 'invalid', entries: [] })).toThrow()
+  })
+})
+
+describe('addIsoDays', () => {
+  it('shifts across month and year boundaries', () => {
+    expect(addIsoDays('2026-07-06', 6)).toBe('2026-07-12')
+    expect(addIsoDays('2026-12-28', 6)).toBe('2027-01-03')
+    expect(addIsoDays('2026-03-01', -1)).toBe('2026-02-28')
   })
 })

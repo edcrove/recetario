@@ -152,6 +152,32 @@ describe.skipIf(skip).sequential('Household sharing: reads and viewer enforcemen
       expect(entries.some((e) => e.recipeId === ownerRecipeId)).toBe(true)
     })
 
+    it('week nutrition counts the same household entries as the day rollup', async () => {
+      const putRes = await app.request(`/v1/recipes/${ownerRecipeId}`, {
+        method: 'PUT',
+        headers: auth(owner.token),
+        body: JSON.stringify({
+          nutrition: { calories: 400, protein_g: 20, carbs_g: 50, fat_g: 10 },
+        }),
+      })
+      expect(putRes.status).toBe(200)
+
+      // The member planned it; the owner's week and day views must both see it.
+      const weekRes = await app.request(`/v1/menu/nutrition?weekStart=${weekStart}`, {
+        headers: auth(owner.token),
+      })
+      const week = (await weekRes.json()) as { days: { date: string; calories: number }[] }
+      const tuesday = week.days.find((d) => d.date === '2026-07-07')
+
+      const dayRes = await app.request('/v1/menu/day-nutrition?date=2026-07-07', {
+        headers: auth(owner.token),
+      })
+      const day = (await dayRes.json()) as { totals: { calories: number } }
+
+      expect(tuesday?.calories).toBe(400)
+      expect(day.totals.calories).toBe(tuesday?.calories)
+    })
+
     it("the household's shopping list includes housemates' entries", async () => {
       const res = await app.request(`/v1/menu/shopping-list?weekStart=${weekStart}`, {
         headers: auth(owner.token),
