@@ -407,6 +407,14 @@ describe('recipeToFormState', () => {
     expect(form.steps).toEqual([{ text: 'Hervir' }, { text: 'Escurrir' }])
   })
 
+  it('maps food types and visibility, defaulting to none and private', () => {
+    expect(recipeToFormState(recipe).foodTypeIds).toEqual([])
+    expect(recipeToFormState(recipe).visibility).toBe('private')
+    const form = recipeToFormState({ ...recipe, foodTypeIds: ['ft-1'], visibility: 'public' })
+    expect(form.foodTypeIds).toEqual(['ft-1'])
+    expect(form.visibility).toBe('public')
+  })
+
   it('handles null notes', () => {
     const form = recipeToFormState({ ...recipe, notes: undefined })
     expect(form.notes).toBe('')
