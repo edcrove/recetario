@@ -127,8 +127,6 @@ export default function NewRecipeScreen() {
 
   return (
     <ScrollView style={st.container} contentContainerStyle={st.content}>
-      <Text style={st.heading}>Nueva Receta</Text>
-
       {/* Title */}
       <Text style={st.label}>Título *</Text>
       <TextInput
@@ -344,13 +342,6 @@ const makeStyles = (c: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: c.surface },
     content: { padding: 16, paddingBottom: 40 },
-    heading: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      marginBottom: 16,
-      fontFamily: fonts.display,
-      color: c.ink,
-    },
     label: { fontSize: 14, fontWeight: '600', marginBottom: 4, color: c.ink, marginTop: 12 },
     input: {
       borderWidth: 1,

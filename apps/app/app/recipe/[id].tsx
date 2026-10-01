@@ -293,7 +293,7 @@ const makeStyles = (c: ThemeColors) =>
     forkChipText: { color: c.sage, fontSize: 12.5, fontWeight: '600' },
     container: { flex: 1, backgroundColor: c.surface },
     content: { padding: 16 },
-    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    center: { flex: 1, backgroundColor: c.paper, justifyContent: 'center', alignItems: 'center' },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
     title: {
       fontSize: 24,

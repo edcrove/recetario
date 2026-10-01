@@ -107,7 +107,7 @@ const makeStyles = (c: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: c.surface },
     content: { padding: 20, paddingBottom: 40 },
-    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    center: { flex: 1, backgroundColor: c.paper, justifyContent: 'center', alignItems: 'center' },
     totalCard: {
       backgroundColor: c.terracottaSoft,
       borderRadius: 16,

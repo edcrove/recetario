@@ -258,7 +258,7 @@ export default function HomeScreen() {
 const makeStyles = (c: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: c.paper },
-    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    center: { flex: 1, backgroundColor: c.paper, justifyContent: 'center', alignItems: 'center' },
     header: {
       paddingHorizontal: 16,
       paddingTop: 16,
