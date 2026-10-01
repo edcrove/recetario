@@ -1,6 +1,6 @@
 import { createRouter } from './router.js'
 import { createRoute as defineRoute, z } from '@hono/zod-openapi'
-import { resolveCanonical, rankCookable } from '@recetario/shared'
+import { resolveCanonical, rankCookable, PantryItemSchema } from '@recetario/shared'
 import { pantryRepository } from '../db/pantry-repository.js'
 import { ingredientRepository } from '../db/ingredient-repository.js'
 import { authMiddleware } from '../middleware/auth.js'
@@ -13,15 +13,7 @@ pantryRoute.use('/pantry/*', authMiddleware)
 
 const errorSchema = z.object({ error: z.string() })
 
-const pantryItemSchema = z.object({
-  id: z.uuid(),
-  ownerId: z.string(),
-  name: z.string(),
-  quantity: z.string().nullable(),
-  unit: z.string().nullable(),
-  expiryDate: z.string().nullable(),
-  inStock: z.boolean(),
-})
+const pantryItemSchema = PantryItemSchema
 
 const createBody = z.object({
   name: z.string().min(1),

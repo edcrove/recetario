@@ -1,5 +1,6 @@
 import { createRouter } from './router.js'
 import { createRoute as defineRoute, z } from '@hono/zod-openapi'
+import { HouseholdMemberSchema, HouseholdSchema } from '@recetario/shared'
 import { eq, and, inArray, isNull } from 'drizzle-orm'
 import { getDb, schema } from '../db/index.js'
 import { emailMatches } from '../db/email.js'
@@ -12,22 +13,9 @@ householdsRoute.use('*', authMiddleware)
 
 const errorSchema = z.object({ error: z.string() })
 
-const memberSchema = z.object({
-  userId: z.uuid(),
-  role: z.enum(['owner', 'admin', 'member', 'viewer']),
-  invitedAt: z.string(),
-  acceptedAt: z.string().nullable(),
-  displayName: z.string().nullable().optional(),
-  email: z.string().optional(),
-})
+const memberSchema = HouseholdMemberSchema
 
-const householdSchema = z.object({
-  id: z.uuid(),
-  name: z.string(),
-  ownerId: z.uuid(),
-  createdAt: z.string(),
-  members: z.array(memberSchema).optional(),
-})
+const householdSchema = HouseholdSchema
 
 // POST /households
 const createRoute = defineRoute({
