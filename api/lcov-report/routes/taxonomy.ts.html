@@ -359,19 +359,12 @@
 <a name='L294'></a><a href='#L294'>294</a>
 <a name='L295'></a><a href='#L295'>295</a>
 <a name='L296'></a><a href='#L296'>296</a>
-<a name='L297'></a><a href='#L297'>297</a>
-<a name='L298'></a><a href='#L298'>298</a>
-<a name='L299'></a><a href='#L299'>299</a>
-<a name='L300'></a><a href='#L300'>300</a>
-<a name='L301'></a><a href='#L301'>301</a>
-<a name='L302'></a><a href='#L302'>302</a>
-<a name='L303'></a><a href='#L303'>303</a>
-<a name='L304'></a><a href='#L304'>304</a>
-<a name='L305'></a><a href='#L305'>305</a>
-<a name='L306'></a><a href='#L306'>306</a>
-<a name='L307'></a><a href='#L307'>307</a>
-<a name='L308'></a><a href='#L308'>308</a>
-<a name='L309'></a><a href='#L309'>309</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L297'></a><a href='#L297'>297</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -390,11 +383,6 @@
 <span class="cline-any cline-yes">16x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">16x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -437,13 +425,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">16x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">16x</span>
@@ -613,11 +594,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">16x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">16x</span>
@@ -681,7 +657,12 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { createRouter } from './router.js'
 import { createRoute as defineRoute, z } from '@hono/zod-openapi'
-import { RecipeSchema } from '@recetario/shared'
+import {
+  RecipeSchema,
+  FoodTypeSchema,
+  CollectionSchema,
+  RecipeRelationSchema,
+} from '@recetario/shared'
 import { taxonomyRepository } from '../db/taxonomy-repository.js'
 import { authMiddleware } from '../middleware/auth.js'
 import { recipeRepository } from '../db/repository.js'
@@ -695,12 +676,7 @@ for (const path of ['/food-types', '/collections', '/collections/*', '/recipes/:
 &nbsp;
 const errorSchema = z.object({ error: z.string() })
 &nbsp;
-const foodTypeSchema = z.object({
-  id: z.uuid(),
-  name: z.string(),
-  slug: z.string(),
-  isSystem: z.boolean(),
-})
+const foodTypeSchema = FoodTypeSchema
 &nbsp;
 // GET /v1/food-types
 taxonomyRoute.openapi(
@@ -744,14 +720,7 @@ taxonomyRoute.openapi(
   },
 )
 &nbsp;
-const collectionSchema = z.object({
-  id: z.uuid(),
-  name: z.string(),
-  emoji: z.string().nullable(),
-  description: z.string().nullable(),
-  recipeCount: z.number().int(),
-  createdAt: z.string(),
-})
+const collectionSchema = CollectionSchema
 &nbsp;
 // GET /v1/collections
 taxonomyRoute.openapi(
@@ -920,12 +889,7 @@ taxonomyRoute.openapi(
   },
 )
 &nbsp;
-const relationSchema = z.object({
-  fromId: z.uuid(),
-  toId: z.uuid(),
-  relationType: z.enum(['similar', 'variation', 'inspiration']),
-  createdBy: z.string(),
-})
+const relationSchema = RecipeRelationSchema
 &nbsp;
 // POST /v1/recipes/:id/relations
 taxonomyRoute.openapi(
@@ -994,7 +958,7 @@ taxonomyRoute.openapi(
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-10-01T10:58:49.427Z
+                at 2026-10-01T11:15:46.153Z
             </div>
         <script src="../prettify.js"></script>
         <script>
