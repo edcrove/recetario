@@ -323,7 +323,14 @@ export class RecipeRepository {
 
   async search(
     owner: string | string[],
-    q: { q?: string; tag?: string; category?: string; ingredient?: string; dietary?: string },
+    q: {
+      q?: string
+      tag?: string
+      category?: string
+      ingredient?: string
+      dietary?: string
+      foodTypeId?: string
+    },
   ): Promise<Recipe[]> {
     const db = this.db
 
@@ -339,6 +346,18 @@ export class RecipeRepository {
 
     if (q.tag) {
       conditions.push(sql`${schema.recipes.tags}::jsonb @> ${JSON.stringify([q.tag])}::jsonb`)
+    }
+
+    if (q.foodTypeId) {
+      conditions.push(
+        inArray(
+          schema.recipes.id,
+          db
+            .select({ id: schema.recipeFoodTypes.recipeId })
+            .from(schema.recipeFoodTypes)
+            .where(eq(schema.recipeFoodTypes.foodTypeId, q.foodTypeId)),
+        ),
+      )
     }
 
     /* v8 ignore next -- the whole if; covered by integration tests */

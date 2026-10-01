@@ -14,18 +14,56 @@ test.describe('Recipes: search and filter', () => {
     await page.getByPlaceholder(/buscar recetas/i).clear()
   })
 
-  test('filter chip filters by food type', async ({ page }) => {
-    // Click first non-"Todas" chip
-    const chips = page
-      .locator('text=/Bebida|Carne|Ensalada|Guiso|Minuta|Panificado|Pasta|Postre/')
-      .first()
-    const hasChip = await chips.count()
-    if (hasChip > 0) {
-      await chips.click()
-      // Something should still be visible (filtered list or empty message)
-      await expect(page.getByText(/receta|recetas|Agregar/i).first()).toBeVisible({ timeout: 5000 })
-      // Reset
-      await page.getByText('Todas').click()
+  test('food-type chip filters the list with and without a search term', async ({ page }) => {
+    const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
+    const token = await page.evaluate(() => localStorage.getItem('auth_token'))
+    const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+    const ftRes = await page.request.get(`${API_URL}/v1/food-types`, { headers })
+    const [typeA, typeB] = (await ftRes.json()) as Array<{ id: string; name: string }>
+    expect(typeA && typeB).toBeTruthy()
+
+    const stamp = Date.now()
+    const create = async (title: string, foodTypeId: string) => {
+      const res = await page.request.post(`${API_URL}/v1/recipes`, {
+        headers,
+        data: {
+          title,
+          servings: 2,
+          category: 'Cena',
+          foodTypeIds: [foodTypeId],
+          ingredients: [{ name: 'sal', quantity: 1, unit: 'g' }],
+        },
+      })
+      expect(res.ok(), await res.text()).toBe(true)
+      return ((await res.json()) as { id: string }).id
+    }
+    const titleA = `E2E Chip A ${stamp}`
+    const titleB = `E2E Chip B ${stamp}`
+    const ids = [await create(titleA, typeA!.id), await create(titleB, typeB!.id)]
+
+    try {
+      await page.reload()
+      const search = page.getByPlaceholder(/buscar recetas/i)
+      await search.fill(`E2E Chip`)
+      await expect(page.getByText(titleA)).toBeVisible({ timeout: 8000 })
+      await expect(page.getByText(titleB)).toBeVisible()
+
+      // Chip + search term: only the matching type survives
+      await page.getByTestId(`home-type-chip-${typeA!.id}`).click()
+      await expect(page.getByText(titleB)).toHaveCount(0, { timeout: 8000 })
+      await expect(page.getByText(titleA)).toBeVisible()
+
+      // Chip alone (no search term) still filters
+      await search.clear()
+      await expect(page.getByText(titleA)).toBeVisible({ timeout: 8000 })
+      await expect(page.getByText(titleB)).toHaveCount(0)
+
+      // "Todas" clears the food-type filter
+      await page.getByTestId('home-type-chip-all').click()
+      await search.fill(`E2E Chip`)
+      await expect(page.getByText(titleB)).toBeVisible({ timeout: 8000 })
+    } finally {
+      for (const id of ids) await page.request.delete(`${API_URL}/v1/recipes/${id}`, { headers })
     }
   })
 })
