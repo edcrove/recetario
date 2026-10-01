@@ -21,7 +21,8 @@ import {
   formatTimeDifficulty,
   filterByTimeDifficulty,
 } from '../src/utils/recipeMeta'
-import { getEmptyMessage, getQueryFnKey } from '../src/utils/homeScreen'
+import { getEmptyMessage, getQueryFnKey, isFirstRun } from '../src/utils/homeScreen'
+import { WelcomeCard } from '../src/components/WelcomeCard'
 import { useAuth } from '../src/providers/AuthProvider'
 import { UserMenu } from '../src/components/UserMenu'
 import { getWeekStart } from '../src/utils/weekMath'
@@ -283,9 +284,13 @@ export default function HomeScreen() {
           </TouchableOpacity>
         )}
         ListEmptyComponent={
-          <Text style={styles.empty}>
-            {getEmptyMessage(query, visibleRecipes, hasActiveFilters)}
-          </Text>
+          isFirstRun(query, visibleRecipes, hasActiveFilters) ? (
+            <WelcomeCard />
+          ) : (
+            <Text style={styles.empty}>
+              {getEmptyMessage(query, visibleRecipes, hasActiveFilters)}
+            </Text>
+          )
         }
       />
     </View>

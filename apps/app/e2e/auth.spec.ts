@@ -134,6 +134,20 @@ test.describe('Auth: register', () => {
     ).toBeVisible({ timeout: 15000 })
   })
 
+  test('a brand-new account gets the welcome card and can open the library', async ({ page }) => {
+    const email = `nuevo+${Date.now()}@recetario.app`
+    await page.goto('/auth/register')
+    await page.getByPlaceholder('vos@ejemplo.com').fill(email)
+    await page.getByPlaceholder('Mínimo 8 caracteres').fill('test12345')
+    await page.getByPlaceholder('Repetí la contraseña').fill('test12345')
+    await page.getByTestId('auth-register-submit').click()
+    await expect(page.getByTestId('welcome-card')).toBeVisible({ timeout: 15000 })
+    await expect(page.getByTestId('welcome-new-recipe')).toBeVisible()
+    await expect(page.getByTestId('welcome-profile')).toBeVisible()
+    await page.getByTestId('welcome-library').click()
+    await expect(page).toHaveURL(/\/library/, { timeout: 10000 })
+  })
+
   test('shows error when email already registered', async ({ page }) => {
     // Register once via API to guarantee the email exists
     const dupEmail = `dup+${Date.now()}@recetario.app`

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getEmptyMessage, getQueryFnKey } from '../utils/homeScreen'
+import { getEmptyMessage, isFirstRun, getQueryFnKey } from '../utils/homeScreen'
 import type { Recipe } from '@recetario/shared'
 
 const baseRecipe: Recipe = {
@@ -53,5 +53,15 @@ describe('HomeScreen logic', () => {
   it('calls search when a food type is selected, even without a query', () => {
     expect(getQueryFnKey('', 'ft-1')).toBe('search')
     expect(getQueryFnKey('pasta', 'ft-1')).toBe('search')
+  })
+})
+
+describe('isFirstRun', () => {
+  it('is true only with no recipes, no query and no filters', () => {
+    expect(isFirstRun('', [], false)).toBe(true)
+    expect(isFirstRun('', [])).toBe(true)
+    expect(isFirstRun('pollo', [], false)).toBe(false)
+    expect(isFirstRun('', [], true)).toBe(false)
+    expect(isFirstRun('', [{ id: 'x' } as never], false)).toBe(false)
   })
 })
