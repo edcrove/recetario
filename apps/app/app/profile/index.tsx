@@ -238,6 +238,7 @@ export default function ProfileScreen() {
           return (
             <TouchableOpacity
               key={opt}
+              testID={`profile-diet-chip-${opt}`}
               style={[s.chip, active && s.chipActive]}
               onPress={() => toggleDiet(opt)}
             >

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getEmptyMessage, isFirstRun, getQueryFnKey } from '../utils/homeScreen'
+import { getEmptyMessage, isFirstRun, getQueryFnKey, homeSearchParams } from '../utils/homeScreen'
 import type { Recipe } from '@recetario/shared'
 
 const baseRecipe: Recipe = {
@@ -63,5 +63,28 @@ describe('isFirstRun', () => {
     expect(isFirstRun('pollo', [], false)).toBe(false)
     expect(isFirstRun('', [], true)).toBe(false)
     expect(isFirstRun('', [{ id: 'x' } as never], false)).toBe(false)
+  })
+})
+
+// Story "App: dietary tags picker in recipe form + allergen warning": "Home
+// screen: dietary filter in search combines with food type filter".
+describe('home diet filter', () => {
+  it('a diet alone goes through search (the list endpoint cannot filter by diet)', () => {
+    expect(getQueryFnKey('', null, 'vegano')).toBe('search')
+    expect(getQueryFnKey('', null, null)).toBe('list')
+  })
+
+  it('combines text, food type and diet in one search', () => {
+    expect(homeSearchParams(' tarta ', 'ft-1', 'sin-gluten')).toEqual({
+      q: 'tarta',
+      foodTypeId: 'ft-1',
+      dietary: 'sin-gluten',
+    })
+  })
+
+  it('leaves unset filters out instead of sending them empty', () => {
+    expect(homeSearchParams('', null, 'vegano')).toEqual({ dietary: 'vegano' })
+    expect(homeSearchParams('  ', 'ft-1', null)).toEqual({ foodTypeId: 'ft-1' })
+    expect(homeSearchParams('', null, null)).toEqual({})
   })
 })

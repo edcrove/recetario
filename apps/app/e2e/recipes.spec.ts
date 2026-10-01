@@ -449,3 +449,70 @@ test.describe('Recipes: times & difficulty', () => {
     await expect(page.getByText(recipeName)).toHaveCount(0)
   })
 })
+
+// Story "App: dietary tags picker in recipe form + allergen warning": "Home
+// screen: dietary filter in search combines with food type filter".
+test.describe('Home: diet filter combined with food type', () => {
+  test('vegan + a food type shows only the vegan recipes of that type', async ({ page }) => {
+    const token = await page.evaluate(() => localStorage.getItem('auth_token'))
+    const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+    const types = (await (
+      await page.request.get(`${API_URL}/v1/food-types`, { headers })
+    ).json()) as { id: string; name: string }[]
+    const type = types[0]! // shown among the home chips
+    const stamp = `Dieta${Date.now()}`
+    const created: string[] = []
+    const make = async (title: string, dietaryTags: string[], withType: boolean) => {
+      const res = await page.request.post(`${API_URL}/v1/recipes`, {
+        headers,
+        data: {
+          title: `${stamp} ${title}`,
+          servings: 2,
+          category: 'Cena',
+          ingredients: [{ name: 'banana', quantity: 1, unit: 'unit' }],
+          steps: [{ text: 'Servir.' }],
+          dietaryTags,
+          ...(withType ? { foodTypeIds: [type.id] } : {}),
+        },
+      })
+      expect(res.ok()).toBe(true)
+      created.push(((await res.json()) as { id: string }).id)
+    }
+    try {
+      await make('vegana del tipo', ['vegano'], true)
+      await make('no vegana del tipo', [], true)
+      await make('vegana de otro tipo', ['vegano'], false)
+
+      await page.goto('/')
+      await page.getByPlaceholder(/buscar recetas/i).fill(stamp)
+      await expect(page.getByText(`${stamp} vegana del tipo`)).toBeVisible()
+      await expect(page.getByText(new RegExp(stamp))).toHaveCount(3)
+
+      await page.getByTestId(`home-type-chip-${type.id}`).click()
+      await expect(page.getByText(new RegExp(stamp))).toHaveCount(2)
+      await page.getByTestId('home-diet-chip-vegano').click()
+      await expect(page.getByText(new RegExp(stamp))).toHaveCount(1)
+      // The selected diet is highlighted (chip and label), the others are not
+      const look = (tag: string) =>
+        page.getByTestId(`home-diet-chip-${tag}`).evaluate((el) => {
+          const text = el.querySelector('div') ?? el
+          return [getComputedStyle(el).backgroundColor, getComputedStyle(text).color]
+        })
+      const [on, off] = await Promise.all([look('vegano'), look('keto')])
+      expect(on[0]).not.toBe(off[0])
+      expect(on[1]).not.toBe(off[1])
+      await expect(page.getByText(`${stamp} vegana del tipo`)).toBeVisible()
+
+      // "Todas" clears both filters
+      await page.getByTestId('home-type-chip-all').click()
+      await expect(page.getByText(new RegExp(stamp))).toHaveCount(3)
+      await expect(page.getByTestId('home-diet-chip-vegano')).toHaveAttribute(
+        'aria-selected',
+        'false',
+      )
+    } finally {
+      for (const id of created)
+        await page.request.delete(`${API_URL}/v1/recipes/${id}`, { headers })
+    }
+  })
+})

@@ -60,8 +60,15 @@ test.describe('Profile screen', () => {
     await page.getByTestId('home-profile-button').click()
     await page.getByTestId('usermenu-item-0').click()
     await expect(page.getByText('Preferencias dietéticas').first()).toBeVisible()
-    await page.getByText('vegano').click()
-    // Toggling doesn't crash the screen
+    // Scoped by testID: the home screen (still mounted under the stack) has its own "vegano" chip
+    const saved = page.waitForResponse(
+      (r) => r.url().endsWith('/auth/profile') && r.request().method() === 'PATCH',
+    )
+    await page.getByTestId('profile-diet-chip-vegano').click()
+    const body = (await (await saved).request().postDataJSON()) as {
+      dietaryRestrictions: string[]
+    }
+    expect(body.dietaryRestrictions).toContain('vegano')
     await expect(page.getByText('Preferencias dietéticas').first()).toBeVisible()
   })
 

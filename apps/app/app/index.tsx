@@ -13,7 +13,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { api } from '../src/api/client'
 import { ErrorState } from '../src/components/ErrorState'
-import type { Recipe, RecipeDifficulty } from '@recetario/shared'
+import { DIETARY_TAGS, type Recipe, type RecipeDifficulty } from '@recetario/shared'
 import { macroStrip } from '../src/utils/macroStrip'
 import {
   DIFFICULTIES,
@@ -21,7 +21,13 @@ import {
   formatTimeDifficulty,
   filterByTimeDifficulty,
 } from '../src/utils/recipeMeta'
-import { getEmptyMessage, getQueryFnKey, isFirstRun } from '../src/utils/homeScreen'
+import {
+  getEmptyMessage,
+  getQueryFnKey,
+  homeSearchParams,
+  isFirstRun,
+} from '../src/utils/homeScreen'
+import { DIETARY_LABELS } from '../src/utils/allergenCheck'
 import { WelcomeCard } from '../src/components/WelcomeCard'
 import { useAuth } from '../src/providers/AuthProvider'
 import { UserMenu } from '../src/components/UserMenu'
@@ -36,6 +42,7 @@ export default function HomeScreen() {
   const router = useRouter()
   const { token, userId } = useAuth()
   const [activeType, setActiveType] = useState<string | null>(null)
+  const [dietary, setDietary] = useState<string | null>(null)
   const [maxTotalTime, setMaxTotalTime] = useState<number | null>(null)
   const [difficulty, setDifficulty] = useState<RecipeDifficulty | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -60,13 +67,10 @@ export default function HomeScreen() {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['recipes', query, activeType],
+    queryKey: ['recipes', query, activeType, dietary],
     queryFn: () =>
-      getQueryFnKey(query, activeType) === 'search'
-        ? api.recipes.search({
-            ...(query.trim() ? { q: query.trim() } : {}),
-            ...(activeType ? { foodTypeId: activeType } : {}),
-          })
+      getQueryFnKey(query, activeType, dietary) === 'search'
+        ? api.recipes.search(homeSearchParams(query, activeType, dietary))
         : api.recipes.list({ limit: 50 }),
     placeholderData: (prev) => prev,
   })
@@ -76,7 +80,8 @@ export default function HomeScreen() {
     ...(difficulty != null && { difficulty }),
   })
 
-  const hasActiveFilters = activeType != null || maxTotalTime != null || difficulty != null
+  const hasActiveFilters =
+    activeType != null || dietary != null || maxTotalTime != null || difficulty != null
 
   // Only show full-screen loader on first load, not on subsequent searches
   if (isLoading && recipes.length === 0)
@@ -218,6 +223,7 @@ export default function HomeScreen() {
                   onPress={() => {
                     // "Todas" clears every filter, not just the food type
                     setActiveType(null)
+                    setDietary(null)
                     setMaxTotalTime(null)
                     setDifficulty(null)
                   }}
@@ -250,6 +256,29 @@ export default function HomeScreen() {
                 ))}
               </ScrollView>
             )}
+            {/* Diet combines with the food type (and the search text) */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.filterScroll}
+              contentContainerStyle={styles.filterRow}
+            >
+              {DIETARY_TAGS.map((tag) => (
+                <TouchableOpacity
+                  key={tag}
+                  testID={`home-diet-chip-${tag}`}
+                  aria-selected={dietary === tag}
+                  style={[styles.filterChip, dietary === tag && styles.filterChipActive]}
+                  onPress={() => setDietary(dietary === tag ? null : tag)}
+                >
+                  <Text
+                    style={[styles.filterChipText, dietary === tag && styles.filterChipTextActive]}
+                  >
+                    {DIETARY_LABELS[tag]}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
