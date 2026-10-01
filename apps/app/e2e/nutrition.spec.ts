@@ -152,3 +152,45 @@ test('the planner day summary flags datos incompletos with a mixed day', async (
     await page.request.delete(`${API_URL}/v1/recipes/${b.id}`, { headers })
   }
 })
+
+test('planning a dish from the app refreshes the day summary without a reload', async ({
+  page,
+}) => {
+  const headers = await authHeaders(page)
+  const res = await page.request.post(`${API_URL}/v1/recipes`, {
+    headers,
+    data: {
+      title: `E2E Refresco ${Date.now()}`,
+      servings: 2,
+      category: 'Snack',
+      ingredients: [{ name: 'x', quantity: 1, unit: 'g' }],
+      nutrition: { calories: 333, protein_g: 3, carbs_g: 3, fat_g: 3 },
+    },
+  })
+  const recipe = (await res.json()) as { id: string; title: string }
+  const now = new Date()
+  const today = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0'),
+  ].join('-')
+  try {
+    await page.goto('/menu')
+    await page.getByTestId(`menu-add-${today}-Merienda`).click()
+    await page.getByPlaceholder('Buscar receta...').fill(recipe.title)
+    await page.getByTestId(`pick-recipe-${recipe.id}`).click()
+    // Back on the planner (client-side): the summary includes the new dish
+    await expect(page.getByTestId(`day-nutrition-${today}`)).toContainText(/kcal/, {
+      timeout: 10000,
+    })
+    const day = (await (
+      await page.request.get(`${API_URL}/v1/menu/day-nutrition?date=${today}`, { headers })
+    ).json()) as { totals: { calories: number } }
+    await expect(page.getByTestId(`day-nutrition-${today}`)).toContainText(
+      `${day.totals.calories} kcal`,
+    )
+  } finally {
+    await page.request.delete(`${API_URL}/v1/menu/${today}/Merienda/${recipe.id}`, { headers })
+    await page.request.delete(`${API_URL}/v1/recipes/${recipe.id}`, { headers })
+  }
+})

@@ -13,7 +13,7 @@ import { useRouter } from 'expo-router'
 import { api } from '../../src/api/client'
 import { macroStrip } from '../../src/utils/macroStrip'
 import { splitSuggestions, type Suggestion } from '../../src/utils/fridgeSections'
-import { getWeekStart } from '../../src/utils/weekMath'
+import { getWeekStart, localIsoDate } from '../../src/utils/weekMath'
 import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 
 type Tab = 'cocinar' | 'semana'
@@ -39,7 +39,7 @@ export default function HeladeraScreen() {
     .slice(0, 8)
 
   // Today's remaining goal drives the goalFit badge on each card.
-  const today = new Date().toISOString().slice(0, 10)
+  const today = localIsoDate(new Date())
   const suggestions = useQuery({
     queryKey: ['suggestions', have],
     queryFn: () => api.suggestions.fromIngredients({ ingredients: have, date: today }),

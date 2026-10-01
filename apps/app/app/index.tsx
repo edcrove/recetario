@@ -96,6 +96,8 @@ export default function HomeScreen() {
           <View style={styles.headerIcons}>
             <TouchableOpacity
               testID="home-collections-button"
+              accessibilityRole="button"
+              accessibilityLabel="Colecciones"
               style={styles.iconButton}
               onPress={() => router.push('/collections')}
             >
@@ -103,6 +105,8 @@ export default function HomeScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               testID="home-profile-button"
+              accessibilityRole="button"
+              accessibilityLabel="Mi perfil"
               style={styles.iconButton}
               onPress={() => setMenuOpen(true)}
             >

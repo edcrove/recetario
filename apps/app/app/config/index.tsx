@@ -12,6 +12,7 @@ import {
 } from 'react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../src/api/client'
+import { deleteModalTitle } from '../../src/utils/configModal'
 import { notify } from '../../src/utils/platformAlert'
 import { IngredientsPanel } from '../../src/components/IngredientsPanel'
 import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
@@ -137,6 +138,8 @@ export default function ConfiguratorScreen() {
                 <View style={s.itemActions}>
                   <TouchableOpacity
                     testID={`config-edit-${item.id}`}
+                    accessibilityRole="button"
+                    accessibilityLabel="Renombrar"
                     style={s.actionBtn}
                     onPress={() => {
                       setEditingItem(item)
@@ -148,6 +151,8 @@ export default function ConfiguratorScreen() {
                   {item.isDeletable && (
                     <TouchableOpacity
                       testID={`config-delete-${item.id}`}
+                      accessibilityRole="button"
+                      accessibilityLabel="Eliminar"
                       style={s.actionBtnDanger}
                       onPress={() => setDeleteTarget(item)}
                     >
@@ -157,6 +162,8 @@ export default function ConfiguratorScreen() {
                   {!item.isDeletable && item.usageCount > 0 && (
                     <TouchableOpacity
                       testID={`config-delete-${item.id}`}
+                      accessibilityRole="button"
+                      accessibilityLabel="Eliminar o reasignar"
                       style={s.actionBtnWarning}
                       onPress={() => setDeleteTarget(item)}
                     >
@@ -208,23 +215,32 @@ export default function ConfiguratorScreen() {
           <Modal visible={!!deleteTarget} transparent animationType="slide">
             <View style={s.modalOverlay}>
               <View style={s.modalCard}>
-                <Text style={s.modalTitle}>
-                  {deleteTarget?.isDeletable
-                    ? 'Eliminar'
-                    : `"${deleteTarget?.name}" está en ${deleteTarget?.usageCount} receta(s)`}
-                </Text>
+                <Text style={s.modalTitle}>{deleteModalTitle(deleteTarget)}</Text>
                 {!deleteTarget?.isDeletable && (
                   <>
                     <Text style={s.modalSubtitle}>Elige qué hacer:</Text>
-                    <Text style={s.modalLabel}>Reasignar a (ID del reemplazo):</Text>
-                    <TextInput
-                      placeholderTextColor={colors.inkSoft}
-                      style={s.modalInput}
-                      value={reassignId}
-                      onChangeText={setReassignId}
-                      placeholder="UUID del ítem destino"
-                      autoCapitalize="none"
-                    />
+                    <Text style={s.modalLabel}>Pasar sus recetas a (opcional):</Text>
+                    <ScrollView style={s.reassignList} contentContainerStyle={s.reassignRow}>
+                      {currentItems
+                        .filter((it) => it.id !== deleteTarget?.id)
+                        .map((it) => (
+                          <TouchableOpacity
+                            key={it.id}
+                            testID={`config-reassign-${it.id}`}
+                            style={[s.reassignChip, reassignId === it.id && s.reassignChipOn]}
+                            onPress={() => setReassignId(reassignId === it.id ? '' : it.id)}
+                          >
+                            <Text
+                              style={[
+                                s.reassignChipText,
+                                reassignId === it.id && s.reassignChipTextOn,
+                              ]}
+                            >
+                              {it.name}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                    </ScrollView>
                   </>
                 )}
                 <View style={s.modalActions}>
@@ -270,6 +286,17 @@ export default function ConfiguratorScreen() {
 
 const makeStyles = (c: ThemeColors) =>
   StyleSheet.create({
+    reassignList: { maxHeight: 160, marginBottom: 8 },
+    reassignRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+    reassignChip: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+      backgroundColor: c.sand,
+    },
+    reassignChipOn: { backgroundColor: c.terracotta },
+    reassignChipText: { color: c.ink, fontSize: 13 },
+    reassignChipTextOn: { color: c.terracottaInk, fontWeight: '700' },
     container: { flex: 1, backgroundColor: c.surface },
     center: { flex: 1, backgroundColor: c.paper, justifyContent: 'center', alignItems: 'center' },
     tabScroll: { borderBottomWidth: 1, borderColor: c.sand, flexGrow: 0 },

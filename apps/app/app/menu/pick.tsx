@@ -12,6 +12,8 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { api } from '../../src/api/client'
+import { invalidateMenuWeek } from '../../src/utils/menuCache'
+import { formatDate } from '../../src/utils/weekMath'
 import { notify } from '../../src/utils/platformAlert'
 import { AllergenBadge } from '../../src/components/AllergenBadge'
 import type { Recipe, RecipeDifficulty } from '@recetario/shared'
@@ -59,7 +61,7 @@ export default function PickRecipeScreen() {
         servings,
       }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['menu', weekStart] })
+      invalidateMenuWeek(queryClient, weekStart)
       router.back()
     },
     onError: () => notify('Error', 'No se pudo agregar la receta al menú.'),
@@ -69,7 +71,7 @@ export default function PickRecipeScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text testID="pick-header-slot-date" style={styles.subtitle}>
-          {slot} · {date}
+          {[slot, date ? formatDate(date) : null].filter(Boolean).join(' · ') || 'Elegí una receta'}
         </Text>
         <View style={styles.servingsRow}>
           <Text style={styles.servingsLabel}>Porciones:</Text>

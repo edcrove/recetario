@@ -296,28 +296,48 @@ test.describe('Cook mode: full session flows', () => {
   })
 
   test('speech toggle switches the speaker icon on and off', async ({ page }) => {
+    // Headless Chromium's speechSynthesis is erratic (CI) or missing (local), so
+    // install a deterministic fake that "speaks" until cancelled.
+    await page.addInitScript(() => {
+      type Utterance = { text: string; onstart?: () => void; onend?: () => void }
+      let current: Utterance | null = null
+      const fake = {
+        speaking: false,
+        pending: false,
+        paused: false,
+        speak(u: Utterance) {
+          current = u
+          fake.speaking = true
+          u.onstart?.()
+        },
+        cancel() {
+          const u = current
+          current = null
+          fake.speaking = false
+          u?.onend?.()
+        },
+        pause() {},
+        resume() {},
+        getVoices: () => [],
+        addEventListener() {},
+        removeEventListener() {},
+      }
+      Object.defineProperty(window, 'speechSynthesis', { value: fake, configurable: true })
+      ;(window as unknown as { SpeechSynthesisUtterance: unknown }).SpeechSynthesisUtterance =
+        class {
+          constructor(public text: string) {}
+        }
+    })
     const recipe = await createRecipe(page)
     await openCookMode(page, recipe.title)
     // Click via testID and assert via text content: CI's headless linux lacks
-    // a color-emoji font, so the glyph box is zero-width there — text-based
-    // clicks fail actionability and toBeVisible fails the bounding-box check.
+    // a color-emoji font, so the glyph box is zero-width there.
     const speechBtn = page.getByTestId('cook-speech-toggle')
     await expect(speechBtn).toHaveText('🔈', { timeout: 5000 })
     await speechBtn.click()
-
-    if (process.env['CI']) {
-      // CI's headless speechSynthesis is erratic (present but sometimes never
-      // flips state, three separate incidents): the click above still executes
-      // toggleSpeech either way — just prove cook mode survived, and toggle
-      // back off if it did flip.
-      await page.waitForTimeout(400)
-      await expect(page.getByText(/Paso 1 \/ /)).toBeVisible()
-      if ((await speechBtn.textContent()) === '🔊') await speechBtn.click()
-    } else {
-      await expect(speechBtn).toHaveText('🔊', { timeout: 5000 })
-      await speechBtn.click()
-      await expect(speechBtn).toHaveText('🔈', { timeout: 5000 })
-    }
+    await expect(speechBtn).toHaveText('🔊', { timeout: 5000 })
+    await speechBtn.click()
+    await expect(speechBtn).toHaveText('🔈', { timeout: 5000 })
   })
 
   // duration_seconds allows a short real timer, so no fake clock is needed —

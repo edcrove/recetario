@@ -200,6 +200,8 @@ export default function HouseholdScreen() {
                 {m.role !== 'owner' && canManageMembers && (
                   <TouchableOpacity
                     testID={`household-remove-member-${m.userId}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Quitar a ${memberLabel(m)}`}
                     onPress={async () => {
                       const confirmed = await confirmAsync(
                         'Quitar miembro',

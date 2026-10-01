@@ -137,7 +137,12 @@ export default function CookModeScreen() {
   if (total === 0)
     return (
       <SafeAreaView style={s.container}>
-        <TouchableOpacity style={s.closeBtn} onPress={leave}>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Salir del modo cocina"
+          style={s.closeBtn}
+          onPress={leave}
+        >
           <Text style={s.closeBtnText}>✕</Text>
         </TouchableOpacity>
         <View style={s.center}>
@@ -149,14 +154,26 @@ export default function CookModeScreen() {
   return (
     <SafeAreaView style={s.container}>
       <View style={s.topBar}>
-        <TouchableOpacity testID="cook-exit" style={s.closeBtn} onPress={() => void requestExit()}>
+        <TouchableOpacity
+          testID="cook-exit"
+          accessibilityRole="button"
+          accessibilityLabel="Salir del modo cocina"
+          style={s.closeBtn}
+          onPress={() => void requestExit()}
+        >
           <Text style={s.closeBtnText}>✕</Text>
         </TouchableOpacity>
         <Text style={s.counter}>
           {tab === 'steps' ? `Paso ${stepIndex + 1} / ${total}` : 'Ingredientes'}
         </Text>
         {tab === 'steps' ? (
-          <TouchableOpacity testID="cook-speech-toggle" style={s.closeBtn} onPress={toggleSpeech}>
+          <TouchableOpacity
+            testID="cook-speech-toggle"
+            accessibilityRole="button"
+            accessibilityLabel={isSpeaking ? 'Dejar de leer' : 'Leer el paso en voz alta'}
+            style={s.closeBtn}
+            onPress={toggleSpeech}
+          >
             <Text style={[s.closeBtnText, isSpeaking && s.speakingIcon]}>
               {isSpeaking ? '🔊' : '🔈'}
             </Text>
@@ -228,6 +245,8 @@ export default function CookModeScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 testID="cook-timer-reset"
+                accessibilityRole="button"
+                accessibilityLabel="Reiniciar timer"
                 style={s.timerBtn}
                 onPress={() => timers.reset(stepIndex)}
               >

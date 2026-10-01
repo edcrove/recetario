@@ -234,19 +234,55 @@ test.describe('Config (taxonomy) screen', () => {
     await expect(page.getByTestId('config-rename-cancel')).not.toBeVisible({ timeout: 5000 })
   })
 
-  test('deleting an item offers cancel, which closes the modal', async ({ page }) => {
-    await page.getByTestId('home-profile-button').click()
-    await page.getByText('Configuración de taxonomía').click()
-    await expect(page.getByTestId('config-tab-food-types')).toBeVisible({ timeout: 8000 })
-    await page.getByTestId('config-tab-food-types').click()
-    const deleteBtn = page.locator('[data-testid^="config-delete-"]').first()
-    // Deletable/warning action only renders for non-system items or items already
-    // linked to a recipe — the seeded system food types may have neither right now.
-    if ((await deleteBtn.count()) === 0) return
-    await deleteBtn.click()
-    await expect(page.getByTestId('config-delete-cancel')).toBeVisible({ timeout: 5000 })
-    await page.getByTestId('config-delete-cancel').click()
-    await expect(page.getByTestId('config-delete-cancel')).not.toBeVisible({ timeout: 5000 })
+  test('a used food type can be reassigned by name before deleting it', async ({ page }) => {
+    const API = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
+    const token = await page.evaluate(() => localStorage.getItem('auth_token'))
+    const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+    const stamp = Date.now()
+    const mk = async (name: string) =>
+      (await (
+        await page.request.post(`${API}/v1/food-types`, { headers, data: { name } })
+      ).json()) as { id: string }
+    const from = await mk(`E2E Viejo ${stamp}`)
+    const to = await mk(`E2E Nuevo ${stamp}`)
+    const recipe = (await (
+      await page.request.post(`${API}/v1/recipes`, {
+        headers,
+        data: {
+          title: `E2E Reasignar ${stamp}`,
+          servings: 2,
+          category: 'Cena',
+          foodTypeIds: [from.id],
+          ingredients: [{ name: 'sal', quantity: 1, unit: 'g' }],
+        },
+      })
+    ).json()) as { id: string }
+    try {
+      await page.getByTestId('home-profile-button').click()
+      await page.getByText('Configuración de taxonomía').click()
+      await page.getByTestId('config-tab-food-types').click()
+      await page.getByTestId(`config-delete-${from.id}`).click()
+      await expect(page.getByText(`"E2E Viejo ${stamp}" está en 1 receta`)).toBeVisible()
+
+      // cancel first, then reassign to the other type by name
+      await page.getByTestId('config-delete-cancel').click()
+      await expect(page.getByTestId('config-delete-cancel')).not.toBeVisible()
+      await page.getByTestId(`config-delete-${from.id}`).click()
+      await page.getByTestId(`config-reassign-${to.id}`).click()
+      await page.getByTestId(`config-reassign-${to.id}`).click() // toggles off
+      await page.getByTestId(`config-reassign-${to.id}`).click()
+      await expect(page.getByText('Reasignar y eliminar')).toBeVisible()
+      await page.getByTestId('config-delete-confirm').click()
+      await expect(page.getByTestId(`config-delete-${from.id}`)).toHaveCount(0, { timeout: 8000 })
+
+      const after = (await (
+        await page.request.get(`${API}/v1/recipes/${recipe.id}`, { headers })
+      ).json()) as { foodTypeIds: string[] }
+      expect(after.foodTypeIds).toEqual([to.id])
+    } finally {
+      await page.request.delete(`${API}/v1/recipes/${recipe.id}`, { headers })
+      await page.request.delete(`${API}/v1/config/food-types/${to.id}`, { headers })
+    }
   })
 })
 
