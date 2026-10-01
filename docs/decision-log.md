@@ -172,6 +172,20 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
   MCP `changeHouseholdMemberRole` / `leaveHousehold`, `apps/app/app/household/index.tsx`.
 - **Status**: active · revisit when ownership transfer is built
 
+### D-2026-10-01-14 · Cooking streak: local days, alive until a full day is missed
+
+- **Decision**: the stats streak counts consecutive calendar days with at least one cook
+  session, in the profile's time zone (a 23:30 dinner in Montevideo is that day). A streak
+  that reached yesterday is still current today, because there is still time to cook. It
+  breaks only after a whole day with no cooking. `longest` is the best run in all history.
+  Neither figure is limited by the stats `since` window. Owners without a profile use UTC.
+- **Why**: AC of the story "App: pantalla de stats y tendencias" ("streak de días
+  consecutivos cocinando"), found unbuilt by the 2026-10-01 test-base review. Showing 0
+  every morning before cooking would read as a broken streak.
+- **Where it lives**: `packages/shared/src/cookStreak.ts`, `cookSessionsRepository.cookDays`,
+  `GET /v1/cook-sessions/stats` (`streak`), `apps/app/app/stats/index.tsx`.
+- **Status**: active
+
 ## 2026-09-30 — Dependency & maintenance session (PRs #125, #140, #147, #148, #124)
 
 ### D-2026-09-30-12 · Production startup guard, closed sign-up and release step

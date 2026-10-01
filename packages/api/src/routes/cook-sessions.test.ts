@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockCreate, mockList, mockRecent, mockStats } = vi.hoisted(() => ({
+const { mockCreate, mockList, mockRecent, mockStats, mockDays } = vi.hoisted(() => ({
+  mockDays: vi.fn(),
   mockCreate: vi.fn(),
   mockList: vi.fn(),
   mockRecent: vi.fn(),
@@ -13,6 +14,7 @@ vi.mock('../db/cook-sessions-repository.js', () => ({
     listByRecipe: mockList,
     listRecent: mockRecent,
     getStats: mockStats,
+    cookDays: mockDays,
   },
 }))
 
@@ -135,6 +137,8 @@ describe('GET /v1/cook-sessions', () => {
 })
 
 describe('GET /v1/cook-sessions/stats', () => {
+  beforeEach(() => mockDays.mockReset().mockResolvedValue({ days: [], today: '2026-10-01' }))
+
   it('returns stats with topRecipes and frequencyByWeek', async () => {
     mockStats.mockResolvedValue({
       totalSessions: 5,
@@ -168,6 +172,39 @@ describe('GET /v1/cook-sessions/stats', () => {
     })
     expect(res.status).toBe(200)
     expect(mockStats).toHaveBeenCalledWith('dev', new Date('2026-01-01'))
+  })
+
+  // Story "App: pantalla de stats y tendencias": "streak de días consecutivos cocinando".
+  it("reports the cooking streak from the caller's local cook days", async () => {
+    mockStats.mockResolvedValue({
+      totalSessions: 3,
+      topRecipes: [],
+      frequencyByWeek: [],
+      windowStart: new Date('2026-07-03'),
+    })
+    mockDays.mockResolvedValue({
+      days: ['2026-09-10', '2026-09-11', '2026-09-12', '2026-09-30', '2026-10-01'],
+      today: '2026-10-01',
+    })
+    const res = await app.request('/v1/cook-sessions/stats', {
+      headers: { Authorization: 'Bearer test-key' },
+    })
+    expect(res.status).toBe(200)
+    expect((await res.json()).streak).toEqual({ current: 2, longest: 3 })
+    expect(mockDays).toHaveBeenCalledWith('dev')
+  })
+
+  it('no cooking yet → a zero streak, not a missing field', async () => {
+    mockStats.mockResolvedValue({
+      totalSessions: 0,
+      topRecipes: [],
+      frequencyByWeek: [],
+      windowStart: new Date('2026-07-03'),
+    })
+    const res = await app.request('/v1/cook-sessions/stats', {
+      headers: { Authorization: 'Bearer test-key' },
+    })
+    expect((await res.json()).streak).toEqual({ current: 0, longest: 0 })
   })
 })
 

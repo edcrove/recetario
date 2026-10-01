@@ -1,6 +1,6 @@
 import { eq, desc, sql, and, gte, inArray } from 'drizzle-orm'
 import { getDb, schema } from './index.js'
-import { getVisibleOwnerIds } from './household-visibility.js'
+import { getVisibleOwnerIds, UUID_RE } from './household-visibility.js'
 
 export interface CookSessionRow {
   id: string
@@ -125,6 +125,34 @@ export const cookSessionsRepository = {
       })
     }
     return map
+  },
+
+  /**
+   * The distinct dates this person cooked on, in their profile's time zone (a
+   * 23:30 dinner in Montevideo is that day, not the next UTC one), plus that
+   * zone's "today". All history, not a window: a streak can be older. Owners
+   * without a profile (API keys) use UTC.
+   */
+  async cookDays(ownerId: string): Promise<{ days: string[]; today: string }> {
+    const db = getDb()
+    let timeZone = 'UTC'
+    if (UUID_RE.test(ownerId)) {
+      const [profile] = await db
+        .select({ timezone: schema.userProfiles.timezone })
+        .from(schema.userProfiles)
+        .where(eq(schema.userProfiles.userId, ownerId))
+        .limit(1)
+      timeZone = profile?.timezone ?? 'UTC'
+    }
+    const rows = await db
+      .selectDistinct({
+        day: sql<string>`to_char(${schema.cookSessions.cookedAt} at time zone ${timeZone}, 'YYYY-MM-DD')`,
+      })
+      .from(schema.cookSessions)
+      .where(eq(schema.cookSessions.ownerId, ownerId))
+    // en-CA formats as YYYY-MM-DD
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone }).format(new Date())
+    return { days: rows.map((r) => r.day), today }
   },
 
   async getStats(ownerId: string, since?: Date): Promise<CookStats> {
