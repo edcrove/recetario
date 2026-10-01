@@ -4,11 +4,13 @@ import {
   resolveCanonical,
   rankSuggestions,
   computeDayNutrition,
+  addIsoDays,
   type MacroTotals,
 } from '@recetario/shared'
 import { pantryRepository } from '../db/pantry-repository.js'
 import { ingredientRepository } from '../db/ingredient-repository.js'
 import { menuRepository } from '../db/menu-repository.js'
+import { cookSessionsRepository } from '../db/cook-sessions-repository.js'
 import { authMiddleware } from '../middleware/auth.js'
 import '../types.js'
 
@@ -41,7 +43,15 @@ const suggestionSchema = z.object({
       fat_g: z.number(),
     })
     .nullable(),
+  usesExpiring: z.array(z.string()),
+  recentlyCooked: z.boolean(),
+  avgRating: z.number().nullable(),
 })
+
+/** Pantry items expiring within this many days count as "use it up". */
+const EXPIRY_WINDOW_DAYS = 3
+/** Recipes cooked within this many days rank lower, for variety. */
+const RECENT_DAYS = 3
 
 // POST /v1/suggestions/from-ingredients
 const route = defineRoute({
@@ -89,6 +99,19 @@ suggestionsRoute.openapi(route, async (c) => {
     }
   }
 
+  // Secondary signals: use up what expires soon, vary what was cooked
+  // recently, and prefer what the user rated well.
+  const today = date ?? new Date().toISOString().slice(0, 10)
+  const expiringKeys = new Set(
+    (await pantryRepository.listExpiringNames(ownerId, addIsoDays(today, EXPIRY_WINDOW_DAYS))).map(
+      toKey,
+    ),
+  )
+  const signals = await cookSessionsRepository.recipeSignals(
+    ownerId,
+    new Date(`${addIsoDays(today, -RECENT_DAYS)}T00:00:00Z`),
+  )
+
   const recipes = await pantryRepository.listHouseholdRecipesWithIngredients(ownerId)
   const ranked = rankSuggestions(
     recipes.map((r) => ({
@@ -96,9 +119,12 @@ suggestionsRoute.openapi(route, async (c) => {
       title: r.title,
       ingredients: r.ingredients.map((name) => ({ name, key: toKey(name) })),
       nutrition: r.nutrition,
+      avgRating: signals.get(r.id)?.avgRating ?? null,
+      recentlyCooked: signals.get(r.id)?.recentlyCooked ?? false,
     })),
     haveKeys,
     remaining,
+    { expiringKeys },
   )
   return c.json(ranked, 200)
 })

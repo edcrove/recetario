@@ -103,6 +103,37 @@ describe.skipIf(skip).sequential('Ingredient suggestions integration', () => {
     expect(list.find((r) => r.id === partialId)!.goalFit).toBeNull()
   })
 
+  it('reports expiring pantry use, recent cooks and ratings', async () => {
+    // Pollo in the pantry expires the day after the date asked about
+    await app.request('/v1/pantry', {
+      method: 'POST',
+      headers: auth(user.token),
+      body: JSON.stringify({ name: 'Pollo', expiryDate: '2026-07-14' }),
+    })
+    // Cooked (and rated) right now: counts as recent for today's date
+    await app.request('/v1/cook-sessions', {
+      method: 'POST',
+      headers: auth(user.token),
+      body: JSON.stringify({ recipeId: fullId, rating: 4 }),
+    })
+    const today = new Date().toISOString().slice(0, 10)
+    const res = await app.request('/v1/suggestions/from-ingredients', {
+      method: 'POST',
+      headers: auth(user.token),
+      body: JSON.stringify({ ingredients: ['pollo'], date: today }),
+    })
+    const list = (await res.json()) as (Suggestion & {
+      usesExpiring: string[]
+      recentlyCooked: boolean
+      avgRating: number | null
+    })[]
+    const full = list.find((r) => r.id === fullId)!
+    expect(full.usesExpiring).toEqual(['Pollo']) // 2026-07-14 is before today + 3 days
+    expect(full.recentlyCooked).toBe(true)
+    expect(full.avgRating).toBe(4)
+    expect(list.find((r) => r.id === partialId)!.recentlyCooked).toBe(false)
+  })
+
   it('400s when neither ingredients nor pantry are given', async () => {
     const res = await app.request('/v1/suggestions/from-ingredients', {
       method: 'POST',

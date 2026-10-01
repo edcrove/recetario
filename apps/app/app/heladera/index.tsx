@@ -11,6 +11,7 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { api } from '../../src/api/client'
+import { suggestionNotes } from '../../src/utils/suggestionNotes'
 import { macroStrip } from '../../src/utils/macroStrip'
 import { splitSuggestions, type Suggestion } from '../../src/utils/fridgeSections'
 import { getWeekStart, localIsoDate } from '../../src/utils/weekMath'
@@ -260,6 +261,11 @@ function Card({
           En tu objetivo
         </Text>
       )}
+      {suggestionNotes(r).map((note) => (
+        <Text key={note} style={s.note}>
+          {note}
+        </Text>
+      ))}
     </TouchableOpacity>
   )
 }
@@ -353,6 +359,7 @@ const makeStyles = (c: ThemeColors) =>
     cardTitle: { fontSize: 16, fontWeight: '600', color: c.ink, fontFamily: fonts.display },
     macros: { color: c.sage, marginTop: 3, fontSize: 12, fontVariant: ['tabular-nums'] },
     missing: { color: c.inkSoft, marginTop: 4, fontSize: 13 },
+    note: { color: c.sage, marginTop: 3, fontSize: 12, fontWeight: '600' },
     goalBadge: {
       alignSelf: 'flex-start',
       marginTop: 6,

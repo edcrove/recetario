@@ -320,6 +320,9 @@ export const api = {
           missingIngredients: string[]
           goalFit: 'dentro' | 'cerca' | 'lejos' | null
           nutrition: { calories: number; protein_g: number; carbs_g: number; fat_g: number } | null
+          usesExpiring?: string[]
+          recentlyCooked?: boolean
+          avgRating?: number | null
         }>
       >('/v1/suggestions/from-ingredients', { method: 'POST', body: JSON.stringify(body) }),
   },

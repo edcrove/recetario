@@ -103,3 +103,54 @@ describe('rankSuggestions', () => {
     expect(rankSuggestions([], new Set(), null)).toEqual([])
   })
 })
+
+describe('rankSuggestions signals', () => {
+  const r = (
+    id: string,
+    keys: string[],
+    extra: Partial<SuggestionRecipe> = {},
+  ): SuggestionRecipe => ({
+    id,
+    title: id,
+    ingredients: keys.map((k) => ({ name: k, key: k })),
+    nutrition: null,
+    ...extra,
+  })
+  const have = new Set(['arroz', 'pollo', 'leche'])
+
+  it('ranks recipes that use up expiring pantry items first among equal coverage', () => {
+    const out = rankSuggestions([r('a', ['arroz']), r('b', ['leche'])], have, null, {
+      expiringKeys: new Set(['leche']),
+    })
+    expect(out.map((x) => x.id)).toEqual(['b', 'a'])
+    expect(out[0]!.usesExpiring).toEqual(['leche'])
+    expect(out[1]!.usesExpiring).toEqual([])
+  })
+
+  it('pushes recently cooked recipes down, then prefers higher ratings', () => {
+    const out = rankSuggestions(
+      [
+        r('reciente', ['arroz'], { recentlyCooked: true, avgRating: 5 }),
+        r('buena', ['arroz'], { avgRating: 4.5 }),
+        r('sin-rating', ['arroz']),
+      ],
+      have,
+      null,
+    )
+    expect(out.map((x) => x.id)).toEqual(['buena', 'sin-rating', 'reciente'])
+    expect(out[0]).toMatchObject({ avgRating: 4.5, recentlyCooked: false })
+  })
+
+  it('coverage still wins over every secondary signal', () => {
+    const out = rankSuggestions(
+      [
+        r('parcial', ['arroz', 'atun'], { avgRating: 5 }),
+        r('completa', ['pollo'], { recentlyCooked: true }),
+      ],
+      have,
+      null,
+      { expiringKeys: new Set(['arroz']) },
+    )
+    expect(out[0]!.id).toBe('completa')
+  })
+})

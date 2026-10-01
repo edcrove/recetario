@@ -2,9 +2,12 @@ import type { Nutrition } from './schema.js'
 import type { MacroTotals } from './dayNutrition.js'
 
 /**
- * Ranking for "what can I cook with what I have": recipes are ordered first by
- * ingredient coverage (fraction of ingredients on hand), then — as a tiebreak —
- * by how close each recipe's calories bring you to the day's remaining goal.
+ * Ranking for "what can I cook with what I have". Order, most important first:
+ * 1. ingredient coverage (fraction of ingredients on hand);
+ * 2. uses up pantry items about to expire;
+ * 3. not cooked in the last few days (variety);
+ * 4. calories closest to the day's remaining goal;
+ * 5. the user's average rating for the recipe.
  * Deterministic; the app/agent presents the result.
  */
 
@@ -15,6 +18,15 @@ export interface SuggestionRecipe {
   ingredients: { name: string; key: string }[]
   /** Per-serving nutrition, or null when the recipe has none. */
   nutrition: Nutrition | null
+  /** The user's average cook rating (1–5), when rated. */
+  avgRating?: number | null
+  /** Whether it was cooked within the recency window (see SuggestionContext). */
+  recentlyCooked?: boolean
+}
+
+export interface SuggestionContext {
+  /** Canonical keys of pantry items expiring soon: recipes using them rank up. */
+  expiringKeys?: ReadonlySet<string>
 }
 
 export type GoalFit = 'dentro' | 'cerca' | 'lejos'
@@ -30,6 +42,10 @@ export interface SuggestionResult {
   goalFit: GoalFit | null
   /** Per-serving nutrition passed through for the card's macro strip. */
   nutrition: Nutrition | null
+  /** Ingredients it would use up that expire soon. */
+  usesExpiring: string[]
+  recentlyCooked: boolean
+  avgRating: number | null
 }
 
 /** Relative distance of the recipe's calories from the remaining calories. */
@@ -53,7 +69,9 @@ export function rankSuggestions(
   recipes: SuggestionRecipe[],
   haveKeys: ReadonlySet<string>,
   remaining: MacroTotals | null,
+  context: SuggestionContext = {},
 ): SuggestionResult[] {
+  const expiring = context.expiringKeys ?? new Set<string>()
   return recipes
     .map((r) => {
       const missing = r.ingredients.filter((i) => !haveKeys.has(i.key))
@@ -70,13 +88,19 @@ export function rankSuggestions(
         missingIngredients: missing.map((i) => i.name),
         goalFit: distance === null ? null : fitFromDistance(distance),
         nutrition: r.nutrition,
+        usesExpiring: r.ingredients.filter((i) => expiring.has(i.key)).map((i) => i.name),
+        recentlyCooked: r.recentlyCooked ?? false,
+        avgRating: r.avgRating ?? null,
         _distance: distance,
       }
     })
     .sort(
       (a, b) =>
         b.matchFraction - a.matchFraction ||
+        b.usesExpiring.length - a.usesExpiring.length ||
+        Number(a.recentlyCooked) - Number(b.recentlyCooked) ||
         (a._distance ?? Infinity) - (b._distance ?? Infinity) ||
+        (b.avgRating ?? 0) - (a.avgRating ?? 0) ||
         a.title.localeCompare(b.title),
     )
     .map(({ _distance, ...rest }) => {
