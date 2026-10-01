@@ -100,7 +100,22 @@ test.describe('DayNutritionSummary in the planner (route interception)', () => {
           totals: { calories: 700, protein_g: 30, carbs_g: 80, fat_g: 20 },
           target: { calories: 1000, protein_g: 50, carbs_g: 250, fat_g: 70 },
           delta: { calories: -300, protein_g: -20, carbs_g: -170, fat_g: -50 },
+          byMeal: [
+            {
+              mealCategory: 'Cena',
+              totals: { calories: 700, protein_g: 30, carbs_g: 80, fat_g: 20 },
+              target: { calories: 500 },
+              calorieDelta: 200,
+            },
+            {
+              mealCategory: 'Almuerzo',
+              totals: { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 },
+              target: null,
+              calorieDelta: null,
+            },
+          ],
           partial: true,
+          missingCount: 1,
         }),
       }),
     )
@@ -110,6 +125,11 @@ test.describe('DayNutritionSummary in the planner (route interception)', () => {
         timeout: 10000,
       })
       await expect(page.getByText('datos incompletos').first()).toBeVisible()
+      // Per-meal goal from the profile: only meals with a calorie goal get a line
+      await expect(page.getByTestId(`meal-delta-${today}-Cena`).first()).toHaveText(
+        'Cena: +200 sobre objetivo',
+      )
+      await expect(page.getByTestId(`meal-delta-${today}-Almuerzo`)).toHaveCount(0)
     } finally {
       await page.unroute('**/v1/menu/day-nutrition*')
     }

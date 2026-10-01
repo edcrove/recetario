@@ -441,7 +441,14 @@ const dayNutritionResponseSchema = z.object({
       fat_g: z.number().nullable(),
     })
     .nullable(),
-  byMeal: z.array(z.object({ mealCategory: z.string(), totals: macroTotalsSchema })),
+  byMeal: z.array(
+    z.object({
+      mealCategory: z.string(),
+      totals: macroTotalsSchema,
+      target: macroTotalsSchema.partial().nullable(),
+      calorieDelta: z.number().nullable(),
+    }),
+  ),
   partial: z.boolean(),
   missingCount: z.number(),
 })

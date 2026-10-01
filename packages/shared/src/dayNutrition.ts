@@ -1,5 +1,5 @@
 import type { Nutrition } from './schema.js'
-import type { NutritionTargets } from './schema.js'
+import type { MealTarget, NutritionTargets } from './schema.js'
 
 /**
  * One planned menu entry contributing to a day's nutrition. The rollup is
@@ -32,6 +32,10 @@ export interface MacroDelta {
 export interface MealBreakdown {
   mealCategory: string
   totals: MacroTotals
+  /** The per-meal goal for this slot from the profile, or null if none is set. */
+  target: MealTarget | null
+  /** Calories consumed − per-meal calorie goal; null without a calorie goal. */
+  calorieDelta: number | null
 }
 
 export interface DayNutrition {
@@ -70,6 +74,28 @@ function roundTotals(t: MacroTotals): MacroTotals {
     carbs_g: round1(t.carbs_g),
     fat_g: round1(t.fat_g),
   }
+}
+
+function slotKey(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase()
+}
+
+/**
+ * The per-meal goal for a menu slot. Keys are menu slots ("Cena"), matched
+ * ignoring case and accents so older lowercase slugs ("cena") still apply.
+ */
+export function mealTargetFor(
+  perMeal: Record<string, MealTarget> | undefined,
+  slot: string,
+): MealTarget | null {
+  if (!perMeal) return null
+  const key = slotKey(slot)
+  const hit = Object.entries(perMeal).find(([k]) => slotKey(k) === key)
+  return hit ? hit[1] : null
 }
 
 /**
@@ -120,10 +146,17 @@ export function computeDayNutrition(
       }
     : null
 
-  const byMeal: MealBreakdown[] = [...mealAcc.entries()].map(([mealCategory, t]) => ({
-    mealCategory,
-    totals: roundTotals(t),
-  }))
+  const byMeal: MealBreakdown[] = [...mealAcc.entries()].map(([mealCategory, t]) => {
+    const mealTotals = roundTotals(t)
+    const mealTarget = mealTargetFor(target?.per_meal, mealCategory)
+    const goal = mealTarget?.calories
+    return {
+      mealCategory,
+      totals: mealTotals,
+      target: mealTarget,
+      calorieDelta: goal ? mealTotals.calories - goal : null,
+    }
+  })
 
   return {
     totals,

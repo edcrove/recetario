@@ -56,7 +56,7 @@ export const MealTargetSchema = z.object({
 export type MealTarget = z.infer<typeof MealTargetSchema>
 
 // Nutrition targets: daily (required baseline) plus optional per-meal goals
-// keyed by meal category slug (desayuno/almuerzo/cena/...). Stored in the
+// keyed by menu slot (Desayuno/Almuerzo/Merienda/Cena; see mealTargetFor). Stored in the
 // existing user_profiles.nutrition_targets jsonb — per_meal is additive and
 // backward compatible, so no migration.
 // Upper bounds well above any real adult need; they catch typos (20000 kcal).

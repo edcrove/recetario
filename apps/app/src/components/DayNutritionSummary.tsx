@@ -37,6 +37,20 @@ export function DayNutritionSummary({ date }: { date: string }) {
         · {data.totals.fat_g}G
       </Text>
       {label ? <Text style={[s.delta, { color: STATUS_COLOR[status] }]}>{label}</Text> : null}
+      {data.byMeal.map((m) => {
+        // Only meals with a calorie goal set in the profile ("Objetivos por comida")
+        const goal = m.target?.calories ?? 0
+        const mealLabel = deltaLabel(m.calorieDelta, goal)
+        return mealLabel ? (
+          <Text
+            key={m.mealCategory}
+            testID={`meal-delta-${date}-${m.mealCategory}`}
+            style={[s.meal, { color: STATUS_COLOR[deltaStatus(m.calorieDelta, goal)] }]}
+          >
+            {m.mealCategory}: {mealLabel}
+          </Text>
+        ) : null
+      })}
       {data.partial ? <Text style={s.partial}>datos incompletos</Text> : null}
     </View>
   )
@@ -47,5 +61,6 @@ const makeStyles = (c: ThemeColors) =>
     row: { marginTop: 2, marginBottom: 6 },
     totals: { fontSize: 12, color: c.inkSoft, fontVariant: ['tabular-nums'] },
     delta: { fontSize: 12, fontWeight: '600', marginTop: 1, color: c.ink },
+    meal: { fontSize: 11, marginTop: 1 },
     partial: { fontSize: 11, color: c.terracotta, marginTop: 1 },
   })
