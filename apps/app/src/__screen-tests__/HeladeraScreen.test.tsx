@@ -17,7 +17,10 @@ vi.mock('../api/client', () => ({
   },
 }))
 vi.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush, back: vi.fn() }) }))
-vi.mock('../utils/weekMath', () => ({ getWeekStart: () => '2026-07-06' }))
+vi.mock('../utils/weekMath', () => ({
+  getWeekStart: () => '2026-07-06',
+  localIsoDate: () => '2026-07-08',
+}))
 
 import HeladeraScreen from '../../app/heladera/index'
 

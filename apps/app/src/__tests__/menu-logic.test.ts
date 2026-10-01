@@ -66,6 +66,27 @@ describe('formatShoppingQty', () => {
     expect(formatShoppingQty(item)).toBe('3')
   })
 
+  it('rounds things bought whole up (a third of an onion is one onion)', () => {
+    expect(formatShoppingQty({ ingredient: 'Cebolla', quantity: 0.333, unit: null })).toBe('1')
+    expect(formatShoppingQty({ ingredient: 'Huevos', quantity: 2.0000001, unit: 'unit' })).toBe(
+      '2 u',
+    )
+  })
+
+  it('pluralizes Spanish unit labels', () => {
+    expect(formatShoppingQty({ ingredient: 'Ajo', quantity: 3, unit: 'clove' })).toBe('3 dientes')
+    expect(formatShoppingQty({ ingredient: 'Ajo', quantity: 1, unit: 'clove' })).toBe('1 diente')
+    expect(formatShoppingQty({ ingredient: 'Harina', quantity: 1.5, unit: 'cup' })).toBe(
+      '1.5 tazas',
+    )
+  })
+
+  it('rounds grams and millilitres to sensible amounts', () => {
+    expect(formatShoppingQty({ ingredient: 'Harina', quantity: 333.3, unit: 'g' })).toBe('340 g')
+    expect(formatShoppingQty({ ingredient: 'Aceite', quantity: 12.4, unit: 'ml' })).toBe('13 ml')
+    expect(formatShoppingQty({ ingredient: 'Leche', quantity: 0.3333, unit: 'l' })).toBe('0.33 l')
+  })
+
   it('handles zero quantity with unit', () => {
     const item: ShoppingListItem = { ingredient: 'Sal', quantity: 0, unit: 'g' }
     expect(formatShoppingQty(item)).toBe('0 g')

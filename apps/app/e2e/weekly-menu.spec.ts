@@ -152,7 +152,7 @@ test.describe('Shopping list screen (/menu/shopping-list)', () => {
 
   test('shows week label with weekStart date', async ({ page }) => {
     await page.goto('/menu/shopping-list?weekStart=2025-01-06')
-    await expect(page.getByText('Semana del 2025-01-06')).toBeVisible({ timeout: 15000 })
+    await expect(page.getByText(/Semana del lun.*6.*ene/)).toBeVisible({ timeout: 15000 })
   })
 
   test('shows back link to menu', async ({ page }) => {
