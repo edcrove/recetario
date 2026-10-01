@@ -32,6 +32,19 @@ vi.mock('../db/index.js', () => ({
   },
 }))
 
+// Routes reach users through the account repository; it reads the same mocks
+vi.mock('../db/account-repository.js', () => ({
+  accountRepository: {
+    findUserByEmail: vi.fn(async () => (mockUsersSelect() as unknown[])[0] ?? null),
+    findUserById: vi.fn(async () => (mockUsersSelect() as unknown[])[0] ?? null),
+    createUser: vi.fn(async () => {
+      mockProfileInsert()
+      return (mockUsersInsert() as unknown[])[0]
+    }),
+    recordLogin: vi.fn(async () => mockUsersUpdate({ lastLoginAt: new Date() })),
+  },
+}))
+
 vi.mock('../db/repository.js', () => ({
   recipeRepository: {
     list: vi.fn().mockResolvedValue([]),

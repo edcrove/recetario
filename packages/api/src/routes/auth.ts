@@ -1,9 +1,7 @@
 import { createRouter } from './router.js'
 import { createRoute as defineRoute, z } from '@hono/zod-openapi'
 import { UserSchema } from '@recetario/shared'
-import { eq } from 'drizzle-orm'
-import { getDb, schema } from '../db/index.js'
-import { emailMatches, normalizeEmail } from '../db/email.js'
+import { accountRepository } from '../db/account-repository.js'
 import { hashPassword, verifyPassword, signJwt } from '../auth/service.js'
 import { authRateLimitMiddleware } from '../middleware/rateLimit.js'
 import { registrationOpen } from '../config/production.js'
@@ -63,30 +61,25 @@ authRoute.openapi(registerRoute, async (c) => {
     return c.json({ error: 'Registration is closed' }, 403)
   }
   const { email, password, displayName } = c.req.valid('json')
-  const db = getDb()
-
-  const existing = await db.select().from(schema.users).where(emailMatches(email)).limit(1)
-  if (existing.length > 0) {
+  if (await accountRepository.findUserByEmail(email)) {
     return c.json({ error: 'Email already registered' }, 409)
   }
 
   const passwordHash = await hashPassword(password)
-  const [user] = await db
-    .insert(schema.users)
-    .values({ email: normalizeEmail(email), passwordHash, displayName: displayName ?? null })
-    .returning()
+  const user = await accountRepository.createUser({
+    email,
+    passwordHash,
+    displayName: displayName ?? null,
+  })
 
-  // Create empty profile
-  await db.insert(schema.userProfiles).values({ userId: user!.id }).onConflictDoNothing()
-
-  const token = await signJwt({ sub: user!.id, email: user!.email })
+  const token = await signJwt({ sub: user.id, email: user.email })
   return c.json(
     {
       user: {
-        id: user!.id,
-        email: user!.email,
-        displayName: user!.displayName,
-        createdAt: user!.createdAt.toISOString(),
+        id: user.id,
+        email: user.email,
+        displayName: user.displayName,
+        createdAt: user.createdAt.toISOString(),
       },
       token,
     },
@@ -122,14 +115,12 @@ const loginRoute = defineRoute({
 
 authRoute.openapi(loginRoute, async (c) => {
   const { email, password } = c.req.valid('json')
-  const db = getDb()
-
-  const [user] = await db.select().from(schema.users).where(emailMatches(email)).limit(1)
+  const user = await accountRepository.findUserByEmail(email)
   if (!user || !(await verifyPassword(password, user.passwordHash))) {
     return c.json({ error: 'Invalid email or password' }, 401)
   }
 
-  await db.update(schema.users).set({ lastLoginAt: new Date() }).where(eq(schema.users.id, user.id))
+  await accountRepository.recordLogin(user.id)
   const token = await signJwt({ sub: user.id, email: user.email })
   return c.json(
     {
@@ -163,8 +154,7 @@ authRoute.openapi(meRoute, async (c) => {
     return c.json({ error: 'User not found' }, 401)
   }
 
-  const db = getDb()
-  const [user] = await db.select().from(schema.users).where(eq(schema.users.id, userId)).limit(1)
+  const user = await accountRepository.findUserById(userId)
   if (!user) return c.json({ error: 'User not found' }, 401)
 
   return c.json(

@@ -1,31 +1,30 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockUsersUpdate, mockProfileSelect, mockProfileUpsert, mockProfileValues } = vi.hoisted(
-  () => ({
-    mockUsersUpdate: vi.fn(),
-    mockProfileSelect: vi.fn(),
-    mockProfileUpsert: vi.fn(),
-    mockProfileValues: vi.fn(),
-  }),
-)
-
-vi.mock('../db/index.js', () => ({
-  getDb: vi.fn(() => ({
-    update: () => ({
-      set: () => ({ where: () => ({ returning: () => Promise.resolve(mockUsersUpdate()) }) }),
-    }),
-    select: () => ({
-      from: () => ({ where: () => ({ limit: () => Promise.resolve(mockProfileSelect()) }) }),
-    }),
-    insert: () => ({
-      values: (v: unknown) => ({
-        onConflictDoUpdate: () => Promise.resolve(mockProfileUpsert(mockProfileValues(v))),
-        onConflictDoNothing: () => Promise.resolve(),
-      }),
-    }),
-  })),
-  schema: { users: {}, userProfiles: { userId: 'user_id' } },
+const { account } = vi.hoisted(() => ({
+  account: {
+    updateUser: vi.fn(),
+    findProfile: vi.fn(),
+    upsertProfile: vi.fn(),
+  },
 }))
+
+// No database: the API-key lookup fails and DEV_API_KEY authenticates as 'dev'
+vi.mock('../db/index.js', () => ({
+  getDb: () => {
+    throw new Error('no database in unit tests')
+  },
+  schema: new Proxy({}, { get: () => ({}) }),
+}))
+vi.mock('../db/account-repository.js', () => ({ accountRepository: account }))
+
+const PROFILE = {
+  preferredServings: 2,
+  dietaryRestrictions: [],
+  allergens: [],
+  goals: [],
+  timezone: null,
+  nutritionTargets: null,
+}
 
 vi.mock('../db/repository.js', () => ({
   recipeRepository: {
@@ -59,16 +58,14 @@ beforeEach(() => {
 
 describe('PATCH /auth/me', () => {
   it('updates user display name', async () => {
-    mockUsersUpdate.mockReturnValue([
-      {
-        id: 'u1',
-        email: 'a@a.com',
-        displayName: 'New Name',
-        avatarUrl: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ])
+    account.updateUser.mockResolvedValue({
+      id: 'u1',
+      email: 'a@a.com',
+      displayName: 'New Name',
+      avatarUrl: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
     const res = await app.request('/auth/me', {
       method: 'PATCH',
       headers: AUTH,
@@ -77,6 +74,7 @@ describe('PATCH /auth/me', () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.displayName).toBe('New Name')
+    expect(account.updateUser).toHaveBeenLastCalledWith('dev', { displayName: 'New Name' })
   })
 
   it('returns 400 for a non-http(s) avatarUrl', async () => {
@@ -89,7 +87,7 @@ describe('PATCH /auth/me', () => {
   })
 
   it('returns 404 when user not found', async () => {
-    mockUsersUpdate.mockReturnValue([])
+    account.updateUser.mockResolvedValue(null)
     const res = await app.request('/auth/me', {
       method: 'PATCH',
       headers: AUTH,
@@ -101,16 +99,11 @@ describe('PATCH /auth/me', () => {
 
 describe('GET /auth/profile', () => {
   it('returns profile data', async () => {
-    mockProfileSelect.mockReturnValue([
-      {
-        userId: 'u1',
-        preferredServings: 3,
-        dietaryRestrictions: ['vegano'],
-        allergens: [],
-        goals: [],
-        timezone: 'America/Argentina/Buenos_Aires',
-      },
-    ])
+    account.findProfile.mockResolvedValue({
+      ...PROFILE,
+      preferredServings: 3,
+      dietaryRestrictions: ['vegano'],
+    })
     const res = await app.request('/auth/profile', {
       headers: { Authorization: 'Bearer test-key' },
     })
@@ -121,7 +114,7 @@ describe('GET /auth/profile', () => {
   })
 
   it('returns 404 when profile not found', async () => {
-    mockProfileSelect.mockReturnValue([])
+    account.findProfile.mockResolvedValue(null)
     const res = await app.request('/auth/profile', {
       headers: { Authorization: 'Bearer test-key' },
     })
@@ -129,40 +122,9 @@ describe('GET /auth/profile', () => {
   })
 })
 
-describe('GET /auth/profile null branch', () => {
-  it('handles null profile fields gracefully', async () => {
-    mockProfileSelect.mockReturnValue([
-      {
-        userId: 'u1',
-        preferredServings: null,
-        dietaryRestrictions: null,
-        allergens: null,
-        goals: null,
-        timezone: null,
-      },
-    ])
-    const res = await app.request('/auth/profile', {
-      headers: { Authorization: 'Bearer test-key' },
-    })
-    expect(res.status).toBe(200)
-    const body = await res.json()
-    expect(body.dietaryRestrictions).toEqual([])
-  })
-})
-
 describe('PATCH /auth/profile', () => {
   it('accepts an IANA time zone and rejects an unknown one', async () => {
-    mockProfileUpsert.mockReturnValue([])
-    mockProfileSelect.mockReturnValue([
-      {
-        userId: 'u1',
-        preferredServings: 2,
-        dietaryRestrictions: [],
-        allergens: [],
-        goals: [],
-        timezone: 'America/Montevideo',
-      },
-    ])
+    account.upsertProfile.mockResolvedValue({ ...PROFILE, timezone: 'America/Montevideo' })
     const ok = await app.request('/auth/profile', {
       method: 'PATCH',
       headers: AUTH,
@@ -179,18 +141,13 @@ describe('PATCH /auth/profile', () => {
     expect(bad.status).toBe(400)
   })
 
-  it('upserts profile and returns updated data', async () => {
-    mockProfileUpsert.mockReturnValue([])
-    mockProfileSelect.mockReturnValue([
-      {
-        userId: 'u1',
-        preferredServings: 4,
-        dietaryRestrictions: ['keto'],
-        allergens: ['maní', 'kiwi'],
-        goals: [],
-        timezone: null,
-      },
-    ])
+  it('stores allergens as deduplicated keys and returns the stored profile', async () => {
+    account.upsertProfile.mockResolvedValue({
+      ...PROFILE,
+      preferredServings: 4,
+      dietaryRestrictions: ['keto'],
+      allergens: ['mani', 'leche'],
+    })
     const res = await app.request('/auth/profile', {
       method: 'PATCH',
       headers: AUTH,
@@ -201,14 +158,12 @@ describe('PATCH /auth/profile', () => {
       }),
     })
     expect(res.status).toBe(200)
-    // Stored as deduplicated enum keys
-    expect(mockProfileValues).toHaveBeenLastCalledWith(
+    expect(account.upsertProfile).toHaveBeenLastCalledWith(
+      'dev',
       expect.objectContaining({ allergens: ['mani', 'leche'] }),
     )
     const body = await res.json()
     expect(body.preferredServings).toBe(4)
-    // Legacy stored names are returned as keys; unknown legacy text is kept
-    expect(body.allergens).toEqual(['mani', 'kiwi'])
   })
 
   it('rejects an allergen outside the enum with a 400 listing the valid keys', async () => {
@@ -221,20 +176,6 @@ describe('PATCH /auth/profile', () => {
     const body = await res.json()
     expect(body.error).toContain('Unknown allergen: kiwi')
     expect(body.error).toContain('frutos_secos')
-  })
-
-  it('returns null fields when profile not found after upsert', async () => {
-    mockProfileUpsert.mockReturnValue([])
-    mockProfileSelect.mockReturnValue([]) // empty after upsert
-    const res = await app.request('/auth/profile', {
-      method: 'PATCH',
-      headers: AUTH,
-      body: JSON.stringify({ timezone: 'UTC' }),
-    })
-    expect(res.status).toBe(200)
-    const body = await res.json()
-    expect(body.preferredServings).toBeNull()
-    expect(body.dietaryRestrictions).toEqual([])
   })
 
   it('rejects invalid dietary restriction values', async () => {

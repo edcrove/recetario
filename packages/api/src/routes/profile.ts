@@ -1,14 +1,12 @@
 import { createRouter } from './router.js'
 import { createRoute as defineRoute, z } from '@hono/zod-openapi'
-import { eq } from 'drizzle-orm'
-import { getDb, schema } from '../db/index.js'
+import { accountRepository } from '../db/account-repository.js'
 import {
   ALLERGENS,
   HTTP_URL_PROTOCOL,
   NutritionTargetsSchema,
   UserSchema,
   ProfileSchema,
-  normalizeAllergens,
   toAllergenKey,
 } from '@recetario/shared'
 import { authMiddleware } from '../middleware/auth.js'
@@ -63,13 +61,7 @@ const patchMeRoute = defineRoute({
 profileRoute.openapi(patchMeRoute, async (c) => {
   const ownerId = c.get('ownerId')
   const updates = c.req.valid('json')
-  const db = getDb()
-
-  const [user] = await db
-    .update(schema.users)
-    .set({ ...updates, updatedAt: new Date() })
-    .where(eq(schema.users.id, ownerId))
-    .returning()
+  const user = await accountRepository.updateUser(ownerId, updates)
 
   if (!user) return c.json({ error: 'User not found' }, 404)
 
@@ -98,33 +90,9 @@ const getProfileRoute = defineRoute({
 
 profileRoute.openapi(getProfileRoute, async (c) => {
   const ownerId = c.get('ownerId')
-  const db = getDb()
-
-  const [profile] = await db
-    .select()
-    .from(schema.userProfiles)
-    .where(eq(schema.userProfiles.userId, ownerId))
-    .limit(1)
-
+  const profile = await accountRepository.findProfile(ownerId)
   if (!profile) return c.json({ error: 'Profile not found' }, 404)
-
-  return c.json(
-    {
-      preferredServings: profile.preferredServings,
-      dietaryRestrictions: (profile.dietaryRestrictions as string[]) ?? [],
-      allergens: normalizeAllergens((profile.allergens as string[]) ?? []),
-      goals: (profile.goals as string[]) ?? [],
-      timezone: profile.timezone,
-      nutritionTargets:
-        (profile.nutritionTargets as {
-          daily_calories: number
-          daily_protein_g: number
-          daily_carbs_g: number
-          daily_fat_g: number
-        } | null) ?? null,
-    },
-    200,
-  )
+  return c.json(profile, 200)
 })
 
 // PATCH /auth/profile
@@ -178,7 +146,6 @@ const patchProfileRoute = defineRoute({
 profileRoute.openapi(patchProfileRoute, async (c) => {
   const ownerId = c.get('ownerId')
   const body = c.req.valid('json')
-  const db = getDb()
 
   let updates = body
   if (body.allergens) {
@@ -193,30 +160,5 @@ profileRoute.openapi(patchProfileRoute, async (c) => {
     updates = { ...body, allergens: [...new Set(keys as string[])] }
   }
 
-  await db
-    .insert(schema.userProfiles)
-    .values({ userId: ownerId, ...updates })
-    .onConflictDoUpdate({
-      target: schema.userProfiles.userId,
-      set: updates,
-    })
-
-  const [profile] = await db
-    .select()
-    .from(schema.userProfiles)
-    .where(eq(schema.userProfiles.userId, ownerId))
-    .limit(1)
-
-  return c.json(
-    {
-      preferredServings: profile?.preferredServings ?? null,
-      dietaryRestrictions: (profile?.dietaryRestrictions as string[]) ?? [],
-      allergens: normalizeAllergens((profile?.allergens as string[]) ?? []),
-      goals: (profile?.goals as string[]) ?? [],
-      timezone: profile?.timezone ?? null,
-      nutritionTargets:
-        (profile?.nutritionTargets as import('@recetario/shared').NutritionTargets | null) ?? null,
-    },
-    200,
-  )
+  return c.json(await accountRepository.upsertProfile(ownerId, updates), 200)
 })
