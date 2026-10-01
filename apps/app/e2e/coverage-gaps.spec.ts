@@ -428,6 +428,27 @@ test.describe('New recipe form: row management and error branches', () => {
     await page.getByText('Guardar Receta').click()
     await expect(page.getByText('boom').first()).toBeVisible({ timeout: 8000 })
   })
+
+  test('a server error without a message shows a generic one; visibility toggles back', async ({
+    page,
+  }) => {
+    await page.route('**/v1/recipes', (route) =>
+      route.request().method() === 'POST'
+        ? route.fulfill({ status: 502, body: '<html>bad gateway</html>' })
+        : route.fallback(),
+    )
+    page.on('dialog', (d) => void d.accept())
+    await page.getByText('+ Nueva Receta').click()
+    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible({ timeout: 10000 })
+    await page.getByTestId('visibility-toggle').click()
+    await expect(page.getByText('🌐 Pública')).toBeVisible()
+    await page.getByTestId('visibility-toggle').click()
+    await expect(page.getByText('🔒 Privada')).toBeVisible()
+    await page.getByPlaceholder('Nombre de la receta').fill('Receta Que Falla')
+    await page.getByPlaceholder('Ingrediente').first().fill('sal')
+    await page.getByText('Guardar Receta').click()
+    await expect(page.getByText('Error del servidor (502)')).toBeVisible({ timeout: 8000 })
+  })
 })
 
 test.describe('Edit recipe form: validation and error branches', () => {

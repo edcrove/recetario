@@ -400,6 +400,18 @@ test.describe('Household screen', () => {
       await page.getByTestId('household-invite-email-input').fill('alguien@example.com')
       await page.getByTestId('household-invite-submit').click()
       await expect.poll(() => messages.join('|'), { timeout: 8000 }).toContain('Probá de nuevo')
+      // 409 (already a member) and 403 (not owner/admin) get their own messages
+      for (const [status, text] of [
+        [409, 'ya está en el hogar'],
+        [403, 'Solo el dueño o un admin'],
+      ] as const) {
+        await page.unroute('**/v1/households/*/invite')
+        await page.route('**/v1/households/*/invite', (route) =>
+          route.fulfill({ status, contentType: 'application/json', body: '{"error":"x"}' }),
+        )
+        await page.getByTestId('household-invite-submit').click()
+        await expect.poll(() => messages.join('|'), { timeout: 8000 }).toContain(text)
+      }
 
       await fail('**/v1/households/*/members/*')
       await page.reload() // the list was loaded before the API invite above
