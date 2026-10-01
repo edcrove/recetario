@@ -6,6 +6,7 @@ import {
   computeDayNutrition,
   addIsoDays,
   type MacroTotals,
+  SuggestionSchema,
 } from '@recetario/shared'
 import { pantryRepository } from '../db/pantry-repository.js'
 import { ingredientRepository } from '../db/ingredient-repository.js'
@@ -27,26 +28,7 @@ const bodySchema = z
     message: 'Provide ingredients[] or usePantry: true',
   })
 
-const suggestionSchema = z.object({
-  id: z.uuid(),
-  title: z.string(),
-  matchedCount: z.number().int(),
-  totalCount: z.number().int(),
-  matchFraction: z.number(),
-  missingIngredients: z.array(z.string()),
-  goalFit: z.enum(['dentro', 'cerca', 'lejos']).nullable(),
-  nutrition: z
-    .object({
-      calories: z.number(),
-      protein_g: z.number(),
-      carbs_g: z.number(),
-      fat_g: z.number(),
-    })
-    .nullable(),
-  usesExpiring: z.array(z.string()),
-  recentlyCooked: z.boolean(),
-  avgRating: z.number().nullable(),
-})
+const suggestionSchema = SuggestionSchema
 
 /** Pantry items expiring within this many days count as "use it up". */
 const EXPIRY_WINDOW_DAYS = 3
