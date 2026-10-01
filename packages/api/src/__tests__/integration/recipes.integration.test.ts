@@ -715,3 +715,74 @@ describe.skipIf(skip).sequential('Recipe nutrition stays consistent with edits',
     expect((await put({ nutrition: null })).nutrition).toBeUndefined()
   })
 })
+
+// Story "App: dietary tags picker in recipe form + allergen warning": "Home
+// screen: dietary filter in search combines with food type filter".
+describe.skipIf(skip).sequential('Recipe search — diet combined with food type', () => {
+  const headers = { 'Content-Type': 'application/json', Authorization: authHeader }
+  let dessertTypeId: string
+  const ids: Record<string, string> = {}
+
+  beforeAll(async () => {
+    await resetTestDb()
+    dessertTypeId = (
+      (await (
+        await app.request('/v1/food-types', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ name: `Postres combinados ${Date.now()}` }),
+        })
+      ).json()) as { id: string }
+    ).id
+    const make = async (key: string, title: string, dietaryTags: string[], dessert: boolean) => {
+      const res = await app.request('/v1/recipes', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          title,
+          servings: 2,
+          category: 'Postre',
+          ingredients: [{ name: 'banana', quantity: 1, unit: 'unit' }],
+          dietaryTags,
+          ...(dessert ? { foodTypeIds: [dessertTypeId] } : {}),
+        }),
+      })
+      expect(res.status).toBe(201)
+      ids[key] = ((await res.json()) as { id: string }).id
+    }
+    await make('veganDessert', 'Helado de banana', ['vegano'], true)
+    await make('plainDessert', 'Flan de banana', [], true)
+    await make('veganMain', 'Banana grillada', ['vegano'], false)
+  })
+
+  const search = async (qs: string) =>
+    (
+      (await (await app.request(`/v1/recipes/search?${qs}`, { headers })).json()) as {
+        id: string
+      }[]
+    ).map((r) => r.id)
+
+  it('diet alone returns every vegan recipe', async () => {
+    const found = await search('dietary=vegano')
+    expect(found).toEqual(expect.arrayContaining([ids['veganDessert'], ids['veganMain']]))
+    expect(found).not.toContain(ids['plainDessert'])
+  })
+
+  it('food type alone returns every dessert', async () => {
+    const found = await search(`foodTypeId=${dessertTypeId}`)
+    expect(found.sort()).toEqual([ids['veganDessert'], ids['plainDessert']].sort())
+  })
+
+  it('diet + food type returns only vegan desserts (AND, not OR)', async () => {
+    expect(await search(`dietary=vegano&foodTypeId=${dessertTypeId}`)).toEqual([
+      ids['veganDessert'],
+    ])
+  })
+
+  it('text narrows the combination further', async () => {
+    expect(await search(`q=helado&dietary=vegano&foodTypeId=${dessertTypeId}`)).toEqual([
+      ids['veganDessert'],
+    ])
+    expect(await search(`q=flan&dietary=vegano&foodTypeId=${dessertTypeId}`)).toEqual([])
+  })
+})
