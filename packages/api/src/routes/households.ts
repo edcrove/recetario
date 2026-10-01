@@ -161,11 +161,14 @@ const inviteRoute = defineRoute({
     201: { content: { 'application/json': { schema: memberSchema } }, description: 'Invited' },
     403: { content: { 'application/json': { schema: errorSchema } }, description: 'Forbidden' },
     404: { content: { 'application/json': { schema: errorSchema } }, description: 'Not found' },
+    409: {
+      content: { 'application/json': { schema: errorSchema } },
+      description: 'Already a member',
+    },
   },
 })
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-householdsRoute.openapi(inviteRoute as any, async (c: any) => {
+householdsRoute.openapi(inviteRoute, async (c) => {
   const ownerId = c.get('ownerId')
   const { id } = c.req.valid('param')
   const { userId, email, role } = c.req.valid('json')
@@ -179,16 +182,17 @@ householdsRoute.openapi(inviteRoute as any, async (c: any) => {
     )
     .limit(1)
 
-  if (!myMembership) return c.json({ error: 'Household not found' } as never, 404)
+  if (!myMembership) return c.json({ error: 'Household not found' }, 404)
   // A pending invite grants nothing, including management rights
   if (!myMembership.acceptedAt || !['owner', 'admin'].includes(myMembership.role)) {
     return c.json({ error: 'Forbidden' }, 403)
   }
 
   let invitedUserId = userId
-  if (!invitedUserId && email) {
-    const [user] = await db.select().from(schema.users).where(emailMatches(email)).limit(1)
-    if (!user) return c.json({ error: 'No user found with that email' } as never, 404)
+  if (!invitedUserId) {
+    // The body schema's refine guarantees an email whenever userId is absent
+    const [user] = await db.select().from(schema.users).where(emailMatches(email!)).limit(1)
+    if (!user) return c.json({ error: 'No user found with that email' }, 404)
     invitedUserId = user.id
   }
 
@@ -198,7 +202,7 @@ householdsRoute.openapi(inviteRoute as any, async (c: any) => {
     .onConflictDoNothing()
     .returning()
 
-  if (!member) return c.json({ error: 'Already a member' } as never, 409 as never)
+  if (!member) return c.json({ error: 'Already a member' }, 409)
 
   return c.json(
     {
@@ -223,8 +227,7 @@ const acceptRoute = defineRoute({
   },
 })
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-householdsRoute.openapi(acceptRoute as any, async (c: any) => {
+householdsRoute.openapi(acceptRoute, async (c) => {
   const ownerId = c.get('ownerId')
   const { id } = c.req.valid('param')
   const db = getDb()
@@ -237,14 +240,17 @@ householdsRoute.openapi(acceptRoute as any, async (c: any) => {
     )
     .returning()
 
-  if (!member) return c.json({ error: 'Invitation not found' } as never, 404)
+  if (!member) return c.json({ error: 'Invitation not found' }, 404)
 
-  return c.json({
-    userId: member.userId,
-    role: member.role,
-    invitedAt: member.invitedAt.toISOString(),
-    /* v8 ignore next */ acceptedAt: member.acceptedAt?.toISOString() ?? null,
-  })
+  return c.json(
+    {
+      userId: member.userId,
+      role: member.role,
+      invitedAt: member.invitedAt.toISOString(),
+      /* v8 ignore next */ acceptedAt: member.acceptedAt?.toISOString() ?? null,
+    },
+    200,
+  )
 })
 
 // DELETE /households/:id/members/:userId
@@ -273,7 +279,7 @@ householdsRoute.openapi(removeMemberRoute, async (c) => {
     )
     .limit(1)
 
-  if (!myMembership) return c.json({ error: 'Household not found' } as never, 404)
+  if (!myMembership) return c.json({ error: 'Household not found' }, 404)
   if (!myMembership.acceptedAt || !['owner', 'admin'].includes(myMembership.role)) {
     return c.json({ error: 'Forbidden' }, 403)
   }
@@ -290,7 +296,7 @@ householdsRoute.openapi(removeMemberRoute, async (c) => {
     )
     .returning()
 
-  if (deleted.length === 0) return c.json({ error: 'Member not found' } as never, 404)
+  if (deleted.length === 0) return c.json({ error: 'Member not found' }, 404)
 
   return c.body(null, 204)
 })

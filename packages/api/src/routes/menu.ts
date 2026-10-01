@@ -388,8 +388,7 @@ const getMenuNutritionRoute = defineRoute({
   },
 })
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-menuRoute.openapi(getMenuNutritionRoute as any, async (c: any) => {
+menuRoute.openapi(getMenuNutritionRoute, async (c) => {
   const ownerId = c.get('ownerId')
   const { weekStart } = c.req.valid('query')
   const weekEnd = addIsoDays(weekStart, 6)
@@ -406,18 +405,21 @@ menuRoute.openapi(getMenuNutritionRoute as any, async (c: any) => {
     return { date, ...totals }
   })
 
-  return c.json({
-    weekStart,
-    days,
-    targets: target
-      ? {
-          daily_calories: target.daily_calories,
-          daily_protein_g: target.daily_protein_g,
-          daily_carbs_g: target.daily_carbs_g,
-          daily_fat_g: target.daily_fat_g,
-        }
-      : null,
-  })
+  return c.json(
+    {
+      weekStart,
+      days,
+      targets: target
+        ? {
+            daily_calories: target.daily_calories,
+            daily_protein_g: target.daily_protein_g,
+            daily_carbs_g: target.daily_carbs_g,
+            daily_fat_g: target.daily_fat_g,
+          }
+        : null,
+    },
+    200,
+  )
 })
 
 // GET /v1/menu/day-nutrition — one day's macro rollup with signed delta vs the
@@ -466,10 +468,9 @@ const getDayNutritionRoute = defineRoute({
   },
 })
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-menuRoute.openapi(getDayNutritionRoute as any, async (c: any) => {
+menuRoute.openapi(getDayNutritionRoute, async (c) => {
   const ownerId = c.get('ownerId')
   const { date } = c.req.valid('query')
   const { entries, target } = await menuRepository.getDayNutritionInputs(ownerId, date)
-  return c.json({ date, ...computeDayNutrition(entries, target) })
+  return c.json({ date, ...computeDayNutrition(entries, target) }, 200)
 })

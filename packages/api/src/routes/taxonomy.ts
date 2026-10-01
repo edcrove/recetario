@@ -212,12 +212,12 @@ taxonomyRoute.openapi(
       .from(schema.collections)
       .where(and(eq(schema.collections.id, id), eq(schema.collections.ownerId, ownerId)))
       .limit(1)
-    if (!col) return c.json({ error: 'Collection not found' } as never, 404)
+    if (!col) return c.json({ error: 'Collection not found' }, 404)
     // The recipe must be readable by the caller (own or household-shared);
     // without this any recipeId could be linked into a collection (IDOR).
     const visibleOwners = await getVisibleOwnerIds(ownerId)
     const recipe = await recipeRepository.findById(recipeId, visibleOwners)
-    if (!recipe) return c.json({ error: 'Recipe not found' } as never, 404)
+    if (!recipe) return c.json({ error: 'Recipe not found' }, 404)
     await db
       .insert(schema.recipeCollections)
       .values({ collectionId: id, recipeId })
@@ -241,8 +241,7 @@ const collectionRecipesRoute = defineRoute({
   },
 })
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-taxonomyRoute.openapi(collectionRecipesRoute as any, async (c: any) => {
+taxonomyRoute.openapi(collectionRecipesRoute, async (c) => {
   const ownerId = c.get('ownerId')
   const { id } = c.req.valid('param')
   const db = getDb()
@@ -251,7 +250,7 @@ taxonomyRoute.openapi(collectionRecipesRoute as any, async (c: any) => {
     .from(schema.collections)
     .where(and(eq(schema.collections.id, id), eq(schema.collections.ownerId, ownerId)))
     .limit(1)
-  if (!col) return c.json({ error: 'Collection not found' } as never, 404)
+  if (!col) return c.json({ error: 'Collection not found' }, 404)
 
   const links = await db
     .select({ recipeId: schema.recipeCollections.recipeId })
@@ -265,7 +264,10 @@ taxonomyRoute.openapi(collectionRecipesRoute as any, async (c: any) => {
   const recipes = await Promise.all(
     links.map((link) => recipeRepository.findById(link.recipeId, visibleOwners)),
   )
-  return c.json(recipes.filter((r): r is NonNullable<typeof r> => r !== null))
+  return c.json(
+    recipes.filter((r): r is NonNullable<typeof r> => r !== null),
+    200,
+  )
 })
 
 // DELETE /v1/collections/:id/recipes/:recipeId
@@ -289,7 +291,7 @@ taxonomyRoute.openapi(
       .from(schema.collections)
       .where(and(eq(schema.collections.id, id), eq(schema.collections.ownerId, ownerId)))
       .limit(1)
-    if (!col) return c.json({ error: 'Collection not found' } as never, 404)
+    if (!col) return c.json({ error: 'Collection not found' }, 404)
     await db
       .delete(schema.recipeCollections)
       .where(
@@ -340,7 +342,7 @@ taxonomyRoute.openapi(
     const { id } = c.req.valid('param')
     const { toId, relationType, createdBy = 'user' } = c.req.valid('json')
     const recipe = await recipeRepository.findById(id, ownerId)
-    if (!recipe) return c.json({ error: 'Recipe not found' } as never, 404)
+    if (!recipe) return c.json({ error: 'Recipe not found' }, 404)
     const db = getDb()
     await db
       .insert(schema.recipeRelations)
@@ -369,7 +371,7 @@ taxonomyRoute.openapi(
     const ownerId = c.get('ownerId')
     const { id } = c.req.valid('param')
     const recipe = await recipeRepository.findById(id, ownerId)
-    if (!recipe) return c.json({ error: 'Recipe not found' } as never, 404)
+    if (!recipe) return c.json({ error: 'Recipe not found' }, 404)
     const db = getDb()
     const rows = await db
       .select()
