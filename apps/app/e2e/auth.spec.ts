@@ -38,9 +38,7 @@ test.describe('Auth: login via form', () => {
   test('shows validation error for empty email/password', async ({ page }) => {
     await page.goto('/auth/login')
     await page.getByTestId('auth-login-submit').click()
-    await expect(page.getByText(/El email y la contraseña son obligatorios/)).toBeVisible({
-      timeout: 5000,
-    })
+    await expect(page.getByText(/El email y la contraseña son obligatorios/)).toBeVisible()
   })
 
   test('logs in with valid credentials and redirects to home', async ({ page }) => {
@@ -55,15 +53,15 @@ test.describe('Auth: login via form', () => {
 
   test('register link navigates to register screen', async ({ page }) => {
     await page.goto('/auth/login')
-    await expect(page.getByText('Registrate')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('Registrate')).toBeVisible()
     await page.getByText('Registrate').click()
-    await expect(page.getByText('Crear cuenta').first()).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('Crear cuenta').first()).toBeVisible()
   })
 
   test('forgot password link navigates to forgot screen', async ({ page }) => {
     await page.goto('/auth/login')
     await page.getByText('¿Olvidaste tu contraseña?').click()
-    await expect(page.getByText('Restablecer contraseña')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('Restablecer contraseña')).toBeVisible()
   })
 })
 
@@ -71,7 +69,7 @@ test.describe('Auth: forgot password', () => {
   // No email provider yet: the screen must not promise an email (D-2026-09-30-11).
   test('explains the admin reset instead of promising an email', async ({ page }) => {
     await page.goto('/auth/forgot')
-    await expect(page.getByText('Restablecer contraseña')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('Restablecer contraseña')).toBeVisible()
     await expect(page.getByTestId('forgot-explainer')).toContainText('Todavía no enviamos emails')
     await expect(page.getByPlaceholder('vos@ejemplo.com')).toHaveCount(0)
     await expect(page.getByText(/Revisá tu email|Enviar link/)).toHaveCount(0)
@@ -80,9 +78,9 @@ test.describe('Auth: forgot password', () => {
   test('back to sign in returns to login', async ({ page }) => {
     await page.goto('/auth/login')
     await page.getByText('¿Olvidaste tu contraseña?').click()
-    await expect(page.getByTestId('forgot-explainer')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('forgot-explainer')).toBeVisible()
     await page.getByTestId('forgot-back').click()
-    await expect(page).toHaveURL(/auth\/login/, { timeout: 5000 })
+    await expect(page).toHaveURL(/auth\/login/)
   })
 })
 
@@ -115,9 +113,9 @@ test.describe('Auth: register', () => {
 
   test('sign in link navigates to login screen', async ({ page }) => {
     await page.goto('/auth/register')
-    await expect(page.getByText('Ingresá')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('Ingresá')).toBeVisible()
     await page.getByText('Ingresá').click()
-    await expect(page.getByText('Ingresá a tu cuenta')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('Ingresá a tu cuenta')).toBeVisible()
   })
 
   test('registers a new user and redirects to home', async ({ page }) => {

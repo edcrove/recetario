@@ -57,12 +57,12 @@ test.describe('Weekly menu planner (/menu)', () => {
     await nextBtn.click()
     await expect(async () => {
       expect(await weekLabel.textContent()).not.toBe(initialText)
-    }).toPass({ timeout: 5000 })
+    }).toPass()
 
     await prevBtn.click()
     await expect(async () => {
       expect(await weekLabel.textContent()).toBe(initialText)
-    }).toPass({ timeout: 5000 })
+    }).toPass()
   })
 })
 
@@ -117,7 +117,7 @@ test.describe('Pick recipe screen (/menu/pick)', () => {
     await expect(async () => {
       const current = await page.getByText(/^\d+$/).first().textContent()
       expect(current).not.toBe(initial)
-    }).toPass({ timeout: 5000 })
+    }).toPass()
   })
 
   // Regression test for the 2026-07-03 audit finding (parent/family persona):

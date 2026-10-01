@@ -1,26 +1,33 @@
 import { test, expect } from './fixtures'
 import { API_URL } from './env'
+import { openSeededRecipe } from './recipeNav'
 
 /**
  * Cook mode E2E flows.
  * Requires at least one recipe with steps to be accessible.
  */
 
+/** Steps through cook mode until the rating modal opens, waiting for each step to render. */
+async function finishAllSteps(page: import('@playwright/test').Page) {
+  const counter = page.getByText(/Paso \d+ \/ \d+/).first()
+  await expect(counter).toBeVisible()
+  const total = Number(/\/ (\d+)/.exec((await counter.textContent()) ?? '')?.[1])
+  for (let step = 1; step < total; step++) {
+    await page.getByTestId('cook-next').click()
+    await expect(page.getByText(new RegExp(`Paso ${step + 1} / `))).toBeVisible()
+  }
+  await page.getByTestId('cook-finish').click()
+  await expect(page.getByText('¿Cómo salió?')).toBeVisible()
+}
+
 test.describe('Cook mode: basic flow', () => {
   async function openRecipeDetail(page: import('@playwright/test').Page) {
-    const recipe = page
-      .locator(
-        'text=/Milanesa de pollo|Empanadas de carne|Guiso de lentejas|Locro criollo|Tarta de verduras/',
-      )
-      .first()
-    await expect(recipe).toBeVisible()
-    await recipe.click()
-    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 20000 })
+    await openSeededRecipe(page)
   }
 
   test('Iniciar cocina button is visible on recipe detail', async ({ page }) => {
     await openRecipeDetail(page)
-    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible()
   })
 
   test('cook mode opens with step counter', async ({ page }) => {
@@ -46,13 +53,13 @@ test.describe('Cook mode: basic flow', () => {
     await expect(page.getByText(/Paso 1 \/ /)).toBeVisible()
 
     const nextBtn = page.getByTestId('cook-next').or(page.getByTestId('cook-finish')).first()
-    await expect(nextBtn).toBeVisible({ timeout: 5000 })
+    await expect(nextBtn).toBeVisible()
     await nextBtn.click()
 
     // Either moved to step 2 or opened rating modal
     const step2 = page.getByText(/Paso 2 \/ /)
     const ratingModal = page.getByText('¿Cómo salió?')
-    await expect(step2.or(ratingModal)).toBeVisible({ timeout: 5000 })
+    await expect(step2.or(ratingModal)).toBeVisible()
   })
 
   test('ingredients tab shows ingredient checklist', async ({ page }) => {
@@ -60,7 +67,7 @@ test.describe('Cook mode: basic flow', () => {
     await page.getByTestId('recipe-detail-cook').click()
     await expect(page.getByText(/Paso \d+ \/ \d+/)).toBeVisible()
     await page.getByTestId('cook-tab-ingredients').click()
-    await expect(page.getByTestId('ingredient-checklist-row-0')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('ingredient-checklist-row-0')).toBeVisible()
   })
 
   test('can toggle ingredient checklist items', async ({ page }) => {
@@ -69,7 +76,7 @@ test.describe('Cook mode: basic flow', () => {
     await expect(page.getByText(/Paso \d+ \/ \d+/)).toBeVisible()
     await page.getByTestId('cook-tab-ingredients').click()
     const row = page.getByTestId('ingredient-checklist-row-0')
-    await expect(row).toBeVisible({ timeout: 5000 })
+    await expect(row).toBeVisible()
     await row.click()
     await row.click() // toggle back off
     await expect(row).toBeVisible()
@@ -79,9 +86,9 @@ test.describe('Cook mode: basic flow', () => {
     await openRecipeDetail(page)
     await page.getByTestId('recipe-detail-cook').click()
     await page.getByTestId('cook-tab-ingredients').click()
-    await expect(page.getByTestId('ingredient-checklist-row-0')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('ingredient-checklist-row-0')).toBeVisible()
     await page.getByTestId('cook-tab-steps').click()
-    await expect(page.getByText(/Paso \d+ \/ \d+/)).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(/Paso \d+ \/ \d+/)).toBeVisible()
   })
 
   test('previous button navigates back a step', async ({ page }) => {
@@ -89,17 +96,14 @@ test.describe('Cook mode: basic flow', () => {
     await page.getByTestId('recipe-detail-cook').click()
     await expect(page.getByText(/Paso 1 \/ /)).toBeVisible()
     await page.getByTestId('cook-next').click()
-    await expect(page.getByText(/Paso 2 \/ /)).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(/Paso 2 \/ /)).toBeVisible()
     await page.getByTestId('cook-prev').click()
-    await expect(page.getByText(/Paso 1 \/ /)).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(/Paso 1 \/ /)).toBeVisible()
   })
 
   test('step timer is visible and can be paused/resumed', async ({ page }) => {
     // "Milanesa de pollo napolitana" step 4 has a durationSeconds timer — navigate there
-    const recipe = page.getByText('Milanesa de pollo napolitana').first()
-    await expect(recipe).toBeVisible()
-    await recipe.click()
-    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible()
+    await openSeededRecipe(page)
     await page.getByTestId('recipe-detail-cook').click()
     await expect(page.getByText(/Paso 1 \/ /)).toBeVisible()
 
@@ -123,16 +127,9 @@ test.describe('Cook mode: basic flow', () => {
     await openRecipeDetail(page)
     await page.getByTestId('recipe-detail-cook').click()
 
-    let attempts = 0
-    while (attempts < 10) {
-      if ((await page.getByText('¿Cómo salió?').count()) > 0) break
-      const nextBtn = page.getByText(/Siguiente|Finalizar/).first()
-      if ((await nextBtn.count()) === 0) break
-      await nextBtn.click()
-      attempts++
-    }
+    await finishAllSteps(page)
 
-    await expect(page.getByText('¿Cómo salió?')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('¿Cómo salió?')).toBeVisible()
     await expect(page.getByTestId('cook-rating-save')).toBeVisible()
     await expect(page.getByTestId('cook-rating-skip')).toBeVisible()
   })
@@ -144,16 +141,9 @@ test.describe('Cook mode: basic flow', () => {
     await openRecipeDetail(page)
     await page.getByTestId('recipe-detail-cook').click()
 
-    let attempts = 0
-    while (attempts < 10) {
-      if ((await page.getByText('¿Cómo salió?').count()) > 0) break
-      const nextBtn = page.getByText(/Siguiente|Finalizar/).first()
-      if ((await nextBtn.count()) === 0) break
-      await nextBtn.click()
-      attempts++
-    }
+    await finishAllSteps(page)
 
-    await expect(page.getByTestId('cook-rating-skip')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('cook-rating-skip')).toBeVisible()
     await page.getByTestId('cook-rating-skip').click()
     // After skip, app navigates back — verify we're no longer in cook mode
     await expect(page.getByTestId('cook-rating-skip')).not.toBeVisible()
@@ -215,9 +205,9 @@ test.describe('Cook mode: full session flows', () => {
     await openCookMode(page, recipe.title)
 
     await page.getByTestId('cook-next').click()
-    await expect(page.getByText(/Paso 2 \/ 2/)).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(/Paso 2 \/ 2/)).toBeVisible()
     await page.getByTestId('cook-finish').click()
-    await expect(page.getByText('¿Cómo salió?')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('¿Cómo salió?')).toBeVisible()
 
     await page.getByText('★').nth(3).click() // 4 stars
     await page.getByPlaceholder('Agregar nota (opcional)').fill('Salió perfecto (E2E)')
@@ -234,7 +224,7 @@ test.describe('Cook mode: full session flows', () => {
     await openCookMode(page, recipe.title)
     await page.getByTestId('cook-next').click()
     await page.getByTestId('cook-finish').click()
-    await expect(page.getByText('¿Cómo salió?')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('¿Cómo salió?')).toBeVisible()
     await page.getByTestId('cook-rating-skip').click()
     await expect(page.getByTestId('recipe-detail-cook')).toBeVisible()
 
@@ -328,11 +318,11 @@ test.describe('Cook mode: full session flows', () => {
     // Click via testID and assert via text content: CI's headless linux lacks
     // a color-emoji font, so the glyph box is zero-width there.
     const speechBtn = page.getByTestId('cook-speech-toggle')
-    await expect(speechBtn).toHaveText('🔈', { timeout: 5000 })
+    await expect(speechBtn).toHaveText('🔈')
     await speechBtn.click()
-    await expect(speechBtn).toHaveText('🔊', { timeout: 5000 })
+    await expect(speechBtn).toHaveText('🔊')
     await speechBtn.click()
-    await expect(speechBtn).toHaveText('🔈', { timeout: 5000 })
+    await expect(speechBtn).toHaveText('🔈')
   })
 
   // duration_seconds allows a short real timer, so no fake clock is needed —
@@ -349,7 +339,7 @@ test.describe('Cook mode: full session flows', () => {
     const timer = page.getByTestId('cook-timer')
 
     // Tap-to-start: pre-loaded paused at the full duration, button reads "Iniciar".
-    await expect(toggle).toHaveText('Iniciar', { timeout: 5000 })
+    await expect(toggle).toHaveText('Iniciar')
     await expect(timer).toHaveText('00:03')
 
     // Start → Pausar; pause → Reanudar; reset → back to Iniciar at full time.

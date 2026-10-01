@@ -142,7 +142,7 @@ test.describe('API error paths (route interception)', () => {
       const deleteBtn = page.getByTestId(`config-delete-${foodType.id}`)
       await expect(deleteBtn).toBeVisible()
       await deleteBtn.click()
-      await expect(page.getByTestId('config-delete-confirm')).toBeVisible({ timeout: 5000 })
+      await expect(page.getByTestId('config-delete-confirm')).toBeVisible()
       await page.getByTestId('config-delete-confirm').click()
       await expect.poll(() => dialogMessage).toContain('Error')
     } finally {
@@ -165,7 +165,7 @@ test.describe('API error paths (route interception)', () => {
     const deleteBtn = page.getByTestId(`config-delete-${foodType.id}`)
     await expect(deleteBtn).toBeVisible()
     await deleteBtn.click()
-    await expect(page.getByTestId('config-delete-confirm')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('config-delete-confirm')).toBeVisible()
     await page.getByTestId('config-delete-confirm').click()
     await expect(deleteBtn).not.toBeVisible()
   })
@@ -194,10 +194,10 @@ test.describe('Recipe detail: deep flows', () => {
 
       // + rescales: 2 → 3 servings means 1 l → 1.5 l
       await page.getByText('+', { exact: true }).first().click()
-      await expect(page.getByText(/1[.,]5\s*l/).first()).toBeVisible({ timeout: 5000 })
+      await expect(page.getByText(/1[.,]5\s*l/).first()).toBeVisible()
       // − returns to base
       await page.getByText('−', { exact: true }).first().click()
-      await expect(page.getByText(/1\s*l/).first()).toBeVisible({ timeout: 5000 })
+      await expect(page.getByText(/1\s*l/).first()).toBeVisible()
     } finally {
       await deleteRecipeViaApi(page, recipe.id)
     }
@@ -560,7 +560,7 @@ test.describe('Screen error states (route interception)', () => {
       await page.getByTestId('recipe-detail-cook').click()
       await expect(page.getByText(/Paso 1 \/ /)).toBeVisible()
       await page.getByTestId('cook-finish').click()
-      await expect(page.getByTestId('cook-rating-save')).toBeVisible({ timeout: 5000 })
+      await expect(page.getByTestId('cook-rating-save')).toBeVisible()
       await page.getByTestId('cook-rating-save').click()
       await expect.poll(() => dialogMessage).toContain('Error')
     } finally {
@@ -618,7 +618,7 @@ test.describe('Small interaction branches', () => {
       await chip.click()
       await expect(page.getByTestId('menu-modal-save')).toBeVisible()
       await page.getByText('Cancelar', { exact: true }).click()
-      await expect(page.getByTestId('menu-modal-save')).not.toBeVisible({ timeout: 5000 })
+      await expect(page.getByTestId('menu-modal-save')).not.toBeVisible()
     } finally {
       await page.request.delete(`${API_URL}/v1/menu/${today}/Cena/${recipe.id}`, { headers })
       await deleteRecipeViaApi(page, recipe.id)

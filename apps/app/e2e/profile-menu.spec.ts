@@ -10,13 +10,13 @@ import { API_URL } from './env'
 test.describe('UserMenu: open and navigate', () => {
   test('profile button opens the menu sheet', async ({ page }) => {
     await page.getByTestId('home-profile-button').click()
-    await expect(page.getByText('Cerrar sesión')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('Cerrar sesión')).toBeVisible()
     await expect(page.getByText('Mi perfil')).toBeVisible()
   })
 
   test('shows all menu items', async ({ page }) => {
     await page.getByTestId('home-profile-button').click()
-    await expect(page.getByTestId('usermenu-item-0')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('usermenu-item-0')).toBeVisible()
     await expect(page.getByText('Preferencias dietéticas')).toBeVisible()
     await expect(page.getByText('Mi hogar')).toBeVisible()
     await expect(page.getByText('Colecciones')).toBeVisible()
@@ -32,9 +32,9 @@ test.describe('UserMenu: open and navigate', () => {
 
   test('backdrop tap closes the menu', async ({ page }) => {
     await page.getByTestId('home-profile-button').click()
-    await expect(page.getByTestId('usermenu-signout')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('usermenu-signout')).toBeVisible()
     await page.getByTestId('usermenu-backdrop').click({ position: { x: 10, y: 10 } })
-    await expect(page.getByTestId('usermenu-signout')).not.toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('usermenu-signout')).not.toBeVisible()
   })
 })
 
@@ -204,7 +204,7 @@ test.describe('Config (taxonomy) screen', () => {
     const item = page.getByTestId(`config-item-${created.id}`)
     await expect(item).toBeVisible()
     await item.getByTestId(`config-edit-${created.id}`).click()
-    await expect(page.getByTestId('config-rename-save')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('config-rename-save')).toBeVisible()
     const newName = `E2E Editado ${Date.now()}`
     const input = page.locator('input').last()
     await input.fill(newName)
@@ -218,9 +218,9 @@ test.describe('Config (taxonomy) screen', () => {
     await expect(page.getByTestId('config-tab-categories')).toBeVisible()
     const firstItem = page.locator('[data-testid^="config-item-"]').first()
     await firstItem.locator('[data-testid^="config-edit-"]').click()
-    await expect(page.getByTestId('config-rename-cancel')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('config-rename-cancel')).toBeVisible()
     await page.getByTestId('config-rename-cancel').click()
-    await expect(page.getByTestId('config-rename-cancel')).not.toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('config-rename-cancel')).not.toBeVisible()
   })
 
   test('a used food type can be reassigned by name before deleting it', async ({ page }) => {
@@ -313,17 +313,15 @@ test.describe('Household screen', () => {
   test('creates a household when none exists and shows its members', async ({ page }) => {
     await openHouseholdEnsuringOneExists(page)
     // The owner appears in the members list with their role badge
-    await expect(page.getByText('Dueño').first()).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('Dueño').first()).toBeVisible()
   })
 
   test('opens and cancels the invite form', async ({ page }) => {
     await openHouseholdEnsuringOneExists(page)
     await page.getByTestId('household-invite-open').first().click()
-    await expect(page.getByTestId('household-invite-email-input')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('household-invite-email-input')).toBeVisible()
     await page.getByTestId('household-invite-cancel').click()
-    await expect(page.getByTestId('household-invite-email-input')).not.toBeVisible({
-      timeout: 5000,
-    })
+    await expect(page.getByTestId('household-invite-email-input')).not.toBeVisible()
   })
 
   // Regression test for the 2026-07-03 audit finding: inviting a real family
@@ -346,7 +344,7 @@ test.describe('Household screen', () => {
 
     await openHouseholdEnsuringOneExists(page)
     await page.getByTestId('household-invite-open').first().click()
-    await expect(page.getByTestId('household-invite-email-input')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('household-invite-email-input')).toBeVisible()
     await page.getByTestId('household-invite-email-input').fill(inviteeEmail)
     await page.getByTestId('household-invite-submit').click()
     // Form closes on success (no error dialog, invite box disappears)
@@ -373,7 +371,7 @@ test.describe('Household screen', () => {
   }) => {
     await openHouseholdEnsuringOneExists(page)
     await page.getByTestId('household-invite-open').first().click()
-    await expect(page.getByTestId('household-invite-email-input')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('household-invite-email-input')).toBeVisible()
 
     let dialogMessage = ''
     page.once('dialog', (dialog) => {
@@ -522,7 +520,7 @@ test.describe('Household screen', () => {
   test('picking a role chip changes the selected role', async ({ page }) => {
     await openHouseholdEnsuringOneExists(page)
     await page.getByTestId('household-invite-open').first().click()
-    await expect(page.getByTestId('household-invite-role-viewer')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('household-invite-role-viewer')).toBeVisible()
     await page.getByTestId('household-invite-role-viewer').click()
     // No crash after switching role — form still usable
     await expect(page.getByTestId('household-invite-email-input')).toBeVisible()
@@ -544,7 +542,7 @@ test.describe('Sign out', () => {
   // now goes through platformAlert.confirmAsync (fixed the Alert.alert web no-op).
   test('signs out via UserMenu and redirects to login', async ({ page }) => {
     await page.getByTestId('home-profile-button').click()
-    await expect(page.getByTestId('usermenu-signout')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('usermenu-signout')).toBeVisible()
     await page.getByTestId('usermenu-signout').click()
     await expect(page).toHaveURL(/auth\/login/)
   })

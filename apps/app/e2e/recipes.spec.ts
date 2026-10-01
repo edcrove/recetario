@@ -1,5 +1,6 @@
 import { test, expect } from './fixtures'
 import { API_URL } from './env'
+import { openSeededRecipe, SEEDED_RECIPE } from './recipeNav'
 
 /**
  * Recipe CRUD E2E flows.
@@ -83,14 +84,14 @@ test.describe('Recipes: create via form', () => {
     // Zod produces "Too small: expected string to have >=1 characters" or similar
     await expect(
       page.getByText(/Too small|obligatorio|requerido|1 char|título/i).first(),
-    ).toBeVisible({ timeout: 5000 })
+    ).toBeVisible()
   })
 
   test('creates a recipe and it appears in the list', async ({ page }) => {
     const recipeName = `E2E Receta ${Date.now()}`
 
     await page.getByText('+ Nueva Receta').click()
-    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible()
 
     // Fill form
     await page.getByPlaceholder('Nombre de la receta').fill(recipeName)
@@ -129,7 +130,7 @@ test.describe('Recipes: create via form', () => {
     const recipeName = `E2E Con Tipo ${Date.now()}`
 
     await page.getByText('+ Nueva Receta').click()
-    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible()
     await page.getByPlaceholder('Nombre de la receta').fill(recipeName)
 
     const foodTypeChip = page.locator('[data-testid^="food-type-chip-"]').first()
@@ -158,7 +159,7 @@ test.describe('Recipes: create via form', () => {
 
   test('can select up to 3 food type chips', async ({ page }) => {
     await page.getByText('+ Nueva Receta').click()
-    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible()
 
     const chips = page.locator('[data-testid^="food-type-chip-"]')
     const count = await chips.count()
@@ -273,47 +274,22 @@ test.describe('Recipes: diet tags', () => {
 
 test.describe('Recipes: detail view', () => {
   test('recipe detail shows title and cook button', async ({ page }) => {
-    const firstRecipe = page
-      .locator(
-        'text=/Milanesa de pollo|Empanadas de carne|Guiso de lentejas|Tarta de verduras|Locro criollo|Alfajores caseros|Revuelto gramajo|Ensalada César/',
-      )
-      .first()
-    await expect(firstRecipe).toBeVisible()
-    const title = await firstRecipe.textContent()
-    await firstRecipe.click()
-
-    // After navigation, wait for cook button which is the most reliable indicator
-    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 20000 })
-    await expect(page.getByText(title!.trim(), { exact: true }).last()).toBeVisible()
+    await openSeededRecipe(page)
+    await expect(page.getByText(SEEDED_RECIPE, { exact: true }).last()).toBeVisible()
   })
 
   test('servings stepper is visible in detail', async ({ page }) => {
-    const firstRecipe = page
-      .locator(
-        'text=/Milanesa de pollo|Empanadas de carne|Guiso de lentejas|Tarta de verduras|Locro criollo|Alfajores caseros|Revuelto gramajo|Ensalada César/',
-      )
-      .first()
-    await expect(firstRecipe).toBeVisible()
-    await firstRecipe.click()
-
-    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 20000 })
+    await openSeededRecipe(page)
     await expect(page.getByText(/Porciones:/i).first()).toBeVisible()
   })
 
-  async function openFirstRecipeDetail(page: import('@playwright/test').Page) {
-    const firstRecipe = page
-      .locator(
-        'text=/Milanesa de pollo|Empanadas de carne|Guiso de lentejas|Tarta de verduras|Locro criollo|Alfajores caseros|Revuelto gramajo|Ensalada César/',
-      )
-      .first()
-    await expect(firstRecipe).toBeVisible()
-    await firstRecipe.click()
-    await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 20000 })
-  }
+  // Not the cook-mode recipe: its history fills with sessions while these run
+  const openFirstRecipeDetail = (page: import('@playwright/test').Page) =>
+    openSeededRecipe(page, 'Guiso de lentejas')
 
   test('unit toggle switches between cooking/metric/imperial', async ({ page }) => {
     await openFirstRecipeDetail(page)
-    await expect(page.getByText('Métrico', { exact: true })).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('Métrico', { exact: true })).toBeVisible()
     await page.getByText('Métrico', { exact: true }).click()
     await expect(page.getByText('Imperial', { exact: true })).toBeVisible()
     await page.getByText('Imperial', { exact: true }).click()
@@ -331,7 +307,7 @@ test.describe('Recipes: detail view', () => {
   // Note: this intentionally saves WITHOUT changing anything — it covers the
   // edit form's load-populate-save round trip. Actually mutating the title
   // would permanently rename seeded demo recipes that other tests locate by
-  // name (openFirstRecipeDetail's title regex), breaking local reruns.
+  // name (openSeededRecipe), breaking local reruns.
   test('saving the edit form without changes returns to detail', async ({ page }) => {
     await openFirstRecipeDetail(page)
     await page.getByText('Editar').click()
@@ -404,7 +380,7 @@ test.describe('Recipes: detail view', () => {
     await openFirstRecipeDetail(page)
     await page.getByTestId('recipe-tab-history').click()
     await page.getByTestId('recipe-tab-recipe').click()
-    await expect(page.getByText('Ingredientes')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('Ingredientes')).toBeVisible()
   })
 })
 

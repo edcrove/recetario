@@ -39,7 +39,7 @@ test.describe('Menu: add recipe to slot', () => {
     await expect(page.getByText('+ Agregar').first()).toBeVisible()
     await page.getByText('+ Agregar').first().click()
     // Recipe picker should open
-    await expect(page.getByPlaceholder('Buscar receta...')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByPlaceholder('Buscar receta...')).toBeVisible()
   })
 
   test('recipe picker has servings stepper', async ({ page }) => {

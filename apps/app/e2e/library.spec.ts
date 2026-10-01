@@ -42,7 +42,7 @@ test.describe('Biblioteca', () => {
       await expect(page.getByTestId('visibility-toggle')).toBeVisible()
       await expect(page.getByText('🔒 Privada')).toBeVisible()
       await page.getByTestId('visibility-toggle').click()
-      await expect(page.getByText('🌐 Pública')).toBeVisible({ timeout: 5000 })
+      await expect(page.getByText('🌐 Pública')).toBeVisible()
       await page.getByText('Guardar Cambios').click()
       // onSuccess runs router.back(), which no-ops when the edit form was
       // entered via direct URL — the reliable signal is the persisted state
@@ -140,7 +140,7 @@ test.describe('Biblioteca', () => {
     await page.getByPlaceholder('Nombre de la receta').fill(title)
     await page.getByPlaceholder('Ingrediente').first().fill('sal')
     await page.getByTestId('visibility-toggle').click()
-    await expect(page.getByText('🌐 Pública')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('🌐 Pública')).toBeVisible()
     await page.getByText('Guardar Receta').click()
     await expect(page.getByTestId('recipe-saved-banner')).toBeVisible()
 
