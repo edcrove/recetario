@@ -93,7 +93,7 @@ householdsRoute.openapi(listMineRoute, async (c) => {
 // POST /households/:id/invite
 const inviteRoute = defineRoute({
   method: 'post',
-  path: '/:id/invite',
+  path: '/{id}/invite',
   security: [{ ApiKeyAuth: [] }],
   request: {
     params: z.object({ id: z.uuid() }),
@@ -175,7 +175,7 @@ householdsRoute.openapi(inviteRoute, async (c) => {
 // POST /households/:id/accept
 const acceptRoute = defineRoute({
   method: 'post',
-  path: '/:id/accept',
+  path: '/{id}/accept',
   security: [{ ApiKeyAuth: [] }],
   request: { params: z.object({ id: z.uuid() }) },
   responses: {
@@ -204,7 +204,8 @@ householdsRoute.openapi(acceptRoute, async (c) => {
       userId: member.userId,
       role: member.role,
       invitedAt: member.invitedAt.toISOString(),
-      /* v8 ignore next */ acceptedAt: member.acceptedAt?.toISOString() ?? null,
+      /* v8 ignore next -- just set by this update, never null */ acceptedAt:
+        member.acceptedAt?.toISOString() ?? null,
     },
     200,
   )
@@ -213,7 +214,7 @@ householdsRoute.openapi(acceptRoute, async (c) => {
 // DELETE /households/:id/members/:userId
 const removeMemberRoute = defineRoute({
   method: 'delete',
-  path: '/:id/members/:userId',
+  path: '/{id}/members/{userId}',
   security: [{ ApiKeyAuth: [] }],
   request: { params: z.object({ id: z.uuid(), userId: z.uuid() }) },
   responses: {

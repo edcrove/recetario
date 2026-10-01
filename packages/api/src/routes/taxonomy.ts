@@ -181,7 +181,7 @@ taxonomyRoute.openapi(
 taxonomyRoute.openapi(
   defineRoute({
     method: 'delete',
-    path: '/collections/:id',
+    path: '/collections/{id}',
     security: [{ ApiKeyAuth: [] }],
     request: { params: z.object({ id: z.uuid() }) },
     responses: {
@@ -205,7 +205,7 @@ taxonomyRoute.openapi(
 taxonomyRoute.openapi(
   defineRoute({
     method: 'post',
-    path: '/collections/:id/recipes',
+    path: '/collections/{id}/recipes',
     security: [{ ApiKeyAuth: [] }],
     request: {
       params: z.object({ id: z.uuid() }),
@@ -253,7 +253,7 @@ taxonomyRoute.openapi(
 // GET /v1/collections/:id/recipes
 const collectionRecipesRoute = defineRoute({
   method: 'get',
-  path: '/collections/:id/recipes',
+  path: '/collections/{id}/recipes',
   security: [{ ApiKeyAuth: [] }],
   request: { params: z.object({ id: z.uuid() }) },
   responses: {
@@ -296,7 +296,7 @@ taxonomyRoute.openapi(collectionRecipesRoute, async (c) => {
 taxonomyRoute.openapi(
   defineRoute({
     method: 'delete',
-    path: '/collections/:id/recipes/:recipeId',
+    path: '/collections/{id}/recipes/{recipeId}',
     security: [{ ApiKeyAuth: [] }],
     request: { params: z.object({ id: z.uuid(), recipeId: z.uuid() }) },
     responses: {
@@ -337,7 +337,7 @@ const relationSchema = z.object({
 taxonomyRoute.openapi(
   defineRoute({
     method: 'post',
-    path: '/recipes/:id/relations',
+    path: '/recipes/{id}/relations',
     security: [{ ApiKeyAuth: [] }],
     request: {
       params: z.object({ id: z.uuid() }),
@@ -378,7 +378,7 @@ taxonomyRoute.openapi(
 taxonomyRoute.openapi(
   defineRoute({
     method: 'get',
-    path: '/recipes/:id/relations',
+    path: '/recipes/{id}/relations',
     security: [{ ApiKeyAuth: [] }],
     request: { params: z.object({ id: z.uuid() }) },
     responses: {

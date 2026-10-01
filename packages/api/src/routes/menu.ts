@@ -93,7 +93,7 @@ menuRoute.openapi(deleteMenuEntryRoute, async (c) => {
   const { date, slot, recipeId } = c.req.valid('param')
   const deleted = await menuRepository.remove(ownerId, date, slot, recipeId)
   if (!deleted) return c.json({ error: 'Menu entry not found' }, 404)
-  return new Response(null, { status: 204 })
+  return c.body(null, 204)
 })
 
 // DELETE /v1/menu/:date/:slot — remove all recipes from slot (backward compat)
@@ -126,7 +126,7 @@ menuRoute.openapi(deleteMenuSlotRoute, async (c) => {
   const { date, slot } = c.req.valid('param')
   const deleted = await menuRepository.remove(ownerId, date, slot)
   if (!deleted) return c.json({ error: 'Menu entry not found' }, 404)
-  return new Response(null, { status: 204 })
+  return c.body(null, 204)
 })
 
 // PATCH /v1/menu/:date/:slot/:recipeId — update servings for a specific recipe

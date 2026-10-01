@@ -117,7 +117,7 @@ configRoute.openapi(
 configRoute.openapi(
   defineRoute({
     method: 'patch',
-    path: '/:type/:id',
+    path: '/{type}/{id}',
     security: [{ ApiKeyAuth: [] }],
     request: {
       params: z.object({
@@ -180,7 +180,7 @@ configRoute.openapi(
 configRoute.openapi(
   defineRoute({
     method: 'delete',
-    path: '/:type/:id',
+    path: '/{type}/{id}',
     security: [{ ApiKeyAuth: [] }],
     request: {
       params: z.object({
@@ -219,7 +219,7 @@ configRoute.openapi(
         .select({ count: sql<number>`cast(count(*) as int)` })
         .from(schema.recipeFoodTypes)
         .where(eq(schema.recipeFoodTypes.foodTypeId, id))
-      if (/* v8 ignore next */ (usageCount[0]?.count ?? 0) > 0) {
+      if (/* v8 ignore next -- count() always returns one row */ (usageCount[0]?.count ?? 0) > 0) {
         if (reassignTo) {
           await db
             .update(schema.recipeFoodTypes)

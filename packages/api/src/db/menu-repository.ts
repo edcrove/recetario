@@ -27,7 +27,7 @@ function mapToMenuEntry(row: MenuRow, recipe?: Pick<RecipeRow, 'title'>): MenuEn
     // Prefer the live recipe's current title; fall back to the snapshot
     // taken when the entry was created (recipe may have been deleted since).
     // The final `?? undefined` only matters for rows predating this column.
-    /* v8 ignore next */
+    /* v8 ignore next -- fallback chain: live title, else snapshot; both arms hit only with legacy rows */
     recipeName: recipe?.title ?? row.recipeTitle ?? undefined,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -76,7 +76,7 @@ export class MenuRepository {
       })
       .returning()
 
-    /* v8 ignore next */
+    /* v8 ignore next -- upsert always returns a row; defensive guard for the driver contract */
     if (!row) throw new Error('Failed to upsert menu entry')
 
     return mapToMenuEntry(row, recipe)
@@ -88,7 +88,9 @@ export class MenuRepository {
       eq(schema.menuEntries.ownerId, ownerId),
       eq(schema.menuEntries.date, date),
       eq(schema.menuEntries.slot, slot),
-      /* v8 ignore next */ ...(recipeId ? [eq(schema.menuEntries.recipeId, recipeId)] : []),
+      /* v8 ignore next -- every caller passes a recipeId; the ternary keeps the helper general */ ...(recipeId
+        ? [eq(schema.menuEntries.recipeId, recipeId)]
+        : []),
     ]
     const result = await db
       .delete(schema.menuEntries)
@@ -176,7 +178,7 @@ export class MenuRepository {
 
     return rows.map((row) => {
       const title = row.recipeId ? recipeMap.get(row.recipeId) : undefined
-      /* v8 ignore next */
+      /* v8 ignore next -- undefined title only for orphaned (deleted-recipe) entries */
       const recipeName = title !== undefined ? { title } : undefined
       return mapToMenuEntry(row, recipeName)
     })

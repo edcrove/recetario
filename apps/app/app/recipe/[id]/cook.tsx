@@ -56,7 +56,6 @@ export default function CookModeScreen() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['cook-sessions', id] })
       void queryClient.invalidateQueries({ queryKey: ['cook-stats'] })
-      void queryClient.invalidateQueries({ queryKey: ['cook-stats-suggestions'] })
       setShowRating(false)
       leave()
     },

@@ -92,7 +92,7 @@ cookSessionsRoute.openapi(createRoute, async (c) => {
 // GET /v1/recipes/:id/cook-sessions
 const listByRecipeRoute = defineRoute({
   method: 'get',
-  path: '/recipes/:id',
+  path: '/recipes/{id}',
   security: [{ ApiKeyAuth: [] }],
   request: {
     params: z.object({ id: z.uuid() }),

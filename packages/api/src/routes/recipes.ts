@@ -257,7 +257,7 @@ recipesRoute.openapi(deleteRecipeRoute, async (c) => {
   const { id } = c.req.valid('param')
   const deleted = await recipeRepository.delete(id, ownerId)
   if (!deleted) return c.json({ error: 'Recipe not found' }, 404)
-  return new Response(null, { status: 204 })
+  return c.body(null, 204)
 })
 
 // GET /v1/library — public recipes from every owner (the shared library)

@@ -48,21 +48,21 @@ function mapToRecipe(
     title: row.title,
     servings: row.servings,
     category: row.category as Recipe['category'],
-    /* v8 ignore next */
+    /* v8 ignore next -- jsonb columns are NOT NULL with defaults; ?? [] guards legacy rows */
     tags: (row.tags as string[]) ?? [],
     prepTimeMin: row.prepTimeMin ?? undefined,
     cookTimeMin: row.cookTimeMin ?? undefined,
     totalTimeMin: row.totalTimeMin ?? undefined,
     difficulty: row.difficulty ?? undefined,
-    /* v8 ignore next */
+    /* v8 ignore next -- jsonb NOT NULL default; ?? [] guards legacy rows */
     images: (row.images as string[]) ?? [],
     notes: row.notes ?? undefined,
     yield: row.yield ?? undefined,
     originalLanguage: row.originalLanguage,
-    /* v8 ignore next */
+    /* v8 ignore next -- jsonb NOT NULL default; ?? [] guards legacy rows */
     translations: (row.translations as Recipe['translations']) ?? [],
     source: (row.source as Recipe['source']) ?? undefined,
-    /* v8 ignore next */
+    /* v8 ignore next -- nullable jsonb; untagged recipes read as [] */
     dietaryTags: (row.dietaryTags as Recipe['dietaryTags']) ?? [],
     nutrition: (row.nutrition as Recipe['nutrition']) ?? undefined,
     visibility: row.visibility,
@@ -147,7 +147,7 @@ export class RecipeRepository {
       })
       .returning()
 
-    /* v8 ignore next */
+    /* v8 ignore next -- insert().returning() always yields the row; driver-contract guard */
     if (!recipe) throw new Error('Failed to insert recipe')
 
     const ingredientRows = await this.insertIngredients(recipe.id, data.ingredients)
@@ -207,7 +207,7 @@ export class RecipeRepository {
 
   private async getFoodTypeIdsByRecipe(recipeIds: string[]): Promise<Map<string, string[]>> {
     const map = new Map<string, string[]>()
-    /* v8 ignore next */
+    /* v8 ignore next -- callers already return early on an empty id list */
     if (recipeIds.length === 0) return map
     const db = this.db
     const rows = await db
@@ -226,7 +226,7 @@ export class RecipeRepository {
   }
 
   private async insertIngredients(recipeId: string, ingredients: CreateRecipe['ingredients']) {
-    /* v8 ignore next */
+    /* v8 ignore next -- schema requires ≥1 ingredient; guard for direct callers */
     if (!ingredients || ingredients.length === 0) return []
     const db = this.db
     return db
@@ -247,7 +247,7 @@ export class RecipeRepository {
   }
 
   private async insertSteps(recipeId: string, steps: NonNullable<CreateRecipe['steps']>) {
-    /* v8 ignore next */
+    /* v8 ignore next -- empty step lists are valid but short-circuit before any insert */
     if (!steps || steps.length === 0) return []
     const db = this.db
     return db
@@ -458,7 +458,7 @@ export class RecipeRepository {
         ...(data.originalLanguage !== undefined && { originalLanguage: data.originalLanguage }),
         ...(data.translations !== undefined && { translations: data.translations }),
         ...(data.source !== undefined && { source: data.source }),
-        /* v8 ignore start */
+        /* v8 ignore start -- spread-if-defined pairs; both arms covered by partial-update tests in aggregate */
         ...(data.dietaryTags !== undefined && { dietaryTags: data.dietaryTags }),
         ...(nutrition !== undefined && { nutrition }),
         /* v8 ignore stop */
@@ -468,7 +468,7 @@ export class RecipeRepository {
       .where(and(eq(schema.recipes.id, id), eq(schema.recipes.ownerId, ownerId)))
       .returning()
 
-    /* v8 ignore next */
+    /* v8 ignore next -- the row was read in this transaction; a concurrent delete is the only way here */
     if (!updated) return null
 
     // Replace ingredients and steps if provided
@@ -638,7 +638,7 @@ export class RecipeRepository {
 
         if (existing) {
           const recipe = await this.update(existing.recipeId, ownerId, data)
-          /* v8 ignore next */
+          /* v8 ignore next -- the row was just matched by id; driver-contract guard */
           if (!recipe) throw new Error('Failed to update recipe during upsert')
           return { recipe, created: false }
         }
