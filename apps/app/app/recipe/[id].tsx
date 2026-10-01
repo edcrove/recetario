@@ -26,9 +26,11 @@ import { NutritionBar } from '../../src/components/NutritionBar'
 type DetailTab = 'recipe' | 'history'
 
 function StarRating({ rating }: { rating: number | null }) {
-  if (rating === null) return <Text style={ratingStyle.none}>Sin calificación</Text>
+  const c = useThemeColors()
+  if (rating === null)
+    return <Text style={[ratingStyle.none, { color: c.inkSoft }]}>Sin calificación</Text>
   return (
-    <Text style={ratingStyle.stars}>
+    <Text style={[ratingStyle.stars, { color: c.warning }]}>
       {'★'.repeat(rating)}
       {'☆'.repeat(5 - rating)}
     </Text>
@@ -36,8 +38,8 @@ function StarRating({ rating }: { rating: number | null }) {
 }
 
 const ratingStyle = StyleSheet.create({
-  stars: { color: '#f59e0b', fontSize: 14 },
-  none: { color: '#d1d5db', fontSize: 13 },
+  stars: { fontSize: 14 },
+  none: { fontSize: 13 },
 })
 
 export default function RecipeDetailScreen() {

@@ -343,7 +343,7 @@ const makeStyles = (c: ThemeColors) =>
     itemActions: { flexDirection: 'row', gap: 6 },
     actionBtn: { padding: 6, borderRadius: 6, backgroundColor: c.terracottaSoft },
     actionBtnDanger: { padding: 6, borderRadius: 6, backgroundColor: c.dangerSoft },
-    actionBtnWarning: { padding: 6, borderRadius: 6, backgroundColor: '#fffbeb' },
+    actionBtnWarning: { padding: 6, borderRadius: 6, backgroundColor: c.warningSoft },
     actionBtnText: { fontSize: 14, color: c.ink },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
     modalCard: {

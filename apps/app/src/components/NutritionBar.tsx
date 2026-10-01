@@ -67,24 +67,26 @@ export function NutritionBar({
           label="Proteína"
           value={protein_g}
           unit="g"
-          color="#2563eb"
+          color={colors.terracotta}
           target={targets?.daily_protein_g}
         />
         <MacroBar
           label="Carbos"
           value={carbs_g}
           unit="g"
-          color="#16a34a"
+          color={colors.sage}
           target={targets?.daily_carbs_g}
         />
         <MacroBar
           label="Grasa"
           value={fat_g}
           unit="g"
-          color="#ea580c"
+          color={colors.warning}
           target={targets?.daily_fat_g}
         />
-        {fiber_g != null && <MacroBar label="Fibra" value={fiber_g} unit="g" color="#7c3aed" />}
+        {fiber_g != null && (
+          <MacroBar label="Fibra" value={fiber_g} unit="g" color={colors.inkSoft} />
+        )}
       </View>
     </View>
   )

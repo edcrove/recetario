@@ -125,16 +125,21 @@ test.describe('Pick recipe screen (/menu/pick)', () => {
   // deep from where planning actually happens. Now the picker shows a badge.
   test('shows an allergen badge on recipes that conflict with the profile', async ({ page }) => {
     const token = await page.evaluate(() => localStorage.getItem('auth_token'))
+    const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
     const res = await page.request.patch(`${API_URL}/auth/profile`, {
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      headers,
       data: { allergens: ['leche'] },
     })
     expect(res.ok()).toBe(true)
-
-    await page.goto('/menu/pick?date=2025-01-06&slot=Almuerzo&weekStart=2025-01-06')
-    await expect(page.getByPlaceholder('Buscar receta...')).toBeVisible({ timeout: 15000 })
-    await page.getByPlaceholder('Buscar receta...').fill('Tarta')
-    await expect(page.getByTestId('allergen-badge').first()).toBeVisible({ timeout: 10000 })
+    try {
+      await page.goto('/menu/pick?date=2025-01-06&slot=Almuerzo&weekStart=2025-01-06')
+      await expect(page.getByPlaceholder('Buscar receta...')).toBeVisible({ timeout: 15000 })
+      await page.getByPlaceholder('Buscar receta...').fill('Tarta')
+      await expect(page.getByTestId('allergen-badge').first()).toBeVisible({ timeout: 10000 })
+    } finally {
+      // Leave the account's allergens as found, or later profile tests see 'leche'
+      await page.request.patch(`${API_URL}/auth/profile`, { headers, data: { allergens: [] } })
+    }
   })
 })
 

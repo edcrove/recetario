@@ -443,7 +443,7 @@ const makeStyles = (c: ThemeColors) =>
     modalSub: { fontSize: 14, color: c.inkSoft, textAlign: 'center', marginBottom: 20 },
     stars: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 20 },
     star: { fontSize: 40, color: c.line },
-    starActive: { color: '#f59e0b' },
+    starActive: { color: c.warning },
     noteInput: {
       borderWidth: 1,
       borderColor: c.line,
