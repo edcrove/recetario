@@ -466,6 +466,44 @@ describe.skipIf(skip).sequential('Menu integration tests', () => {
     const list = (await res.json()) as { ingredient: string }[]
     expect(list.find((i) => i.ingredient === 'adjacent-week-marker')).toBeUndefined()
   })
+
+  // Mutation testing (2026-10-01): turning the window's inclusive ends into
+  // exclusive ones (Monday or Sunday dropping out) survived every test.
+  it('includes the first and the last day of the week (Monday and Sunday)', async () => {
+    const createRes = await app.request('/v1/recipes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: auth },
+      body: JSON.stringify({
+        title: 'Week Edge Recipe',
+        servings: 1,
+        category: 'Cena',
+        ingredients: [{ name: 'week-edge-marker', quantity: 1, unit: 'unit' }],
+        steps: [],
+      }),
+    })
+    const edgeRecipe = (await createRes.json()) as { id: string }
+    for (const date of ['2026-07-07', '2026-07-13']) {
+      const res = await app.request('/v1/menu', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: auth },
+        body: JSON.stringify({ date, slot: 'Cena', recipeId: edgeRecipe.id, servings: 1 }),
+      })
+      expect(res.ok).toBe(true)
+    }
+
+    const week = (await (
+      await app.request('/v1/menu?weekStart=2026-07-07', { headers: { Authorization: auth } })
+    ).json()) as { date: string; recipeId: string }[]
+    const edgeDates = week.filter((e) => e.recipeId === edgeRecipe.id).map((e) => e.date)
+    expect(edgeDates.sort()).toEqual(['2026-07-07', '2026-07-13'])
+
+    const list = (await (
+      await app.request('/v1/menu/shopping-list?weekStart=2026-07-07', {
+        headers: { Authorization: auth },
+      })
+    ).json()) as { ingredient: string; quantity: number }[]
+    expect(list.find((i) => i.ingredient === 'week-edge-marker')?.quantity).toBe(2)
+  })
 })
 
 // Story: day nutrition rollup (nutrition-goals epic story 2).

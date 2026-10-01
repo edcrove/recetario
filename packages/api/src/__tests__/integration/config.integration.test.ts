@@ -379,6 +379,42 @@ describe.skipIf(skip).sequential('Taxonomy config stays inside the caller’s re
     expect(del.status).toBe(204)
   })
 
+  // Mutation testing (2026-10-01): dropping onConflictDoNothing from the tag
+  // move survived — no tag fixture had a recipe carrying both tags.
+  it('merging tags a recipe already has both of keeps one link and reports the count', async () => {
+    const tag = async (slug: string) =>
+      (
+        await db()
+          .insert(schema.tags)
+          .values({ name: slug, slug, ownerId: TEST_OWNER_ID })
+          .returning()
+      )[0]!.id
+    const source = await tag('fuente-merge')
+    const target = await tag('destino-merge')
+    const both = await recipe(TEST_OWNER_ID, 'Cena')
+    const onlySource = await recipe(TEST_OWNER_ID, 'Cena')
+    await db()
+      .insert(schema.recipeTags)
+      .values([
+        { recipeId: both.id, tagId: source },
+        { recipeId: both.id, tagId: target },
+        { recipeId: onlySource.id, tagId: source },
+      ])
+    const res = await app.request('/v1/config/tags/merge', {
+      method: 'POST',
+      headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sourceId: source, targetId: target }),
+    })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ merged: 2 })
+    const links = await db()
+      .select()
+      .from(schema.recipeTags)
+      .where(eq(schema.recipeTags.tagId, target))
+    expect(links.map((l) => l.recipeId).sort()).toEqual([both.id, onlySource.id].sort())
+    expect(await db().select().from(schema.tags).where(eq(schema.tags.id, source))).toEqual([])
+  })
+
   it('renames a category and a tag', async () => {
     const [cat] = await db()
       .insert(schema.mealCategories)

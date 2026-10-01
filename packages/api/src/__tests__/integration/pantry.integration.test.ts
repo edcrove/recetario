@@ -246,4 +246,22 @@ describe.skipIf(skip).sequential('Pantry integration', () => {
     expect(names).toContain('Arroz')
     expect(names).not.toContain('Lentejas')
   })
+
+  // Mutation testing (2026-10-01): the expiry window's inclusive end and its
+  // upper bound could both be changed without a test failing.
+  it('listExpiringNames counts items expiring on the last day, not later or out of stock', async () => {
+    const { pantryRepository } = await import('../../db/pantry-repository.js')
+    const add = (name: string, expiryDate: string, inStock = true) =>
+      app.request('/v1/pantry', {
+        method: 'POST',
+        headers: auth(outsider.token),
+        body: JSON.stringify({ name, expiryDate, inStock }),
+      })
+    await add('Yogur del borde', '2026-10-04')
+    await add('Queso de la semana que viene', '2026-10-05')
+    await add('Crema vencida sin stock', '2026-10-01', false)
+    await add('Leche vencida', '2026-09-28')
+    const names = await pantryRepository.listExpiringNames(outsider.userId, '2026-10-04')
+    expect(names.sort()).toEqual(['Leche vencida', 'Yogur del borde'])
+  })
 })

@@ -82,6 +82,23 @@ describe('auth middleware — DB hash path', () => {
     expect(mockUpdateSet).not.toHaveBeenCalled()
   })
 
+  it('records use again once the last one is over an hour old', async () => {
+    mockUpdateSet.mockClear()
+    mockDbResult = [
+      {
+        id: 'key-1',
+        keyHash: TEST_HASH,
+        ownerId: 'user-42',
+        lastUsedAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+      },
+    ]
+    const res = await app.request('/v1/recipes', {
+      headers: { Authorization: `Bearer ${TEST_KEY}` },
+    })
+    expect(res.status).toBe(200)
+    expect(mockUpdateSet).toHaveBeenCalledWith({ lastUsedAt: expect.any(Date) })
+  })
+
   it('a failed lastUsedAt write never fails the request', async () => {
     mockUpdateSet.mockRejectedValue(new Error('db down'))
     mockDbResult = [{ id: 'key-1', keyHash: TEST_HASH, ownerId: 'user-42', lastUsedAt: null }]
