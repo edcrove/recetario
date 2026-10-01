@@ -150,7 +150,9 @@ describe.skipIf(skip).sequential('Cook stats — default window', () => {
       await app.request('/v1/cook-sessions/stats', { headers: auth(cook.token) })
     ).json()
     expect(stats.totalSessions).toBe(2)
+    // `since` is the window start truncated to its UTC date, so it lies 90 to
+    // <91 days back depending on the time of day (Math.round flaked after noon)
     const sinceDays = (Date.now() - new Date(stats.since).getTime()) / (24 * 60 * 60 * 1000)
-    expect(Math.round(sinceDays)).toBe(90)
+    expect(Math.floor(sinceDays)).toBe(90)
   })
 })

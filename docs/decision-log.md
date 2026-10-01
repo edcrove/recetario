@@ -158,6 +158,20 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
 - **Where it lives**: `packages/api/src/db/repository.ts` (`RecipeScope`), `src/db/*-repository.ts`.
 - **Status**: active
 
+### D-2026-10-01-13 · Household roles: who changes them, who can leave
+
+- **Decision**: the owner and accepted admins can change any non-owner member's role
+  (`PATCH /v1/households/{id}/members/{userId}`, same rights as invite/remove). The owner's
+  role never changes, and nobody can be promoted to owner. Any accepted non-owner member
+  can leave (`POST /v1/households/{id}/leave`). The owner can't leave (409), because
+  ownership transfer isn't built. A pending invitee declines instead of leaving.
+- **Why**: AC of the story "App: gestión de household" (owner changes role, member leaves),
+  found unimplemented by the 2026-10-01 test-base review. Keeping one manage-rights rule
+  (owner/admin) avoids a third permission tier.
+- **Where it lives**: `packages/api/src/routes/households.ts`, `household-repository.ts`,
+  MCP `changeHouseholdMemberRole` / `leaveHousehold`, `apps/app/app/household/index.tsx`.
+- **Status**: active · revisit when ownership transfer is built
+
 ## 2026-09-30 — Dependency & maintenance session (PRs #125, #140, #147, #148, #124)
 
 ### D-2026-09-30-12 · Production startup guard, closed sign-up and release step

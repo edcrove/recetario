@@ -54,6 +54,16 @@ export function inviteErrorMessage(err: unknown): string {
   return 'No se pudo enviar la invitación. Probá de nuevo.'
 }
 
+/** Whether someone with `myRole` may change `target`'s role (the owner's is fixed). */
+export function canChangeRole(myRole: string | undefined, target: MemberLike): boolean {
+  return (myRole === 'owner' || myRole === 'admin') && target.role !== 'owner'
+}
+
+/** Whether `me` can leave the household: joined (accepted) and not its owner. */
+export function canLeaveHousehold(me: MemberLike | undefined): boolean {
+  return !!me?.acceptedAt && me.role !== 'owner'
+}
+
 /** True when the recipe belongs to someone else (a housemate's shared recipe). */
 export function isForeignRecipe(ownerId: string | undefined, userId: string | null): boolean {
   return ownerId !== undefined && userId !== null && ownerId !== userId

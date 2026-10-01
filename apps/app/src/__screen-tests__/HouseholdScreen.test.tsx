@@ -9,6 +9,8 @@ const m = vi.hoisted(() => ({
   accept: vi.fn().mockResolvedValue({}),
   decline: vi.fn().mockResolvedValue({}),
   removeMember: vi.fn().mockResolvedValue({}),
+  changeRole: vi.fn().mockResolvedValue({}),
+  leave: vi.fn().mockResolvedValue(undefined),
   confirm: vi.fn(async () => true),
   notify: vi.fn(),
 }))
@@ -22,6 +24,8 @@ vi.mock('../api/client', () => ({
       accept: m.accept,
       decline: m.decline,
       removeMember: m.removeMember,
+      changeRole: m.changeRole,
+      leave: m.leave,
     },
   },
 }))
@@ -127,5 +131,158 @@ describe('HouseholdScreen', () => {
     await screen.findByText(/Casa/)
     expect(screen.queryByTestId('household-invite-open')).toBeNull()
     expect(screen.queryByTestId('household-remove-member-o')).toBeNull()
+  })
+})
+
+// Story "App: gestión de household (invitar, roles)": "Owner puede cambiar rol
+// o remover miembro. Miembro puede ver y abandonar el hogar."
+describe('HouseholdScreen: change role and leave', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    m.confirm.mockResolvedValue(true)
+  })
+
+  const ownerView = () =>
+    m.mine.mockResolvedValue([
+      {
+        id: 'h1',
+        name: 'Casa',
+        members: [
+          member('me', 'owner'),
+          member('ana', 'member', { displayName: 'Ana' }),
+          member('beto', 'viewer', { displayName: 'Beto' }),
+        ],
+      },
+    ])
+
+  it("the owner opens a member's role picker with the current role marked", async () => {
+    ownerView()
+    wrap()
+    fireEvent.click(await screen.findByTestId('household-change-role-ana'))
+    expect(screen.getByTestId('household-role-picker-ana')).toBeInTheDocument()
+    // The current role is marked and can't be re-picked; the others can
+    expect(screen.getByTestId('household-role-option-ana-member')).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+    expect(screen.getByTestId('household-role-option-ana-viewer')).toHaveAttribute(
+      'aria-selected',
+      'false',
+    )
+    expect(screen.getByTestId('household-role-option-ana-member')).toBeDisabled()
+    expect(screen.getByTestId('household-role-option-ana-viewer')).not.toBeDisabled()
+    expect(screen.getByTestId('household-role-option-ana-admin')).not.toBeDisabled()
+    // Only that member's picker is open
+    expect(screen.queryByTestId('household-role-picker-beto')).toBeNull()
+  })
+
+  it('each role button is labelled with the member it changes', async () => {
+    ownerView()
+    wrap()
+    expect(await screen.findByLabelText('Cambiar el rol de Ana')).toHaveAttribute(
+      'data-testid',
+      'household-change-role-ana',
+    )
+    expect(screen.getByLabelText('Cambiar el rol de Beto')).toBeInTheDocument()
+  })
+
+  it('a household returned without a member list still renders (no leave button)', async () => {
+    m.mine.mockResolvedValue([{ id: 'h1', name: 'Casa vacía' }])
+    wrap()
+    expect(await screen.findByText(/Casa vacía/)).toBeInTheDocument()
+    expect(screen.queryByTestId('household-leave-h1')).toBeNull()
+  })
+
+  it('picking a role changes it for that member and closes the picker', async () => {
+    ownerView()
+    wrap()
+    fireEvent.click(await screen.findByTestId('household-change-role-ana'))
+    fireEvent.click(screen.getByTestId('household-role-option-ana-viewer'))
+    await waitFor(() => expect(m.changeRole).toHaveBeenCalledWith('h1', 'ana', 'viewer'))
+    await waitFor(() => expect(screen.queryByTestId('household-role-picker-ana')).toBeNull())
+    // The list is refetched so the new badge shows
+    expect(m.mine.mock.calls.length).toBeGreaterThan(1)
+  })
+
+  it('tapping "Rol" again closes the picker without changing anything', async () => {
+    ownerView()
+    wrap()
+    fireEvent.click(await screen.findByTestId('household-change-role-ana'))
+    fireEvent.click(screen.getByTestId('household-change-role-ana'))
+    expect(screen.queryByTestId('household-role-picker-ana')).toBeNull()
+    expect(m.changeRole).not.toHaveBeenCalled()
+  })
+
+  it('a failed role change is reported', async () => {
+    ownerView()
+    m.changeRole.mockRejectedValueOnce(new Error('API 403'))
+    wrap()
+    fireEvent.click(await screen.findByTestId('household-change-role-ana'))
+    fireEvent.click(screen.getByTestId('household-role-option-ana-admin'))
+    await waitFor(() =>
+      expect(m.notify).toHaveBeenCalledWith('Error', 'No se pudo cambiar el rol. Probá de nuevo.'),
+    )
+  })
+
+  it("nobody gets a role control on the owner's row, and the owner has no leave button", async () => {
+    ownerView()
+    wrap()
+    await screen.findByTestId('household-change-role-ana')
+    expect(screen.queryByTestId('household-change-role-me')).toBeNull()
+    expect(screen.queryByTestId('household-leave-h1')).toBeNull()
+  })
+
+  it('a plain member sees no role controls', async () => {
+    m.mine.mockResolvedValue([
+      {
+        id: 'h1',
+        name: 'Casa',
+        members: [member('o', 'owner'), member('me', 'member'), member('x', 'viewer')],
+      },
+    ])
+    wrap()
+    await screen.findByText(/Casa/)
+    expect(screen.queryByTestId('household-change-role-x')).toBeNull()
+    expect(screen.queryByTestId('household-change-role-me')).toBeNull()
+  })
+
+  it('a member leaves after confirming, and every shared screen is refreshed', async () => {
+    m.mine.mockResolvedValue([
+      { id: 'h1', name: 'Casa', members: [member('o', 'owner'), member('me', 'member')] },
+    ])
+    wrap()
+    fireEvent.click(await screen.findByTestId('household-leave-h1'))
+    await waitFor(() => expect(m.leave).toHaveBeenCalledWith('h1'))
+    expect(m.confirm).toHaveBeenCalledWith(
+      'Abandonar hogar',
+      '¿Abandonar Casa? Vas a dejar de ver sus recetas, el menú semanal y la lista de compras.',
+    )
+    await waitFor(() => expect(m.mine.mock.calls.length).toBeGreaterThan(1))
+  })
+
+  it('cancelling the confirmation keeps them in the household', async () => {
+    m.mine.mockResolvedValue([
+      { id: 'h1', name: 'Casa', members: [member('o', 'owner'), member('me', 'viewer')] },
+    ])
+    m.confirm.mockResolvedValueOnce(false)
+    wrap()
+    fireEvent.click(await screen.findByTestId('household-leave-h1'))
+    await waitFor(() => expect(m.confirm).toHaveBeenCalled())
+    expect(m.leave).not.toHaveBeenCalled()
+  })
+
+  it('a failed leave is reported', async () => {
+    m.mine.mockResolvedValue([
+      { id: 'h1', name: 'Casa', members: [member('o', 'owner'), member('me', 'admin')] },
+    ])
+    m.leave.mockRejectedValueOnce(new Error('API 500'))
+    wrap()
+    fireEvent.click(await screen.findByTestId('household-leave-h1'))
+    await waitFor(() =>
+      expect(m.notify).toHaveBeenCalledWith(
+        'Error',
+        'No se pudo abandonar el hogar. Probá de nuevo.',
+      ),
+    )
   })
 })
