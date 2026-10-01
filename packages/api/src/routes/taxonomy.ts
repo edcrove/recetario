@@ -1,4 +1,5 @@
-import { createRoute as defineRoute, OpenAPIHono, z } from '@hono/zod-openapi'
+import { createRouter } from './router.js'
+import { createRoute as defineRoute, z } from '@hono/zod-openapi'
 import { eq, and, sql, or, isNull } from 'drizzle-orm'
 import { RecipeSchema } from '@recetario/shared'
 import { getDb, schema } from '../db/index.js'
@@ -6,8 +7,12 @@ import { authMiddleware } from '../middleware/auth.js'
 import { recipeRepository } from '../db/repository.js'
 import { getVisibleOwnerIds } from '../db/household-visibility.js'
 
-export const taxonomyRoute = new OpenAPIHono()
-taxonomyRoute.use('*', authMiddleware)
+export const taxonomyRoute = createRouter()
+// Scoped to this router's own paths: it's mounted on the shared /v1 prefix, and a
+// '*' here would also run auth for every other /v1 router (and 401 unknown paths)
+for (const path of ['/food-types', '/collections', '/collections/*', '/recipes/:id/relations']) {
+  taxonomyRoute.use(path, authMiddleware)
+}
 
 const errorSchema = z.object({ error: z.string() })
 

@@ -1,11 +1,12 @@
-import { createRoute as defineRoute, OpenAPIHono, z } from '@hono/zod-openapi'
+import { createRouter } from './router.js'
+import { createRoute as defineRoute, z } from '@hono/zod-openapi'
 import { eq } from 'drizzle-orm'
 import { getDb, schema } from '../db/index.js'
 import { hashPassword, verifyPassword, signJwt, verifyJwt } from '../auth/service.js'
 import { authRateLimitMiddleware } from '../middleware/rateLimit.js'
 import { registrationOpen } from '../config/production.js'
 
-export const authRoute = new OpenAPIHono()
+export const authRoute = createRouter()
 
 // Brute-force guard: per-IP limit on the unauthenticated credential endpoints
 authRoute.use('/login', authRateLimitMiddleware)

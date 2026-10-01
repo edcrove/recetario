@@ -1,4 +1,5 @@
-import { createRoute as defineRoute, OpenAPIHono, z } from '@hono/zod-openapi'
+import { createRouter } from './router.js'
+import { createRoute as defineRoute, z } from '@hono/zod-openapi'
 import {
   RecipeSchema,
   CreateRecipeSchema,
@@ -11,7 +12,7 @@ import { authMiddleware } from '../middleware/auth.js'
 import { rateLimitMiddleware } from '../middleware/rateLimit.js'
 import '../types.js'
 
-export const recipesRoute = new OpenAPIHono()
+export const recipesRoute = createRouter()
 
 // Auth on all /v1/recipes routes
 recipesRoute.use('/recipes', authMiddleware)

@@ -14,7 +14,9 @@ import { ingredientsRoute } from './routes/ingredients.js'
 import { pantryRoute } from './routes/pantry.js'
 import { suggestionsRoute } from './routes/suggestions.js'
 import { configRoute } from './routes/config.js'
+import { HTTPException } from 'hono/http-exception'
 import { assertProductionConfig } from './config/production.js'
+import { InvalidReferenceError } from './db/transaction.js'
 
 assertProductionConfig()
 
@@ -58,6 +60,22 @@ app.openAPIRegistry.registerComponent('securitySchemes', 'BearerAuth', {
   scheme: 'bearer',
   bearerFormat: 'JWT',
 })
+
+// One JSON error shape for everything the routes don't handle themselves
+app.onError((err, c) => {
+  if (err instanceof InvalidReferenceError) return c.json({ error: err.message }, 400)
+  if (err instanceof HTTPException) return c.json({ error: err.message }, err.status)
+  // Postgres errors arrive wrapped by Drizzle; the SQLSTATE is on the cause
+  const code = (err as { cause?: { code?: string } }).cause?.code ?? (err as { code?: string }).code
+  if (code === '23503') return c.json({ error: 'Referenced item not found' }, 400)
+  if (code === '23505') return c.json({ error: 'Already exists' }, 409)
+  if (code === '22P02' || code === '22007' || code === '22008') {
+    return c.json({ error: 'Invalid value' }, 400)
+  }
+  console.error(err)
+  return c.json({ error: 'Internal server error' }, 500)
+})
+app.notFound((c) => c.json({ error: 'Not found' }, 404))
 
 app.route('/', healthRoute)
 app.route('/v1', recipesRoute)

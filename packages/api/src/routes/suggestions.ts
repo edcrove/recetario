@@ -1,4 +1,5 @@
-import { createRoute as defineRoute, OpenAPIHono, z } from '@hono/zod-openapi'
+import { createRouter } from './router.js'
+import { createRoute as defineRoute, z } from '@hono/zod-openapi'
 import {
   resolveCanonical,
   rankSuggestions,
@@ -11,17 +12,14 @@ import { menuRepository } from '../db/menu-repository.js'
 import { authMiddleware } from '../middleware/auth.js'
 import '../types.js'
 
-export const suggestionsRoute = new OpenAPIHono()
+export const suggestionsRoute = createRouter()
 suggestionsRoute.use('/suggestions/*', authMiddleware)
 
 const bodySchema = z
   .object({
     ingredients: z.array(z.string().min(1)).optional(),
     usePantry: z.boolean().optional(),
-    date: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/)
-      .optional(),
+    date: z.iso.date().optional(),
   })
   .refine((b) => (b.ingredients && b.ingredients.length > 0) || b.usePantry, {
     message: 'Provide ingredients[] or usePantry: true',
