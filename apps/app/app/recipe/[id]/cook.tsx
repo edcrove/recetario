@@ -255,7 +255,13 @@ const makeStyles = (c: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: c.surface },
     loader: { flex: 1 },
-    center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
+    center: {
+      flex: 1,
+      backgroundColor: c.paper,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 24,
+    },
     emptyText: { fontSize: 16, color: c.inkSoft, textAlign: 'center' },
     topBar: {
       flexDirection: 'row',

@@ -271,7 +271,7 @@ export default function ConfiguratorScreen() {
 const makeStyles = (c: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: c.surface },
-    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    center: { flex: 1, backgroundColor: c.paper, justifyContent: 'center', alignItems: 'center' },
     tabScroll: { borderBottomWidth: 1, borderColor: c.sand, flexGrow: 0 },
     tabRow: { flexDirection: 'row', padding: 12, gap: 8 },
     tabBtn: {

@@ -132,7 +132,13 @@ export default function ShoppingListScreen() {
 const makeStyles = (c: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: c.surface },
-    center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
+    center: {
+      flex: 1,
+      backgroundColor: c.paper,
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 12,
+    },
     errorText: { color: c.danger },
     retryBtn: {
       paddingHorizontal: 16,
