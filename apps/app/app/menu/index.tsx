@@ -11,6 +11,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { api } from '../../src/api/client'
+import { invalidateMenuWeek } from '../../src/utils/menuCache'
 import type { MenuEntry, MenuSlot } from '@recetario/shared'
 import { getWeekStart, addDays, formatDate } from '../../src/utils/weekMath'
 import { buildEntryMap } from '../../src/utils/menuLogic'
@@ -51,7 +52,7 @@ export default function MenuWeekScreen() {
   const removeMutation = useMutation({
     mutationFn: ({ date, slot, recipeId }: { date: string; slot: string; recipeId: string }) =>
       api.menu.remove(date, slot, recipeId),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['menu', weekStart] }),
+    onSuccess: () => invalidateMenuWeek(queryClient, weekStart),
     onError: () => notify('Error', 'No se pudo quitar la receta del menú.'),
   })
 
@@ -68,7 +69,7 @@ export default function MenuWeekScreen() {
       servings: number
     }) => api.menu.updateServings(date, slot, recipeId, servings),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['menu', weekStart] })
+      invalidateMenuWeek(queryClient, weekStart)
       setEditing(null)
     },
     onError: () => notify('Error', 'No se pudieron actualizar las porciones.'),

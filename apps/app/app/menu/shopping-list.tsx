@@ -11,6 +11,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { api } from '../../src/api/client'
 import type { ShoppingListEntry } from '@recetario/shared'
 import { formatShoppingQty } from '../../src/utils/menuLogic'
+import { formatDate } from '../../src/utils/weekMath'
 import { groupShoppingByAisle, shoppingProgress } from '../../src/utils/shoppingSections'
 import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 
@@ -81,7 +82,7 @@ export default function ShoppingListScreen() {
         </TouchableOpacity>
       </View>
 
-      {weekStart && <Text style={styles.weekLabel}>Semana del {weekStart}</Text>}
+      {weekStart && <Text style={styles.weekLabel}>Semana del {formatDate(weekStart)}</Text>}
 
       {total > 0 && (
         <View style={styles.progressWrap}>

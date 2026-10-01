@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getWeekStart, addDays, formatDate } from '../utils/weekMath'
+import { getWeekStart, addDays, formatDate, localIsoDate } from '../utils/weekMath'
 
 describe('getWeekStart', () => {
   it('returns Monday for a Monday', () => {
@@ -89,5 +89,18 @@ describe('week math agreement with API getWeek window', () => {
     expect(week1End).toBe('2026-07-05')
     expect(week2Start).toBe('2026-07-06')
     expect(week2Start > week1End).toBe(true)
+  })
+})
+
+describe('local calendar dates', () => {
+  // Built with the local-time constructor, so these hold in any time zone.
+  it('localIsoDate uses the device date, not the UTC one', () => {
+    expect(localIsoDate(new Date(2026, 6, 5, 23, 30))).toBe('2026-07-05')
+    expect(localIsoDate(new Date(2026, 0, 1, 0, 5))).toBe('2026-01-01')
+  })
+
+  it('late Sunday night still belongs to the week that started on Monday', () => {
+    expect(getWeekStart(new Date(2026, 6, 5, 23, 30))).toBe('2026-06-29')
+    expect(getWeekStart(new Date(2026, 6, 6, 0, 30))).toBe('2026-07-06')
   })
 })
