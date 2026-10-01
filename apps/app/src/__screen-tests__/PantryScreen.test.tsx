@@ -16,6 +16,9 @@ vi.mock('expo-router', () => ({ useRouter: () => ({ back: vi.fn(), push: vi.fn()
 const { mockNotify } = vi.hoisted(() => ({ mockNotify: vi.fn() }))
 vi.mock('../utils/platformAlert', () => ({ notify: mockNotify }))
 
+const { mockIsViewer } = vi.hoisted(() => ({ mockIsViewer: vi.fn(() => false) }))
+vi.mock('../hooks/useIsViewer', () => ({ useIsViewer: mockIsViewer }))
+
 import PantryScreen from '../../app/pantry/index'
 
 const seed = () => [
@@ -119,5 +122,18 @@ describe('PantryScreen', () => {
     expect(await screen.findByText('Error al cargar la despensa')).toBeInTheDocument()
     fireEvent.click(screen.getByText('Reintentar'))
     expect(await screen.findByText('En casa')).toBeInTheDocument()
+  })
+
+  it('viewers get a read-only notice instead of add/delete controls', async () => {
+    mockIsViewer.mockReturnValue(true)
+    mockUpdate.mockClear()
+    wrap()
+    await screen.findByText('En casa')
+    expect(screen.getByTestId('viewer-notice')).toBeInTheDocument()
+    expect(screen.queryByTestId('pantry-add')).toBeNull()
+    expect(screen.queryByTestId('pantry-delete-arroz')).toBeNull()
+    fireEvent.click(screen.getByTestId('pantry-toggle-arroz'))
+    expect(mockUpdate).not.toHaveBeenCalled()
+    mockIsViewer.mockReturnValue(false)
   })
 })

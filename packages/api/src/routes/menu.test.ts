@@ -439,6 +439,16 @@ describe('viewer role enforcement on menu writes', () => {
     mockIsViewer.mockResolvedValue(true)
   })
 
+  it('PUT /v1/menu/shopping-list/check returns 403 for viewers', async () => {
+    const res = await app.request('/v1/menu/shopping-list/check', {
+      method: 'PUT',
+      headers: { ...AUTH, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ weekStart: '2026-06-29', key: 'sal', checked: true }),
+    })
+    expect(res.status).toBe(403)
+    expect(mockRepo.setShoppingCheck).not.toHaveBeenCalled()
+  })
+
   it('POST /v1/menu returns 403 for viewers', async () => {
     const res = await app.request('/v1/menu', {
       method: 'POST',

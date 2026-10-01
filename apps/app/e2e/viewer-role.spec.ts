@@ -83,15 +83,27 @@ test('a household viewer sees shared content without mutation affordances', asyn
     // …but a housemate's recipe offers no Editar
     await expect(page.getByText('Editar')).not.toBeVisible()
 
-    // The shared menu shows no mutation affordances for viewers
-    await page.goto('/menu')
-    await expect(page.getByText('Lista de compras')).toBeVisible({ timeout: 10000 })
-    await expect(page.locator('[data-testid^="menu-add-"]')).toHaveCount(0)
-    await expect(page.locator('[data-testid^="menu-remove-"]')).toHaveCount(0)
-
     // Recipes stay personal: the create FAB remains available
     await page.goto('/')
     await expect(page.getByText('+ Nueva Receta')).toBeVisible({ timeout: 10000 })
+
+    // The shared menu shows no mutation affordances, and says why
+    await page.goto('/menu')
+    await expect(page.getByText('Lista de compras')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('viewer-notice')).toBeVisible()
+    await expect(page.locator('[data-testid^="menu-add-"]')).toHaveCount(0)
+    await expect(page.locator('[data-testid^="menu-remove-"]')).toHaveCount(0)
+
+    // Shopping list: read-only too (in-app navigation keeps the page state)
+    await page.getByText('Lista de compras').click()
+    await expect(page.getByText(/^Semana del/)).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('viewer-notice').last()).toBeVisible()
+
+    // Shared pantry: no add/delete for viewers (ends here, on the screen under test)
+    await page.goto('/pantry')
+    await expect(page.getByTestId('viewer-notice')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('pantry-add')).toHaveCount(0)
+    await expect(page.locator('[data-testid^="pantry-delete-"]')).toHaveCount(0)
   } finally {
     await page.request.delete(`${API_URL}/v1/households/${householdId}/members/${viewer.user.id}`, {
       headers: ownerHeaders,

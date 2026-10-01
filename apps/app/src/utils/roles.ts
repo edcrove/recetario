@@ -15,8 +15,8 @@ interface HouseholdLike {
 /**
  * True when the user holds the 'viewer' role in ANY of their households.
  * Mirrors the API's write-blocking rule (see api/db/household-visibility.ts):
- * a viewer's menu entries would surface in the shared week view, so the UI
- * hides every menu-mutation affordance for them.
+ * viewers are read-only on the shared menu, shopping list and pantry, so the
+ * UI hides those mutation affordances for them (see useIsViewer).
  */
 export function isViewerInAnyHousehold(
   households: HouseholdLike[] | undefined,

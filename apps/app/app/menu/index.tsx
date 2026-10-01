@@ -16,9 +16,9 @@ import type { MenuEntry, MenuSlot } from '@recetario/shared'
 import { getWeekStart, addDays, formatDate } from '../../src/utils/weekMath'
 import { buildEntryMap } from '../../src/utils/menuLogic'
 import { notify } from '../../src/utils/platformAlert'
-import { isViewerInAnyHousehold } from '../../src/utils/roles'
+import { useIsViewer } from '../../src/hooks/useIsViewer'
+import { ViewerNotice } from '../../src/components/ViewerNotice'
 import { DayNutritionSummary } from '../../src/components/DayNutritionSummary'
-import { useAuth } from '../../src/providers/AuthProvider'
 import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 
 const SLOTS: MenuSlot[] = ['Desayuno', 'Almuerzo', 'Merienda', 'Cena', 'Snacks/Otros']
@@ -28,14 +28,9 @@ export default function MenuWeekScreen() {
   const s = makeStyles(colors)
   const router = useRouter()
   const queryClient = useQueryClient()
-  const { userId } = useAuth()
-  const { data: households } = useQuery({
-    queryKey: ['households'],
-    queryFn: () => api.households.mine(),
-  })
   // Viewers are read-only on the shared menu (the API 403s their writes) —
   // hide every mutation affordance so there are no dead buttons.
-  const isViewer = isViewerInAnyHousehold(households, userId)
+  const isViewer = useIsViewer()
   const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()))
   const [editing, setEditing] = useState<MenuEntry | null>(null)
   const [editServings, setEditServings] = useState(1)
@@ -111,6 +106,8 @@ export default function MenuWeekScreen() {
           <Text style={s.navBtnText}>Siguiente ›</Text>
         </TouchableOpacity>
       </View>
+
+      {isViewer && <ViewerNotice />}
 
       <TouchableOpacity
         style={s.shoppingBtn}

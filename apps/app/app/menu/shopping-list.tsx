@@ -14,6 +14,8 @@ import { formatShoppingQty } from '../../src/utils/menuLogic'
 import { formatDate } from '../../src/utils/weekMath'
 import { groupShoppingByAisle, shoppingProgress } from '../../src/utils/shoppingSections'
 import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
+import { useIsViewer } from '../../src/hooks/useIsViewer'
+import { ViewerNotice } from '../../src/components/ViewerNotice'
 
 export default function ShoppingListScreen() {
   const colors = useThemeColors()
@@ -23,6 +25,8 @@ export default function ShoppingListScreen() {
   const { weekStart } = useLocalSearchParams<{ weekStart: string }>()
   const week = weekStart ?? ''
   const queryKey = ['shopping-list', week]
+  // Check-offs are shared with the household; viewers can only read them.
+  const isViewer = useIsViewer()
 
   const {
     data: items = [],
@@ -83,6 +87,7 @@ export default function ShoppingListScreen() {
       </View>
 
       {weekStart && <Text style={styles.weekLabel}>Semana del {formatDate(weekStart)}</Text>}
+      {isViewer && <ViewerNotice />}
 
       {total > 0 && (
         <View style={styles.progressWrap}>
@@ -112,6 +117,7 @@ export default function ShoppingListScreen() {
             testID={`shopping-item-${item.key}`}
             style={styles.row}
             activeOpacity={0.6}
+            disabled={isViewer}
             onPress={() => toggle.mutate({ key: item.key, checked: !item.checked })}
           >
             <View style={[styles.checkbox, item.checked && styles.checkboxOn]}>
