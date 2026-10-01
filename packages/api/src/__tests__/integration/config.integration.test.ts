@@ -437,3 +437,117 @@ async function otherFoodTypeIdLookup(): Promise<string> {
     .limit(1)
   return row!.id
 }
+
+// Story "App: pantalla Configurador con tabs y contadores": "Tap en badge abre
+// lista de recetas que lo usan. Crear nuevo ítem en cada tab."
+describe.skipIf(skip).sequential('Taxonomy config: create items and list their recipes', () => {
+  const H = { Authorization: authHeader, 'Content-Type': 'application/json' }
+  const OH = { Authorization: otherAuthHeader, 'Content-Type': 'application/json' }
+  const db = () => getDb()
+  const overview = async () =>
+    (await (await app.request('/v1/config/taxonomy', { headers: H })).json()) as Record<
+      'mealCategories' | 'foodTypes' | 'tags',
+      { id: string; name: string; usageCount: number; isDeletable: boolean }[]
+    >
+  const recipes = async (type: string, id: string, headers = H) =>
+    app.request(`/v1/config/${type}/${id}/recipes`, { headers })
+  const create = (type: string, name: string, headers = H) =>
+    app.request(`/v1/config/${type}`, { method: 'POST', headers, body: JSON.stringify({ name }) })
+
+  it('creates a category that shows up in the overview, unused and deletable', async () => {
+    const res = await create('categories', 'Merienda Cena')
+    expect(res.status).toBe(201)
+    const item = (await res.json()) as { id: string; slug: string }
+    expect(item.slug).toBe('merienda-cena')
+    const cat = (await overview()).mealCategories.find((c) => c.id === item.id)
+    expect(cat).toMatchObject({ name: 'Merienda Cena', usageCount: 0, isDeletable: true })
+  })
+
+  it('creates a food type and a tag too', async () => {
+    expect((await create('food-types', 'Tapeo')).status).toBe(201)
+    expect((await create('tags', 'para invitados')).status).toBe(201)
+    const o = await overview()
+    expect(o.foodTypes.some((f) => f.name === 'Tapeo')).toBe(true)
+    expect(o.tags.some((t) => t.name === 'para invitados')).toBe(true)
+  })
+
+  it('a name already taken (own, or a system category) is a 409, and nothing is added', async () => {
+    const before = (await overview()).mealCategories.length
+    expect((await create('categories', 'Merienda Cena')).status).toBe(409)
+    expect((await create('categories', 'cena')).status).toBe(409) // system "Cena"
+    expect((await create('tags', 'Para Invitados')).status).toBe(409)
+    expect((await overview()).mealCategories.length).toBe(before)
+  })
+
+  it('another person can create the same name in their own space', async () => {
+    expect((await create('tags', 'para invitados', OH)).status).toBe(201)
+  })
+
+  it('a name with no usable characters is a 400', async () => {
+    expect((await create('tags', '¡¡ !!')).status).toBe(400)
+  })
+
+  it('a category badge lists exactly the recipes it counts (mine only)', async () => {
+    const item = (await (await create('categories', 'Picnic')).json()) as { id: string }
+    for (const [ownerId, title] of [
+      [TEST_OWNER_ID, 'Sándwich de miga'],
+      [TEST_OWNER_ID, 'Ensalada fría'],
+      [OTHER_OWNER_ID, 'Picnic ajeno'],
+    ] as const) {
+      await db().insert(schema.recipes).values({ ownerId, title, servings: 2, category: 'Picnic' })
+    }
+    const res = await recipes('categories', item.id)
+    expect(res.status).toBe(200)
+    const list = (await res.json()) as { title: string }[]
+    expect(list.map((r) => r.title)).toEqual(['Ensalada fría', 'Sándwich de miga'])
+    const badge = (await overview()).mealCategories.find((c) => c.id === item.id)!.usageCount
+    expect(list).toHaveLength(badge)
+  })
+
+  it('a food type badge lists its recipes, matching the count', async () => {
+    const ft = (await (await create('food-types', 'Al disco')).json()) as { id: string }
+    const r = await app.request('/v1/recipes', {
+      method: 'POST',
+      headers: H,
+      body: JSON.stringify({
+        title: 'Disco de verduras',
+        servings: 4,
+        category: 'Cena',
+        ingredients: [{ name: 'zapallo', quantity: 1, unit: 'unit' }],
+        foodTypeIds: [ft.id],
+      }),
+    })
+    expect(r.status).toBe(201)
+    const list = (await (await recipes('food-types', ft.id)).json()) as { title: string }[]
+    expect(list.map((x) => x.title)).toEqual(['Disco de verduras'])
+    expect((await overview()).foodTypes.find((f) => f.id === ft.id)!.usageCount).toBe(1)
+  })
+
+  it('a tag badge lists its recipes, matching the count', async () => {
+    const tag = (await overview()).tags.find((t) => t.name === 'para invitados')!
+    const [rec] = await db()
+      .insert(schema.recipes)
+      .values({ ownerId: TEST_OWNER_ID, title: 'Tabla de quesos', servings: 6, category: 'Otro' })
+      .returning()
+    await db().insert(schema.recipeTags).values({ recipeId: rec!.id, tagId: tag.id })
+    const list = (await (await recipes('tags', tag.id)).json()) as { title: string }[]
+    expect(list.map((x) => x.title)).toEqual(['Tabla de quesos'])
+    expect((await overview()).tags.find((t) => t.id === tag.id)!.usageCount).toBe(list.length)
+  })
+
+  it("someone else's item is a 404, never their recipes", async () => {
+    const theirs = (await (await create('categories', 'Secreta', OH)).json()) as { id: string }
+    expect((await recipes('categories', theirs.id)).status).toBe(404)
+    const theirTag = (await (await create('tags', 'solo mía', OH)).json()) as { id: string }
+    expect((await recipes('tags', theirTag.id)).status).toBe(404)
+    const theirType = (await (await create('food-types', 'Ajeno', OH)).json()) as { id: string }
+    expect((await recipes('food-types', theirType.id)).status).toBe(404)
+  })
+
+  it('a system category lists only my recipes in it', async () => {
+    const cena = (await overview()).mealCategories.find((c) => c.name === 'Cena')!
+    const list = (await (await recipes('categories', cena.id)).json()) as { title: string }[]
+    expect(list.map((x) => x.title)).toContain('Disco de verduras')
+    expect(list).toHaveLength(cena.usageCount)
+  })
+})

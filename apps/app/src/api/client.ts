@@ -204,6 +204,13 @@ export const api = {
   },
   config: {
     taxonomy: () => request<TaxonomyOverview>('/v1/config/taxonomy'),
+    create: (type: ConfigType, name: string) =>
+      request<{ id: string; name: string }>(`/v1/config/${type}`, {
+        method: 'POST',
+        body: JSON.stringify({ name }),
+      }),
+    usedBy: (type: ConfigType, id: string) =>
+      request<Array<{ id: string; title: string }>>(`/v1/config/${type}/${id}/recipes`),
     rename: (type: ConfigType, id: string, name: string) =>
       request<{ id: string; name: string }>(`/v1/config/${type}/${id}`, {
         method: 'PATCH',
