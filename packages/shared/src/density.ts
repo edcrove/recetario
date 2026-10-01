@@ -1,8 +1,40 @@
 import type { Unit } from './schema.js'
 import { MASS_TO_G, VOLUME_TO_ML, convertUnit } from './units.js'
+import { normalizeIngredientName } from './ingredientName.js'
 
-// g/ml density table — keyed by normalized ingredient name (lowercase, trimmed)
-export const DENSITY_TABLE: Record<string, number> = {
+// g/ml densities. Keys are written naturally (Spanish first: recipes are in
+// Spanish) and normalized once with normalizeIngredientName, the same key the
+// shopping list uses, so accents, case and plurals don't matter on lookup.
+const DENSITIES: Record<string, number> = {
+  agua: 1.0,
+  leche: 1.03,
+  aceite: 0.92,
+  'aceite de oliva': 0.92,
+  'aceite de girasol': 0.92,
+  manteca: 0.91,
+  mantequilla: 0.91,
+  harina: 0.53,
+  'harina de trigo': 0.53,
+  'harina integral': 0.51,
+  maicena: 0.54,
+  'fécula de maíz': 0.54,
+  azúcar: 0.85,
+  'azúcar blanca': 0.85,
+  'azúcar negra': 0.72,
+  'azúcar rubia': 0.72,
+  'azúcar impalpable': 0.56,
+  sal: 1.2,
+  'sal fina': 1.2,
+  miel: 1.42,
+  crema: 1.01,
+  'crema de leche': 1.01,
+  yogur: 1.03,
+  arroz: 0.75,
+  avena: 0.34,
+  cacao: 0.5,
+  'cacao amargo': 0.5,
+  'polvo de hornear': 0.9,
+  // English names, for imported recipes
   water: 1.0,
   milk: 1.03,
   oil: 0.92,
@@ -22,14 +54,29 @@ export const DENSITY_TABLE: Record<string, number> = {
   'cocoa powder': 0.5,
 }
 
+export const DENSITY_TABLE: Record<string, number> = Object.fromEntries(
+  Object.entries(DENSITIES).map(([name, density]) => [normalizeIngredientName(name), density]),
+)
+
+/**
+ * g/ml for an ingredient, or null. Tries the full normalized name, then drops
+ * trailing words so qualifiers still match ("harina 0000" → harina,
+ * "aceite de oliva extra virgen" → aceite de oliva).
+ */
 export function lookupDensity(ingredientName: string): number | null {
-  return DENSITY_TABLE[ingredientName.toLowerCase().trim()] ?? null
+  const words = normalizeIngredientName(ingredientName).split(' ')
+  for (let n = words.length; n > 0; n--) {
+    const density = DENSITY_TABLE[words.slice(0, n).join(' ')]
+    if (density !== undefined) return density
+  }
+  return null
 }
 
 /**
  * Convert volume↔mass using density (g/ml).
- * Falls back to convertUnit (within-dimension) if cross-dimension isn't possible.
- * Returns null if qty is null.
+ * Within one dimension it delegates to convertUnit. Returns null if qty is
+ * null, or for a volume↔mass conversion with no known density: passing the
+ * number through would print "1 taza harina" as "1 g".
  */
 export function convertWithDensity(
   qty: number | null,
@@ -63,8 +110,7 @@ export function convertWithDensity(
         return Math.round((ml / toVol!) * 1000) / 1000
       }
     }
-    // density unknown: fall through to pass-through
-    return qty
+    return null
   }
 
   // Within-dimension or no density available: delegate

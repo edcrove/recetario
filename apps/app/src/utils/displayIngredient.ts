@@ -1,5 +1,5 @@
-import { scaleQuantity, convertUnit, convertWithDensity } from '@recetario/shared'
-import type { Ingredient, Unit } from '@recetario/shared'
+import { scaleQuantity, convertUnit, bestVolumeUnit, VOLUME_TO_ML } from '@recetario/shared'
+import type { Ingredient } from '@recetario/shared'
 
 export type DisplayMode = 'cooking' | 'metric' | 'imperial'
 
@@ -39,15 +39,13 @@ export function displayIngredient(
   let finalQty = scaled
   let finalUnit = ing.unit
 
-  if (scaled !== null && ing.unit) {
-    if (mode === 'metric') {
-      finalUnit = ing.unit && ['tsp', 'tbsp', 'cup'].includes(ing.unit) ? 'ml' : ing.unit
-      finalQty = convertUnit(scaled, ing.unit, finalUnit)
-    } else if (mode === 'imperial') {
-      finalUnit = ing.unit === 'ml' ? 'tsp' : ing.unit === 'l' ? 'cup' : ing.unit
-      finalQty = convertUnit(scaled, ing.unit, finalUnit)
-    }
-    finalQty = convertWithDensity(scaled, ing.unit as Unit, finalUnit as Unit, ing.name)
+  // Metric/imperial only re-express volumes, picking a readable unit for the
+  // scaled amount (500 ml leche → 2.08 tazas, not 100 cdtas). Mass and count
+  // units stay as written: there is no imperial mass unit in the schema.
+  const mlPerUnit = ing.unit ? VOLUME_TO_ML[ing.unit] : undefined
+  if (scaled !== null && mode !== 'cooking' && mlPerUnit !== undefined) {
+    finalUnit = bestVolumeUnit(scaled * mlPerUnit, mode)
+    finalQty = convertUnit(scaled, ing.unit, finalUnit)
   }
 
   const qtyStr = formatQuantity(finalQty)

@@ -41,3 +41,15 @@ export function convertUnit(qty: number | null, from: Unit | null, to: Unit | nu
   // Cross-dimension or count/unknown: pass through unchanged
   return qty
 }
+
+/**
+ * Most readable volume unit for an amount in ml. Imperial uses spoons for small
+ * amounts and cups otherwise (never "100 cdta leche"); metric switches to
+ * liters from 1000 ml.
+ */
+export function bestVolumeUnit(ml: number, system: 'metric' | 'imperial'): Unit {
+  if (system === 'metric') return ml >= 1000 ? 'l' : 'ml'
+  if (ml < 15) return 'tsp'
+  if (ml < 60) return 'tbsp'
+  return 'cup'
+}

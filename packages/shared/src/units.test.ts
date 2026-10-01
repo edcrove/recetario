@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { convertUnit } from './units.js'
+import { convertUnit, bestVolumeUnit } from './units.js'
 
 describe('convertUnit - volume', () => {
   it('converts 1 cup to 240 ml', () => {
@@ -52,5 +52,17 @@ describe('convertUnit - pass-through', () => {
 
   it('returns qty unchanged when to is null', () => {
     expect(convertUnit(1, 'ml', null)).toBe(1)
+  })
+})
+
+describe('bestVolumeUnit', () => {
+  it('imperial: spoons for small amounts, cups otherwise', () => {
+    expect(bestVolumeUnit(5, 'imperial')).toBe('tsp')
+    expect(bestVolumeUnit(30, 'imperial')).toBe('tbsp')
+    expect(bestVolumeUnit(500, 'imperial')).toBe('cup')
+  })
+  it('metric: liters from 1000 ml', () => {
+    expect(bestVolumeUnit(240, 'metric')).toBe('ml')
+    expect(bestVolumeUnit(1500, 'metric')).toBe('l')
   })
 })

@@ -25,7 +25,7 @@ describe('convertWithDensity', () => {
   })
 
   it('returns qty unchanged for unknown ingredient (pass-through)', () => {
-    expect(convertWithDensity(1, 'cup', 'g', 'dragon fruit')).toBe(1)
+    expect(convertWithDensity(1, 'cup', 'g', 'dragon fruit')).toBeNull()
   })
 
   it('returns null when qty is null', () => {
@@ -50,5 +50,24 @@ describe('convertWithDensity', () => {
 
   it('returns qty unchanged when to is null', () => {
     expect(convertWithDensity(1, 'ml', null, 'water')).toBe(1)
+  })
+})
+
+describe('Spanish ingredient names', () => {
+  it('finds densities regardless of accents, case and plurals', () => {
+    expect(lookupDensity('Harina')).toBe(0.53)
+    expect(lookupDensity('AZUCAR')).toBe(0.85)
+    expect(lookupDensity('Azúcar negra')).toBe(0.72)
+    expect(lookupDensity('Leches')).toBe(1.03)
+  })
+
+  it('drops trailing qualifiers until a known name matches', () => {
+    expect(lookupDensity('harina 0000')).toBe(0.53)
+    expect(lookupDensity('aceite de oliva extra virgen')).toBe(0.92)
+    expect(lookupDensity('pimienta negra')).toBeNull()
+  })
+
+  it('converts a cup of harina to grams instead of passing the number through', () => {
+    expect(convertWithDensity(1, 'cup', 'g', 'harina')).toBeCloseTo(127.2, 1)
   })
 })
