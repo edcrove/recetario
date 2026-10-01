@@ -107,16 +107,15 @@ test.describe('Cook mode: basic flow', () => {
     // Navigate to step 4 (index 3) which has the timer
     for (let i = 0; i < 3; i++) {
       await page.getByTestId('cook-next').click()
-      await page.waitForTimeout(200)
+      await expect(page.getByText(new RegExp(`Paso ${i + 2} / `))).toBeVisible({ timeout: 8000 })
     }
 
+    // The seeded step 4 ("Freír … 3-4 minutos") always carries an 8-minute timer
     const toggle = page.getByTestId('cook-timer-toggle')
-    if ((await toggle.count()) > 0) {
-      // Tap-to-start: pre-loaded paused, so it reads "Iniciar" first.
-      await expect(toggle).toHaveText(/Iniciar|Reanudar/)
-      await toggle.click()
-      await expect(toggle).toHaveText('Pausar')
-    }
+    // Tap-to-start: pre-loaded paused, so it reads "Iniciar" first.
+    await expect(toggle).toHaveText(/Iniciar|Reanudar/, { timeout: 8000 })
+    await toggle.click()
+    await expect(toggle).toHaveText('Pausar')
   })
 
   test('rating modal appears after finishing all steps', async ({ page }) => {
