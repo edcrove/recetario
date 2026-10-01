@@ -9,6 +9,7 @@ import {
   timestamp,
   index,
   uniqueIndex,
+  unique,
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core'
 
@@ -217,7 +218,7 @@ export const mealCategories = pgTable(
     isSystem: integer('is_system').notNull().default(0), // 1 = cannot delete
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
-  (t) => [uniqueIndex('meal_categories_slug_owner_idx').on(t.slug, t.ownerId)],
+  (t) => [unique('meal_categories_slug_owner_uq').on(t.slug, t.ownerId).nullsNotDistinct()],
 )
 
 // ── Taxonomy: food types (guisos, sopas, carnes…) ───────────────────────────
@@ -231,7 +232,7 @@ export const foodTypes = pgTable(
     isSystem: integer('is_system').notNull().default(0),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
-  (t) => [uniqueIndex('food_types_slug_owner_idx').on(t.slug, t.ownerId)],
+  (t) => [unique('food_types_slug_owner_uq').on(t.slug, t.ownerId).nullsNotDistinct()],
 )
 
 export const recipeFoodTypes = pgTable(
