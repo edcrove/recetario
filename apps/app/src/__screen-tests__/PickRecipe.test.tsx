@@ -3,20 +3,33 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { Recipe } from '@recetario/shared'
 
-const { mockList, mockSearch, mockAdd, mockBack, mockNotify } = vi.hoisted(() => ({
-  mockList: vi.fn(),
-  mockSearch: vi.fn(),
-  mockAdd: vi.fn().mockResolvedValue({}),
-  mockBack: vi.fn(),
-  mockNotify: vi.fn(),
-}))
+const { mockList, mockSearch, mockAdd, mockBack, mockNotify, mockProfile, mockDay, params } =
+  vi.hoisted(() => ({
+    params: {
+      current: { date: '2026-07-07', slot: 'Cena', weekStart: '2026-07-06' } as Record<
+        string,
+        string
+      >,
+    },
+    mockProfile: vi.fn(),
+    mockDay: vi.fn(),
+    mockList: vi.fn(),
+    mockSearch: vi.fn(),
+    mockAdd: vi.fn().mockResolvedValue({}),
+    mockBack: vi.fn(),
+    mockNotify: vi.fn(),
+  }))
 
 vi.mock('../api/client', () => ({
-  api: { recipes: { list: mockList, search: mockSearch }, menu: { add: mockAdd } },
+  api: {
+    recipes: { list: mockList, search: mockSearch },
+    menu: { add: mockAdd, dayNutrition: mockDay },
+    auth: { getProfile: mockProfile },
+  },
 }))
 vi.mock('expo-router', () => ({
   useRouter: () => ({ push: vi.fn(), back: mockBack, replace: vi.fn() }),
-  useLocalSearchParams: () => ({ date: '2026-07-07', slot: 'Cena', weekStart: '2026-07-06' }),
+  useLocalSearchParams: () => params.current,
 }))
 vi.mock('../utils/platformAlert', () => ({ notify: mockNotify }))
 vi.mock('../components/AllergenBadge', () => ({ AllergenBadge: () => null }))
@@ -35,8 +48,9 @@ const recipe = (over: Partial<Recipe>): Recipe =>
     ...over,
   }) as Recipe
 
+let client: QueryClient
 function wrap() {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={client}>
       <PickRecipeScreen />
@@ -45,7 +59,10 @@ function wrap() {
 }
 
 describe('PickRecipeScreen', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockProfile.mockResolvedValue({ nutritionTargets: null })
+  })
 
   it('names the slot and day it is picking for', async () => {
     mockList.mockResolvedValue([])
@@ -109,5 +126,129 @@ describe('PickRecipeScreen', () => {
       expect(mockNotify).toHaveBeenCalledWith('Error', 'No se pudo agregar la receta al menú.'),
     )
     expect(mockBack).not.toHaveBeenCalled()
+  })
+})
+
+// Story "goals in Perfil + day progress/delta in planner": "Pick screen with
+// goals set: projected delta preview ('con esta receta el almuerzo queda en
+// 780 / 700 kcal')". The slot here is Cena on 2026-07-07.
+describe('PickRecipeScreen: goal preview', () => {
+  const day = (cena: number, total: number) => ({
+    date: '2026-07-07',
+    totals: { calories: total, protein_g: 0, carbs_g: 0, fat_g: 0 },
+    target: null,
+    delta: null,
+    byMeal: [
+      {
+        mealCategory: 'Almuerzo',
+        totals: { calories: total - cena, protein_g: 0, carbs_g: 0, fat_g: 0 },
+        target: null,
+        calorieDelta: null,
+      },
+      {
+        mealCategory: 'cena',
+        totals: { calories: cena, protein_g: 0, carbs_g: 0, fat_g: 0 },
+        target: null,
+        calorieDelta: null,
+      },
+    ],
+    partial: false,
+    missingCount: 0,
+  })
+  const nutrition = (calories: number) => ({ calories, protein_g: 10, carbs_g: 10, fat_g: 10 })
+  const goals = (perMeal?: Record<string, { calories: number }>) => ({
+    nutritionTargets: {
+      daily_calories: 2000,
+      daily_protein_g: 0,
+      daily_carbs_g: 0,
+      daily_fat_g: 0,
+      ...(perMeal && { per_meal: perMeal }),
+    },
+  })
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    params.current = { date: '2026-07-07', slot: 'Cena', weekStart: '2026-07-06' }
+  })
+
+  it('with a dinner goal, each recipe shows where dinner lands (what is planned + the recipe)', async () => {
+    mockProfile.mockResolvedValue(goals({ Cena: { calories: 700 } }))
+    mockDay.mockResolvedValue(day(300, 1100))
+    const light = recipe({ id: 'a1', title: 'Ensalada', nutrition: nutrition(350) })
+    const heavy = recipe({ id: 'a2', title: 'Guiso', nutrition: nutrition(780) })
+    mockList.mockResolvedValue([light, heavy])
+    wrap()
+    const a = await screen.findByTestId('pick-projection-a1')
+    expect(a).toHaveTextContent('Con esta receta la cena queda en 650 / 700 kcal')
+    expect(a).toHaveAttribute('data-status', 'ok')
+    const b = screen.getByTestId('pick-projection-a2')
+    expect(b).toHaveTextContent('Con esta receta la cena queda en 1080 / 700 kcal')
+    expect(b).toHaveAttribute('data-status', 'over')
+    expect(mockDay).toHaveBeenCalledWith('2026-07-07')
+    // Same cache entry as the planner's day summary, so picking refreshes both
+    expect(client.getQueryData(['day-nutrition', '2026-07-07'])).toEqual(day(300, 1100))
+  })
+
+  it('opened without a slot it previews the day against the daily goal', async () => {
+    params.current = { date: '2026-07-07', weekStart: '2026-07-06' }
+    mockProfile.mockResolvedValue(goals({ Cena: { calories: 700 } }))
+    mockDay.mockResolvedValue(day(300, 1100))
+    mockList.mockResolvedValue([recipe({ id: 'a1', nutrition: nutrition(400) })])
+    wrap()
+    expect(await screen.findByTestId('pick-projection-a1')).toHaveTextContent(
+      'Con esta receta el día queda en 1500 / 2000 kcal',
+    )
+  })
+
+  it('without a meal goal it projects the day against the daily goal', async () => {
+    mockProfile.mockResolvedValue(goals())
+    mockDay.mockResolvedValue(day(300, 1100))
+    mockList.mockResolvedValue([recipe({ id: 'a1', nutrition: nutrition(500) })])
+    wrap()
+    const p = await screen.findByTestId('pick-projection-a1')
+    expect(p).toHaveTextContent('Con esta receta el día queda en 1600 / 2000 kcal')
+    expect(p).toHaveAttribute('data-status', 'under')
+  })
+
+  it('no preview while the day is still loading (unknown is not zero)', async () => {
+    mockProfile.mockResolvedValue(goals({ Cena: { calories: 700 } }))
+    mockDay.mockReturnValue(new Promise(() => {}))
+    mockList.mockResolvedValue([recipe({ id: 'a1', nutrition: nutrition(400) })])
+    wrap()
+    await screen.findByTestId('pick-recipe-a1')
+    await waitFor(() => expect(mockDay).toHaveBeenCalled())
+    expect(screen.queryByTestId('pick-projection-a1')).toBeNull()
+  })
+
+  it('an empty day starts from zero', async () => {
+    mockProfile.mockResolvedValue(goals({ Cena: { calories: 700 } }))
+    mockDay.mockResolvedValue({ ...day(0, 0), byMeal: [] })
+    mockList.mockResolvedValue([recipe({ id: 'a1', nutrition: nutrition(700) })])
+    wrap()
+    expect(await screen.findByTestId('pick-projection-a1')).toHaveTextContent(
+      'Con esta receta la cena queda en 700 / 700 kcal',
+    )
+  })
+
+  it('a recipe without nutrition shows no preview (never guessed)', async () => {
+    mockProfile.mockResolvedValue(goals({ Cena: { calories: 700 } }))
+    mockDay.mockResolvedValue(day(300, 1100))
+    mockList.mockResolvedValue([
+      recipe({ id: 'a1', nutrition: nutrition(400) }),
+      recipe({ id: 'a2', title: 'Sin datos' }),
+    ])
+    wrap()
+    await screen.findByTestId('pick-projection-a1')
+    expect(screen.queryByTestId('pick-projection-a2')).toBeNull()
+  })
+
+  it('without goals there is no preview and the day is not even fetched', async () => {
+    mockProfile.mockResolvedValue({ nutritionTargets: null })
+    mockList.mockResolvedValue([recipe({ id: 'a1', nutrition: nutrition(400) })])
+    wrap()
+    await screen.findByTestId('pick-recipe-a1')
+    await waitFor(() => expect(mockProfile).toHaveBeenCalled())
+    expect(screen.queryByTestId('pick-projection-a1')).toBeNull()
+    expect(mockDay).not.toHaveBeenCalled()
   })
 })
