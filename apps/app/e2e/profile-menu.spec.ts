@@ -361,7 +361,67 @@ test.describe('Household screen', () => {
 
     await page.getByTestId('household-invite-email-input').fill('nadie-existe@example.com')
     await page.getByTestId('household-invite-submit').click()
-    await expect.poll(() => dialogMessage, { timeout: 8000 }).toContain('Error')
+    await expect.poll(() => dialogMessage, { timeout: 8000 }).toContain('No hay ninguna cuenta')
+  })
+
+  test('the invitee declines, is invited again and accepts — all in Mi hogar', async ({
+    page,
+  }, testInfo) => {
+    const API = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
+    const ownerToken = await page.evaluate(() => localStorage.getItem('auth_token'))
+    const ownerHeaders = { Authorization: `Bearer ${ownerToken ?? ''}` }
+    await openHouseholdEnsuringOneExists(page)
+    const [hh] = (await (
+      await page.request.get(`${API}/v1/households/mine`, { headers: ownerHeaders })
+    ).json()) as Array<{ id: string; name: string }>
+
+    const email = `invitee-${testInfo.parallelIndex}-${Date.now()}@example.com`
+    const reg = await page.request.post(`${API}/auth/register`, {
+      data: { email, password: 'password123' },
+    })
+    const invitee = (await reg.json()) as { token: string; user: { id: string } }
+    const invite = () =>
+      page.request.post(`${API}/v1/households/${hh!.id}/invite`, {
+        headers: ownerHeaders,
+        data: { userId: invitee.user.id, role: 'member' },
+      })
+
+    try {
+      // Inviting the same person twice → specific message (409)
+      expect((await invite()).status()).toBe(201)
+      await page.getByTestId('household-invite-open').first().click()
+      let dialogMessage = ''
+      page.once('dialog', (dialog) => {
+        dialogMessage = dialog.message()
+        void dialog.accept()
+      })
+      await page.getByTestId('household-invite-email-input').fill(email)
+      await page.getByTestId('household-invite-submit').click()
+      await expect.poll(() => dialogMessage, { timeout: 8000 }).toContain('ya está en el hogar')
+
+      // Become the invitee; client-side navigation keeps coverage in one page
+      await page.evaluate((jwt) => localStorage.setItem('auth_token', jwt), invitee.token)
+      await page.goto('/household')
+      const card = page.getByTestId(`household-invitation-${hh!.id}`)
+      await expect(card).toContainText(hh!.name, { timeout: 10000 })
+
+      page.once('dialog', (dialog) => void dialog.accept())
+      await page.getByTestId(`household-decline-${hh!.id}`).click()
+      await expect(card).toHaveCount(0, { timeout: 10000 })
+      await expect(page.getByTestId('household-create-name-input')).toBeVisible()
+
+      // Invited again → accept; the household and its members appear
+      expect((await invite()).status()).toBe(201)
+      await page.reload()
+      await page.getByTestId(`household-accept-${hh!.id}`).click()
+      await expect(card).toHaveCount(0, { timeout: 10000 })
+      await expect(page.getByText(email)).toBeVisible({ timeout: 10000 })
+      await expect(page.getByTestId('household-invite-open')).toHaveCount(0) // members can't invite
+    } finally {
+      await page.request.delete(`${API}/v1/households/${hh!.id}/members/${invitee.user.id}`, {
+        headers: ownerHeaders,
+      })
+    }
   })
 
   test('picking a role chip changes the selected role', async ({ page }) => {
