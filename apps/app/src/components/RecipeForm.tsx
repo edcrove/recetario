@@ -333,7 +333,11 @@ export function RecipeForm({ initial, submitLabel, isPending, submitError, onSub
             multiline
           />
           {steps.length > 1 && (
-            <TouchableOpacity onPress={() => setSteps((prev) => prev.filter((_, j) => j !== i))}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Quitar paso"
+              onPress={() => setSteps((prev) => prev.filter((_, j) => j !== i))}
+            >
               <Text style={st.removeBtn}>✕</Text>
             </TouchableOpacity>
           )}

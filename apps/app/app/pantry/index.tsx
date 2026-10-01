@@ -157,6 +157,8 @@ export default function PantryScreen() {
               </View>
               <TouchableOpacity
                 testID={`pantry-delete-${item.id}`}
+                accessibilityRole="button"
+                accessibilityLabel="Eliminar de la despensa"
                 onPress={() => remove.mutate(item.id)}
               >
                 <Text style={s.delete}>🗑️</Text>

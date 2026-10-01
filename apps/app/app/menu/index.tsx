@@ -147,6 +147,8 @@ export default function MenuWeekScreen() {
                         {!isViewer && (
                           <TouchableOpacity
                             testID={`menu-remove-${day}-${slot}-${entry.recipeId}`}
+                            accessibilityRole="button"
+                            accessibilityLabel="Quitar del menú"
                             style={s.removeChipBtn}
                             onPress={() =>
                               removeMutation.mutate({ date: day, slot, recipeId: entry.recipeId! })
