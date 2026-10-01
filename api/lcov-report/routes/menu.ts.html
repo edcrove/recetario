@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>136/136</span>
+                <span class='fraction'>135/135</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>125/125</span>
+                <span class='fraction'>124/124</span>
             </div>
         
             
@@ -578,9 +578,7 @@
 <a name='L513'></a><a href='#L513'>513</a>
 <a name='L514'></a><a href='#L514'>514</a>
 <a name='L515'></a><a href='#L515'>515</a>
-<a name='L516'></a><a href='#L516'>516</a>
-<a name='L517'></a><a href='#L517'>517</a>
-<a name='L518'></a><a href='#L518'>518</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L516'></a><a href='#L516'>516</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -998,8 +996,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1013,22 +1009,22 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">4x</span>
@@ -1447,7 +1443,7 @@ menuRoute.openapi(getMissingRoute, async (c) =&gt; {
   return c.json({ missing, meals }, 200)
 })
 &nbsp;
-// GET /v1/menu/nutrition — daily nutrition totals vs user targets
+// GET /v1/menu/nutrition — per-person daily nutrition totals vs user targets
 const dayNutritionSchema = z.object({
   date: z.string(),
   calories: z.number(),
@@ -1501,8 +1497,6 @@ menuRoute.openapi(getMenuNutritionRoute as any, async (c: any) =&gt; {
   const entries = await db
     .select({
       date: dbSchema.menuEntries.date,
-      servings: dbSchema.menuEntries.servings,
-      recipeServings: dbSchema.recipes.servings,
       nutrition: dbSchema.recipes.nutrition,
     })
     .from(dbSchema.menuEntries)
@@ -1537,14 +1531,14 @@ menuRoute.openapi(getMenuNutritionRoute as any, async (c: any) =&gt; {
       fat_g: number
     } | null
     if (!n) continue
-    // Nutrition is stored per serving; a day's contribution is per-serving ×
-    // planned servings (NOT divided by recipeServings — that was a scaling bug).
-    const s = entry.servings
+    // Nutrition is stored per serving. Days are compared against one person's
+    // target, so each planned dish counts as one portion, however many servings
+    // the household cooks (D-2026-10-01-5).
     const day = dayMap.get(entry.date) ?? { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 }
-    day.calories += Math.round(n.calories * s)
-    day.protein_g += Math.round(n.protein_g * s * 10) / 10
-    day.carbs_g += Math.round(n.carbs_g * s * 10) / 10
-    day.fat_g += Math.round(n.fat_g * s * 10) / 10
+    day.calories += Math.round(n.calories)
+    day.protein_g += Math.round(n.protein_g * 10) / 10
+    day.carbs_g += Math.round(n.carbs_g * 10) / 10
+    day.fat_g += Math.round(n.fat_g * 10) / 10
     dayMap.set(entry.date, day)
   }
 &nbsp;
@@ -1621,7 +1615,7 @@ menuRoute.openapi(getDayNutritionRoute as any, async (c: any) =&gt; {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-10-01T02:45:25.143Z
+                at 2026-10-01T02:45:29.489Z
             </div>
         <script src="../prettify.js"></script>
         <script>
