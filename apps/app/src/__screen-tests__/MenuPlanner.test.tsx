@@ -4,16 +4,25 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { MenuEntry } from '@recetario/shared'
 import { getWeekStart, addDays } from '../utils/weekMath'
 
-const { mockGetWeek, mockRemove, mockUpdate, mockPush, mockConfirm, mockNotify, mockIsViewer } =
-  vi.hoisted(() => ({
-    mockGetWeek: vi.fn(),
-    mockRemove: vi.fn().mockResolvedValue(undefined),
-    mockUpdate: vi.fn().mockResolvedValue({}),
-    mockPush: vi.fn(),
-    mockConfirm: vi.fn(async () => true),
-    mockNotify: vi.fn(),
-    mockIsViewer: vi.fn(() => false),
-  }))
+const {
+  mockGetWeek,
+  mockRemove,
+  mockUpdate,
+  mockPush,
+  mockConfirm,
+  mockNotify,
+  mockIsViewer,
+  mockSetStatus,
+} = vi.hoisted(() => ({
+  mockSetStatus: vi.fn().mockResolvedValue({}),
+  mockGetWeek: vi.fn(),
+  mockRemove: vi.fn().mockResolvedValue(undefined),
+  mockUpdate: vi.fn().mockResolvedValue({}),
+  mockPush: vi.fn(),
+  mockConfirm: vi.fn(async () => true),
+  mockNotify: vi.fn(),
+  mockIsViewer: vi.fn(() => false),
+}))
 
 vi.mock('../api/client', () => ({
   api: {
@@ -21,6 +30,7 @@ vi.mock('../api/client', () => ({
       getWeek: mockGetWeek,
       remove: mockRemove,
       updateServings: mockUpdate,
+      setStatus: mockSetStatus,
       dayNutrition: vi.fn().mockResolvedValue(null),
     },
   },
@@ -137,5 +147,40 @@ describe('MenuWeekScreen (planner)', () => {
     fireEvent.click(await screen.findByText('Siguiente ›'))
     fireEvent.click(await screen.findByText('Siguiente ›'))
     await waitFor(() => expect(mockGetWeek).toHaveBeenCalledWith(addDays(monday, 7)))
+  })
+
+  it('marks a planned dish as cooked or skipped from the modal', async () => {
+    mockGetWeek.mockResolvedValue([entry({ status: 'planned' })])
+    wrap()
+    fireEvent.click(await screen.findByTestId(`menu-entry-${addDays(monday, 1)}-Cena-${RID}`))
+    // Only the other two states are offered
+    expect(screen.queryByTestId('menu-modal-status-planned')).toBeNull()
+    fireEvent.click(screen.getByTestId('menu-modal-status-skipped'))
+    await waitFor(() =>
+      expect(mockSetStatus).toHaveBeenCalledWith(addDays(monday, 1), 'Cena', RID, 'skipped'),
+    )
+  })
+
+  it('shows cooked dishes with a check and skipped ones struck through', async () => {
+    mockGetWeek.mockResolvedValue([
+      entry({ status: 'cooked' }),
+      entry({ slot: 'Almuerzo', recipeName: 'Guiso', status: 'skipped' }),
+    ])
+    wrap()
+    expect(
+      await screen.findByTestId(`menu-entry-${addDays(monday, 1)}-Cena-${RID}`),
+    ).toHaveTextContent('✓ Milanesas')
+    expect(screen.getByText('Guiso')).toBeInTheDocument()
+  })
+
+  it('notifies when the status update fails', async () => {
+    mockGetWeek.mockResolvedValue([entry({ status: 'cooked' })])
+    mockSetStatus.mockRejectedValueOnce(new Error('boom'))
+    wrap()
+    fireEvent.click(await screen.findByTestId(`menu-entry-${addDays(monday, 1)}-Cena-${RID}`))
+    fireEvent.click(screen.getByTestId('menu-modal-status-planned'))
+    await waitFor(() =>
+      expect(mockNotify).toHaveBeenCalledWith('Error', 'No se pudo actualizar el estado.'),
+    )
   })
 })

@@ -9,7 +9,7 @@ vi.mock('../db/menu-repository.js', () => {
     getScaledIngredients: vi.fn(),
     getShoppingChecks: vi.fn(async () => new Set<string>()),
     setShoppingCheck: vi.fn(),
-    updateServings: vi.fn(),
+    updateEntry: vi.fn(),
     getDayNutritionInputs: vi.fn(),
   }
   return {
@@ -66,7 +66,7 @@ const mockRepo = menuRepository as unknown as {
   getScaledIngredients: ReturnType<typeof vi.fn>
   getShoppingChecks: ReturnType<typeof vi.fn>
   setShoppingCheck: ReturnType<typeof vi.fn>
-  updateServings: ReturnType<typeof vi.fn>
+  updateEntry: ReturnType<typeof vi.fn>
   getDayNutritionInputs: ReturnType<typeof vi.fn>
 }
 
@@ -81,6 +81,7 @@ const sampleEntry: MenuEntry = {
   recipeId: '550e8400-e29b-41d4-a716-446655440000',
   servings: 4,
   recipeName: 'Tortilla española',
+  status: 'planned',
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 }
@@ -197,7 +198,7 @@ describe('DELETE /v1/menu/:date/:slot/:recipeId (remove specific recipe)', () =>
 describe('PATCH /v1/menu/:date/:slot/:recipeId (update servings)', () => {
   it('returns 200 with updated entry', async () => {
     const updated = { ...sampleEntry, servings: 6 }
-    mockRepo.updateServings.mockResolvedValue(updated)
+    mockRepo.updateEntry.mockResolvedValue(updated)
 
     const res = await app.request(`/v1/menu/2026-06-30/Almuerzo/${RECIPE_ID}`, {
       method: 'PATCH',
@@ -208,17 +209,46 @@ describe('PATCH /v1/menu/:date/:slot/:recipeId (update servings)', () => {
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.servings).toBe(6)
-    expect(mockRepo.updateServings).toHaveBeenCalledWith(
+    expect(mockRepo.updateEntry).toHaveBeenCalledWith(
       expect.any(String),
       '2026-06-30',
       'Almuerzo',
       RECIPE_ID,
-      6,
+      { servings: 6 },
     )
   })
 
+  it('marks an entry cooked or skipped', async () => {
+    mockRepo.updateEntry.mockResolvedValue({ ...sampleEntry, status: 'skipped' })
+    const res = await app.request(`/v1/menu/2026-06-30/Almuerzo/${RECIPE_ID}`, {
+      method: 'PATCH',
+      headers: { ...AUTH, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'skipped' }),
+    })
+    expect(res.status).toBe(200)
+    expect((await res.json()).status).toBe('skipped')
+    expect(mockRepo.updateEntry).toHaveBeenLastCalledWith(
+      expect.any(String),
+      '2026-06-30',
+      'Almuerzo',
+      RECIPE_ID,
+      { status: 'skipped' },
+    )
+  })
+
+  it('400s on an empty body or an unknown status', async () => {
+    for (const body of [{}, { status: 'eaten' }]) {
+      const res = await app.request(`/v1/menu/2026-06-30/Almuerzo/${RECIPE_ID}`, {
+        method: 'PATCH',
+        headers: { ...AUTH, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      expect(res.status).toBe(400)
+    }
+  })
+
   it('returns 404 when entry not found', async () => {
-    mockRepo.updateServings.mockResolvedValue(null)
+    mockRepo.updateEntry.mockResolvedValue(null)
     const res = await app.request(`/v1/menu/2026-06-30/Cena/${RECIPE_ID}`, {
       method: 'PATCH',
       headers: { ...AUTH, 'Content-Type': 'application/json' },
@@ -234,7 +264,7 @@ describe('PATCH /v1/menu/:date/:slot/:recipeId (update servings)', () => {
       body: JSON.stringify({ servings: 0 }),
     })
     expect(res.status).toBe(400)
-    expect(mockRepo.updateServings).not.toHaveBeenCalled()
+    expect(mockRepo.updateEntry).not.toHaveBeenCalled()
   })
 })
 
@@ -492,7 +522,7 @@ describe('viewer role enforcement on menu writes', () => {
       },
     )
     expect(res.status).toBe(403)
-    expect(mockRepo.updateServings).not.toHaveBeenCalled()
+    expect(mockRepo.updateEntry).not.toHaveBeenCalled()
   })
 
   it('GET /v1/menu still works for viewers (read-only access)', async () => {

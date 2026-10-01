@@ -181,4 +181,33 @@ describe('menu tools', () => {
       expect(parsed[0].ingredient).toBe('pasta')
     })
   })
+
+  describe('updateMenuEntry', () => {
+    it('PATCHes servings and/or status for one planned recipe', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ status: 'cooked' }),
+      })
+      vi.stubGlobal('fetch', mockFetch)
+      const server = createMcpServer()
+      registerMenuTools(server, createApiClient())
+      const handler = getToolHandler(server, 'updateMenuEntry')
+      const result = (await handler(
+        {
+          date: '2026-07-07',
+          slot: 'Snacks/Otros',
+          recipeId: '550e8400-e29b-41d4-a716-446655440000',
+          status: 'cooked',
+        },
+        {},
+      )) as { content: { text: string }[] }
+      const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit]
+      expect(url).toContain(
+        '/v1/menu/2026-07-07/Snacks%2FOtros/550e8400-e29b-41d4-a716-446655440000',
+      )
+      expect(init.method).toBe('PATCH')
+      expect(JSON.parse(init.body as string)).toEqual({ status: 'cooked' })
+      expect(result.content[0]!.text).toContain('cooked')
+    })
+  })
 })

@@ -3,6 +3,7 @@ import { createRoute as defineRoute, z } from '@hono/zod-openapi'
 import {
   MenuEntrySchema,
   MenuSlotSchema,
+  MenuEntryStatusSchema,
   CreateMenuEntrySchema,
   aggregateIngredients,
   enrichShoppingList,
@@ -129,7 +130,7 @@ menuRoute.openapi(deleteMenuSlotRoute, async (c) => {
   return c.body(null, 204)
 })
 
-// PATCH /v1/menu/:date/:slot/:recipeId — update servings for a specific recipe
+// PATCH /v1/menu/:date/:slot/:recipeId — update servings and/or status of one planned recipe
 const patchMenuEntryRoute = defineRoute({
   method: 'patch',
   path: '/menu/{date}/{slot}/{recipeId}',
@@ -141,7 +142,18 @@ const patchMenuEntryRoute = defineRoute({
       recipeId: z.uuid(),
     }),
     body: {
-      content: { 'application/json': { schema: z.object({ servings: z.number().int().min(1) }) } },
+      content: {
+        'application/json': {
+          schema: z
+            .object({
+              servings: z.number().int().min(1).optional(),
+              status: MenuEntryStatusSchema.optional(),
+            })
+            .refine((b) => b.servings !== undefined || b.status !== undefined, {
+              message: 'Send servings and/or status',
+            }),
+        },
+      },
       required: true,
     },
   },
@@ -165,8 +177,7 @@ menuRoute.openapi(patchMenuEntryRoute, async (c) => {
   const ownerId = c.get('ownerId')
   if (await isViewerAnywhere(ownerId)) return c.json({ error: 'Forbidden' }, 403)
   const { date, slot, recipeId } = c.req.valid('param')
-  const { servings } = c.req.valid('json')
-  const entry = await menuRepository.updateServings(ownerId, date, slot, recipeId, servings)
+  const entry = await menuRepository.updateEntry(ownerId, date, slot, recipeId, c.req.valid('json'))
   if (!entry) return c.json({ error: 'Menu entry not found' }, 404)
   return c.json(entry, 200)
 })
