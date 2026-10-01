@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>18/18</span>
+                <span class='fraction'>20/20</span>
             </div>
         
             
@@ -39,14 +39,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/0</span>
+                <span class='fraction'>1/1</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>18/18</span>
+                <span class='fraction'>20/20</span>
             </div>
         
             
@@ -263,7 +263,24 @@
 <a name='L198'></a><a href='#L198'>198</a>
 <a name='L199'></a><a href='#L199'>199</a>
 <a name='L200'></a><a href='#L200'>200</a>
-<a name='L201'></a><a href='#L201'>201</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L201'></a><a href='#L201'>201</a>
+<a name='L202'></a><a href='#L202'>202</a>
+<a name='L203'></a><a href='#L203'>203</a>
+<a name='L204'></a><a href='#L204'>204</a>
+<a name='L205'></a><a href='#L205'>205</a>
+<a name='L206'></a><a href='#L206'>206</a>
+<a name='L207'></a><a href='#L207'>207</a>
+<a name='L208'></a><a href='#L208'>208</a>
+<a name='L209'></a><a href='#L209'>209</a>
+<a name='L210'></a><a href='#L210'>210</a>
+<a name='L211'></a><a href='#L211'>211</a>
+<a name='L212'></a><a href='#L212'>212</a>
+<a name='L213'></a><a href='#L213'>213</a>
+<a name='L214'></a><a href='#L214'>214</a>
+<a name='L215'></a><a href='#L215'>215</a>
+<a name='L216'></a><a href='#L216'>216</a>
+<a name='L217'></a><a href='#L217'>217</a>
+<a name='L218'></a><a href='#L218'>218</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -324,9 +341,26 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -524,14 +558,31 @@ export type MealTarget = z.infer&lt;typeof MealTargetSchema&gt;
 // keyed by meal category slug (desayuno/almuerzo/cena/...). Stored in the
 // existing user_profiles.nutrition_targets jsonb — per_meal is additive and
 // backward compatible, so no migration.
+// Upper bounds well above any real adult need; they catch typos (20000 kcal).
 export const NutritionTargetsSchema = z.object({
-  daily_calories: z.number().int().min(0),
-  daily_protein_g: z.number().min(0),
-  daily_carbs_g: z.number().min(0),
-  daily_fat_g: z.number().min(0),
+  daily_calories: z.number().int().min(0).max(10000),
+  daily_protein_g: z.number().min(0).max(600),
+  daily_carbs_g: z.number().min(0).max(1500),
+  daily_fat_g: z.number().min(0).max(600),
   per_meal: z.record(z.string(), MealTargetSchema).optional(),
 })
 export type NutritionTargets = z.infer&lt;typeof NutritionTargetsSchema&gt;
+&nbsp;
+/** kcal implied by macros (Atwater: 4 kcal/g protein and carbs, 9 kcal/g fat). */
+export function atwaterKcal(m: { protein_g: number; carbs_g: number; fat_g: number }): number {
+  return Math.round(m.protein_g * 4 + m.carbs_g * 4 + m.fat_g * 9)
+}
+&nbsp;
+/**
+ * Starting targets for a typical adult: 2000 kcal whose macros add up
+ * (75 g protein 15% · 250 g carbs 50% · 78 g fat 35% ≈ 2002 kcal).
+ */
+export const DEFAULT_NUTRITION_TARGETS = {
+  daily_calories: 2000,
+  daily_protein_g: 75,
+  daily_carbs_g: 250,
+  daily_fat_g: 78,
+} as const
 &nbsp;
 // Category enum
 export const CategorySchema = z.enum([
@@ -670,7 +721,7 @@ export type UpdateRecipe = z.infer&lt;typeof UpdateRecipeSchema&gt;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-10-01T03:51:21.526Z
+                at 2026-10-01T04:01:28.160Z
             </div>
         <script src="prettify.js"></script>
         <script>
