@@ -1,11 +1,10 @@
 import { test, expect } from './fixtures'
+import { API_URL } from './env'
 
 /**
  * Public library E2E flows (sharing epic story 5).
  * Every recipe created here is cleaned up via API.
  */
-
-const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
 
 async function authHeaders(page: import('@playwright/test').Page) {
   const token = await page.evaluate(() => localStorage.getItem('auth_token'))

@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { API_URL } from './env'
 
 /**
  * Recipe CRUD E2E flows.
@@ -15,7 +16,6 @@ test.describe('Recipes: search and filter', () => {
   })
 
   test('food-type chip filters the list with and without a search term', async ({ page }) => {
-    const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
     const token = await page.evaluate(() => localStorage.getItem('auth_token'))
     const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
     const ftRes = await page.request.get(`${API_URL}/v1/food-types`, { headers })
@@ -125,7 +125,6 @@ test.describe('Recipes: create via form', () => {
   // never inserted into). Verify it's now genuinely persisted, not just that
   // the UI doesn't crash when a chip is tapped.
   test('selected food type is actually persisted on the created recipe', async ({ page }) => {
-    const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
     const token = await page.evaluate(() => localStorage.getItem('auth_token'))
     const recipeName = `E2E Con Tipo ${Date.now()}`
 
@@ -173,8 +172,6 @@ test.describe('Recipes: create via form', () => {
 })
 
 test.describe('Recipes: form on a phone and save feedback', () => {
-  const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
-
   async function authHeaders(page: import('@playwright/test').Page) {
     const token = await page.evaluate(() => localStorage.getItem('auth_token'))
     return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }

@@ -1,7 +1,6 @@
 import { test, expect } from './fixtures'
 import { DEMO_ACCOUNTS } from './demoAccounts'
-
-const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
+import { API_URL } from './env'
 
 /**
  * Shared family device: user A signs out and user B signs in on the same page,

@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { API_URL } from './env'
 
 /**
  * Targeted coverage for flows no other suite exercises:
@@ -7,8 +8,6 @@ import { test, expect } from './fixtures'
  * - API error paths surfaced via notify() using Playwright route interception
  * Every entity created here is cleaned up so seeded demo data stays stable.
  */
-
-const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
 
 async function authHeaders(page: import('@playwright/test').Page) {
   const token = await page.evaluate(() => localStorage.getItem('auth_token'))

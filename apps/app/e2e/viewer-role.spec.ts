@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures'
+import { API_URL } from './env'
 
 /**
  * Role-aware UI (sharing epic story 6): a household viewer sees the shared
@@ -6,8 +7,6 @@ import { test, expect } from './fixtures'
  * into a household owned by this worker's demo account, logs in AS the viewer
  * inside the test, and cleans everything up afterwards.
  */
-
-const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
 
 test('a household viewer sees shared content without mutation affordances', async ({
   page,

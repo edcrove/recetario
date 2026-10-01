@@ -1,6 +1,7 @@
 import * as path from 'node:path'
 import { test, testUnauth, expect } from './fixtures'
 import type { Page, TestInfo } from '@playwright/test'
+import { API_URL } from './env'
 
 /**
  * Visual tour: visits every screen at phone and desktop widths, in light and dark
@@ -14,7 +15,6 @@ import type { Page, TestInfo } from '@playwright/test'
  */
 
 const ENABLED = process.env['E2E_SCREENSHOTS'] === 'true'
-const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
 
 const VIEWPORTS = [
   { name: 'phone', width: 390, height: 844 },

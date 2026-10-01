@@ -1,5 +1,6 @@
 import { defineConfig, devices } from '@playwright/test'
 import { DEMO_ACCOUNTS } from './e2e/demoAccounts'
+import { APP_URL } from './e2e/env'
 
 export default defineConfig({
   testDir: './e2e',
@@ -10,7 +11,7 @@ export default defineConfig({
   workers: DEMO_ACCOUNTS.length,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
-    baseURL: process.env['PLAYWRIGHT_BASE_URL'] ?? 'http://localhost:8080',
+    baseURL: APP_URL,
     trace: 'retain-on-failure',
     // E2E_SCREENSHOTS=true keeps a full-page screenshot of the final state of every
     // test (plus the visual-tour spec) in test-results/, for the Auditar QA
@@ -25,6 +26,6 @@ export default defineConfig({
   ],
   // Start the Expo web server before running E2E tests
   // webServer not used — CI handles the app server separately via docker build + serve.
-  // Local: run `docker compose up -d` then `pnpm test:e2e` in apps/app.
+  // Local: `pnpm e2e:local` (isolated E2E stack on :8081/:3001, reset before and after).
   webServer: undefined,
 })

@@ -1,6 +1,5 @@
 import { test, testUnauth, expect } from './fixtures'
-
-const API_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'
+import { API_URL } from './env'
 
 async function authHeaders(page: import('@playwright/test').Page) {
   const token = await page.evaluate(() => localStorage.getItem('auth_token'))
