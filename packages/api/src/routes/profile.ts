@@ -11,6 +11,16 @@ import {
 } from '@recetario/shared'
 import { authMiddleware } from '../middleware/auth.js'
 
+/** True for IANA zone names the runtime knows ("America/Montevideo", "UTC"). */
+function isTimeZone(tz: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: tz })
+    return true
+  } catch {
+    return false
+  }
+}
+
 export const profileRoute = createRouter()
 
 // Mounted on /auth next to login/register: scope auth to this router's own paths
@@ -158,7 +168,10 @@ const patchProfileRoute = defineRoute({
                 `Allergen keys (${ALLERGENS.join(', ')}). Spanish names such as "maní" or "lácteos" are mapped to their key.`,
               ),
             goals: z.array(z.string().min(1).max(100)).optional(),
-            timezone: z.string().optional(),
+            timezone: z
+              .string()
+              .refine(isTimeZone, { message: 'Unknown IANA time zone' })
+              .optional(),
             nutritionTargets: NutritionTargetsSchema.optional(),
           }),
         },

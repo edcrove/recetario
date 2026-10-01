@@ -109,6 +109,19 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
 - **Status**: active — menu-entry status (planned/cooked/skipped instead of hard deletes) is
   still open.
 
+### D-2026-10-01-9 · Instants are timestamptz; calendar days are date; profiles keep the device zone
+
+- **Decision**: every timestamp column is `timestamp with time zone` (existing values read as
+  UTC, which is what `now()` wrote); `menu_entries.date` and `shopping_list_checks.week_start`
+  are `date` (still strings in code). The app stores the device's IANA zone on the profile
+  while it is the UTC default, never overwriting one set on purpose; the API rejects
+  unknown zones.
+- **Why**: 2026-10-01 audit (Data) — naive timestamps and text dates are cheapest to fix
+  before production data, and "today"/week math needs the user's zone.
+- **Where it lives**: migration `0017` (custom: drizzle can't cast text→date without
+  `USING`) + `0018` (generated, defaults), `useTimezoneSync`, `PATCH /auth/profile`.
+- **Status**: active
+
 ## 2026-09-30 — Dependency & maintenance session (PRs #125, #140, #147, #148, #124)
 
 ### D-2026-09-30-12 · Production startup guard, closed sign-up and release step

@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Stack, useRouter, usePathname } from 'expo-router'
 import { QueryProvider } from '../src/providers/QueryProvider'
 import { AuthProvider, useAuth } from '../src/providers/AuthProvider'
+import { useTimezoneSync } from '../src/hooks/useTimezoneSync'
 import { ErrorBoundary } from '../src/components/ErrorBoundary'
 import { ThemeProvider } from '../src/theme/ThemeProvider'
 import { useThemeColors, fonts } from '../src/theme/tokens'
@@ -17,6 +18,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       router.replace('/auth/login')
     }
   }, [token, isLoading, pathname, router])
+  useTimezoneSync(!!token && !isLoading)
 
   return <>{children}</>
 }

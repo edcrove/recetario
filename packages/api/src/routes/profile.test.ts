@@ -151,6 +151,34 @@ describe('GET /auth/profile null branch', () => {
 })
 
 describe('PATCH /auth/profile', () => {
+  it('accepts an IANA time zone and rejects an unknown one', async () => {
+    mockProfileUpsert.mockReturnValue([])
+    mockProfileSelect.mockReturnValue([
+      {
+        userId: 'u1',
+        preferredServings: 2,
+        dietaryRestrictions: [],
+        allergens: [],
+        goals: [],
+        timezone: 'America/Montevideo',
+      },
+    ])
+    const ok = await app.request('/auth/profile', {
+      method: 'PATCH',
+      headers: AUTH,
+      body: JSON.stringify({ timezone: 'America/Montevideo' }),
+    })
+    expect(ok.status).toBe(200)
+    expect((await ok.json()).timezone).toBe('America/Montevideo')
+
+    const bad = await app.request('/auth/profile', {
+      method: 'PATCH',
+      headers: AUTH,
+      body: JSON.stringify({ timezone: 'Mars/Olympus' }),
+    })
+    expect(bad.status).toBe(400)
+  })
+
   it('upserts profile and returns updated data', async () => {
     mockProfileUpsert.mockReturnValue([])
     mockProfileSelect.mockReturnValue([

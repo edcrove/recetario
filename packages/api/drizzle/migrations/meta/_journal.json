@@ -120,6 +120,20 @@
       "when": 1790834297430,
       "tag": "0016_friendly_shen",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790834810390,
+      "tag": "0017_timestamptz_and_dates",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790834818888,
+      "tag": "0018_tan_sersi",
+      "breakpoints": true
     }
   ]
 }
