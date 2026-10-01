@@ -184,7 +184,6 @@ describe('RecipeSchema', () => {
   })
 
   it('fails when title is missing', () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { title: _title, ...noTitle } = validRecipe
     expect(() => RecipeSchema.parse(noTitle)).toThrow()
   })
@@ -306,5 +305,26 @@ describe('recipe image URLs', () => {
     expect(UpdateRecipeSchema.safeParse({ images: ['https://img.example/a.jpg'] }).success).toBe(
       true,
     )
+  })
+})
+
+describe('recipe size limits', () => {
+  const base = {
+    title: 'X',
+    servings: 1,
+    category: 'Cena',
+    ingredients: [{ name: 'a', quantity: 1, unit: 'g' }],
+  }
+  it('rejects oversized titles, tag lists and step lists on create and update', () => {
+    expect(CreateRecipeSchema.safeParse({ ...base, title: 'x'.repeat(201) }).success).toBe(false)
+    expect(
+      CreateRecipeSchema.safeParse({ ...base, tags: Array.from({ length: 31 }, () => 't') })
+        .success,
+    ).toBe(false)
+    expect(
+      UpdateRecipeSchema.safeParse({ steps: Array.from({ length: 151 }, () => ({ text: 's' })) })
+        .success,
+    ).toBe(false)
+    expect(CreateRecipeSchema.safeParse(base).success).toBe(true)
   })
 })

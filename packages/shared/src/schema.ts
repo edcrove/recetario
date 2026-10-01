@@ -97,7 +97,7 @@ export type Source = z.infer<typeof SourceSchema>
 
 // Ingredient
 export const IngredientSchema = z.object({
-  name: z.string().min(1),
+  name: z.string().min(1).max(200),
   quantity: z.number().positive().nullable(), // null = "to taste"
   unit: UnitSchema.nullable(),
   presentation: z.string().optional(), // "diced", "melted", etc.
@@ -108,7 +108,7 @@ export type Ingredient = z.infer<typeof IngredientSchema>
 
 // Step
 export const StepSchema = z.object({
-  text: z.string().min(1),
+  text: z.string().min(1).max(4000),
   // Auto-detected (or agent-set) timer duration in seconds; drives cook-mode
   // tap-to-start timers. See parseStepDurationSeconds.
   durationSeconds: z.number().int().positive().optional(),
@@ -126,21 +126,21 @@ export const TranslationSchema = z.object({
 // Recipe (full)
 export const RecipeSchema = z.object({
   id: z.uuid().optional(), // optional on create
-  title: z.string().min(1),
+  title: z.string().min(1).max(200),
   servings: z.number().int().positive(),
   category: CategorySchema,
-  tags: z.array(z.string()).default([]),
+  tags: z.array(z.string().max(50)).max(30).default([]),
   prepTimeMin: z.number().int().positive().optional(),
   cookTimeMin: z.number().int().positive().optional(),
   totalTimeMin: z.number().int().positive().optional(),
   difficulty: z.enum(['fácil', 'media', 'difícil']).optional(),
   images: z.array(HttpUrlSchema).default([]),
-  notes: z.string().optional(),
+  notes: z.string().max(10000).optional(),
   yield: z.string().optional(), // "12 cookies"
   originalLanguage: z.string().default('es'),
   translations: z.array(TranslationSchema).default([]),
-  ingredients: z.array(IngredientSchema).min(1),
-  steps: z.array(StepSchema).default([]),
+  ingredients: z.array(IngredientSchema).min(1).max(200),
+  steps: z.array(StepSchema).max(150).default([]),
   source: SourceSchema.optional(),
   dietaryTags: z.array(DietaryTagSchema).optional(),
   nutrition: NutritionSchema.optional(),
@@ -191,10 +191,10 @@ export type CreateRecipe = z.infer<typeof CreateRecipeSchema>
 // repository (which treats any defined field as "replace") wiped them.
 // Omitted must mean "leave unchanged".
 export const UpdateRecipeSchema = CreateRecipeSchema.extend({
-  tags: z.array(z.string()),
+  tags: z.array(z.string().max(50)).max(30),
   images: z.array(HttpUrlSchema),
   originalLanguage: z.string(),
   translations: z.array(TranslationSchema),
-  steps: z.array(StepSchema),
+  steps: z.array(StepSchema).max(150),
 }).partial()
 export type UpdateRecipe = z.infer<typeof UpdateRecipeSchema>

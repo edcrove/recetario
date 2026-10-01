@@ -237,6 +237,30 @@ describe.skipIf(skip).sequential('Recipe integration tests', () => {
     expect(await search.json()).toEqual([])
   })
 
+  it('GET /v1/recipes/search ignores accents and case, and filters by ingredient in SQL', async () => {
+    const create = await app.request('/v1/recipes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+      body: JSON.stringify({
+        ...baseRecipe,
+        title: 'Ñoquis de Calabaza Ácidos',
+        ingredients: [{ name: 'Calabazín rallado', quantity: 1, unit: 'unit' }],
+      }),
+    })
+    expect(create.status).toBe(201)
+    const byTitle = await app.request('/v1/recipes/search?q=NOQUIS%20de%20calabaza%20acidos', {
+      headers: { Authorization: authHeader },
+    })
+    expect(((await byTitle.json()) as Array<{ title: string }>).map((r) => r.title)).toContain(
+      'Ñoquis de Calabaza Ácidos',
+    )
+    const byIngredient = await app.request('/v1/recipes/search?ingredient=calabazin', {
+      headers: { Authorization: authHeader },
+    })
+    const found = (await byIngredient.json()) as Array<{ title: string }>
+    expect(found.map((r) => r.title)).toEqual(['Ñoquis de Calabaza Ácidos'])
+  })
+
   it('GET /v1/recipes/search filters by category', async () => {
     const res = await app.request('/v1/recipes/search?category=Cena', {
       headers: { Authorization: authHeader },

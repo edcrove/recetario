@@ -290,6 +290,7 @@ test.describe('Recipes: detail view', () => {
 
     // After navigation, wait for cook button which is the most reliable indicator
     await expect(page.getByTestId('recipe-detail-cook')).toBeVisible({ timeout: 20000 })
+    await expect(page.getByText(title!.trim(), { exact: true }).last()).toBeVisible()
   })
 
   test('servings stepper is visible in detail', async ({ page }) => {

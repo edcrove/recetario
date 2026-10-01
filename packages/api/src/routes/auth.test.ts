@@ -16,7 +16,6 @@ vi.mock('../db/index.js', () => ({
         }),
       }),
     }),
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     insert: (_t: unknown) => ({
       values: () => ({
         returning: () => Promise.resolve(mockUsersInsert()),
@@ -258,6 +257,8 @@ describe('auth rate limit (per IP)', () => {
   // The integration config raises the limit for the whole run; pin the default
   beforeEach(() => {
     vi.stubEnv('AUTH_RATE_LIMIT_MAX_REQUESTS', undefined)
+    // These tests tell clients apart by X-Forwarded-For, as behind Railway's proxy
+    vi.stubEnv('TRUST_PROXY', 'true')
   })
   afterEach(() => {
     vi.unstubAllEnvs()

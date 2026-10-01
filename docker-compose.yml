@@ -29,8 +29,8 @@ services:
       # Higher than the production default (100) — local/E2E runs several
       # parallel demo accounts hitting /v1/recipes within the same window.
       RATE_LIMIT_MAX_REQUESTS: '1000'
-      # Per-IP login/register limit (prod default 10/min); E2E logs in per test.
-      AUTH_RATE_LIMIT_MAX_REQUESTS: '100000'
+      # Per-IP login/register limit (prod default 10/min); generous for manual use.
+      AUTH_RATE_LIMIT_MAX_REQUESTS: '60'
       # Local stack mimics production (NODE_ENV) but keeps a dev secret and open sign-up.
       ALLOW_DEV_SECRETS: 'true'
       REGISTRATION_OPEN: 'true'

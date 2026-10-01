@@ -9,3 +9,15 @@ describe('GET /health', () => {
     expect(body).toEqual({ status: 'ok' })
   })
 })
+
+describe('body size limit', () => {
+  it('refuses bodies over 1 MB with a JSON 413 before parsing', async () => {
+    const res = await app.request('/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'a@b.c', password: 'x'.repeat(1024 * 1024 + 10) }),
+    })
+    expect(res.status).toBe(413)
+    expect(await res.json()).toEqual({ error: 'Payload too large' })
+  })
+})

@@ -82,7 +82,6 @@ describe('MenuEntrySchema', () => {
   })
 
   it('rejects missing required fields', () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id: _id, ...noId } = valid
     expect(() => MenuEntrySchema.parse(noId)).toThrow()
   })

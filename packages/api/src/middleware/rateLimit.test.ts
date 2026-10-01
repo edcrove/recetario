@@ -126,13 +126,24 @@ describe('clientIp', () => {
     return (await app.request('/', { headers }, env)).text()
   }
 
+  afterEach(() => {
+    delete process.env['TRUST_PROXY']
+  })
+
   it('uses the rightmost X-Forwarded-For entry (the one the proxy appended)', async () => {
+    process.env['TRUST_PROXY'] = 'true'
     expect(await ipOf({ 'X-Forwarded-For': '1.1.1.1, 10.0.0.1 , 203.0.113.7 ' })).toBe(
       '203.0.113.7',
     )
   })
 
+  it('ignores X-Forwarded-For unless TRUST_PROXY=true (a client could forge it)', async () => {
+    const env = { incoming: { socket: { remoteAddress: '192.0.2.9' } } }
+    expect(await ipOf({ 'X-Forwarded-For': '203.0.113.7' }, env)).toBe('192.0.2.9')
+  })
+
   it('falls back to the socket address when the header is missing or blank', async () => {
+    process.env['TRUST_PROXY'] = 'true'
     const env = { incoming: { socket: { remoteAddress: '192.0.2.4' } } }
     expect(await ipOf({}, env)).toBe('192.0.2.4')
     expect(await ipOf({ 'X-Forwarded-For': ' , ' }, env)).toBe('192.0.2.4')
