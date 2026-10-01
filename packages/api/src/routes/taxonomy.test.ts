@@ -49,6 +49,7 @@ vi.mock('../db/repository.js', () => ({
     list: vi.fn().mockResolvedValue([]),
     search: vi.fn().mockResolvedValue([]),
     findById: vi.fn(),
+    findByIds: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
@@ -252,10 +253,9 @@ describe('GET /v1/collections/:id/recipes', () => {
     mockSelect
       .mockReturnValueOnce([{ id: UUID, name: 'Favoritas', ownerId: 'dev' }]) // ownership check
       .mockReturnValueOnce([{ recipeId: UUID2 }]) // recipe-collection links
-    vi.mocked(recipeRepository.findById).mockResolvedValueOnce({
-      id: UUID2,
-      title: 'Tarta',
-    } as never)
+    vi.mocked(recipeRepository.findByIds).mockResolvedValueOnce([
+      { id: UUID2, title: 'Tarta' } as never,
+    ])
     const res = await app.request(`/v1/collections/${UUID}/recipes`, {
       headers: { Authorization: 'Bearer test-key' },
     })
@@ -263,13 +263,16 @@ describe('GET /v1/collections/:id/recipes', () => {
     const body = await res.json()
     expect(body).toHaveLength(1)
     expect(body[0].title).toBe('Tarta')
+    // One batched lookup for every linked recipe, not one per link
+    expect(recipeRepository.findByIds).toHaveBeenCalledWith([UUID2], ['dev'])
   })
 
   it('skips recipes that no longer exist (deleted since being added)', async () => {
     mockSelect
       .mockReturnValueOnce([{ id: UUID, name: 'Favoritas', ownerId: 'dev' }])
       .mockReturnValueOnce([{ recipeId: UUID2 }])
-    vi.mocked(recipeRepository.findById).mockResolvedValueOnce(null)
+    // findByIds only returns recipes that still exist and are visible
+    vi.mocked(recipeRepository.findByIds).mockResolvedValueOnce([])
     const res = await app.request(`/v1/collections/${UUID}/recipes`, {
       headers: { Authorization: 'Bearer test-key' },
     })

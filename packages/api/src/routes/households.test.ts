@@ -61,6 +61,7 @@ vi.mock('../db/menu-repository.js', () => ({
 }))
 
 import { app } from '../index.js'
+import { householdRepository } from '../db/household-repository.js'
 import { requests as rateLimitStore } from '../middleware/rateLimit.js'
 
 const AUTH = { Authorization: 'Bearer test-key', 'Content-Type': 'application/json' }
@@ -106,14 +107,32 @@ describe('POST /v1/households', () => {
 })
 
 describe('GET /v1/households/mine', () => {
-  it('returns empty list when user has no households', async () => {
-    mockSelect.mockReturnValue([])
+  it("returns the repository's households for the caller", async () => {
+    const households = [
+      {
+        id: HH_ID,
+        name: 'Casa',
+        ownerId: 'dev',
+        createdAt: '2026-07-01T00:00:00.000Z',
+        members: [
+          {
+            userId: 'dev',
+            role: 'owner' as const,
+            invitedAt: '2026-07-01T00:00:00.000Z',
+            acceptedAt: '2026-07-01T00:00:00.000Z',
+            displayName: 'Ana',
+            email: 'ana@x.com',
+          },
+        ],
+      },
+    ]
+    const spy = vi.spyOn(householdRepository, 'listForUser').mockResolvedValueOnce(households)
     const res = await app.request('/v1/households/mine', {
       headers: { Authorization: 'Bearer test-key' },
     })
     expect(res.status).toBe(200)
-    const body = await res.json()
-    expect(body).toEqual([])
+    expect(await res.json()).toEqual(households)
+    expect(spy).toHaveBeenCalledWith('dev')
   })
 })
 
