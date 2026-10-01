@@ -127,92 +127,12 @@ export default function HomeScreen() {
           />
           {isFetching && <ActivityIndicator size="small" style={styles.searchSpinner} />}
         </View>
-        {foodTypes.length > 0 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.filterScroll}
-            contentContainerStyle={styles.filterRow}
-          >
-            <TouchableOpacity
-              testID="home-type-chip-all"
-              style={[styles.filterChip, activeType === null && styles.filterChipActive]}
-              onPress={() => {
-                // "Todas" clears every filter, not just the food type
-                setActiveType(null)
-                setMaxTotalTime(null)
-                setDifficulty(null)
-              }}
-            >
-              <Text
-                style={[styles.filterChipText, activeType === null && styles.filterChipTextActive]}
-              >
-                Todas
-              </Text>
-            </TouchableOpacity>
-            {foodTypes.slice(0, 8).map((t) => (
-              <TouchableOpacity
-                key={t.id}
-                testID={`home-type-chip-${t.id}`}
-                style={[styles.filterChip, activeType === t.id && styles.filterChipActive]}
-                onPress={() => setActiveType(activeType === t.id ? null : t.id)}
-              >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    activeType === t.id && styles.filterChipTextActive,
-                  ]}
-                >
-                  {t.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        )}
+        {/* One row of 44pt actions; filters live in the list header and scroll away */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={styles.filterScroll}
-          contentContainerStyle={styles.filterRow}
+          contentContainerStyle={styles.actions}
         >
-          {TIME_FILTERS.map((tf) => (
-            <TouchableOpacity
-              key={tf.maxTotalTime}
-              testID={`filter-time-${tf.maxTotalTime}`}
-              style={[
-                styles.filterChip,
-                maxTotalTime === tf.maxTotalTime && styles.filterChipActive,
-              ]}
-              onPress={() =>
-                setMaxTotalTime(maxTotalTime === tf.maxTotalTime ? null : tf.maxTotalTime)
-              }
-            >
-              <Text
-                style={[
-                  styles.filterChipText,
-                  maxTotalTime === tf.maxTotalTime && styles.filterChipTextActive,
-                ]}
-              >
-                {tf.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-          {DIFFICULTIES.map((d) => (
-            <TouchableOpacity
-              key={d}
-              testID={`filter-difficulty-${d}`}
-              style={[styles.filterChip, difficulty === d && styles.filterChipActive]}
-              onPress={() => setDifficulty(difficulty === d ? null : d)}
-            >
-              <Text
-                style={[styles.filterChipText, difficulty === d && styles.filterChipTextActive]}
-              >
-                {d}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-        <View style={styles.actions}>
           <TouchableOpacity style={styles.addButton} onPress={() => router.push('/recipe/new')}>
             <Text style={styles.addButtonText}>+ Nueva Receta</Text>
           </TouchableOpacity>
@@ -237,7 +157,7 @@ export default function HomeScreen() {
           >
             <Text style={styles.menuButtonText}>🛒 Compras</Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
       </View>
 
       {invitations.length > 0 && (
@@ -283,6 +203,98 @@ export default function HomeScreen() {
             {item.tags.length > 0 && <Text style={styles.tags}>{item.tags.join(', ')}</Text>}
           </TouchableOpacity>
         )}
+        ListHeaderComponent={
+          <View style={styles.filters}>
+            {foodTypes.length > 0 && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.filterScroll}
+                contentContainerStyle={styles.filterRow}
+              >
+                <TouchableOpacity
+                  testID="home-type-chip-all"
+                  style={[styles.filterChip, activeType === null && styles.filterChipActive]}
+                  onPress={() => {
+                    // "Todas" clears every filter, not just the food type
+                    setActiveType(null)
+                    setMaxTotalTime(null)
+                    setDifficulty(null)
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      activeType === null && styles.filterChipTextActive,
+                    ]}
+                  >
+                    Todas
+                  </Text>
+                </TouchableOpacity>
+                {foodTypes.slice(0, 8).map((t) => (
+                  <TouchableOpacity
+                    key={t.id}
+                    testID={`home-type-chip-${t.id}`}
+                    style={[styles.filterChip, activeType === t.id && styles.filterChipActive]}
+                    onPress={() => setActiveType(activeType === t.id ? null : t.id)}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        activeType === t.id && styles.filterChipTextActive,
+                      ]}
+                    >
+                      {t.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.filterScroll}
+              contentContainerStyle={styles.filterRow}
+            >
+              {TIME_FILTERS.map((tf) => (
+                <TouchableOpacity
+                  key={tf.maxTotalTime}
+                  testID={`filter-time-${tf.maxTotalTime}`}
+                  style={[
+                    styles.filterChip,
+                    maxTotalTime === tf.maxTotalTime && styles.filterChipActive,
+                  ]}
+                  onPress={() =>
+                    setMaxTotalTime(maxTotalTime === tf.maxTotalTime ? null : tf.maxTotalTime)
+                  }
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      maxTotalTime === tf.maxTotalTime && styles.filterChipTextActive,
+                    ]}
+                  >
+                    {tf.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+              {DIFFICULTIES.map((d) => (
+                <TouchableOpacity
+                  key={d}
+                  testID={`filter-difficulty-${d}`}
+                  style={[styles.filterChip, difficulty === d && styles.filterChipActive]}
+                  onPress={() => setDifficulty(difficulty === d ? null : d)}
+                >
+                  <Text
+                    style={[styles.filterChipText, difficulty === d && styles.filterChipTextActive]}
+                  >
+                    {d}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        }
         ListEmptyComponent={
           isFirstRun(query, visibleRecipes, hasActiveFilters) ? (
             <WelcomeCard />
@@ -311,8 +323,8 @@ const makeStyles = (c: ThemeColors) =>
     center: { flex: 1, backgroundColor: c.paper, justifyContent: 'center', alignItems: 'center' },
     header: {
       paddingHorizontal: 16,
-      paddingTop: 16,
-      paddingBottom: 8,
+      paddingTop: 10,
+      paddingBottom: 6,
       borderBottomWidth: 1,
       borderBottomColor: c.line,
       backgroundColor: c.surface,
@@ -322,19 +334,19 @@ const makeStyles = (c: ThemeColors) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: 8,
+      marginBottom: 6,
     },
     title: {
-      fontSize: 26,
+      fontSize: 24,
       fontWeight: '700',
       color: c.ink,
       fontFamily: fonts.display,
     },
     headerIcons: { flexDirection: 'row', gap: 8 },
     iconButton: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
       backgroundColor: c.sand,
       justifyContent: 'center',
       alignItems: 'center',
@@ -352,38 +364,33 @@ const makeStyles = (c: ThemeColors) =>
       color: c.ink,
     },
     searchSpinner: { marginLeft: 8 },
-    actions: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 8,
-      marginTop: 8,
-      marginBottom: 8,
-    },
+    actions: { gap: 8, paddingVertical: 4, paddingHorizontal: 2 },
     addButton: {
-      flexBasis: '100%',
-      paddingVertical: 12,
+      minHeight: 44,
+      paddingHorizontal: 16,
+      justifyContent: 'center',
       backgroundColor: c.terracotta,
       borderRadius: 10,
       alignItems: 'center',
     },
     addButtonText: { color: c.terracottaInk, fontWeight: '700', fontSize: 15 },
     menuButton: {
-      flexGrow: 1,
-      flexBasis: 0,
-      minWidth: 130,
-      paddingVertical: 11,
+      minHeight: 44,
+      paddingHorizontal: 14,
+      justifyContent: 'center',
       backgroundColor: c.sage,
       borderRadius: 10,
       alignItems: 'center',
     },
     menuButtonText: { color: c.surface, fontWeight: '700' },
-    filterScroll: { marginBottom: 4 },
+    filters: { paddingTop: 10, paddingBottom: 4 },
+    filterScroll: { marginBottom: 6 },
     filterRow: { gap: 6, paddingHorizontal: 2 },
     filterChip: {
-      paddingHorizontal: 12,
-      height: 30,
+      paddingHorizontal: 14,
+      minHeight: 36,
       justifyContent: 'center',
-      borderRadius: 15,
+      borderRadius: 18,
       backgroundColor: c.sand,
       borderWidth: 1,
       borderColor: c.line,
