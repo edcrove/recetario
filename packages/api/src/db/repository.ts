@@ -28,13 +28,19 @@ type DbRow = typeof schema.recipes.$inferSelect
 type IngredientRow = typeof schema.ingredients.$inferSelect
 type StepRow = typeof schema.steps.$inferSelect
 
-// Read paths accept one owner (strict, callers like update/delete guards) or a
-// list of owners (household-visible reads: caller + housemates, resolved by
-// getVisibleOwnerIds). Writes always take the single strict form.
-function ownerCondition(owner: string | string[]) {
-  return Array.isArray(owner)
-    ? inArray(schema.recipes.ownerId, owner)
-    : eq(schema.recipes.ownerId, owner)
+/**
+ * Whose recipes a read may return. `visibleTo` is the household-visible set
+ * (the caller plus accepted housemates), resolved here so routes never do it;
+ * `ownedBy` is strict, for guards ahead of a write (2026-10-01 audit: the
+ * visible set used to be resolved in routes for recipes and in repositories
+ * for everything else).
+ */
+export type RecipeScope = { visibleTo: string } | { ownedBy: string }
+
+async function ownerCondition(scope: RecipeScope) {
+  return 'ownedBy' in scope
+    ? eq(schema.recipes.ownerId, scope.ownedBy)
+    : inArray(schema.recipes.ownerId, await getVisibleOwnerIds(scope.visibleTo))
 }
 
 function mapToRecipe(
@@ -266,12 +272,12 @@ export class RecipeRepository {
       .returning()
   }
 
-  async findById(id: string, owner: string | string[]): Promise<Recipe | null> {
+  async findById(id: string, scope: RecipeScope): Promise<Recipe | null> {
     const db = this.db
     const [recipe] = await db
       .select()
       .from(schema.recipes)
-      .where(and(eq(schema.recipes.id, id), ownerCondition(owner)))
+      .where(and(eq(schema.recipes.id, id), await ownerCondition(scope)))
       .limit(1)
 
     if (!recipe) return null
@@ -288,16 +294,16 @@ export class RecipeRepository {
   }
 
   /**
-   * Several recipes in input order, each only if visible to `owner`. Three
+   * Several recipes in input order, each only if in `scope`. Three
    * batched queries for the children instead of one findById per id (the
    * collection listing used to fan out N×4 queries).
    */
-  async findByIds(ids: string[], owner: string | string[]): Promise<Recipe[]> {
+  async findByIds(ids: string[], scope: RecipeScope): Promise<Recipe[]> {
     if (ids.length === 0) return []
     const rows = await this.db
       .select()
       .from(schema.recipes)
-      .where(and(inArray(schema.recipes.id, ids), ownerCondition(owner)))
+      .where(and(inArray(schema.recipes.id, ids), await ownerCondition(scope)))
     const byId = new Map((await this.hydrate(rows)).map((r) => [r.id, r]))
     return ids.flatMap((id) => byId.get(id) ?? [])
   }
@@ -324,7 +330,7 @@ export class RecipeRepository {
   }
 
   async list(
-    owner: string | string[],
+    scope: RecipeScope,
     opts: {
       limit: number
       offset: number
@@ -335,7 +341,7 @@ export class RecipeRepository {
     const db = this.db
 
     const conditions = [
-      ownerCondition(owner),
+      await ownerCondition(scope),
       // A null totalTimeMin can't be confirmed under the cap, so it's excluded.
       ...(opts.maxTotalTime !== undefined
         ? [lte(schema.recipes.totalTimeMin, opts.maxTotalTime)]
@@ -355,7 +361,7 @@ export class RecipeRepository {
   }
 
   async search(
-    owner: string | string[],
+    scope: RecipeScope,
     q: {
       q?: string
       tag?: string
@@ -367,7 +373,7 @@ export class RecipeRepository {
   ): Promise<Recipe[]> {
     const db = this.db
 
-    const conditions = [ownerCondition(owner)]
+    const conditions = [await ownerCondition(scope)]
 
     if (q.q) {
       conditions.push(foldedContains(schema.recipes.title, q.q))
@@ -434,7 +440,7 @@ export class RecipeRepository {
   ): Promise<Recipe | null> {
     const db = this.db
 
-    const existing = await this.findById(id, ownerId)
+    const existing = await this.findById(id, { ownedBy: ownerId })
     if (!existing) return null
     const foodTypeIds = await this.usableFoodTypeIds(ownerId, data.foodTypeIds)
     // Keep per-serving nutrition honest: rescale on a servings-only edit, clear
@@ -484,7 +490,7 @@ export class RecipeRepository {
 
     await this.replaceFoodTypes(id, foodTypeIds)
 
-    return this.findById(id, ownerId)
+    return this.findById(id, { ownedBy: ownerId })
   }
 
   /**
@@ -562,7 +568,7 @@ export class RecipeRepository {
       if (!visibleOwners.includes(source.ownerId)) return null
     }
 
-    const full = await this.findById(id, source.ownerId)
+    const full = await this.findById(id, { ownedBy: source.ownerId })
     /* v8 ignore next - source row fetched above, findById cannot miss */
     if (!full) return null
 
@@ -594,7 +600,7 @@ export class RecipeRepository {
 
     await db.update(schema.recipes).set({ forkedFromId: id }).where(eq(schema.recipes.id, fork.id!))
 
-    return this.findById(fork.id!, callerId)
+    return this.findById(fork.id!, { ownedBy: callerId })
   }
 
   async delete(id: string, ownerId: string): Promise<boolean> {

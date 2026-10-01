@@ -5,7 +5,6 @@ import { RecipeSchema } from '@recetario/shared'
 import { getDb, schema } from '../db/index.js'
 import { authMiddleware } from '../middleware/auth.js'
 import { recipeRepository } from '../db/repository.js'
-import { getVisibleOwnerIds } from '../db/household-visibility.js'
 
 export const taxonomyRoute = createRouter()
 // Scoped to this router's own paths: it's mounted on the shared /v1 prefix, and a
@@ -239,8 +238,7 @@ taxonomyRoute.openapi(
     if (!col) return c.json({ error: 'Collection not found' }, 404)
     // The recipe must be readable by the caller (own or household-shared);
     // without this any recipeId could be linked into a collection (IDOR).
-    const visibleOwners = await getVisibleOwnerIds(ownerId)
-    const recipe = await recipeRepository.findById(recipeId, visibleOwners)
+    const recipe = await recipeRepository.findById(recipeId, { visibleTo: ownerId })
     if (!recipe) return c.json({ error: 'Recipe not found' }, 404)
     await db
       .insert(schema.recipeCollections)
@@ -284,10 +282,9 @@ taxonomyRoute.openapi(collectionRecipesRoute, async (c) => {
   // Recipes are household-shared, so a collection listing must resolve each
   // linked recipe against the caller's full visible-owner set — otherwise a
   // housemate's recipe added to the collection silently vanishes from the list.
-  const visibleOwners = await getVisibleOwnerIds(ownerId)
   const recipes = await recipeRepository.findByIds(
     links.map((link) => link.recipeId),
-    visibleOwners,
+    { visibleTo: ownerId },
   )
   return c.json(recipes, 200)
 })
@@ -363,7 +360,7 @@ taxonomyRoute.openapi(
     const ownerId = c.get('ownerId')
     const { id } = c.req.valid('param')
     const { toId, relationType, createdBy = 'user' } = c.req.valid('json')
-    const recipe = await recipeRepository.findById(id, ownerId)
+    const recipe = await recipeRepository.findById(id, { ownedBy: ownerId })
     if (!recipe) return c.json({ error: 'Recipe not found' }, 404)
     const db = getDb()
     await db
@@ -392,7 +389,7 @@ taxonomyRoute.openapi(
   async (c) => {
     const ownerId = c.get('ownerId')
     const { id } = c.req.valid('param')
-    const recipe = await recipeRepository.findById(id, ownerId)
+    const recipe = await recipeRepository.findById(id, { ownedBy: ownerId })
     if (!recipe) return c.json({ error: 'Recipe not found' }, 404)
     const db = getDb()
     const rows = await db

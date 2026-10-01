@@ -183,7 +183,7 @@ describe('GET /v1/recipes', () => {
     })
     expect(res.status).toBe(200)
     expect(mockRepo.list).toHaveBeenCalledWith(
-      expect.anything(),
+      { visibleTo: 'dev' },
       expect.objectContaining({ maxTotalTime: 30, difficulty: 'fácil' }),
     )
   })
@@ -211,7 +211,7 @@ describe('GET /v1/recipes/search', () => {
     const res = await app.request(`/v1/recipes/search?foodTypeId=${ft}`, { headers: AUTH_HEADERS })
     expect(res.status).toBe(200)
     expect(mockRepo.search).toHaveBeenLastCalledWith(
-      expect.anything(),
+      { visibleTo: 'dev' },
       expect.objectContaining({ foodTypeId: ft }),
     )
   })
