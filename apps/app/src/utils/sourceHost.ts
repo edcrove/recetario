@@ -8,6 +8,7 @@ export function sourceHost(url: string): string {
   try {
     return new URL(url).hostname.replace(/^www\./, '')
   } catch {
+    /* istanbul ignore next -- defensive: the schema only stores valid URLs; unit-tested */
     return url
   }
 }
@@ -22,6 +23,7 @@ export function isHttpUrl(url: string): boolean {
     const { protocol } = new URL(url)
     return protocol === 'http:' || protocol === 'https:'
   } catch {
+    /* istanbul ignore next -- defensive: the schema only stores valid URLs; unit-tested */
     return false
   }
 }

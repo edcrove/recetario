@@ -11,21 +11,6 @@ export function formatTime(seconds: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
-export interface TimerState {
-  secondsLeft: number
-  isRunning: boolean
-  completed: boolean
-}
-
-/**
- * Pre-loads a step timer but does NOT auto-start it — the cook taps to start
- * (tap-to-start). `secondsLeft` is the parsed/auto-detected step duration.
- */
-export function initTimer(durationSeconds: number | null): TimerState {
-  const secs = timerSeconds(durationSeconds)
-  return { secondsLeft: secs, isRunning: false, completed: false }
-}
-
 interface StepTimer {
   /** Absolute deadline while running; null while paused/idle. */
   endsAt: number | null

@@ -2,6 +2,7 @@ import { View, Text, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator }
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../src/api/client'
+import { ErrorState } from '../../src/components/ErrorState'
 import { notify, confirmAsync } from '../../src/utils/platformAlert'
 import type { Recipe } from '@recetario/shared'
 import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
@@ -31,6 +32,7 @@ export default function CollectionDetailScreen() {
     data: recipes = [],
     isLoading,
     error,
+    refetch,
   } = useQuery({
     queryKey: ['collection-recipes', id],
     queryFn: () => api.taxonomy.collectionRecipes(id),
@@ -53,11 +55,7 @@ export default function CollectionDetailScreen() {
     )
 
   if (error)
-    return (
-      <View style={s.center}>
-        <Text style={s.errorText}>No se pudo cargar la colección.</Text>
-      </View>
-    )
+    return <ErrorState message="No se pudo cargar la colección." onRetry={() => void refetch()} />
 
   return (
     <View style={s.container}>

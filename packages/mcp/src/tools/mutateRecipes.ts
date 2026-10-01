@@ -1,6 +1,16 @@
 import { z } from 'zod'
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { createApiClient } from '../index.js'
+import {
+  CategoryInput,
+  DietaryTagsInput,
+  DifficultyInput,
+  FoodTypeIdsInput,
+  IngredientInput,
+  NutritionInput,
+  StepInput,
+  VisibilityInput,
+} from './recipeInputs.js'
 
 export function registerMutationTools(server: McpServer, api: ReturnType<typeof createApiClient>) {
   server.tool(
@@ -8,48 +18,30 @@ export function registerMutationTools(server: McpServer, api: ReturnType<typeof 
     'Partially update an existing recipe. Only provided fields are changed.',
     {
       id: z.uuid().describe('Recipe UUID to update'),
-      title: z.string().optional(),
+      title: z.string().min(1).max(200).optional(),
       servings: z.number().int().positive().optional(),
+      category: CategoryInput.optional(),
       notes: z.string().optional(),
       tags: z.array(z.string()).optional(),
-      // Allow partial ingredient/step updates
+      prepTimeMin: z.number().int().positive().nullable().optional().describe('null clears it'),
+      cookTimeMin: z.number().int().positive().nullable().optional().describe('null clears it'),
+      totalTimeMin: z.number().int().positive().nullable().optional().describe('null clears it'),
+      difficulty: DifficultyInput,
       ingredients: z
-        .array(
-          z.object({
-            name: z.string(),
-            quantity: z.number().nullable(),
-            unit: z.string().nullable(),
-          }),
-        )
-        .optional(),
-      steps: z.array(z.object({ text: z.string() })).optional(),
-      visibility: z
-        .enum(['private', 'public'])
+        .array(IngredientInput)
+        .min(1)
         .optional()
-        .describe(
-          "Owner-only publish/unpublish: 'public' lists the recipe in the shared library; 'private' hides it again (existing forks are unaffected).",
-        ),
-      dietaryTags: z
-        .array(z.enum(['vegano', 'vegetariano', 'sin-gluten', 'sin-lactosa', 'keto', 'paleo']))
+        .describe('Replaces the whole ingredient list (send every ingredient, not a diff)'),
+      steps: z
+        .array(StepInput)
         .optional()
-        .describe(
-          'Diets this recipe satisfies. Only tag what the ingredients allow: the API rejects a tag an ingredient contradicts (e.g. vegano with chorizo, sin-gluten with harina de trigo).',
-        ),
-      nutrition: z
-        .object({
-          calories: z.number().min(0).describe('Calories per serving'),
-          protein_g: z.number().min(0).describe('Protein grams per serving'),
-          carbs_g: z.number().min(0).describe('Carbohydrate grams per serving'),
-          fat_g: z.number().min(0).describe('Fat grams per serving'),
-          fiber_g: z.number().min(0).optional().describe('Fiber grams per serving'),
-        })
-        .optional()
-        .describe('Nutrition facts per serving (not per whole recipe)'),
-      foodTypeIds: z
-        .array(z.uuid())
-        .max(3)
-        .optional()
-        .describe('Up to 3 food type IDs from getFoodTypes (e.g. guiso, sopa, carne)'),
+        .describe('Replaces the whole step list (send every step, not a diff)'),
+      visibility: VisibilityInput.optional().describe(
+        "Owner-only publish/unpublish: 'public' lists the recipe in the shared library; 'private' hides it again (existing forks are unaffected).",
+      ),
+      dietaryTags: DietaryTagsInput.optional(),
+      nutrition: NutritionInput.optional(),
+      foodTypeIds: FoodTypeIdsInput.optional(),
     },
     async ({ id, ...updates }) => {
       const recipe = await api.request(`/v1/recipes/${id}`, {

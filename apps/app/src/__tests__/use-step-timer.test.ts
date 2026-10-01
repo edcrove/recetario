@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { timerSeconds, formatTime, initTimer } from '../hooks/useStepTimer'
+import { timerSeconds, formatTime } from '../hooks/useStepTimer'
 
 describe('timerSeconds', () => {
   it('returns 0 for null duration', () => {
@@ -32,22 +32,5 @@ describe('formatTime', () => {
   })
   it('pads minutes below 10', () => {
     expect(formatTime(65)).toBe('01:05')
-  })
-})
-
-describe('initTimer', () => {
-  it('pre-loads paused (tap-to-start) with a positive duration', () => {
-    const state = initTimer(60)
-    expect(state).toEqual({ secondsLeft: 60, isRunning: false, completed: false })
-  })
-
-  it('starts idle for null duration', () => {
-    const state = initTimer(null)
-    expect(state).toEqual({ secondsLeft: 0, isRunning: false, completed: false })
-  })
-
-  it('starts idle for zero duration', () => {
-    const state = initTimer(0)
-    expect(state).toEqual({ secondsLeft: 0, isRunning: false, completed: false })
   })
 })
