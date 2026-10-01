@@ -1,11 +1,7 @@
-export interface PantryItem {
-  id: string
-  name: string
-  quantity: string | null
-  unit: string | null
-  expiryDate: string | null
-  inStock: boolean
-}
+import type { PantryItem as SharedPantryItem } from '@recetario/shared'
+
+/** The fields the pantry views use (the API item also carries ownerId). */
+export type PantryItem = Omit<SharedPantryItem, 'ownerId'>
 
 export type ExpiryStatus = 'vencido' | 'pronto' | 'ok'
 
