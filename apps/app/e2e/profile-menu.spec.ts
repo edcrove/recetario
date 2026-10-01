@@ -608,13 +608,27 @@ test.describe('Profile screen (/profile)', () => {
   })
 
   test('edits the display name inline', async ({ page }) => {
-    await page.goto('/profile')
-    await expect(page.getByText('tocá para editar')).toBeVisible({ timeout: 8000 })
-    await page.getByText('tocá para editar').click()
-    const input = page.locator('input[autofocus], input').first()
-    await input.fill('Demo E2E')
-    await page.getByText('Guardar', { exact: true }).click()
-    await expect(page.getByText('Demo E2E')).toBeVisible({ timeout: 8000 })
+    const token = await page.evaluate(() => localStorage.getItem('auth_token'))
+    const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+    const me = (await (await page.request.get(`${API_URL}/auth/me`, { headers })).json()) as {
+      displayName: string | null
+    }
+    try {
+      await page.goto('/profile')
+      await expect(page.getByText('tocá para editar')).toBeVisible({ timeout: 8000 })
+      await page.getByText('tocá para editar').click()
+      const input = page.locator('input[autofocus], input').first()
+      await input.fill('Demo E2E')
+      await page.getByText('Guardar', { exact: true }).click()
+      await expect(page.getByText('Demo E2E')).toBeVisible({ timeout: 8000 })
+    } finally {
+      // Restore the demo account's name so later tests and the visual tour see it
+      const res = await page.request.patch(`${API_URL}/auth/me`, {
+        headers,
+        data: { displayName: me.displayName ?? 'Demo' },
+      })
+      expect(res.ok()).toBe(true)
+    }
   })
 
   test('cancel exits name editing without saving', async ({ page }) => {
@@ -685,5 +699,29 @@ test.describe('Profile screen (/profile)', () => {
     page.once('dialog', (dialog) => void dialog.accept())
     await page.getByTestId('profile-signout').click()
     await page.waitForURL(/auth/, { timeout: 8000 })
+  })
+})
+
+// 2026-10-01 audit (Data): profiles stayed on the UTC default forever. The app
+// now stores the device's zone the first time it sees the default.
+test.describe('Profile time zone', () => {
+  test.use({ timezoneId: 'America/Montevideo' })
+
+  test('the device zone replaces the UTC default', async ({ page }) => {
+    const token = await page.evaluate(() => localStorage.getItem('auth_token'))
+    const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+    await page.request.patch(`${API_URL}/auth/profile`, { headers, data: { timezone: 'UTC' } })
+    await page.goto('/profile')
+    await expect
+      .poll(
+        async () =>
+          (
+            (await (await page.request.get(`${API_URL}/auth/profile`, { headers })).json()) as {
+              timezone: string | null
+            }
+          ).timezone,
+        { timeout: 10000 },
+      )
+      .toBe('America/Montevideo')
   })
 })

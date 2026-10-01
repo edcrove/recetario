@@ -174,3 +174,47 @@ describe.skipIf(skip).sequential('Collections + household visibility / IDOR', ()
     expect(recipes.some((r) => r.id === outsiderRecipeId)).toBe(false)
   })
 })
+
+// 2026-10-01 audit: collections could not be deleted at all (and E2E cleanup
+// called a route that did not exist).
+describe.skipIf(skip).sequential('DELETE /v1/collections/:id', () => {
+  const headers = { 'Content-Type': 'application/json', Authorization: auth }
+
+  it('deletes the collection and its links, never the recipes', async () => {
+    const col = await app.request('/v1/collections', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ name: 'Para borrar' }),
+    })
+    const collectionId = (await col.json()).id as string
+    const rec = await app.request('/v1/recipes', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ ...baseRecipe, title: 'Sobrevive al borrado' }),
+    })
+    const recipeId = (await rec.json()).id as string
+    await app.request(`/v1/collections/${collectionId}/recipes`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ recipeId }),
+    })
+
+    const del = await app.request(`/v1/collections/${collectionId}`, {
+      method: 'DELETE',
+      headers,
+    })
+    expect(del.status).toBe(204)
+
+    const list = (await (await app.request('/v1/collections', { headers })).json()) as {
+      id: string
+    }[]
+    expect(list.some((c) => c.id === collectionId)).toBe(false)
+    expect((await app.request(`/v1/recipes/${recipeId}`, { headers })).status).toBe(200)
+
+    const again = await app.request(`/v1/collections/${collectionId}`, {
+      method: 'DELETE',
+      headers,
+    })
+    expect(again.status).toBe(404)
+  })
+})
