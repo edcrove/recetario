@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>80/80</span>
+                <span class='fraction'>77/77</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>73/73</span>
+                <span class='fraction'>70/70</span>
             </div>
         
             
@@ -379,8 +379,9 @@
 <a name='L314'></a><a href='#L314'>314</a>
 <a name='L315'></a><a href='#L315'>315</a>
 <a name='L316'></a><a href='#L316'>316</a>
-<a name='L317'></a><a href='#L317'>317</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L317'></a><a href='#L317'>317</a>
+<a name='L318'></a><a href='#L318'>318</a>
+<a name='L319'></a><a href='#L319'>319</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -491,18 +492,20 @@
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">16x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -527,7 +530,9 @@
 <span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-yes">9x</span>
-<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -557,7 +562,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">16x</span>
-<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
@@ -705,7 +709,6 @@ import {
   dietaryConflicts,
 } from '@recetario/shared'
 import { recipeRepository } from '../db/repository.js'
-import { getVisibleOwnerIds } from '../db/household-visibility.js'
 import { authMiddleware } from '../middleware/auth.js'
 import { rateLimitMiddleware } from '../middleware/rateLimit.js'
 import '../types.js'
@@ -806,15 +809,17 @@ const searchRecipesRoute = defineRoute({
 recipesRoute.openapi(searchRecipesRoute, async (c) =&gt; {
   const ownerId = c.get('ownerId')
   const { q, tag, category, ingredient, dietary, foodTypeId } = c.req.valid('query')
-  const visibleOwners = await getVisibleOwnerIds(ownerId)
-  const recipes = await recipeRepository.search(visibleOwners, {
-    q,
-    tag,
-    category,
-    ingredient,
-    dietary,
-    foodTypeId,
-  })
+  const recipes = await recipeRepository.search(
+    { visibleTo: ownerId },
+    {
+      q,
+      tag,
+      category,
+      ingredient,
+      dietary,
+      foodTypeId,
+    },
+  )
   return c.json(recipes, 200)
 })
 &nbsp;
@@ -842,13 +847,15 @@ const listRecipesRoute = defineRoute({
 recipesRoute.openapi(listRecipesRoute, async (c) =&gt; {
   const ownerId = c.get('ownerId')
   const { limit, offset, maxTotalTime, difficulty } = c.req.valid('query')
-  const visibleOwners = await getVisibleOwnerIds(ownerId)
-  const recipes = await recipeRepository.list(visibleOwners, {
-    limit,
-    offset,
-    ...(maxTotalTime !== undefined &amp;&amp; { maxTotalTime }),
-    ...(difficulty !== undefined &amp;&amp; { difficulty }),
-  })
+  const recipes = await recipeRepository.list(
+    { visibleTo: ownerId },
+    {
+      limit,
+      offset,
+      ...(maxTotalTime !== undefined &amp;&amp; { maxTotalTime }),
+      ...(difficulty !== undefined &amp;&amp; { difficulty }),
+    },
+  )
   return c.json(recipes, 200)
 })
 &nbsp;
@@ -875,8 +882,7 @@ const getRecipeByIdRoute = defineRoute({
 recipesRoute.openapi(getRecipeByIdRoute, async (c) =&gt; {
   const ownerId = c.get('ownerId')
   const { id } = c.req.valid('param')
-  const visibleOwners = await getVisibleOwnerIds(ownerId)
-  const recipe = await recipeRepository.findById(id, visibleOwners)
+  const recipe = await recipeRepository.findById(id, { visibleTo: ownerId })
   if (!recipe) return c.json({ error: 'Recipe not found' }, 404)
   return c.json(recipe, 200)
 })
@@ -917,7 +923,7 @@ recipesRoute.openapi(putRecipeRoute, async (c) =&gt; {
     // Partial update: check the tags and ingredients the recipe will end up with.
     const current =
       body.dietaryTags === undefined || body.ingredients === undefined
-        ? await recipeRepository.findById(id, [ownerId])
+        ? await recipeRepository.findById(id, { ownedBy: ownerId })
         : null
     const tagError = dietaryTagError(
       body.ingredients ?? current?.ingredients ?? [],
@@ -1018,7 +1024,7 @@ recipesRoute.openapi(copyRecipeRoute, async (c) =&gt; {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-10-01T10:41:02.643Z
+                at 2026-10-01T10:58:49.427Z
             </div>
         <script src="../prettify.js"></script>
         <script>
