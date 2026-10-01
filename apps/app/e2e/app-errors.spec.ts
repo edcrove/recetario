@@ -1,10 +1,6 @@
 import { test, testUnauth, expect } from './fixtures'
 import { API_URL } from './env'
-
-async function authHeaders(page: import('@playwright/test').Page) {
-  const token = await page.evaluate(() => localStorage.getItem('auth_token'))
-  return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
-}
+import { authHeaders } from './api'
 
 test('a recipe can be deleted from its detail screen after confirming', async ({ page }) => {
   const headers = await authHeaders(page)

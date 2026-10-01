@@ -1,15 +1,11 @@
 import { test, expect } from './fixtures'
 import { API_URL } from './env'
+import { authHeaders, createRecipeViaApi, deleteRecipeViaApi } from './api'
 
 /**
  * Weekly menu E2E flows.
  * All tests run authenticated via the auth fixture.
  */
-
-async function authHeaders(page: import('@playwright/test').Page) {
-  const token = await page.evaluate(() => localStorage.getItem('auth_token'))
-  return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
-}
 
 test.describe('Menu: navigation', () => {
   test('Menú Semanal button opens menu screen', async ({ page }) => {
@@ -27,12 +23,13 @@ test.describe('Menu: navigation', () => {
   test('clicking Anterior changes the week — Siguiente becomes active', async ({ page }) => {
     await page.getByText('Menú Semanal').click()
     await expect(page.getByText('‹ Anterior')).toBeVisible({ timeout: 8000 })
-    // Navigate to previous week
+    const label = page.getByTestId('menu-week-label')
+    const initial = await label.textContent()
+    // Navigate to previous week: the label changes, and Siguiente brings it back
     await page.getByText('‹ Anterior').click()
-    await page.waitForTimeout(300)
-    // Siguiente always visible; structure same
-    await expect(page.getByText('Siguiente ›')).toBeVisible()
-    await expect(page.getByText('‹ Anterior')).toBeVisible()
+    await expect(label).not.toHaveText(initial ?? '')
+    await page.getByText('Siguiente ›').click()
+    await expect(label).toHaveText(initial ?? '')
   })
 })
 
@@ -92,52 +89,46 @@ test.describe('Menu: add recipe to slot', () => {
     }
   }
 
+  // Picks one of this test's own recipes (never a seeded one that may not
+  // exist), and checks the planner shows it in the slot it was added to.
+  async function pickRecipe(page: import('@playwright/test').Page, title: string, id: string) {
+    await expect(page.getByPlaceholder('Buscar receta...')).toBeVisible({ timeout: 10000 })
+    await page.getByPlaceholder('Buscar receta...').fill(title)
+    await page.getByTestId(`pick-recipe-${id}`).click()
+    await expect(page).not.toHaveURL(/\/menu\/pick/, { timeout: 8000 })
+  }
+
   test('can add a recipe to a slot', async ({ page }) => {
+    const recipe = await createRecipeViaApi(page)
     await page.getByText('Menú Semanal').click()
     const { day, slot } = await clickFirstAddSlot(page)
-    await page.waitForLoadState('networkidle', { timeout: 10000 })
-    await expect(page.getByPlaceholder('Buscar receta...')).toBeVisible({ timeout: 10000 })
-
     try {
-      // RN Web may hide items — use evaluate to find + click
-      await page.evaluate((pattern) => {
-        const allText = Array.from(document.querySelectorAll('[dir="auto"]')).find((el) =>
-          new RegExp(pattern).test(el.textContent ?? ''),
-        )
-        if (allText) {
-          allText.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
-        }
-      }, 'Milanesa de pollo|Empanadas de carne|Guiso de lentejas|Revuelto gramajo|Alfajores caseros')
-
-      await page.waitForLoadState('networkidle', { timeout: 10000 })
-      // Verify we navigated back (URL changed from /menu/pick)
-      await expect(page).not.toHaveURL(/\/menu\/pick/, { timeout: 8000 })
+      await pickRecipe(page, recipe.title, recipe.id)
+      await expect(page.getByTestId(`menu-entry-${day}-${slot}-${recipe.id}`)).toBeVisible({
+        timeout: 8000,
+      })
     } finally {
       await deleteEntriesInSlot(page, day, slot)
+      await deleteRecipeViaApi(page, recipe.id)
     }
   })
 
   test('slot shows multiple recipes after adding second', async ({ page }) => {
+    const first = await createRecipeViaApi(page)
+    const second = await createRecipeViaApi(page)
     await page.getByText('Menú Semanal').click()
     const { day, slot } = await clickFirstAddSlot(page)
-    await page.waitForLoadState('networkidle', { timeout: 10000 })
-    await expect(page.getByPlaceholder('Buscar receta...')).toBeVisible({ timeout: 10000 })
-
     try {
-      await page.evaluate((pattern) => {
-        const allText = Array.from(document.querySelectorAll('[dir="auto"]')).find((el) =>
-          new RegExp(pattern).test(el.textContent ?? ''),
-        )
-        if (allText) {
-          allText.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
-        }
-      }, 'Milanesa de pollo|Empanadas de carne|Guiso de lentejas|Revuelto gramajo|Alfajores caseros')
-
-      await page.waitForLoadState('networkidle', { timeout: 10000 })
-      await expect(page).not.toHaveURL(/\/menu\/pick/, { timeout: 8000 })
-      await expect(page.getByText('+ Agregar').first()).toBeAttached()
+      await pickRecipe(page, first.title, first.id)
+      await page.getByTestId(`menu-add-${day}-${slot}`).click()
+      await pickRecipe(page, second.title, second.id)
+      await expect(page.locator(`[data-testid^="menu-entry-${day}-${slot}-"]`)).toHaveCount(2, {
+        timeout: 8000,
+      })
     } finally {
       await deleteEntriesInSlot(page, day, slot)
+      await deleteRecipeViaApi(page, first.id)
+      await deleteRecipeViaApi(page, second.id)
     }
   })
 })
@@ -234,12 +225,12 @@ test.describe('Menu: edit servings', () => {
       await chip.click()
       await expect(page.getByTestId('menu-modal-save')).toBeVisible({ timeout: 8000 })
 
-      // Increment servings and save
+      const before = Number((await chip.innerText()).match(/(\d+) porc\./)?.[1])
+      // Increment servings and save: the chip shows the new amount
       await page.getByText('+').last().click()
-      await page.waitForTimeout(300)
       await page.getByTestId('menu-modal-save').click()
-      // Modal closes after save
       await expect(page.getByTestId('menu-modal-save')).not.toBeVisible({ timeout: 10000 })
+      await expect(chip).toContainText(`${before + 1} porc.`, { timeout: 8000 })
     } finally {
       await cleanupAddedEntry(page, added)
     }

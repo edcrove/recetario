@@ -1,5 +1,6 @@
 import { test, expect } from './fixtures'
 import { API_URL } from './env'
+import { authHeaders, createRecipeViaApi, deleteRecipeViaApi } from './api'
 
 /**
  * Targeted coverage for flows no other suite exercises:
@@ -8,11 +9,6 @@ import { API_URL } from './env'
  * - API error paths surfaced via notify() using Playwright route interception
  * Every entity created here is cleaned up so seeded demo data stays stable.
  */
-
-async function authHeaders(page: import('@playwright/test').Page) {
-  const token = await page.evaluate(() => localStorage.getItem('auth_token'))
-  return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
-}
 
 test.describe('Stats screen with data', () => {
   test('shows top recipes and frequency chart after a cook session, and taps through', async ({
@@ -180,31 +176,6 @@ test.describe('API error paths (route interception)', () => {
 // ErrorBoundary, and more error paths. Same hygiene: everything created is
 // cleaned up; interceptions are page-scoped.
 // ---------------------------------------------------------------------------
-
-async function createRecipeViaApi(
-  page: import('@playwright/test').Page,
-  overrides: Record<string, unknown> = {},
-) {
-  const headers = await authHeaders(page)
-  const res = await page.request.post(`${API_URL}/v1/recipes`, {
-    headers,
-    data: {
-      title: `E2E Gaps2 ${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      servings: 2,
-      category: 'Cena',
-      ingredients: [{ name: 'agua', quantity: 1, unit: 'l' }],
-      steps: [{ text: 'Paso único.' }],
-      ...overrides,
-    },
-  })
-  expect(res.ok()).toBe(true)
-  return (await res.json()) as { id: string; title: string }
-}
-
-async function deleteRecipeViaApi(page: import('@playwright/test').Page, id: string) {
-  const headers = await authHeaders(page)
-  await page.request.delete(`${API_URL}/v1/recipes/${id}`, { headers })
-}
 
 test.describe('Recipe detail: deep flows', () => {
   test('unknown recipe id shows the not-found state', async ({ page }) => {

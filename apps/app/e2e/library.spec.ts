@@ -1,15 +1,11 @@
 import { test, expect } from './fixtures'
 import { API_URL } from './env'
+import { authHeaders } from './api'
 
 /**
  * Public library E2E flows (sharing epic story 5).
  * Every recipe created here is cleaned up via API.
  */
-
-async function authHeaders(page: import('@playwright/test').Page) {
-  const token = await page.evaluate(() => localStorage.getItem('auth_token'))
-  return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
-}
 
 test.describe('Biblioteca', () => {
   test('smoke: opens from the user menu and shows the search box', async ({ page }) => {

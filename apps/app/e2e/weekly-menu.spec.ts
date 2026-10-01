@@ -39,12 +39,10 @@ test.describe('Weekly menu planner (/menu)', () => {
 
   test('empty state shows + Agregar buttons', async ({ page }) => {
     await goToMenu(page)
-    await page.waitForTimeout(2000)
-    const addButtons = page.getByText('+ Agregar')
-    const count = await addButtons.count()
-    if (count > 0) {
-      await expect(addButtons.first()).toBeVisible()
-    }
+    // Every slot offers + Agregar to a non-viewer, planned or not
+    await expect(page.locator('[data-testid^="menu-add-"]').first()).toBeVisible({
+      timeout: 15000,
+    })
   })
 
   test('navigates to next week and back', async ({ page }) => {
@@ -93,11 +91,13 @@ test.describe('Pick recipe screen (/menu/pick)', () => {
 
   test('shows recipe list or empty state', async ({ page }) => {
     await page.goto('/menu/pick?date=2025-01-06&slot=Almuerzo&weekStart=2025-01-06')
-    await page.waitForTimeout(2000)
-    const hasRecipes = (await page.getByText(/porc\. base/).count()) > 0
-    if (!hasRecipes) {
-      await expect(page.getByText('No hay recetas aún')).toBeVisible({ timeout: 10000 })
-    }
+    // Either the account's recipes or the empty state — one of them must render
+    await expect(
+      page
+        .locator('[data-testid^="pick-recipe-"]')
+        .first()
+        .or(page.getByText('No hay recetas aún')),
+    ).toBeVisible({ timeout: 10000 })
   })
 
   test('search filters recipe list', async ({ page }) => {
@@ -164,13 +164,9 @@ test.describe('Shopping list screen (/menu/shopping-list)', () => {
   test('empty state shows no-ingredients message', async ({ page }) => {
     // A week far in the past is guaranteed to have no entries
     await page.goto('/menu/shopping-list?weekStart=2000-01-03')
-    await page.waitForTimeout(2000)
-    const hasItems = (await page.getByText(/al gusto|\d+ [a-z]/).count()) > 0
-    if (!hasItems) {
-      await expect(page.getByText('No hay ingredientes para esta semana')).toBeVisible({
-        timeout: 10000,
-      })
-    }
+    await expect(page.getByText('No hay ingredientes para esta semana')).toBeVisible({
+      timeout: 15000,
+    })
   })
 
   test('back link returns to menu planner', async ({ page }) => {
