@@ -68,4 +68,22 @@ describe('JWT revocation after a password reset', () => {
     userRows.current = []
     expect((await call(token)).status).toBe(200)
   })
+
+  // Mutation testing (2026-10-01): the one-second grace below could be removed
+  // or flipped without a test failing. A session signed in the same second as
+  // the reset (the reset flow signs the user straight back in) must survive.
+  it('keeps a token signed within a second of the reset, revokes one 2s older', async () => {
+    vi.useFakeTimers()
+    try {
+      const T = Date.UTC(2026, 9, 1, 12, 0, 0)
+      vi.setSystemTime(T)
+      const token = await signJwt({ sub: 'u1', email: 'a@b.c' })
+      userRows.current = [{ passwordChangedAt: new Date(T + 900) }]
+      expect((await call(token)).status).toBe(200)
+      userRows.current = [{ passwordChangedAt: new Date(T + 2_500) }]
+      expect((await call(token)).status).toBe(401)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })

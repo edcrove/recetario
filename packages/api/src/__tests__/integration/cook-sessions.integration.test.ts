@@ -119,3 +119,38 @@ describe.skipIf(skip).sequential('Cook sessions — captured context', () => {
     expect(user?.lastLoginAt).toBeInstanceOf(Date)
   })
 })
+
+// Mutation testing (2026-10-01): the stats' default 90-day window could be
+// changed or dropped without a test failing (every test passed `since`).
+describe.skipIf(skip).sequential('Cook stats — default window', () => {
+  it('counts the last 90 days when no since is given', async () => {
+    const cook = await register(`cook-window-${Date.now()}@example.com`)
+    const me = await (await app.request('/auth/me', { headers: auth(cook.token) })).json()
+    const rec = await app.request('/v1/recipes', {
+      method: 'POST',
+      headers: auth(cook.token),
+      body: JSON.stringify({
+        title: 'Guiso de ventana',
+        servings: 2,
+        category: 'Cena',
+        ingredients: [{ name: 'lentejas', quantity: 200, unit: 'g' }],
+      }),
+    })
+    const recipeId = (await rec.json()).id as string
+    const daysAgo = (n: number) => new Date(Date.now() - n * 24 * 60 * 60 * 1000)
+    await getDb()
+      .insert(schema.cookSessions)
+      .values([
+        { recipeId, recipeTitle: 'Guiso de ventana', ownerId: me.id, cookedAt: daysAgo(10) },
+        { recipeId, recipeTitle: 'Guiso de ventana', ownerId: me.id, cookedAt: daysAgo(80) },
+        { recipeId, recipeTitle: 'Guiso de ventana', ownerId: me.id, cookedAt: daysAgo(100) },
+      ])
+
+    const stats = await (
+      await app.request('/v1/cook-sessions/stats', { headers: auth(cook.token) })
+    ).json()
+    expect(stats.totalSessions).toBe(2)
+    const sinceDays = (Date.now() - new Date(stats.since).getTime()) / (24 * 60 * 60 * 1000)
+    expect(Math.round(sinceDays)).toBe(90)
+  })
+})
