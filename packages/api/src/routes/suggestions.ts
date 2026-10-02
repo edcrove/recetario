@@ -13,6 +13,7 @@ import { ingredientRepository } from '../db/ingredient-repository.js'
 import { menuRepository } from '../db/menu-repository.js'
 import { cookSessionsRepository } from '../db/cook-sessions-repository.js'
 import { authMiddleware } from '../middleware/auth.js'
+import { userToday } from '../db/user-time.js'
 import '../types.js'
 
 export const suggestionsRoute = createRouter()
@@ -83,7 +84,8 @@ suggestionsRoute.openapi(route, async (c) => {
 
   // Secondary signals: use up what expires soon, vary what was cooked
   // recently, and prefer what the user rated well.
-  const today = date ?? new Date().toISOString().slice(0, 10)
+  // The user's day, not the server's UTC one (from 21:00 in Uruguay UTC is already tomorrow)
+  const today = date ?? (await userToday(ownerId))
   const expiringKeys = new Set(
     (await pantryRepository.listExpiringNames(ownerId, addIsoDays(today, EXPIRY_WINDOW_DAYS))).map(
       toKey,
