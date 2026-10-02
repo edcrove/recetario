@@ -1,6 +1,7 @@
 import { test, expect } from './fixtures'
 import type { Page } from '@playwright/test'
 import { API_URL } from './env'
+import { authHeaders, createRecipeViaApi, deleteRecipeViaApi } from './api'
 
 async function goToMenu(page: Page): Promise<void> {
   await page.goto('/')
@@ -177,4 +178,30 @@ test.describe('Shopping list screen (/menu/shopping-list)', () => {
     await page.getByText('‹ Menú').click()
     await expect(page).toHaveURL(/\/menu/)
   })
+})
+
+// 2026-10-02 review: the profile's "Porciones por defecto" was stored but never
+// used — planning a dish always started at 2 portions.
+test("planning a dish starts at the profile's default portions", async ({ page }) => {
+  const headers = await authHeaders(page)
+  const date = '2027-04-07'
+  await page.request.patch(`${API_URL}/auth/profile`, { headers, data: { preferredServings: 5 } })
+  const recipe = await createRecipeViaApi(page)
+  try {
+    await page.goto(`/menu/pick?date=${date}&slot=Cena&weekStart=2027-04-05`)
+    await expect(page.getByTestId('pick-servings')).toHaveText('5')
+    await page.getByTestId(`pick-recipe-${recipe.id}`).click()
+    await expect
+      .poll(async () => {
+        const week = (await (
+          await page.request.get(`${API_URL}/v1/menu?weekStart=2027-04-05`, { headers })
+        ).json()) as { recipeId: string; servings: number }[]
+        return week.find((e) => e.recipeId === recipe.id)?.servings
+      })
+      .toBe(5)
+  } finally {
+    await page.request.delete(`${API_URL}/v1/menu/${date}/Cena/${recipe.id}`, { headers })
+    await deleteRecipeViaApi(page, recipe.id)
+    await page.request.patch(`${API_URL}/auth/profile`, { headers, data: { preferredServings: 2 } })
+  }
 })

@@ -82,6 +82,20 @@ describe('PickRecipeScreen', () => {
     expect(mockList).toHaveBeenLastCalledWith({ limit: 100, offset: 100 })
   })
 
+  // 2026-10-02 review: the profile's "Porciones por defecto" was stored but
+  // never used — planning always started at 2 portions.
+  it("starts at the profile's default portions, and the stepper moves from there", async () => {
+    mockProfile.mockResolvedValue({ nutritionTargets: null, preferredServings: 5 })
+    const r = recipe({})
+    mockList.mockResolvedValue([r])
+    wrap()
+    const card = await screen.findByTestId(`pick-recipe-${r.id}`)
+    await waitFor(() => expect(screen.getByText('5')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('−')) // 5 → 4
+    fireEvent.click(card)
+    await waitFor(() => expect(mockAdd.mock.calls[0]?.[0]).toMatchObject({ servings: 4 }))
+  })
+
   it('adds the tapped recipe with the chosen servings and goes back', async () => {
     const r = recipe({})
     mockList.mockResolvedValue([r])

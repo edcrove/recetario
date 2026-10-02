@@ -40,7 +40,10 @@ export default function PickRecipeScreen() {
     weekStart: string
   }>()
   const [query, setQuery] = useState('')
-  const [servings, setServings] = useState(2)
+  // Starts at the profile's "Porciones por defecto" until the user changes it
+  const { data: profile } = useProfile()
+  const [pickedServings, setServings] = useState<number | null>(null)
+  const servings = pickedServings ?? profile?.preferredServings ?? 2
   const [maxTotalTime, setMaxTotalTime] = useState<number | null>(null)
   const [difficulty, setDifficulty] = useState<RecipeDifficulty | null>(null)
 
@@ -51,7 +54,6 @@ export default function PickRecipeScreen() {
   })
 
   // Goal preview: where the slot (or the day) lands if this recipe is added
-  const { data: profile } = useProfile()
   const targets = profile?.nutritionTargets ?? null
   const { data: day } = useQuery({
     queryKey: ['day-nutrition', date],
@@ -99,12 +101,14 @@ export default function PickRecipeScreen() {
           <Text style={styles.servingsLabel}>Porciones:</Text>
           <TouchableOpacity
             style={styles.servingsBtn}
-            onPress={() => setServings((v) => Math.max(1, v - 1))}
+            onPress={() => setServings(Math.max(1, servings - 1))}
           >
             <Text style={styles.servingsBtnText}>−</Text>
           </TouchableOpacity>
-          <Text style={styles.servingsValue}>{servings}</Text>
-          <TouchableOpacity style={styles.servingsBtn} onPress={() => setServings((v) => v + 1)}>
+          <Text testID="pick-servings" style={styles.servingsValue}>
+            {servings}
+          </Text>
+          <TouchableOpacity style={styles.servingsBtn} onPress={() => setServings(servings + 1)}>
             <Text style={styles.servingsBtnText}>+</Text>
           </TouchableOpacity>
         </View>
