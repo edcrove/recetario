@@ -42,8 +42,7 @@ const member = (userId: string, role: string, extra: Record<string, unknown> = {
   ...extra,
 })
 
-function wrap() {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+function wrap(client = new QueryClient({ defaultOptions: { queries: { retry: false } } })) {
   return render(
     <QueryClientProvider client={client}>
       <HouseholdScreen />
@@ -258,6 +257,30 @@ describe('HouseholdScreen: change role and leave', () => {
       '¿Abandonar Casa? Vas a dejar de ver sus recetas, el menú semanal y la lista de compras.',
     )
     await waitFor(() => expect(m.mine.mock.calls.length).toBeGreaterThan(1))
+  })
+
+  // 2026-10-02 review: removing a member only refreshed the household list, and
+  // leaving missed the pantry, the day summaries and the fridge views, so their
+  // recipes, dishes and pantry items lingered on other screens for 30s.
+  it('removing a member or leaving refreshes every shared screen', async () => {
+    m.mine.mockResolvedValue([
+      {
+        id: 'h1',
+        name: 'Casa',
+        members: [member('me', 'owner'), member('u2', 'member', { email: 'beto@x.com' })],
+      },
+    ])
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const spy = vi.spyOn(client, 'invalidateQueries')
+    const refreshed = () => spy.mock.calls.map((c) => JSON.stringify(c[0]?.queryKey))
+    wrap(client)
+    fireEvent.click(await screen.findByTestId('household-remove-member-u2'))
+    await waitFor(() => expect(m.removeMember).toHaveBeenCalled())
+    await waitFor(() =>
+      expect(refreshed()).toEqual(
+        expect.arrayContaining(['["recipes"]', '["menu"]', '["pantry"]', '["day-nutrition"]']),
+      ),
+    )
   })
 
   it('cancelling the confirmation keeps them in the household', async () => {

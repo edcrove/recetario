@@ -135,3 +135,69 @@ test('your own dish opens right away, even while /auth/me is slow', async ({ pag
     await deleteRecipeViaApi(page, recipe.id)
   }
 })
+
+// 2026-10-02 review: removing a member only refreshed "Mi hogar", so their
+// recipes stayed on home (and their dishes on the planner) for up to 30s.
+test('removing a housemate takes their recipes off home right away', async ({ page }, testInfo) => {
+  const headers = await authHeaders(page)
+  const mine = (await (
+    await page.request.get(`${API_URL}/v1/households/mine`, { headers })
+  ).json()) as { id: string; ownerId: string }[]
+  let householdId = mine[0]?.id
+  if (!householdId) {
+    householdId = (
+      (await (
+        await page.request.post(`${API_URL}/v1/households`, {
+          headers,
+          data: { name: `E2E Hogar Quitar ${Date.now()}` },
+        })
+      ).json()) as { id: string }
+    ).id
+  }
+  const email = `quitar-e2e-${testInfo.parallelIndex}-${Date.now()}@example.com`
+  const reg = (await (
+    await page.request.post(`${API_URL}/auth/register`, {
+      data: { email, password: 'password123' },
+    })
+  ).json()) as { token: string; user: { id: string } }
+  const theirHeaders = { Authorization: `Bearer ${reg.token}`, 'Content-Type': 'application/json' }
+  await page.request.post(`${API_URL}/v1/households/${householdId}/invite`, {
+    headers,
+    data: { userId: reg.user.id, role: 'member' },
+  })
+  await page.request.post(`${API_URL}/v1/households/${householdId}/accept`, {
+    headers: theirHeaders,
+  })
+  const title = `E2E Del que se va ${Date.now()}`
+  const theirs = (await (
+    await page.request.post(`${API_URL}/v1/recipes`, {
+      headers: theirHeaders,
+      data: {
+        title,
+        servings: 2,
+        category: 'Cena',
+        ingredients: [{ name: 'sal', quantity: 1, unit: 'g' }],
+        steps: [{ text: 'Único.' }],
+      },
+    })
+  ).json()) as { id: string }
+  try {
+    await page.goto('/')
+    await expect(page.getByTestId(`recipe-card-${theirs.id}`)).toBeVisible()
+
+    await page.getByTestId('home-profile-button').click()
+    await page.getByText('Mi hogar').click()
+    page.once('dialog', (d) => void d.accept())
+    await page.getByTestId(`household-remove-member-${reg.user.id}`).click()
+    await expect(page.getByTestId(`household-remove-member-${reg.user.id}`)).toHaveCount(0)
+
+    await page.goBack()
+    await expect(page.getByPlaceholder(/buscar recetas/i)).toBeVisible()
+    await expect(page.getByTestId(`recipe-card-${theirs.id}`)).toHaveCount(0)
+  } finally {
+    await page.request.delete(`${API_URL}/v1/recipes/${theirs.id}`, { headers: theirHeaders })
+    await page.request.delete(`${API_URL}/v1/households/${householdId}/members/${reg.user.id}`, {
+      headers,
+    })
+  }
+})

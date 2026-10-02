@@ -57,8 +57,13 @@ test('checking a shopping-list item persists across a reload', async ({ page }) 
     await expect(row).toBeVisible()
     await expect(page.getByTestId('shopping-progress')).toHaveText('0 / 1')
 
+    // The tick is optimistic: wait for the server to store it before reloading
+    const saved = page.waitForResponse(
+      (r) => r.url().includes('/v1/menu/shopping-list/check') && r.request().method() === 'PUT',
+    )
     await row.click()
     await expect(page.getByTestId('shopping-progress')).toHaveText('1 / 1')
+    expect((await saved).ok()).toBe(true)
 
     // Reload — the check came from the server, so it must still be there.
     await page.reload()

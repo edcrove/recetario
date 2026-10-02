@@ -12,7 +12,7 @@ describe('fetchAllRecipes', () => {
       .mockResolvedValueOnce(recipes(RECIPES_PAGE))
       .mockResolvedValueOnce(recipes(RECIPES_PAGE, 100))
       .mockResolvedValueOnce(recipes(7, 200))
-    const all = await fetchAllRecipes(list)
+    const all = await fetchAllRecipes<Recipe>(list)
     expect(all).toHaveLength(207)
     expect(all[206]?.id).toBe('r206')
     expect(list.mock.calls.map((c) => c[0])).toEqual([

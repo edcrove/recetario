@@ -176,4 +176,66 @@ describe.skipIf(skip).sequential('Recipes can use custom categories', () => {
       .values({ ownerId: TEST_OWNER_ID, title: 'Vieja', servings: 1, category: 'snack' })
     expect(await category('Snack')).toMatchObject({ usageCount: before + 1 })
   })
+
+  // 2026-10-02 review: create refused a system category's name, but rename
+  // didn't, so renaming "Picada" to "cena" made a second "Cena" and every
+  // dinner counted under both.
+  it('renaming to a name already in use (system or own, any case) is a 409', async () => {
+    const id = await createCategory('Picada')
+    await createCategory('Merendola')
+    const rename = (name: string) =>
+      app.request(`/v1/config/categories/${id}`, {
+        method: 'PATCH',
+        headers: auth,
+        body: JSON.stringify({ name }),
+      })
+    for (const name of ['cena', 'CENA', ' Cena ', 'merendola']) {
+      const res = await rename(name)
+      expect(res.status).toBe(409)
+      expect(await res.json()).toEqual({ error: 'Already exists' })
+    }
+    expect((await rename('   ')).status).toBe(400)
+    // Only a case change of its own name is fine
+    expect((await rename('PICADA')).status).toBe(200)
+    expect(await category('PICADA')).toBeDefined()
+    const cenas = (
+      (await (await app.request('/v1/config/taxonomy', { headers: auth })).json()) as {
+        mealCategories: Item[]
+      }
+    ).mealCategories.filter((c) => c.name.toLowerCase() === 'cena')
+    expect(cenas).toHaveLength(1)
+  })
+
+  it('a food type or a tag renamed onto a name in use is a 409 too', async () => {
+    const ft = await app.request('/v1/config/food-types', {
+      method: 'POST',
+      headers: auth,
+      body: JSON.stringify({ name: 'Frituras' }),
+    })
+    const ftId = ((await ft.json()) as { id: string }).id
+    const ftRes = await app.request(`/v1/config/food-types/${ftId}`, {
+      method: 'PATCH',
+      headers: auth,
+      body: JSON.stringify({ name: 'pasta' }),
+    })
+    expect(ftRes.status).toBe(409)
+    const mk = async (name: string) =>
+      (
+        (await (
+          await app.request('/v1/config/tags', {
+            method: 'POST',
+            headers: auth,
+            body: JSON.stringify({ name }),
+          })
+        ).json()) as { id: string }
+      ).id
+    const a = await mk('rapida')
+    await mk('facil')
+    const tagRes = await app.request(`/v1/config/tags/${a}`, {
+      method: 'PATCH',
+      headers: auth,
+      body: JSON.stringify({ name: 'FACIL' }),
+    })
+    expect(tagRes.status).toBe(409)
+  })
 })

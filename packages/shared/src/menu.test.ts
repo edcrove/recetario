@@ -31,9 +31,9 @@ describe('CreateMenuEntrySchema', () => {
     recipeId: '550e8400-e29b-41d4-a716-446655440000',
   }
 
-  it('defaults servings to 1', () => {
+  it('leaves servings out when not given (the API fills in the default portions)', () => {
     const result = CreateMenuEntrySchema.parse(valid)
-    expect(result.servings).toBe(1)
+    expect(result.servings).toBeUndefined()
   })
 
   it('accepts explicit servings', () => {

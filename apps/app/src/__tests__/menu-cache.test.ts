@@ -49,4 +49,19 @@ describe('refreshAfter', () => {
       ['collection-recipes'],
     ])
   })
+
+  it('a household change refreshes everything shared with the housemates', async () => {
+    expect(await keysAfter('household')).toEqual([
+      ['households'],
+      ['recipes'],
+      ['library'],
+      ['menu'],
+      ['day-nutrition'],
+      ['shopping-list'],
+      ['menu-gap'],
+      ['pantry'],
+      ['suggestions'],
+      ['collection-recipes'],
+    ])
+  })
 })
