@@ -1,6 +1,30 @@
 import { CreateRecipeSchema, SYSTEM_CATEGORIES } from '@recetario/shared'
 import type { Category, Recipe, RecipeDifficulty, Unit } from '@recetario/shared'
 
+const VULGAR_FRACTIONS: Record<string, number> = {
+  '½': 1 / 2,
+  '⅓': 1 / 3,
+  '⅔': 2 / 3,
+  '¼': 1 / 4,
+  '¾': 3 / 4,
+}
+
+/**
+ * A typed quantity as a number: "1,5" (the decimal comma used here), "1.5",
+ * "1/2", "1 1/2", "½" or "1½". Blank is null ("a gusto"); anything else is NaN
+ * so validation rejects it instead of storing a wrong amount — parseFloat
+ * read "1,5" and "1/2" as 1.
+ */
+export function parseQuantity(text: string): number | null {
+  const t = text.trim().replace(',', '.')
+  if (!t) return null
+  const vulgar = /^(\d+)?\s*([½⅓⅔¼¾])$/.exec(t)
+  if (vulgar) return Number(vulgar[1] ?? 0) + VULGAR_FRACTIONS[vulgar[2]!]!
+  const mixed = /^(?:(\d+)\s+)?(\d+)\/(\d+)$/.exec(t)
+  if (mixed) return Number(mixed[1] ?? 0) + Number(mixed[2]) / Number(mixed[3])
+  return /^\d*\.?\d+$/.test(t) ? Number(t) : NaN
+}
+
 export interface RecipeTimes {
   prepTimeMin: string
   cookTimeMin: string
@@ -78,7 +102,7 @@ export function buildPayload(
       .filter((i) => i.name.trim())
       .map((i) => ({
         name: i.name.trim(),
-        quantity: i.quantity ? parseFloat(i.quantity) : null,
+        quantity: parseQuantity(i.quantity),
         unit: (i.unit as Unit) || null,
         presentation: i.presentation.trim() || undefined,
       })),
@@ -99,6 +123,8 @@ export function validatePayload(payload: ReturnType<typeof buildPayload>): {
     if (path === 'title') errors.title = issue.message
     else if (path === 'servings') errors.servings = issue.message
     else if (path === 'category') errors.category = issue.message
+    else if (path === 'ingredients' && issue.path[2] === 'quantity')
+      errors.ingredients = `Revisá la cantidad del ingrediente ${Number(issue.path[1]) + 1}: usá un número como 2, 1,5 o 1/2.`
     else if (path === 'ingredients') errors.ingredients = issue.message
     else errors.general = issue.message
   }
