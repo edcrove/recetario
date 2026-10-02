@@ -121,7 +121,12 @@ configRoute.openapi(
         content: { 'application/json': { schema: z.object({ id: z.string(), name: z.string() }) } },
         description: 'OK',
       },
+      400: { content: { 'application/json': { schema: errorSchema } }, description: 'Blank name' },
       404: { content: { 'application/json': { schema: errorSchema } }, description: 'Not found' },
+      409: {
+        content: { 'application/json': { schema: errorSchema } },
+        description: 'Another visible item already has that name',
+      },
     },
   }),
   async (c) => {
@@ -130,6 +135,8 @@ configRoute.openapi(
     const { name } = c.req.valid('json')
     const row = await configRepository.rename(type, ownerId, id, name)
     if (!row) return c.json({ error: 'Not found' }, 404)
+    if (row === 'duplicate') return c.json({ error: 'Already exists' }, 409)
+    if (row === 'invalid') return c.json({ error: 'Invalid name' }, 400)
     return c.json(row, 200)
   },
 )

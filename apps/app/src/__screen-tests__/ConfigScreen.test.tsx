@@ -67,6 +67,19 @@ describe('ConfiguratorScreen', () => {
     await waitFor(() => expect(m.rename).toHaveBeenCalledWith('categories', 'c1', 'Cenas'))
   })
 
+  // 2026-10-02 review: a rename the API refused (e.g. onto a built-in name)
+  // failed silently — the edit just stayed open
+  it('says when the new name is already on the list', async () => {
+    m.rename.mockRejectedValueOnce(new Error('API 409: {"error":"Already exists"}'))
+    wrap()
+    fireEvent.click(await screen.findByTestId('config-edit-c2'))
+    fireEvent.change(screen.getByPlaceholderText('Nuevo nombre'), { target: { value: ' Cena ' } })
+    fireEvent.click(screen.getByTestId('config-rename-save'))
+    await waitFor(() =>
+      expect(m.notify).toHaveBeenCalledWith('Ya existe', '"Cena" ya está en la lista.'),
+    )
+  })
+
   it('deletes an unused item directly', async () => {
     wrap()
     fireEvent.click(await screen.findByTestId('config-delete-c2'))
@@ -90,6 +103,18 @@ describe('ConfiguratorScreen', () => {
     fireEvent.click(screen.getByTestId('config-reassign-t1'))
     fireEvent.click(screen.getByTestId('config-delete-confirm'))
     await waitFor(() => expect(m.merge).toHaveBeenCalledWith('t2', 't1'))
+  })
+
+  it('reports a failed tag merge', async () => {
+    m.merge.mockRejectedValueOnce(new Error('API 500'))
+    wrap()
+    fireEvent.click(await screen.findByTestId('config-tab-tags'))
+    fireEvent.click(await screen.findByTestId('config-delete-t2'))
+    fireEvent.click(screen.getByTestId('config-reassign-t1'))
+    fireEvent.click(screen.getByTestId('config-delete-confirm'))
+    await waitFor(() =>
+      expect(m.notify).toHaveBeenCalledWith('Error', 'No se pudieron unir las etiquetas.'),
+    )
   })
 
   it('reports a failed delete and keeps the modal open', async () => {

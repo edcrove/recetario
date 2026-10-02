@@ -25,12 +25,19 @@ export function newItemPlaceholder(tab: EditableTab): string {
   return NEW_ITEM_PLACEHOLDER[tab]
 }
 
-/** Alert shown when creating an item fails: a 409 means the name is already on the list. */
-export function createErrorAlert(err: unknown, name: string): { title: string; message: string } {
+/**
+ * Alert shown when creating or renaming an item fails: a 409 means the name is
+ * already on the list (an own item or a built-in one).
+ */
+export function createErrorAlert(
+  err: unknown,
+  name: string,
+  action: 'crear' | 'renombrar' = 'crear',
+): { title: string; message: string } {
   if (err instanceof Error && err.message.startsWith('API 409')) {
     return { title: 'Ya existe', message: `"${name}" ya está en la lista.` }
   }
-  return { title: 'Error', message: 'No se pudo crear el elemento.' }
+  return { title: 'Error', message: `No se pudo ${action} el elemento.` }
 }
 
 /** Accessible label of the usage badge, which opens the list of recipes behind it. */

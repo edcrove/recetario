@@ -67,6 +67,10 @@ export default function ConfiguratorScreen() {
       void queryClient.invalidateQueries({ queryKey: ['config-taxonomy'] })
       setEditingItem(null)
     },
+    onError: (err, { name }) => {
+      const alert = createErrorAlert(err, name.trim(), 'renombrar')
+      notify(alert.title, alert.message)
+    },
   })
 
   const deleteItem = useMutation({
@@ -106,6 +110,7 @@ export default function ConfiguratorScreen() {
       setDeleteTarget(null)
       setReassignId('')
     },
+    onError: () => notify('Error', 'No se pudieron unir las etiquetas.'),
   })
 
   const currentItems: TaxonomyItem[] =

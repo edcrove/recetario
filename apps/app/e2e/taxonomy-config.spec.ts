@@ -213,3 +213,36 @@ test('a category created in the configurator can be picked for a new recipe', as
     }
   }
 })
+
+// 2026-10-02 review: renaming a category onto a built-in name ("Cena") made a
+// second "Cena" — create refused it, rename didn't — and failed silently in the
+// app when the API did refuse.
+test('renaming a category onto a built-in name says it already exists', async ({ page }) => {
+  const name = `Zz renombrar ${Math.random().toString(36).slice(2, 8)}`
+  const headers = await authHeaders(page)
+  try {
+    await page.goto('/config')
+    await page.getByTestId('config-new-name').fill(name)
+    await page.getByTestId('config-new-add').click()
+    const row = page.locator('[data-testid^="config-item-"]', { hasText: name })
+    await expect(row).toBeVisible()
+    const dialogs: string[] = []
+    page.on('dialog', (d) => {
+      dialogs.push(d.message())
+      void d.accept()
+    })
+    await row.locator('[data-testid^="config-edit-"]').click()
+    await page.getByPlaceholder('Nuevo nombre').fill('cena')
+    await page.getByTestId('config-rename-save').click()
+    await expect.poll(() => dialogs).toEqual(['Ya existe\n\n"cena" ya está en la lista.'])
+    await expect(page.locator('[data-testid^="config-item-"]', { hasText: /^Cena/i })).toHaveCount(
+      1,
+    )
+  } finally {
+    const overview = (await (
+      await page.request.get(`${API_URL}/v1/config/taxonomy`, { headers })
+    ).json()) as { mealCategories: { id: string; name: string }[] }
+    const mine = overview.mealCategories.find((c) => c.name === name)
+    if (mine) await page.request.delete(`${API_URL}/v1/config/categories/${mine.id}`, { headers })
+  }
+})
