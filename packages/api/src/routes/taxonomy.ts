@@ -259,6 +259,10 @@ taxonomyRoute.openapi(
     },
     responses: {
       201: { content: { 'application/json': { schema: relationSchema } }, description: 'Created' },
+      400: {
+        content: { 'application/json': { schema: errorSchema } },
+        description: 'A recipe related to itself',
+      },
       404: { content: { 'application/json': { schema: errorSchema } }, description: 'Not found' },
     },
   }),
@@ -268,8 +272,12 @@ taxonomyRoute.openapi(
     const { toId, relationType, createdBy = 'user' } = c.req.valid('json')
     const recipe = await recipeRepository.findById(id, { ownedBy: ownerId })
     if (!recipe) return c.json({ error: 'Recipe not found' }, 404)
+    if (toId === id) return c.json({ error: 'A recipe cannot be related to itself' }, 400)
+    // The related recipe must be one the caller can open (own or household)
+    const to = await recipeRepository.findById(toId, { visibleTo: ownerId })
+    if (!to) return c.json({ error: 'Related recipe not found' }, 404)
     await taxonomyRepository.addRelation({ fromId: id, toId, relationType, createdBy })
-    return c.json({ fromId: id, toId, relationType, createdBy }, 201)
+    return c.json({ fromId: id, toId, relationType, createdBy, toTitle: to.title }, 201)
   },
 )
 
@@ -293,6 +301,18 @@ taxonomyRoute.openapi(
     const { id } = c.req.valid('param')
     const recipe = await recipeRepository.findById(id, { ownedBy: ownerId })
     if (!recipe) return c.json({ error: 'Recipe not found' }, 404)
-    return c.json(await taxonomyRepository.listRelations(id), 200)
+    const relations = await taxonomyRepository.listRelations(id)
+    // Only recipes the caller can open, each with its title
+    const visible = await recipeRepository.findByIds(
+      relations.map((r) => r.toId),
+      { visibleTo: ownerId },
+    )
+    const titles = new Map(visible.map((r) => [r.id, r.title]))
+    return c.json(
+      relations
+        .filter((r) => titles.has(r.toId))
+        .map((r) => ({ ...r, toTitle: titles.get(r.toId) })),
+      200,
+    )
   },
 )

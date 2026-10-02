@@ -111,3 +111,28 @@ test('the profile diet chips read as words', async ({ page }) => {
   await expect(page.getByTestId('profile-diet-chip-sin-gluten')).toHaveText('Sin gluten')
   await expect(page.getByTestId('profile-diet-chip-sin-lactosa')).toHaveText('Sin lactosa')
 })
+
+// 2026-10-02 review: "Te puede gustar" listed related recipes by a raw id prefix
+// ("4f14540b…") instead of their title.
+test('"Te puede gustar" names the related recipe and opens it', async ({ page }) => {
+  const headers = await authHeaders(page)
+  const from = await createRecipeViaApi(page)
+  const to = await createRecipeViaApi(page, { title: `E2E Relacionada ${Date.now()}` })
+  try {
+    const rel = await page.request.post(`${API_URL}/v1/recipes/${from.id}/relations`, {
+      headers,
+      data: { toId: to.id, relationType: 'variation' },
+    })
+    expect(rel.status()).toBe(201)
+    await page.goto(`/recipe/${from.id}`)
+    const row = page.getByTestId(`recipe-related-${to.id}`)
+    await expect(row).toContainText('Variación')
+    await expect(row).toContainText(to.title)
+    await expect(row).not.toContainText(to.id.slice(0, 8))
+    await row.click()
+    await expect(page).toHaveURL(new RegExp(`/recipe/${to.id}$`))
+  } finally {
+    await deleteRecipeViaApi(page, from.id)
+    await deleteRecipeViaApi(page, to.id)
+  }
+})

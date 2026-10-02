@@ -53,6 +53,8 @@ export const RecipeRelationSchema = z.object({
   toId: z.uuid(),
   relationType: RelationTypeSchema,
   createdBy: z.string(),
+  // The related recipe's title, so clients can show it without a second fetch
+  toTitle: z.string().optional(),
 })
 export type RecipeRelation = z.infer<typeof RecipeRelationSchema>
 
