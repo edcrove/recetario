@@ -49,8 +49,8 @@ describe('nutrition goals: the ±10% band and the sign of the delta', () => {
   })
 
   it('labels each side with its own wording', () => {
-    expect(deltaLabel(300, 2000)).toBe('+300 sobre objetivo')
-    expect(deltaLabel(-300, 2000)).toBe('faltan 300')
+    expect(deltaLabel(300, 2000)).toBe('+300 kcal sobre objetivo')
+    expect(deltaLabel(-300, 2000)).toBe('faltan 300 kcal')
     expect(deltaLabel(0, 2000)).toBe('en objetivo')
     expect(deltaLabel(null, 2000)).toBe('')
     expect(deltaLabel(300, 0)).toBe('')

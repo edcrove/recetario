@@ -214,25 +214,27 @@ export default function RecipeDetailScreen() {
         </View>
       )}
 
-      {/* Servings stepper */}
-      <View style={s.row}>
-        <Text style={s.label}>Porciones:</Text>
-        <TouchableOpacity
-          testID="servings-minus"
-          style={s.btn}
-          onPress={() => setTargetServings(Math.max(1, current - 1))}
-        >
-          <Text style={s.btnText}>−</Text>
-        </TouchableOpacity>
-        <Text style={s.servings}>{current}</Text>
-        <TouchableOpacity
-          testID="servings-plus"
-          style={s.btn}
-          onPress={() => setTargetServings(current + 1)}
-        >
-          <Text style={s.btnText}>+</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Servings stepper (scales the recipe; meaningless on the history tab) */}
+      {detailTab === 'recipe' && (
+        <View style={s.row}>
+          <Text style={s.label}>Porciones:</Text>
+          <TouchableOpacity
+            testID="servings-minus"
+            style={s.btn}
+            onPress={() => setTargetServings(Math.max(1, current - 1))}
+          >
+            <Text style={s.btnText}>−</Text>
+          </TouchableOpacity>
+          <Text style={s.servings}>{current}</Text>
+          <TouchableOpacity
+            testID="servings-plus"
+            style={s.btn}
+            onPress={() => setTargetServings(current + 1)}
+          >
+            <Text style={s.btnText}>+</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {detailTab === 'recipe' && (
         <>

@@ -149,4 +149,14 @@ describe('RecipeDetailScreen', () => {
     expect(await screen.findByText('1050')).toBeInTheDocument()
     expect(screen.getByText('210')).toBeInTheDocument()
   })
+
+  it('the servings stepper belongs to the recipe tab, not the history tab', async () => {
+    wrap(<RecipeDetailScreen />)
+    expect(await screen.findByTestId('servings-plus')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('recipe-tab-history'))
+    expect(screen.queryByTestId('servings-plus')).toBeNull()
+    expect(screen.queryByText('Porciones:')).toBeNull()
+    fireEvent.click(screen.getByTestId('recipe-tab-recipe'))
+    expect(screen.getByTestId('servings-plus')).toBeInTheDocument()
+  })
 })

@@ -96,7 +96,7 @@ test.describe('DayNutritionSummary in the planner (route interception)', () => {
       await expect(page.getByText('datos incompletos').first()).toBeVisible()
       // Per-meal goal from the profile: only meals with a calorie goal get a line
       await expect(page.getByTestId(`meal-delta-${today}-Cena`).first()).toHaveText(
-        'Cena: +200 sobre objetivo',
+        'Cena: +200 kcal sobre objetivo',
       )
       await expect(page.getByTestId(`meal-delta-${today}-Almuerzo`)).toHaveCount(0)
     } finally {

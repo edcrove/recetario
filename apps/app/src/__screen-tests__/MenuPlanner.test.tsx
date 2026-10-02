@@ -2,7 +2,7 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { MenuEntry } from '@recetario/shared'
-import { getWeekStart, addDays } from '../utils/weekMath'
+import { getWeekStart, addDays, formatDate, localIsoDate } from '../utils/weekMath'
 
 const {
   mockGetWeek,
@@ -182,5 +182,20 @@ describe('MenuWeekScreen (planner)', () => {
     await waitFor(() =>
       expect(mockNotify).toHaveBeenCalledWith('Error', 'No se pudo actualizar el estado.'),
     )
+  })
+
+  it('marks today as Hoy (aria-current), and only today', async () => {
+    mockGetWeek.mockResolvedValue([])
+    wrap()
+    const today = localIsoDate(new Date())
+    const card = await screen.findByTestId(`menu-day-${today}`)
+    expect(card).toHaveAttribute('aria-current', 'date')
+    expect(card).toHaveTextContent(`Hoy · ${formatDate(today)}`)
+    const other = today === monday ? addDays(monday, 1) : monday
+    expect(screen.getByTestId(`menu-day-${other}`)).not.toHaveAttribute('aria-current')
+    expect(screen.getAllByText(/^Hoy · /)).toHaveLength(1)
+    fireEvent.click(screen.getByText('Siguiente ›'))
+    await waitFor(() => expect(screen.queryByTestId(`menu-day-${today}`)).toBeNull())
+    expect(screen.queryByText(/^Hoy · /)).toBeNull()
   })
 })

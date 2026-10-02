@@ -64,11 +64,20 @@ test.describe('Profile screen', () => {
     const saved = page.waitForResponse(
       (r) => r.url().endsWith('/auth/profile') && r.request().method() === 'PATCH',
     )
+    // Toggling flips whatever the account has now (other tests may have set it)
+    const token = await page.evaluate(() => localStorage.getItem('auth_token'))
+    const before = (
+      (await (
+        await page.request.get(`${API_URL}/auth/profile`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+      ).json()) as { dietaryRestrictions: string[] }
+    ).dietaryRestrictions.includes('vegano')
     await page.getByTestId('profile-diet-chip-vegano').click()
     const body = (await (await saved).request().postDataJSON()) as {
       dietaryRestrictions: string[]
     }
-    expect(body.dietaryRestrictions).toContain('vegano')
+    expect(body.dietaryRestrictions.includes('vegano')).toBe(!before)
     await expect(page.getByText('Preferencias dietéticas').first()).toBeVisible()
   })
 
@@ -715,7 +724,7 @@ test.describe('Profile screen (/profile)', () => {
           dietaryRestrictions: string[]
         }
       ).dietaryRestrictions
-    const chip = page.getByText('paleo', { exact: true })
+    const chip = page.getByTestId('profile-diet-chip-paleo')
     // Each tap round-trips to the profile: on, then off again
     await chip.click()
     await expect.poll(diets).toContain('paleo')

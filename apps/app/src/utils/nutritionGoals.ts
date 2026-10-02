@@ -15,7 +15,9 @@ export function deltaLabel(delta: number | null, target: number): string {
   const status = deltaStatus(delta, target)
   if (status === 'none' || delta === null) return ''
   if (status === 'ok') return 'en objetivo'
-  return delta > 0 ? `+${Math.round(delta)} sobre objetivo` : `faltan ${Math.round(-delta)}`
+  return delta > 0
+    ? `+${Math.round(delta)} kcal sobre objetivo`
+    : `faltan ${Math.round(-delta)} kcal`
 }
 
 const SLOT_PHRASE: Record<string, string> = {
