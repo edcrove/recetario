@@ -205,3 +205,32 @@ test('an empty week disables copying and greys the label out', async ({ page }) 
     page.getByTestId(id).evaluate((el) => getComputedStyle(el.querySelector('div') ?? el).color)
   expect(await colour('shopping-copy')).not.toBe(await colour('shopping-refresh'))
 })
+
+// 2026-10-02 review: the API marks what the household already has
+// (pantryMatch), but the list ignored it and asked you to buy it anyway.
+test("what's already in the pantry reads 'en casa', counts as done and isn't copied", async ({
+  page,
+}) => {
+  const token = await page.evaluate(() => localStorage.getItem('auth_token'))
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+  const week = '2027-03-15' // its own week, clear of the other tests here
+  const recipeId = await seedWeek(page.request, headers, week)
+  const pantry = (await (
+    await page.request.post(`${API_URL}/v1/pantry`, {
+      headers,
+      data: { name: 'Harina', inStock: true },
+    })
+  ).json()) as { id: string }
+  try {
+    await page.goto(`/menu/shopping-list?weekStart=${week}`)
+    await expect(page.getByTestId('shopping-at-home-harina')).toHaveText('🏠 en casa')
+    await expect(page.getByTestId('shopping-progress')).toHaveText('1 / 1')
+    page.once('dialog', (d) => void d.accept())
+    const done = page.waitForEvent('dialog')
+    await page.getByTestId('shopping-copy').click()
+    expect((await done).message()).toContain('No queda nada por comprar')
+  } finally {
+    await page.request.delete(`${API_URL}/v1/pantry/${pantry.id}`, { headers })
+    await cleanup(page.request, headers, week, recipeId)
+  }
+})
