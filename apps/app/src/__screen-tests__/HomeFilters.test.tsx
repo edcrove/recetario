@@ -166,13 +166,34 @@ describe('HomeScreen list freshness and empty states', () => {
       ])
   })
 
-  it('loads the first 50 recipes and refreshes when another screen invalidates "recipes"', async () => {
+  it('loads the recipes and refreshes when another screen invalidates "recipes"', async () => {
     wrap()
     await screen.findByTestId('recipe-card-slow')
-    expect(mockList).toHaveBeenCalledWith({ limit: 50 })
+    expect(mockList).toHaveBeenCalledWith({ limit: 100, offset: 0 })
     // e.g. after creating or deleting a recipe elsewhere
     await client.invalidateQueries({ queryKey: ['recipes'] })
     await waitFor(() => expect(mockList).toHaveBeenCalledTimes(2))
+  })
+
+  // 2026-10-02 review: home asked for one page of 50, so from the 51st recipe
+  // on the oldest never showed, and the filters only looked at those 50.
+  it('shows recipes past the first page, and the time filter finds them', async () => {
+    const page1 = Array.from({ length: 100 }, (_, i) =>
+      recipe({ id: `p${i}`, title: `Receta ${i}`, totalTimeMin: 90 }),
+    )
+    mockList
+      .mockReset()
+      .mockResolvedValueOnce(page1)
+      .mockResolvedValueOnce([recipe({ id: 'old', title: 'Vieja y rápida', totalTimeMin: 10 })])
+    wrap()
+    expect(await screen.findByTestId('recipe-card-old')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('filter-time-20'))
+    await waitFor(() => expect(screen.queryByTestId('recipe-card-p0')).toBeNull())
+    expect(screen.getByTestId('recipe-card-old')).toBeInTheDocument()
+    expect(mockList.mock.calls.map((c) => c[0])).toEqual([
+      { limit: 100, offset: 0 },
+      { limit: 100, offset: 100 },
+    ])
   })
 
   it('a time filter that matches nothing reads "Sin resultados"', async () => {

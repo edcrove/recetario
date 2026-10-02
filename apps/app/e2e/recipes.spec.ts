@@ -516,3 +516,26 @@ test.describe('Home: diet filter combined with food type', () => {
     }
   })
 })
+
+// 2026-10-02 review: home asked for one page of 50 recipes, so with more than
+// that the oldest never showed and the time filter only searched the newest 50.
+test('home reaches recipes past the first page (the time filter finds an old one)', async ({
+  page,
+}) => {
+  test.setTimeout(120_000)
+  const stamp = Date.now()
+  const old = await createRecipeViaApi(page, { title: `E2E Vieja ${stamp}`, totalTimeMin: 7 })
+  const newer: string[] = []
+  try {
+    for (let i = 0; i < 100; i++) {
+      newer.push(
+        (await createRecipeViaApi(page, { title: `E2E Nueva ${stamp}-${i}`, totalTimeMin: 95 })).id,
+      )
+    }
+    await page.goto('/')
+    await page.getByTestId('filter-time-20').click()
+    await expect(page.getByTestId(`recipe-card-${old.id}`)).toBeVisible()
+  } finally {
+    for (const id of [old.id, ...newer]) await deleteRecipeViaApi(page, id)
+  }
+})
