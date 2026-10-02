@@ -10,6 +10,7 @@ import {
 } from 'react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../src/api/client'
+import { refreshAfter } from '../../src/utils/menuCache'
 import { useAuth } from '../../src/providers/AuthProvider'
 import { confirmAsync, notify } from '../../src/utils/platformAlert'
 import {
@@ -79,12 +80,8 @@ export default function HouseholdScreen() {
     onError: (err) => notify('No se pudo invitar', inviteErrorMessage(err)),
   })
 
-  // Accepting or declining changes what every shared screen shows
-  const refreshShared = () => {
-    for (const key of ['households', 'recipes', 'menu', 'library', 'shopping-list']) {
-      void queryClient.invalidateQueries({ queryKey: [key] })
-    }
-  }
+  // Joining, leaving or a member's change alters what every shared screen shows
+  const refreshShared = () => void refreshAfter(queryClient, 'household')
   const acceptInvite = useMutation({
     mutationFn: (householdId: string) => api.households.accept(householdId),
     onSuccess: refreshShared,
@@ -99,7 +96,8 @@ export default function HouseholdScreen() {
   const removeMember = useMutation({
     mutationFn: ({ householdId, userId }: { householdId: string; userId: string }) =>
       api.households.removeMember(householdId, userId),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['households'] }),
+    // Their recipes, dishes and pantry items leave every shared screen
+    onSuccess: refreshShared,
     onError: () => notify('Error', 'No se pudo quitar al miembro. Probá de nuevo.'),
   })
 
