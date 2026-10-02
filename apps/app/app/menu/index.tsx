@@ -18,6 +18,7 @@ import { getWeekStart, addDays, formatDate, dayTitle, localIsoDate } from '../..
 import { buildEntryMap } from '../../src/utils/menuLogic'
 import { confirmAsync, notify } from '../../src/utils/platformAlert'
 import { useIsViewer } from '../../src/hooks/useIsViewer'
+import { useAuth } from '../../src/providers/AuthProvider'
 import { ViewerNotice } from '../../src/components/ViewerNotice'
 import { DayNutritionSummary } from '../../src/components/DayNutritionSummary'
 import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
@@ -32,6 +33,10 @@ export default function MenuWeekScreen() {
   // Viewers are read-only on the shared menu (the API 403s their writes) —
   // hide every mutation affordance so there are no dead buttons.
   const isViewer = useIsViewer()
+  // The week shows every housemate's dishes, but the API only lets you change
+  // your own (writes are owner-scoped): someone else's dish is read-only here.
+  const { userId } = useAuth()
+  const canEdit = (entry: MenuEntry) => !isViewer && entry.ownerId === userId
   const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()))
   const today = localIsoDate(new Date())
   const [editing, setEditing] = useState<MenuEntry | null>(null)
@@ -143,11 +148,11 @@ export default function MenuWeekScreen() {
                 <View style={s.slotContent}>
                   {slotEntries.map((entry, i) =>
                     entry.recipeId ? (
-                      <View key={entry.recipeId} style={s.entryChip}>
+                      <View key={entry.id} style={s.entryChip}>
                         <TouchableOpacity
                           testID={`menu-entry-${day}-${slot}-${entry.recipeId}`}
                           style={s.entryChipInner}
-                          disabled={isViewer}
+                          disabled={!canEdit(entry)}
                           onPress={() => openEdit(entry)}
                         >
                           <Text
@@ -159,7 +164,7 @@ export default function MenuWeekScreen() {
                           </Text>
                           <Text style={s.entryServings}>{entry.servings} porc.</Text>
                         </TouchableOpacity>
-                        {!isViewer && (
+                        {canEdit(entry) && (
                           <TouchableOpacity
                             testID={`menu-remove-${day}-${slot}-${entry.recipeId}`}
                             accessibilityRole="button"
@@ -276,8 +281,13 @@ export default function MenuWeekScreen() {
               <TouchableOpacity
                 testID="menu-modal-delete"
                 style={s.modalDeleteBtn}
-                onPress={() => {
+                onPress={async () => {
                   if (!editing?.recipeId) return
+                  const ok = await confirmAsync(
+                    'Quitar del menú',
+                    `¿Quitar "${editing.recipeName ?? 'Receta'}" de ${editing.slot.toLowerCase()}?`,
+                  )
+                  if (!ok) return
                   removeMutation.mutate({
                     date: editing.date,
                     slot: editing.slot,
