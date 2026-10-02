@@ -263,6 +263,18 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
 - **Status**: revisit when `node-forge` publishes a fixed version (Dependabot will propose it):
   remove the ignore in the same PR that takes the fix.
 
+### D-2026-10-02-6 · Deleting a recipe unplans its upcoming dishes
+
+- **Decision**: deleting a recipe removes its menu entries that are still `planned` and dated
+  today or later. Past entries, and cooked or skipped ones, stay as history with their title
+  snapshot (the 2026-07-03 audit rule for history is unchanged). The confirmation reads
+  "También se quita de los próximos menús y de tus colecciones."
+- **Why**: the confirmation promised the recipe left the menu, but every entry stayed as an
+  "(eliminada)" chip with no way to remove it from the planner.
+- **Where it lives**: `RecipeRepository.delete`, `cascade-delete.integration.test.ts`,
+  `app/recipe/[id].tsx`.
+- **Status**: active
+
 ### D-2026-10-02-5 · A housemate's planned dish is read-only in the planner
 
 - **Decision**: the week view keeps showing every housemate's dishes, but only your own get the
