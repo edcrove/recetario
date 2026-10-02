@@ -235,6 +235,19 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
   `apps/app/src/utils/recipeForm.ts` `categoryOptions`, `RecipeForm`, MCP `CategoryInput`.
 - **Status**: active
 
+### D-2026-10-02-3 · Tests never rebuild a package other tests are reading
+
+- **Decision**: `@recetario/api` no longer has a `pretest` that rebuilt `@recetario/shared`.
+  `turbo run test` already builds `shared` first (`test.dependsOn: ["^build"]`), so the only
+  effect of that `pretest` was to rewrite `shared/dist` again, with `tsc`, while the `mcp` and
+  `app` tests were already importing it.
+- **Why**: CI on #227 failed in `mcp` with `NutritionTargetsSchema` undefined at import time: it
+  read a `schema.js` being rewritten. Watching `shared/dist` during `turbo run test` showed the
+  rewrite landing while `mcp` and `app` tests ran; without the `pretest` it no longer happens.
+- **Where it lives**: `packages/api/package.json`, `turbo.json`.
+- **Status**: active. Running only the api tests directly (outside turbo) needs `shared` built
+  first (`pnpm --filter @recetario/shared build`), like `ci:local` does.
+
 ### D-2026-10-02-4 · Acknowledge GHSA-86w9-cpqp-85rv (node-forge) until a fix ships
 
 - **Decision**: `pnpm.auditConfig.ignoreGhsas` lists GHSA-86w9-cpqp-85rv, so the Security
