@@ -317,6 +317,8 @@ test.describe('Menu planner: deep flows', () => {
     await page.getByText('−', { exact: true }).last().click()
 
     const before = await page.locator('[data-testid^="menu-entry-"]').count()
+    // Removing asks first (confirm dialog on web)
+    page.once('dialog', (dialog) => void dialog.accept())
     await page.getByTestId('menu-modal-delete').click()
     await expect(page.getByTestId('menu-modal-save')).not.toBeVisible()
     await expect(page.locator('[data-testid^="menu-entry-"]')).toHaveCount(before - 1)
