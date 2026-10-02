@@ -235,6 +235,21 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
   `apps/app/src/utils/recipeForm.ts` `categoryOptions`, `RecipeForm`, MCP `CategoryInput`.
 - **Status**: active
 
+### D-2026-10-02-4 · Acknowledge GHSA-86w9-cpqp-85rv (node-forge) until a fix ships
+
+- **Decision**: `pnpm.auditConfig.ignoreGhsas` lists GHSA-86w9-cpqp-85rv, so the Security
+  workflow's `pnpm audit --audit-level=high` passes again. Nothing else is ignored, so any other
+  high or critical advisory still fails it.
+- **Why**: the advisory (RSA PKCS#1 v1.5 signature verification accepts extra nested
+  DigestAlgorithm elements) affects `node-forge <=1.4.0`, and no patched version exists (1.4.0 is
+  the latest on npm). It reaches us only through `expo > @expo/cli`, which uses it for iOS code
+  signing (`expo run:ios`) and expo-updates signing certificates. We use neither, and it isn't in
+  the web bundle or in the api/mcp builds (no `node-forge` in `apps/app/dist*` or `packages/*/dist`).
+  Leaving the check red on every PR hid any new high advisory.
+- **Where it lives**: root `package.json` (`pnpm.auditConfig`), `.github/workflows/security.yml`.
+- **Status**: revisit when `node-forge` publishes a fixed version (Dependabot will propose it):
+  remove the ignore in the same PR that takes the fix.
+
 ## 2026-09-30 — Dependency & maintenance session (PRs #125, #140, #147, #148, #124)
 
 ### D-2026-09-30-12 · Production startup guard, closed sign-up and release step
