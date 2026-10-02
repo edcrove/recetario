@@ -507,7 +507,7 @@ BRH:10
 end_of_record
 TN:
 SF:src/menu.ts
-FN:46,addIsoDays
+FN:47,addIsoDays
 FNF:1
 FNH:1
 FNDA:3,addIsoDays
@@ -515,10 +515,10 @@ DA:3,2
 DA:11,2
 DA:14,2
 DA:31,2
-DA:39,2
-DA:47,3
+DA:40,2
 DA:48,3
 DA:49,3
+DA:50,3
 LF:8
 LH:8
 BRF:0
