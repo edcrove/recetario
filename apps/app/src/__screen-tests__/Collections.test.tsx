@@ -47,3 +47,15 @@ describe('CollectionsScreen', () => {
     expect(screen.getByTestId('collection-c2')).toHaveTextContent('1 receta')
   })
 })
+
+// 2026-10-02 review: a failed load read as "Sin colecciones"
+describe('CollectionsScreen load error', () => {
+  it('says the collections could not load, and retries', async () => {
+    mockCollections.mockReset().mockRejectedValueOnce(new Error('boom')).mockResolvedValue([])
+    wrap()
+    expect(await screen.findByText('No se pudieron cargar las colecciones.')).toBeInTheDocument()
+    expect(screen.queryByText(/Sin colecciones/)).toBeNull()
+    fireEvent.click(screen.getByTestId('error-retry'))
+    expect(await screen.findByText(/Sin colecciones/)).toBeInTheDocument()
+  })
+})

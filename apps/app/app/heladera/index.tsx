@@ -11,6 +11,7 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { api } from '../../src/api/client'
+import { ErrorState } from '../../src/components/ErrorState'
 import { suggestionNotes } from '../../src/utils/suggestionNotes'
 import { macroStrip } from '../../src/utils/macroStrip'
 import { splitSuggestions, type Suggestion } from '../../src/utils/fridgeSections'
@@ -142,6 +143,11 @@ export default function HeladeraScreen() {
             </Text>
           ) : suggestions.isLoading ? (
             <ActivityIndicator style={s.loader} />
+          ) : suggestions.error ? (
+            <ErrorState
+              message="No se pudieron cargar las sugerencias."
+              onRetry={() => void suggestions.refetch()}
+            />
           ) : (
             <Results
               styles={s}
@@ -154,6 +160,8 @@ export default function HeladeraScreen() {
         <ScrollView contentContainerStyle={s.body}>
           {gap.isLoading ? (
             <ActivityIndicator style={s.loader} />
+          ) : gap.error ? (
+            <ErrorState message="No se pudo cargar tu semana." onRetry={() => void gap.refetch()} />
           ) : (
             <>
               {(gap.data?.meals.length ?? 0) === 0 ? (

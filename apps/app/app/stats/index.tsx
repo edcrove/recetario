@@ -9,6 +9,7 @@ import {
 import { useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../src/api/client'
+import { ErrorState } from '../../src/components/ErrorState'
 import {
   chartWeeks,
   streakLabel,
@@ -24,7 +25,12 @@ export default function StatsScreen() {
   const s = makeStyles(colors)
   const router = useRouter()
 
-  const { data: stats, isLoading } = useQuery({
+  const {
+    data: stats,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ['cook-stats'],
     queryFn: () => api.cookSessions.stats(),
   })
@@ -36,6 +42,14 @@ export default function StatsScreen() {
       </View>
     )
   }
+
+  if (error)
+    return (
+      <ErrorState
+        message="No se pudieron cargar las estadísticas."
+        onRetry={() => void refetch()}
+      />
+    )
 
   const weeks = chartWeeks(stats?.frequencyByWeek ?? [], getWeekStart(new Date()))
   const maxCount = Math.max(...weeks.map((w) => w.count), 1)
