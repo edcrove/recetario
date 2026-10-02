@@ -39,7 +39,13 @@ test('add, toggle and delete a pantry item from the Despensa screen', async ({ p
     // Expiry badges render for the seeded dated items.
     await expect(page.getByTestId(`pantry-expiry-${dated[0]}`)).toHaveText('Vencido')
     await expect(page.getByTestId(`pantry-expiry-${dated[1]}`)).toHaveText('Vence pronto')
-    await expect(page.getByTestId(`pantry-expiry-${dated[2]}`)).toContainText('Vence')
+    // A far expiry names the day, not the raw ISO date (2026-10-02 review)
+    const farDay = new Date(`${iso(30)}T00:00:00Z`).toLocaleDateString('es-AR', {
+      day: 'numeric',
+      month: 'short',
+      timeZone: 'UTC',
+    })
+    await expect(page.getByTestId(`pantry-expiry-${dated[2]}`)).toHaveText(`Vence el ${farDay}`)
 
     // Add
     await page.getByTestId('pantry-new-name').fill(name)
