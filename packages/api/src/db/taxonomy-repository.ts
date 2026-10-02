@@ -2,14 +2,7 @@ import { and, eq, isNull, or, sql } from 'drizzle-orm'
 import type { Collection, FoodType, RecipeRelation, RelationType } from '@recetario/shared'
 import { schema } from './index.js'
 import { currentDb } from './transaction.js'
-
-/** "Comida Rápida" → "comida-rpida": lowercase, dashes, ASCII only. */
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '')
-}
+import { slugify } from './slug.js'
 
 const ownCollection = (ownerId: string, id: string) =>
   and(eq(schema.collections.id, id), eq(schema.collections.ownerId, ownerId))

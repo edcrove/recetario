@@ -47,6 +47,7 @@ export default defineConfig({
         'src/db/config-repository.ts',
         'src/db/taxonomy-repository.ts',
         'src/db/transaction.ts',
+        'src/db/recipe-tags.ts',
       ],
       thresholds: {
         statements: 100,

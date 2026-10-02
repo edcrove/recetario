@@ -23,6 +23,7 @@ import {
 import { getVisibleOwnerIds } from './household-visibility.js'
 import { schema } from './index.js'
 import { currentDb, inTransaction, InvalidReferenceError } from './transaction.js'
+import { syncRecipeTags } from './recipe-tags.js'
 
 type DbRow = typeof schema.recipes.$inferSelect
 type IngredientRow = typeof schema.ingredients.$inferSelect
@@ -159,6 +160,7 @@ export class RecipeRepository {
     const ingredientRows = await this.insertIngredients(recipe.id, data.ingredients)
     const stepRows = await this.insertSteps(recipe.id, data.steps)
     await this.replaceFoodTypes(recipe.id, foodTypeIds)
+    await syncRecipeTags(ownerId, recipe.id, data.tags)
 
     return mapToRecipe(recipe, ingredientRows, stepRows, foodTypeIds ?? [])
   }
@@ -489,6 +491,7 @@ export class RecipeRepository {
     }
 
     await this.replaceFoodTypes(id, foodTypeIds)
+    if (data.tags !== undefined) await syncRecipeTags(ownerId, id, data.tags)
 
     return this.findById(id, { ownedBy: ownerId })
   }

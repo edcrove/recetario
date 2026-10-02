@@ -79,7 +79,8 @@ test('creates a food type, rejects a duplicate, and its badge opens the recipes 
 test('creates a tag from its tab; a category badge lists my recipes and closes with Cerrar', async ({
   page,
 }) => {
-  const name = `zz-e2e-${Math.random().toString(36).slice(2, 8)}`
+  // Sorts first in the (virtualized) tags list, see below
+  const name = `0-e2e-${Math.random().toString(36).slice(2, 8)}`
   let recipeId: string | undefined
   try {
     const recipe = await createRecipeViaApi(page, { category: 'Postre' })
@@ -117,5 +118,44 @@ test('creates a tag from its tab; a category badge lists my recipes and closes w
     ).json()) as { tags: { id: string; name: string }[] }
     const tag = overview.tags.find((t) => t.name === name)
     if (tag) await page.request.delete(`${API_URL}/v1/config/tags/${tag.id}`, { headers })
+  }
+})
+
+// Latent bug (D-2026-10-02-1): a recipe's tags never reached the tag registry,
+// so tag badges stayed at 0 and renaming a tag never touched the recipes.
+test("a recipe's tag shows in the tags tab, and renaming it renames it on the recipe", async ({
+  page,
+}) => {
+  // Starts with a digit so it sorts first: the tags list is virtualized and the
+  // demo account has dozens of tags, so a name sorting last may not be rendered
+  const tag = `0tag${Math.random().toString(36).slice(2, 8)}`
+  const renamed = `${tag}-nuevo`
+  const recipe = await createRecipeViaApi(page, { tags: [tag] })
+  const headers = await authHeaders(page)
+  try {
+    await page.goto('/config')
+    await page.getByTestId('config-tab-tags').click()
+    const row = page.locator('[data-testid^="config-item-"]', { hasText: tag })
+    const badge = row.locator('[data-testid^="config-usage-"]')
+    await expect(badge).toHaveText('1 receta')
+    await badge.click()
+    await expect(page.getByTestId(`config-usage-recipe-${recipe.id}`)).toHaveText(recipe.title)
+    await page.getByTestId('config-usage-close').click()
+
+    await row.locator('[data-testid^="config-edit-"]').click()
+    await page.getByPlaceholder('Nuevo nombre').fill(renamed)
+    await page.getByTestId('config-rename-save').click()
+    await expect(page.locator('[data-testid^="config-item-"]', { hasText: renamed })).toBeVisible()
+
+    const res = await page.request.get(`${API_URL}/v1/recipes/${recipe.id}`, { headers })
+    expect(((await res.json()) as { tags: string[] }).tags).toEqual([renamed])
+  } finally {
+    await deleteRecipeViaApi(page, recipe.id)
+    const overview = (await (
+      await page.request.get(`${API_URL}/v1/config/taxonomy`, { headers })
+    ).json()) as { tags: { id: string; slug: string }[] }
+    for (const t of overview.tags.filter((t) => t.slug.startsWith(tag))) {
+      await page.request.delete(`${API_URL}/v1/config/tags/${t.id}`, { headers })
+    }
   }
 })

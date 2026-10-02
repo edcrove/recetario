@@ -33,6 +33,27 @@ describe.skipIf(skip).sequential('release step', () => {
     expect(first?.dup).toBe(0)
   })
 
+  it('links the tags of recipes saved before tags were linked', async () => {
+    const { release } = await import('../../scripts/release.js')
+    const { getDb, schema } = await import('../../db/index.js')
+    const db = getDb()
+    const [legacy] = await db
+      .insert(schema.recipes)
+      .values({
+        ownerId: 'release-owner',
+        title: 'Vieja',
+        servings: 1,
+        category: 'Cena',
+        tags: ['antigua'],
+      })
+      .returning()
+    await release(db)
+    const [row] = await db.execute<{ name: string }>(sql`
+      select t.name from recipe_tags rt join tags t on t.id = rt.tag_id
+      where rt.recipe_id = ${legacy!.id} and t.owner_id = 'release-owner'`)
+    expect(row?.name).toBe('antigua')
+  })
+
   it('rejects a duplicate system food type at the database level', async () => {
     const { getDb } = await import('../../db/index.js')
     const db = getDb()
