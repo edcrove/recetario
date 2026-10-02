@@ -57,6 +57,7 @@ export class MenuRepository {
       )
       .limit(1)
 
+    const servings = data.servings ?? (await this.defaultServings(ownerId))
     const [row] = await db
       .insert(schema.menuEntries)
       .values({
@@ -65,7 +66,7 @@ export class MenuRepository {
         slot: data.slot,
         recipeId: data.recipeId,
         recipeTitle: recipe?.title,
-        servings: data.servings,
+        servings,
       })
       .onConflictDoUpdate({
         target: [
@@ -74,7 +75,7 @@ export class MenuRepository {
           schema.menuEntries.slot,
           schema.menuEntries.recipeId,
         ],
-        set: { servings: data.servings, updatedAt: new Date() },
+        set: { servings, updatedAt: new Date() },
       })
       .returning()
 
@@ -82,6 +83,21 @@ export class MenuRepository {
     if (!row) throw new Error('Failed to upsert menu entry')
 
     return mapToMenuEntry(row, recipe)
+  }
+
+  /**
+   * Portions for a dish planned without them (e.g. by an agent): the user's
+   * "Porciones por defecto", 2 like the app when unset; 1 for legacy API-key
+   * owners, who can't have a profile.
+   */
+  private async defaultServings(ownerId: string): Promise<number> {
+    if (!UUID_RE.test(ownerId)) return 1
+    const [profile] = await this.db
+      .select({ preferredServings: schema.userProfiles.preferredServings })
+      .from(schema.userProfiles)
+      .where(eq(schema.userProfiles.userId, ownerId))
+      .limit(1)
+    return profile?.preferredServings ?? 2
   }
 
   async remove(ownerId: string, date: string, slot: MenuSlot, recipeId?: string): Promise<boolean> {

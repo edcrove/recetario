@@ -32,7 +32,8 @@ export const CreateMenuEntrySchema = z.object({
   date: z.iso.date(),
   slot: MenuSlotSchema,
   recipeId: z.uuid(),
-  servings: z.number().int().positive().default(1),
+  // Omitted: the planner's default portions (see MenuRepository.upsert)
+  servings: z.number().int().positive().optional(),
 })
 export type CreateMenuEntry = z.infer<typeof CreateMenuEntrySchema>
 
