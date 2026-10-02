@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   buildPayload,
   categoryOptions,
+  parseQuantity,
   validatePayload,
   recipeToFormState,
 } from '../utils/recipeForm'
@@ -472,5 +473,104 @@ describe('categoryOptions', () => {
   it("always offers the recipe's current category", () => {
     expect(categoryOptions(undefined, 'Comida rápida')).toEqual([...SYSTEM, 'Comida rápida'])
     expect(categoryOptions([{ name: 'Viandas' }], 'Viandas')).toEqual([...SYSTEM, 'Viandas'])
+  })
+})
+
+// 2026-10-02 review: quantities went through parseFloat, which read the
+// decimal comma used here ("1,5") and fractions ("1/2") as 1 — silently.
+describe('parseQuantity', () => {
+  it.each([
+    ['1,5', 1.5],
+    ['0,25', 0.25],
+    ['1.5', 1.5],
+    ['200', 200],
+    [' 3 ', 3],
+    ['1/2', 0.5],
+    ['1 1/2', 1.5],
+    ['2 3/4', 2.75],
+    ['½', 0.5],
+    ['1½', 1.5],
+    ['1 ¼', 1.25],
+    ['⅔', 2 / 3],
+    ['.5', 0.5],
+    ['12½', 12.5],
+    ['10 1/2', 10.5],
+    ['1  1/2', 1.5],
+    ['10/4', 2.5],
+    ['1/10', 0.1],
+  ])('reads %j as %d', (text, value) => {
+    expect(parseQuantity(text)).toBeCloseTo(value)
+  })
+
+  it('blank is "a gusto" (null); anything else is NaN, never a wrong number', () => {
+    expect(parseQuantity('')).toBeNull()
+    expect(parseQuantity('   ')).toBeNull()
+    for (const bad of [
+      'un poco',
+      '1,5kg',
+      '1..5',
+      '1/',
+      '2-3',
+      '1,2,3',
+      'x½',
+      '½x',
+      'a1/2',
+      '1/2a',
+    ])
+      expect(parseQuantity(bad)).toBeNaN()
+  })
+
+  it('an unreadable or zero quantity gets a Spanish message naming the ingredient', () => {
+    for (const quantity of ['un poco', '0', '1/0']) {
+      const payload = buildPayload(
+        'Torta',
+        '4',
+        'Postre',
+        '',
+        '',
+        [validIngredients[0]!, { name: 'Leche', quantity, unit: 'ml', presentation: '' }],
+        validSteps,
+      )
+      expect(validatePayload(payload).errors.ingredients).toBe(
+        'Revisá la cantidad del ingrediente 2: usá un número como 2, 1,5 o 1/2.',
+      )
+    }
+  })
+
+  it('other ingredient or form errors keep their own message', () => {
+    const none = validatePayload(buildPayload('Torta', '4', 'Postre', '', '', [], validSteps))
+    expect(none.errors.ingredients).toBeDefined()
+    expect(none.errors.ingredients).not.toMatch(/Revisá la cantidad/)
+    const longName = validatePayload(
+      buildPayload(
+        'Torta',
+        '4',
+        'Postre',
+        '',
+        '',
+        [{ name: 'x'.repeat(201), quantity: '1', unit: '', presentation: '' }],
+        validSteps,
+      ),
+    )
+    expect(longName.errors.ingredients).not.toMatch(/Revisá la cantidad/)
+    const steps = validatePayload({
+      ...buildPayload('Torta', '4', 'Postre', '', '', validIngredients, validSteps),
+      steps: 'x',
+    } as unknown as Parameters<typeof validatePayload>[0])
+    expect(steps.errors.general).toBeDefined()
+    expect(steps.errors.ingredients).toBeUndefined()
+  })
+
+  it('the payload carries 1,5 as 1.5', () => {
+    const payload = buildPayload(
+      'Torta',
+      '4',
+      'Postre',
+      '',
+      '',
+      [{ name: 'Harina', quantity: '1,5', unit: 'kg', presentation: '' }],
+      validSteps,
+    )
+    expect(payload.ingredients[0]?.quantity).toBe(1.5)
   })
 })

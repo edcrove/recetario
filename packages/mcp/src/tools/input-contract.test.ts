@@ -98,3 +98,14 @@ describe('numeric and text bounds', () => {
     expect(field('createRecipe', 'sourceType').parse(undefined)).toBe('mcp')
   })
 })
+
+// 2026-10-02 review: addToMenu defaulted servings to 1, so an agent planning a
+// dish for a family of four bought for one. Omitted servings now reach the API
+// as omitted, and the API fills in the profile's default portions.
+describe('addToMenu servings', () => {
+  it('stays undefined when the agent leaves it out', () => {
+    expect(field('addToMenu', 'servings').parse(undefined)).toBeUndefined()
+    expect(field('addToMenu', 'servings').parse(3)).toBe(3)
+    expect(ok(field('addToMenu', 'servings'), 0)).toBe(false)
+  })
+})

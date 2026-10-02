@@ -47,6 +47,12 @@ describe('createErrorAlert', () => {
     expect(createErrorAlert(new Error('boom API 409'), 'x')).toEqual(generic)
     expect(createErrorAlert('API 409', 'x')).toEqual(generic)
   })
+  it('names the action that failed', () => {
+    expect(createErrorAlert(new Error('API 500'), 'x', 'renombrar')).toEqual({
+      title: 'Error',
+      message: 'No se pudo renombrar el elemento.',
+    })
+  })
 })
 
 describe('usageBadgeLabel', () => {

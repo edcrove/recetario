@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { LibraryRecipe } from '@recetario/shared'
 import { api } from '../../src/api/client'
+import { fetchAllRecipes } from '../../src/utils/allRecipes'
 import { ErrorState } from '../../src/components/ErrorState'
 import { confirmAsync, notify } from '../../src/utils/platformAlert'
 import { useThemeColors, type ThemeColors } from '../../src/theme/tokens'
@@ -22,7 +23,8 @@ export default function LibraryScreen() {
     refetch,
   } = useQuery({
     queryKey: ['library', search],
-    queryFn: () => api.library.list(search ? { search } : undefined),
+    queryFn: () =>
+      fetchAllRecipes((page) => api.library.list({ ...(search ? { search } : {}), ...page })),
   })
 
   const copyMutation = useMutation({

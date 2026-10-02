@@ -156,3 +156,45 @@ test.describe('Biblioteca', () => {
     }
   })
 })
+
+// 2026-10-02 review: the library asked for one page (the API's default 30), so
+// older public recipes never showed unless you searched for them.
+test('the library lists public recipes past the first page', async ({ page }) => {
+  const item = (id: string, title: string) => ({
+    id,
+    title,
+    servings: 2,
+    category: 'Cena',
+    tags: [],
+    images: [],
+    ingredients: [{ name: 'sal', quantity: 1, unit: 'g' }],
+    steps: [],
+    originalLanguage: 'es',
+    translations: [],
+    author: 'Ana',
+  })
+  const offsets: string[] = []
+  await page.route('**/v1/library*', (route) => {
+    const offset = new URL(route.request().url()).searchParams.get('offset') ?? '0'
+    offsets.push(offset)
+    const body =
+      offset === '0'
+        ? Array.from({ length: 100 }, (_, i) =>
+            item(`00000000-0000-4000-8000-${String(i).padStart(12, '0')}`, `Pública ${i}`),
+          )
+        : [item('00000000-0000-4000-8000-999999999999', 'La más vieja')]
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(body),
+    })
+  })
+  await page.goto('/library')
+  await expect(page.getByText('Pública 0')).toBeVisible()
+  // The list is virtualized: scroll it (mouse over it) until the last item renders
+  await page.getByText('Pública 0').hover()
+  const oldest = page.getByText('La más vieja')
+  for (let i = 0; i < 40 && !(await oldest.isVisible()); i++) await page.mouse.wheel(0, 2000)
+  await expect(oldest).toBeVisible()
+  expect(offsets).toEqual(['0', '100'])
+})
