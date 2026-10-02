@@ -26,6 +26,7 @@ import { schema } from './index.js'
 import { currentDb, inTransaction, InvalidReferenceError } from './transaction.js'
 import { syncRecipeTags } from './recipe-tags.js'
 import { slugify } from './slug.js'
+import { userToday } from './user-time.js'
 
 type DbRow = typeof schema.recipes.$inferSelect
 type IngredientRow = typeof schema.ingredients.$inferSelect
@@ -637,9 +638,10 @@ export class RecipeRepository {
   }
 
   /**
-   * Deletes the caller's recipe. Its upcoming planned dishes (today on) leave
-   * every menu, as the app's confirmation promises; past or cooked/skipped ones
-   * stay as history with their title snapshot (the FK nulls their recipe id).
+   * Deletes the caller's recipe. Its upcoming planned dishes (today on, in the
+   * user's time zone) leave every menu, as the app's confirmation promises;
+   * past or cooked/skipped ones stay as history with their title snapshot (the
+   * FK nulls their recipe id).
    */
   async delete(id: string, ownerId: string): Promise<boolean> {
     return inTransaction(async () => {
@@ -655,7 +657,7 @@ export class RecipeRepository {
           and(
             eq(schema.menuEntries.recipeId, id),
             eq(schema.menuEntries.status, 'planned'),
-            gte(schema.menuEntries.date, sql`current_date`),
+            gte(schema.menuEntries.date, await userToday(ownerId)),
           ),
         )
       await db.delete(schema.recipes).where(eq(schema.recipes.id, id))
