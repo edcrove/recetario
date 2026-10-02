@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   CategorySchema,
+  SYSTEM_CATEGORIES,
   CreateRecipeSchema,
   IngredientSchema,
   RecipeSchema,
@@ -41,14 +42,30 @@ describe('UnitSchema', () => {
 })
 
 describe('CategorySchema', () => {
-  it('parses valid categories', () => {
+  it('accepts system and custom names, trimmed (the API checks they exist)', () => {
     expect(CategorySchema.parse('Desayuno')).toBe('Desayuno')
-    expect(CategorySchema.parse('Postre')).toBe('Postre')
+    expect(CategorySchema.parse('  Comida rápida ')).toBe('Comida rápida')
+    expect(CategorySchema.parse('x'.repeat(50))).toHaveLength(50)
   })
 
-  it('fails on invalid category', () => {
-    expect(() => CategorySchema.parse('Breakfast')).toThrow()
-    expect(() => CategorySchema.parse('dessert')).toThrow()
+  it('rejects blank or too long names', () => {
+    expect(() => CategorySchema.parse('')).toThrow()
+    expect(() => CategorySchema.parse('   ')).toThrow()
+    expect(() => CategorySchema.parse('x'.repeat(51))).toThrow()
+  })
+})
+
+describe('SYSTEM_CATEGORIES', () => {
+  it('lists the seven categories every account starts with', () => {
+    expect(SYSTEM_CATEGORIES).toEqual([
+      'Desayuno',
+      'Almuerzo',
+      'Cena',
+      'Postre',
+      'Snack',
+      'Bebida',
+      'Otro',
+    ])
   })
 })
 
@@ -195,8 +212,8 @@ describe('RecipeSchema', () => {
     expect(() => RecipeSchema.parse({ ...validRecipe, ingredients: [] })).toThrow()
   })
 
-  it('fails with invalid category', () => {
-    expect(() => RecipeSchema.parse({ ...validRecipe, category: 'Brunch' })).toThrow()
+  it('fails with a blank category', () => {
+    expect(() => RecipeSchema.parse({ ...validRecipe, category: ' ' })).toThrow()
   })
 
   it('fails with invalid unit in ingredient', () => {

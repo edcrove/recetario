@@ -1,4 +1,4 @@
-import { CreateRecipeSchema } from '@recetario/shared'
+import { CreateRecipeSchema, SYSTEM_CATEGORIES } from '@recetario/shared'
 import type { Category, Recipe, RecipeDifficulty, Unit } from '@recetario/shared'
 
 export interface RecipeTimes {
@@ -142,4 +142,18 @@ export function recipeToFormState(recipe: Recipe): RecipeFormState {
     dietaryTags: recipe.dietaryTags ?? [],
     visibility: recipe.visibility ?? 'private',
   }
+}
+
+/**
+ * Category chips for the recipe form: the system categories in their usual
+ * order, then the account's own (from the configurator); just the system ones
+ * until those load. The recipe's current category is always offered.
+ */
+export function categoryOptions(
+  loaded: { name: string; isSystem?: boolean }[] | undefined,
+  current: string,
+): string[] {
+  const own = (loaded ?? []).filter((c) => !c.isSystem).map((c) => c.name)
+  const options = [...SYSTEM_CATEGORIES, ...own]
+  return options.includes(current) ? options : [...options, current]
 }

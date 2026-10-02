@@ -63,11 +63,11 @@ describe('CreateRecipeSchema validation (backs CRUD form)', () => {
     expect(result.success).toBe(false)
   })
 
-  it('fails with invalid category', () => {
+  it('fails with a blank category', () => {
     const result = CreateRecipeSchema.safeParse({
       title: 'Test',
       servings: 2,
-      category: 'InvalidCategory',
+      category: '   ',
       ingredients: [{ name: 'agua', quantity: 1, unit: 'l' }],
     })
     expect(result.success).toBe(false)

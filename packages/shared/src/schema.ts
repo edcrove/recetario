@@ -89,8 +89,8 @@ export const DEFAULT_NUTRITION_TARGETS = {
   daily_fat_g: 78,
 } as const
 
-// Category enum
-export const CategorySchema = z.enum([
+/** The meal categories every account starts with (seeded as system categories). */
+export const SYSTEM_CATEGORIES = [
   'Desayuno',
   'Almuerzo',
   'Cena',
@@ -98,7 +98,11 @@ export const CategorySchema = z.enum([
   'Snack',
   'Bebida',
   'Otro',
-])
+] as const
+
+// A recipe's category: a system one or one of the owner's own (the API checks
+// it exists and stores its canonical name).
+export const CategorySchema = z.string().trim().min(1).max(50)
 export type Category = z.infer<typeof CategorySchema>
 
 // Visibility — 'private' is visible to the owner (and, once household sharing

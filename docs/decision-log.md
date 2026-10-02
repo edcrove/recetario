@@ -199,8 +199,7 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
 - **Where it lives**: `configRepository.create` / `usedBy`, `packages/api/src/routes/config.ts`,
   `packages/mcp/src/tools/configurator.ts`, `apps/app/app/config/index.tsx`.
 - **Status**: active. Known gaps found here: recipe tags never reached `recipe_tags` (fixed by
-  D-2026-10-02-1); recipe categories are a fixed enum, so a custom category cannot be used by
-  recipes yet.
+  D-2026-10-02-1); recipe categories were a fixed enum (fixed by D-2026-10-02-2).
 
 ### D-2026-10-02-1 · A recipe's tags feed each owner's tag registry
 
@@ -217,6 +216,23 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
 - **Where it lives**: `packages/api/src/db/recipe-tags.ts`, `slug.ts`,
   `configRepository` (tag rename/delete/merge), `RecipeRepository.create`/`update`,
   `scripts/release.ts`.
+- **Status**: active
+
+### D-2026-10-02-2 · Recipes can use custom categories
+
+- **Decision**: a recipe's `category` is a name, no longer a fixed list. The API accepts a system
+  category or one of the owner's own, matched by slug ("comida rápida" stores "Comida
+  rápida"). An unknown name, or someone else's, is a 400 `Unknown category`. A copy of someone
+  else's recipe in a category the copier doesn't have is filed under `Otro`. Recipes match their
+  category row through the same slug, computed in SQL, so multi-word and accented names count.
+  Renaming a custom category renames it on the owner's recipes. The recipe form offers the
+  system categories, then the owner's own, sharing the configurator's `config-taxonomy` cache.
+- **Why**: latent bug found by D-2026-10-01-15. `CategorySchema` was an enum, so a category
+  created in the configurator could never be used; and `lower(category) = slug` never matched
+  names with spaces or accents, even after a delete with reassignment.
+- **Where it lives**: `@recetario/shared` `CategorySchema`/`SYSTEM_CATEGORIES`,
+  `RecipeRepository.usableCategory`, `configRepository` (`categorySlug`, category rename),
+  `apps/app/src/utils/recipeForm.ts` `categoryOptions`, `RecipeForm`, MCP `CategoryInput`.
 - **Status**: active
 
 ## 2026-09-30 — Dependency & maintenance session (PRs #125, #140, #147, #148, #124)

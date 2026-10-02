@@ -116,11 +116,11 @@ describe('recipe form payload', () => {
     expect(p.steps).toEqual([{ text: 'Rehogar' }])
   })
 
-  it('reports a bad category on the category field', () => {
+  it('reports a blank category on the category field', () => {
     const p = buildPayload(
       'Guiso',
       '4',
-      'NoExiste' as never,
+      ' ',
       '',
       '',
       [{ name: 'Cebolla', quantity: '1', unit: 'unit', presentation: '' }],
