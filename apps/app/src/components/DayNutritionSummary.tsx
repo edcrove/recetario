@@ -58,7 +58,7 @@ export function DayNutritionSummary({ date }: { date: string }) {
 
 const makeStyles = (c: ThemeColors) =>
   StyleSheet.create({
-    row: { marginTop: 2, marginBottom: 6 },
+    row: { paddingHorizontal: 10, paddingTop: 6, paddingBottom: 4 },
     totals: { fontSize: 12, color: c.inkSoft, fontVariant: ['tabular-nums'] },
     delta: { fontSize: 12, fontWeight: '600', marginTop: 1, color: c.ink },
     meal: { fontSize: 11, marginTop: 1 },

@@ -20,10 +20,10 @@ describe('deltaStatus', () => {
 
 describe('deltaLabel', () => {
   it('says how much is missing when under', () => {
-    expect(deltaLabel(-300, 2000)).toBe('faltan 300')
+    expect(deltaLabel(-300, 2000)).toBe('faltan 300 kcal')
   })
   it('says how much over when above', () => {
-    expect(deltaLabel(250, 2000)).toBe('+250 sobre objetivo')
+    expect(deltaLabel(250, 2000)).toBe('+250 kcal sobre objetivo')
   })
   it('says on target when within tolerance', () => {
     expect(deltaLabel(50, 2000)).toBe('en objetivo')

@@ -14,7 +14,7 @@ import { api } from '../../src/api/client'
 import { ErrorState } from '../../src/components/ErrorState'
 import { invalidateMenuWeek } from '../../src/utils/menuCache'
 import type { MenuEntry, MenuSlot } from '@recetario/shared'
-import { getWeekStart, addDays, formatDate } from '../../src/utils/weekMath'
+import { getWeekStart, addDays, formatDate, dayTitle, localIsoDate } from '../../src/utils/weekMath'
 import { buildEntryMap } from '../../src/utils/menuLogic'
 import { confirmAsync, notify } from '../../src/utils/platformAlert'
 import { useIsViewer } from '../../src/hooks/useIsViewer'
@@ -33,6 +33,7 @@ export default function MenuWeekScreen() {
   // hide every mutation affordance so there are no dead buttons.
   const isViewer = useIsViewer()
   const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()))
+  const today = localIsoDate(new Date())
   const [editing, setEditing] = useState<MenuEntry | null>(null)
   const [editServings, setEditServings] = useState(1)
 
@@ -126,8 +127,13 @@ export default function MenuWeekScreen() {
       </TouchableOpacity>
 
       {days.map((day) => (
-        <View key={day} style={s.dayCard}>
-          <Text style={s.dayTitle}>{formatDate(day)}</Text>
+        <View
+          key={day}
+          testID={`menu-day-${day}`}
+          aria-current={day === today ? 'date' : undefined}
+          style={[s.dayCard, day === today && s.dayCardToday]}
+        >
+          <Text style={[s.dayTitle, day === today && s.dayTitleToday]}>{dayTitle(day, today)}</Text>
           <DayNutritionSummary date={day} />
           {SLOTS.map((slot) => {
             const slotEntries = entryMap.get(`${day}::${slot}`) ?? []
@@ -325,6 +331,8 @@ const makeStyles = (c: ThemeColors) =>
       borderRadius: 8,
       overflow: 'hidden',
     },
+    dayCardToday: { borderColor: c.terracotta, borderWidth: 2 },
+    dayTitleToday: { backgroundColor: c.terracottaSoft, color: c.terracotta },
     dayTitle: {
       backgroundColor: c.sand,
       padding: 10,

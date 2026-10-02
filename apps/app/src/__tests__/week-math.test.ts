@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getWeekStart, addDays, formatDate, localIsoDate } from '../utils/weekMath'
+import { getWeekStart, addDays, formatDate, localIsoDate, dayTitle } from '../utils/weekMath'
 
 describe('getWeekStart', () => {
   it('returns Monday for a Monday', () => {
@@ -102,5 +102,14 @@ describe('local calendar dates', () => {
   it('late Sunday night still belongs to the week that started on Monday', () => {
     expect(getWeekStart(new Date(2026, 6, 5, 23, 30))).toBe('2026-06-29')
     expect(getWeekStart(new Date(2026, 6, 6, 0, 30))).toBe('2026-07-06')
+  })
+})
+
+describe('dayTitle', () => {
+  it("prefixes today's date with Hoy", () => {
+    expect(dayTitle('2026-10-02', '2026-10-02')).toBe(`Hoy · ${formatDate('2026-10-02')}`)
+  })
+  it('is the plain date for any other day', () => {
+    expect(dayTitle('2026-10-01', '2026-10-02')).toBe(formatDate('2026-10-01'))
   })
 })

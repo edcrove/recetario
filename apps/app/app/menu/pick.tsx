@@ -282,7 +282,7 @@ const makeStyles = (c: ThemeColors) =>
       fontVariant: ['tabular-nums'],
     },
     cardMacros: { color: c.sage, marginTop: 3, fontSize: 12, fontVariant: ['tabular-nums'] },
-    filterScroll: { marginHorizontal: 12, marginBottom: 4, flexGrow: 0 },
+    filterScroll: { marginHorizontal: 12, marginBottom: 4, flexGrow: 0, flexShrink: 0 },
     filterRow: { gap: 6, paddingHorizontal: 2 },
     filterChip: {
       paddingHorizontal: 12,

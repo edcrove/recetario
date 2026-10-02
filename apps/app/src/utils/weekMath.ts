@@ -34,3 +34,9 @@ export function formatDate(isoDate: string): string {
     timeZone: 'UTC',
   })
 }
+
+/** Planner day heading: "Hoy · vie, 2 oct" for today, the plain date otherwise. */
+export function dayTitle(isoDate: string, todayIso: string): string {
+  const label = formatDate(isoDate)
+  return isoDate === todayIso ? `Hoy · ${label}` : label
+}

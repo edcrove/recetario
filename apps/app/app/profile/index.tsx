@@ -20,6 +20,7 @@ import { api } from '../../src/api/client'
 import { useAuth } from '../../src/providers/AuthProvider'
 import { useProfile, PROFILE_QUERY_KEY } from '../../src/hooks/useProfile'
 import { confirmAsync } from '../../src/utils/platformAlert'
+import { DIETARY_LABELS } from '../../src/utils/allergenCheck'
 import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 import { useThemeContext } from '../../src/theme/themeContext'
 import type { ThemePreference } from '../../src/theme/themeContext'
@@ -242,7 +243,7 @@ export default function ProfileScreen() {
               style={[s.chip, active && s.chipActive]}
               onPress={() => toggleDiet(opt)}
             >
-              <Text style={[s.chipText, active && s.chipTextActive]}>{opt}</Text>
+              <Text style={[s.chipText, active && s.chipTextActive]}>{DIETARY_LABELS[opt]}</Text>
             </TouchableOpacity>
           )
         })}

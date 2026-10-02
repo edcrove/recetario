@@ -103,4 +103,15 @@ describe('ProfileScreen targets and session', () => {
     fireEvent.click(screen.getByTestId('profile-signout'))
     await waitFor(() => expect(m.signOut).toHaveBeenCalled())
   })
+
+  it('diet chips read as words, not slugs', async () => {
+    m.getProfile.mockResolvedValue(baseProfile)
+    wrap()
+    expect(await screen.findByTestId('profile-diet-chip-sin-gluten')).toHaveTextContent(
+      /^Sin gluten$/,
+    )
+    expect(screen.getByTestId('profile-diet-chip-sin-lactosa')).toHaveTextContent(/^Sin lactosa$/)
+    expect(screen.getByTestId('profile-diet-chip-vegano')).toHaveTextContent(/^Vegano$/)
+    expect(screen.queryByText('sin-gluten')).toBeNull()
+  })
 })
