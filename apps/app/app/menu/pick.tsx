@@ -13,6 +13,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { api } from '../../src/api/client'
 import { invalidateMenuWeek } from '../../src/utils/menuCache'
+import { fetchAllRecipes } from '../../src/utils/allRecipes'
 import { formatDate } from '../../src/utils/weekMath'
 import { notify } from '../../src/utils/platformAlert'
 import { AllergenBadge } from '../../src/components/AllergenBadge'
@@ -46,7 +47,7 @@ export default function PickRecipeScreen() {
   const { data: recipes = [], isLoading } = useQuery({
     queryKey: ['recipes', query],
     queryFn: () =>
-      query.trim() ? api.recipes.search({ q: query }) : api.recipes.list({ limit: 50 }),
+      query.trim() ? api.recipes.search({ q: query }) : fetchAllRecipes(api.recipes.list),
   })
 
   // Goal preview: where the slot (or the day) lands if this recipe is added

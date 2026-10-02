@@ -71,6 +71,17 @@ describe('PickRecipeScreen', () => {
     expect(await screen.findByText('No hay recetas aún')).toBeInTheDocument()
   })
 
+  // 2026-10-02 review: the picker asked for one page of 50, so older recipes
+  // could never be planned without searching for them.
+  it('offers recipes past the first page', async () => {
+    const page1 = Array.from({ length: 100 }, (_, i) => recipe({ id: `p${i}`, title: `R ${i}` }))
+    const old = recipe({ id: 'old', title: 'La más vieja' })
+    mockList.mockResolvedValueOnce(page1).mockResolvedValueOnce([old])
+    wrap()
+    expect(await screen.findByTestId('pick-recipe-old')).toBeInTheDocument()
+    expect(mockList).toHaveBeenLastCalledWith({ limit: 100, offset: 100 })
+  })
+
   it('adds the tapped recipe with the chosen servings and goes back', async () => {
     const r = recipe({})
     mockList.mockResolvedValue([r])

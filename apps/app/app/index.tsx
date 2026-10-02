@@ -27,6 +27,7 @@ import {
   homeSearchParams,
   isFirstRun,
 } from '../src/utils/homeScreen'
+import { fetchAllRecipes } from '../src/utils/allRecipes'
 import { DIETARY_LABELS } from '../src/utils/allergenCheck'
 import { WelcomeCard } from '../src/components/WelcomeCard'
 import { useAuth } from '../src/providers/AuthProvider'
@@ -71,7 +72,7 @@ export default function HomeScreen() {
     queryFn: () =>
       getQueryFnKey(query, activeType, dietary) === 'search'
         ? api.recipes.search(homeSearchParams(query, activeType, dietary))
-        : api.recipes.list({ limit: 50 }),
+        : fetchAllRecipes(api.recipes.list),
     placeholderData: (prev) => prev,
   })
 
