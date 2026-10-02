@@ -24,6 +24,7 @@ import { getVisibleOwnerIds } from './household-visibility.js'
 import { schema } from './index.js'
 import { currentDb, inTransaction, InvalidReferenceError } from './transaction.js'
 import { syncRecipeTags } from './recipe-tags.js'
+import { slugify } from './slug.js'
 
 type DbRow = typeof schema.recipes.$inferSelect
 type IngredientRow = typeof schema.ingredients.$inferSelect
@@ -130,13 +131,14 @@ export class RecipeRepository {
   ): Promise<Recipe> {
     const db = this.db
     const foodTypeIds = await this.usableFoodTypeIds(ownerId, data.foodTypeIds, opts)
+    const category = await this.usableCategory(ownerId, data.category, opts)
     const [recipe] = await db
       .insert(schema.recipes)
       .values({
         ownerId,
         title: data.title,
         servings: data.servings,
-        category: data.category,
+        category,
         tags: data.tags,
         prepTimeMin: data.prepTimeMin ?? null,
         cookTimeMin: data.cookTimeMin ?? null,
@@ -191,6 +193,31 @@ export class RecipeRepository {
       return unique.filter((id) => known.has(id))
     }
     throw new InvalidReferenceError('Unknown foodTypeIds')
+  }
+
+  /**
+   * The canonical name of a category the owner may use (system or their own),
+   * matched by slug, so "comida rápida" stores "Comida rápida". Unknown is a
+   * 400 — or, for forks of someone else's recipe, 'Otro' (D-2026-10-02-2).
+   */
+  private async usableCategory(
+    ownerId: string,
+    name: string,
+    opts: { dropUnknownFoodTypes?: boolean } = {},
+  ): Promise<string> {
+    const [row] = await this.db
+      .select({ name: schema.mealCategories.name })
+      .from(schema.mealCategories)
+      .where(
+        and(
+          eq(schema.mealCategories.slug, slugify(name)),
+          or(isNull(schema.mealCategories.ownerId), eq(schema.mealCategories.ownerId, ownerId)),
+        ),
+      )
+      .limit(1)
+    if (row) return row.name
+    if (opts.dropUnknownFoodTypes) return 'Otro'
+    throw new InvalidReferenceError('Unknown category')
   }
 
   private async replaceFoodTypes(recipeId: string, foodTypeIds: string[] | undefined) {
@@ -445,6 +472,8 @@ export class RecipeRepository {
     const existing = await this.findById(id, { ownedBy: ownerId })
     if (!existing) return null
     const foodTypeIds = await this.usableFoodTypeIds(ownerId, data.foodTypeIds)
+    const category =
+      data.category === undefined ? undefined : await this.usableCategory(ownerId, data.category)
     // Keep per-serving nutrition honest: rescale on a servings-only edit, clear
     // it when the ingredients change, honor an explicit value (or null).
     const nutrition = nutritionAfterEdit(existing, data)
@@ -454,7 +483,7 @@ export class RecipeRepository {
       .set({
         ...(data.title !== undefined && { title: data.title }),
         ...(data.servings !== undefined && { servings: data.servings }),
-        ...(data.category !== undefined && { category: data.category }),
+        ...(category !== undefined && { category }),
         ...(data.tags !== undefined && { tags: data.tags }),
         ...(data.prepTimeMin !== undefined && { prepTimeMin: data.prepTimeMin }),
         ...(data.cookTimeMin !== undefined && { cookTimeMin: data.cookTimeMin }),

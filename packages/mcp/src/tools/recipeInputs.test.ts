@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { z } from 'zod'
-import { UnitSchema, CategorySchema } from '@recetario/shared'
+import { UnitSchema } from '@recetario/shared'
 import { createMcpServer, createApiClient } from '../index.js'
 import { registerMutationTools } from './mutateRecipes.js'
 import { registerCreateRecipe } from './createRecipe.js'
-import { CATEGORY_LIST, UNIT_LIST } from './recipeInputs.js'
+import { CATEGORY_LIST, CategoryInput, UNIT_LIST } from './recipeInputs.js'
 
 function inputSchema(name: string): z.ZodType {
   const server = createMcpServer()
@@ -30,7 +30,7 @@ const fullStep = { text: 'Hornear', durationSeconds: 2400, ovenTempC: 180 }
 describe('recipe input contract (shared schemas)', () => {
   it('lists come from the shared enums', () => {
     expect(UNIT_LIST).toBe(UnitSchema.options.join(', '))
-    expect(CATEGORY_LIST).toBe(CategorySchema.options.join(', '))
+    expect(CATEGORY_LIST).toBe('Desayuno, Almuerzo, Cena, Postre, Snack, Bebida, Otro')
   })
 
   it('updateRecipe rejects a free-string unit', () => {
@@ -59,10 +59,17 @@ describe('recipe input contract (shared schemas)', () => {
     })
   })
 
-  it('updateRecipe rejects an unknown category and an empty ingredient list', () => {
+  it('updateRecipe takes custom category names (the API checks them) but not a blank one', () => {
     const schema = inputSchema('updateRecipe')
-    expect(schema.safeParse({ id: ID, category: 'Merienda' }).success).toBe(false)
+    expect(schema.safeParse({ id: ID, category: 'Comida rápida' }).success).toBe(true)
+    expect(schema.safeParse({ id: ID, category: ' ' }).success).toBe(false)
     expect(schema.safeParse({ id: ID, ingredients: [] }).success).toBe(false)
+  })
+
+  it('the category input names the system categories and how to add your own', () => {
+    expect(CategoryInput.description).toBe(
+      'Meal category: a system one (Desayuno, Almuerzo, Cena, Postre, Snack, Bebida, Otro) or one of your own (listTaxonomy, createTaxonomyItem)',
+    )
   })
 
   it('createRecipe enforces the shared limits (positive quantity, step text)', () => {

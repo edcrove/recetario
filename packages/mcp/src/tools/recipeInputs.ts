@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import {
   CategorySchema,
+  SYSTEM_CATEGORIES,
   CreateRecipeSchema,
   DietaryTagSchema,
   IngredientSchema,
@@ -34,7 +35,9 @@ export const StepInput = StepSchema.extend({
   ovenTempC: StepSchema.shape.ovenTempC.describe('Oven temperature in °C, if the step uses it'),
 })
 
-export const CategoryInput = CategorySchema.describe('Meal category')
+export const CategoryInput = CategorySchema.describe(
+  `Meal category: a system one (${SYSTEM_CATEGORIES.join(', ')}) or one of your own (listTaxonomy, createTaxonomyItem)`,
+)
 
 export const DietaryTagsInput = z
   .array(DietaryTagSchema)
@@ -68,5 +71,5 @@ export const DifficultyInput = CreateRecipeSchema.shape.difficulty.describe(
 export const VisibilityInput = RecipeVisibilitySchema
 
 /** Readable lists for error suggestions, straight from the shared enums. */
-export const CATEGORY_LIST = CategorySchema.options.join(', ')
+export const CATEGORY_LIST = SYSTEM_CATEGORIES.join(', ')
 export const UNIT_LIST = UnitSchema.options.join(', ')

@@ -2,7 +2,10 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
-const { mockCreate } = vi.hoisted(() => ({ mockCreate: vi.fn() }))
+const { mockCreate, mockTaxonomy } = vi.hoisted(() => ({
+  mockCreate: vi.fn(),
+  mockTaxonomy: vi.fn(),
+}))
 
 vi.mock('../api/client', () => ({
   api: {
@@ -10,6 +13,7 @@ vi.mock('../api/client', () => ({
       create: mockCreate,
       list: vi.fn().mockResolvedValue([]),
     },
+    config: { taxonomy: mockTaxonomy },
   },
 }))
 
@@ -24,6 +28,7 @@ function wrap(ui: React.ReactElement) {
 describe('NewRecipeScreen', () => {
   beforeEach(() => {
     mockCreate.mockReset()
+    mockTaxonomy.mockReset().mockRejectedValue(new Error('offline'))
   })
 
   it('renders all required sections (the title lives in the stack header)', () => {
@@ -258,5 +263,60 @@ describe('NewRecipeScreen', () => {
     await waitFor(() => expect(mockCreate).toHaveBeenCalled())
     expect(mockCreate.mock.calls[0]?.[0].dietaryTags).toEqual(['vegano'])
     expect(await screen.findByText('"vegano" no se cumple: contiene Chorizo')).toBeInTheDocument()
+  })
+
+  it("offers the account's own categories and saves the one picked", async () => {
+    mockTaxonomy.mockResolvedValue({
+      mealCategories: [
+        { id: 'c1', name: 'Cena', isSystem: true },
+        { id: 'c2', name: 'Comida rápida', isSystem: false },
+      ],
+      foodTypes: [],
+      tags: [],
+    })
+    mockCreate.mockResolvedValue({ id: 'n' })
+    wrap(<NewRecipeScreen />)
+    const custom = await screen.findByTestId('recipe-category-Comida rápida')
+    expect(screen.getByTestId('recipe-category-Cena')).toHaveAttribute('aria-selected', 'true')
+    expect(custom).toHaveAttribute('aria-selected', 'false')
+    fireEvent.click(custom)
+    expect(custom).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByTestId('recipe-category-Cena')).toHaveAttribute('aria-selected', 'false')
+
+    fireEvent.change(screen.getByPlaceholderText('Nombre de la receta'), { target: { value: 'X' } })
+    fireEvent.change(screen.getByPlaceholderText('Ingrediente'), { target: { value: 'Pan' } })
+    fireEvent.click(screen.getByText('Guardar Receta'))
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledTimes(1))
+    expect(mockCreate.mock.calls[0]?.[0].category).toBe('Comida rápida')
+  })
+
+  it('still offers the system categories when the account list fails to load', async () => {
+    wrap(<NewRecipeScreen />)
+    await waitFor(() => expect(mockTaxonomy).toHaveBeenCalled())
+    expect(screen.getAllByTestId(/^recipe-category-/).map((b) => b.textContent)).toEqual([
+      'Desayuno',
+      'Almuerzo',
+      'Cena',
+      'Postre',
+      'Snack',
+      'Bebida',
+      'Otro',
+    ])
+  })
+
+  it('shares the configurator cache, so a category created there is offered at once', async () => {
+    mockTaxonomy.mockReturnValue(new Promise(() => {}))
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    client.setQueryData(['config-taxonomy'], {
+      mealCategories: [{ id: 'c9', name: 'Recién creada', isSystem: false }],
+      foodTypes: [],
+      tags: [],
+    })
+    render(
+      <QueryClientProvider client={client}>
+        <NewRecipeScreen />
+      </QueryClientProvider>,
+    )
+    expect(screen.getByTestId('recipe-category-Recién creada')).toBeInTheDocument()
   })
 })

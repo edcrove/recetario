@@ -9,6 +9,13 @@ import { recipesWithTag, rewriteTagOnRecipes } from './recipe-tags.js'
 /** Why a delete didn't happen: the item isn't the caller's (or is a system one), or the reassign target isn't usable. */
 export type DeleteOutcome = 'deleted' | 'not_found' | 'bad_target'
 
+/**
+ * A recipe's category as a slug, computed like `slugify` so names with spaces
+ * or accents ("Comida rápida" → "comida-rpida") match their category row.
+ */
+const categorySlug = () =>
+  sql`regexp_replace(regexp_replace(lower(${schema.recipes.category}), ${'\\s+'}, '-', 'g'), ${'[^a-z0-9-]'}, '', 'g')`
+
 /** System rows (no owner) plus the caller's own. */
 const systemOrOwn = (ownerColumn: AnyPgColumn, ownerId: string) =>
   or(eq(ownerColumn, ownerId), isNull(ownerColumn))
@@ -52,7 +59,7 @@ export const configRepository = {
       .leftJoin(
         schema.recipes,
         and(
-          sql`lower(${schema.recipes.category}) = ${schema.mealCategories.slug}`,
+          sql`${categorySlug()} = ${schema.mealCategories.slug}`,
           eq(schema.recipes.ownerId, ownerId),
         ),
       )
@@ -122,13 +129,7 @@ export const configRepository = {
     const values = { name, slug: slugify(name) }
     const [row] =
       type === 'categories'
-        ? await db
-            .update(schema.mealCategories)
-            .set(values)
-            .where(
-              and(eq(schema.mealCategories.id, id), eq(schema.mealCategories.ownerId, ownerId)),
-            )
-            .returning({ id: schema.mealCategories.id, name: schema.mealCategories.name })
+        ? await renameCategory(ownerId, id, name)
         : type === 'food-types'
           ? await db
               .update(schema.foodTypes)
@@ -235,12 +236,7 @@ export const configRepository = {
         await db
           .update(schema.recipes)
           .set({ category: target.name })
-          .where(
-            and(
-              sql`lower(${schema.recipes.category}) = ${owned.slug}`,
-              eq(schema.recipes.ownerId, ownerId),
-            ),
-          )
+          .where(and(sql`${categorySlug()} = ${owned.slug}`, eq(schema.recipes.ownerId, ownerId)))
       }
       await db.delete(schema.mealCategories).where(eq(schema.mealCategories.id, id))
       return 'deleted'
@@ -328,7 +324,7 @@ export const configRepository = {
       return db
         .select(recipe)
         .from(schema.recipes)
-        .where(and(own, sql`lower(${schema.recipes.category}) = ${cat.slug}`))
+        .where(and(own, sql`${categorySlug()} = ${cat.slug}`))
         .orderBy(schema.recipes.title)
     }
     if (type === 'food-types') {
@@ -378,6 +374,32 @@ export const configRepository = {
       return merged
     })
   },
+}
+
+/**
+ * Renames one of the owner's categories and the category of their recipes in
+ * it (recipes store the name, matched by slug).
+ */
+async function renameCategory(ownerId: string, id: string, name: string) {
+  return inTransaction(async () => {
+    const db = currentDb()
+    const [old] = await db
+      .select({ slug: schema.mealCategories.slug })
+      .from(schema.mealCategories)
+      .where(and(eq(schema.mealCategories.id, id), eq(schema.mealCategories.ownerId, ownerId)))
+      .limit(1)
+    if (!old) return []
+    const rows = await db
+      .update(schema.mealCategories)
+      .set({ name, slug: slugify(name) })
+      .where(eq(schema.mealCategories.id, id))
+      .returning({ id: schema.mealCategories.id, name: schema.mealCategories.name })
+    await db
+      .update(schema.recipes)
+      .set({ category: name })
+      .where(and(eq(schema.recipes.ownerId, ownerId), sql`${categorySlug()} = ${old.slug}`))
+    return rows
+  })
 }
 
 /** Slug and name of one of the owner's tags (undefined when it isn't theirs). */

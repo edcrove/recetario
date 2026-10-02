@@ -106,7 +106,7 @@ export function registerCreateRecipe(server: McpServer, api: ReturnType<typeof c
                   suggestions: [
                     'Ensure title is provided',
                     'Ensure at least one ingredient is included',
-                    `Check that category is one of: ${CATEGORY_LIST}`,
+                    `Check that category is a system one (${CATEGORY_LIST}) or one you created (createTaxonomyItem)`,
                     `Check that units are valid: ${UNIT_LIST}`,
                   ],
                 },

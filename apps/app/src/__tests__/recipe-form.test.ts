@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { buildPayload, validatePayload, recipeToFormState } from '../utils/recipeForm'
+import {
+  buildPayload,
+  categoryOptions,
+  validatePayload,
+  recipeToFormState,
+} from '../utils/recipeForm'
 import type { IngredientRow, StepRow } from '../utils/recipeForm'
 import type { Recipe } from '@recetario/shared'
 
@@ -325,14 +330,14 @@ describe('validatePayload', () => {
     expect(errors.ingredients).toBeDefined()
   })
 
-  it('returns category error for invalid category', () => {
+  it('returns a category error for a blank category (custom names are checked by the API)', () => {
     const payload = {
       ...buildPayload('Torta', '4', 'Postre', '', '', validIngredients, validSteps),
-      category: 'Brunch' as never,
+      category: '  ',
     }
     const { valid, errors } = validatePayload(payload)
     expect(valid).toBe(false)
-    expect(errors.category ?? errors.general).toBeDefined()
+    expect(errors.category).toBeDefined()
   })
 
   it('sets errors.general for validation errors on unrecognized paths', () => {
@@ -444,5 +449,28 @@ describe('recipeToFormState', () => {
     expect(form.prepTimeMin).toBe('')
     expect(form.cookTimeMin).toBe('')
     expect(form.difficulty).toBeNull()
+  })
+})
+
+describe('categoryOptions', () => {
+  const SYSTEM = ['Desayuno', 'Almuerzo', 'Cena', 'Postre', 'Snack', 'Bebida', 'Otro']
+
+  it('is the system categories, in their usual order, until the account loads', () => {
+    expect(categoryOptions(undefined, 'Cena')).toEqual(SYSTEM)
+  })
+
+  it("adds the account's own categories after the system ones (never twice)", () => {
+    const loaded = [
+      { name: 'Almuerzo', isSystem: true },
+      { name: 'Comida rápida', isSystem: false },
+      { name: 'Cena', isSystem: true },
+      { name: 'Viandas' },
+    ]
+    expect(categoryOptions(loaded, 'Cena')).toEqual([...SYSTEM, 'Comida rápida', 'Viandas'])
+  })
+
+  it("always offers the recipe's current category", () => {
+    expect(categoryOptions(undefined, 'Comida rápida')).toEqual([...SYSTEM, 'Comida rápida'])
+    expect(categoryOptions([{ name: 'Viandas' }], 'Viandas')).toEqual([...SYSTEM, 'Viandas'])
   })
 })

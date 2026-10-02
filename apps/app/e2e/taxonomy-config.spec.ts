@@ -159,3 +159,57 @@ test("a recipe's tag shows in the tags tab, and renaming it renames it on the re
     }
   }
 })
+
+// Latent bug (D-2026-10-02-2): recipes only took the 7 built-in categories, so a
+// category created in the configurator could never be used.
+test('a category created in the configurator can be picked for a new recipe', async ({ page }) => {
+  const category = `Zz cat ${Math.random().toString(36).slice(2, 8)}`
+  const title = `E2E categoría ${Date.now()}`
+  const headers = await authHeaders(page)
+  let recipeId: string | undefined
+  try {
+    await page.goto('/config')
+    await page.getByTestId('config-new-name').fill(category)
+    await page.getByTestId('config-new-add').click()
+    await expect(page.locator('[data-testid^="config-item-"]', { hasText: category })).toBeVisible()
+
+    await page.goto('/recipe/new')
+    const chip = page.getByTestId(`recipe-category-${category}`)
+    const cena = page.getByTestId('recipe-category-Cena')
+    const bg = (l: typeof chip) => l.evaluate((el) => getComputedStyle(el).backgroundColor)
+    await expect(cena).toHaveAttribute('aria-selected', 'true')
+    const selectedBg = await bg(cena)
+    expect(await bg(chip)).not.toBe(selectedBg)
+    const fg = (l: typeof chip) =>
+      l
+        .locator('div')
+        .first()
+        .evaluate((el) => getComputedStyle(el).color)
+    const selectedFg = await fg(cena)
+    expect(await fg(chip)).not.toBe(selectedFg)
+    await chip.click()
+    await expect(chip).toHaveAttribute('aria-selected', 'true')
+    expect(await bg(chip)).toBe(selectedBg)
+    expect(await fg(chip)).toBe(selectedFg)
+    expect(await bg(cena)).not.toBe(selectedBg)
+
+    await page.getByPlaceholder('Nombre de la receta').fill(title)
+    await page.getByPlaceholder('Ingrediente').first().fill('Pan')
+    await page.getByText('Guardar Receta').click()
+    await expect(page.getByTestId('recipe-saved-banner')).toBeVisible()
+    recipeId = page.url().split('/recipe/')[1]?.split(/[?#]/)[0]
+    await expect(page.getByText(category).first()).toBeVisible()
+
+    const res = await page.request.get(`${API_URL}/v1/recipes/${recipeId}`, { headers })
+    expect(((await res.json()) as { category: string }).category).toBe(category)
+  } finally {
+    if (recipeId) await deleteRecipeViaApi(page, recipeId)
+    const overview = (await (
+      await page.request.get(`${API_URL}/v1/config/taxonomy`, { headers })
+    ).json()) as { mealCategories: { id: string; name: string }[] }
+    const created = overview.mealCategories.find((c) => c.name === category)
+    if (created) {
+      await page.request.delete(`${API_URL}/v1/config/categories/${created.id}`, { headers })
+    }
+  }
+})

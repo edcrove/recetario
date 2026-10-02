@@ -143,8 +143,9 @@ describe('createRecipe tool', () => {
     expect(result.isError).toBe(true)
     const parsed = JSON.parse(result.content[0].text)
     expect(parsed.error).toBe('Failed to create recipe')
-    expect(parsed.suggestions).toBeDefined()
-    expect(Array.isArray(parsed.suggestions)).toBe(true)
+    expect(parsed.suggestions).toContain(
+      'Check that category is a system one (Desayuno, Almuerzo, Cena, Postre, Snack, Bebida, Otro) or one you created (createTaxonomyItem)',
+    )
   })
 })
 

@@ -18,7 +18,9 @@ export async function seedRecipes(ownerId: string = DEMO_OWNER_ID): Promise<void
 }
 
 if (process.env['NODE_ENV'] !== 'test') {
-  Promise.all([seedTaxonomy(), seedRecipes()])
+  // Taxonomy first: a recipe's category must exist (D-2026-10-02-2)
+  seedTaxonomy()
+    .then(() => seedRecipes())
     .then(() => process.exit(0))
     .catch((err) => {
       console.error('Seed failed:', err)

@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native'
 import { DIETARY_TAGS, UnitSchema } from '@recetario/shared'
 import type { Category, CreateRecipe, RecipeDifficulty } from '@recetario/shared'
 import {
   buildPayload,
+  categoryOptions,
   validatePayload,
   type IngredientRow,
   type StepRow,
@@ -12,13 +14,13 @@ import {
 } from '../utils/recipeForm'
 import { DIFFICULTIES } from '../utils/recipeMeta'
 import { DIETARY_LABELS } from '../utils/allergenCheck'
+import { api } from '../api/client'
 import { apiErrorMessage } from '../utils/apiError'
 import { unitLabel } from '../utils/displayIngredient'
 import { FoodTypePicker } from './FoodTypePicker'
 import { confirmAsync } from '../utils/platformAlert'
 import { useThemeColors, fonts, type ThemeColors } from '../theme/tokens'
 
-const CATEGORIES: Category[] = ['Desayuno', 'Almuerzo', 'Cena', 'Postre', 'Snack', 'Bebida', 'Otro']
 const UNIT_OPTIONS: string[] = ['', ...UnitSchema.options]
 const EMPTY_INGREDIENT: IngredientRow = { name: '', quantity: '', unit: '', presentation: '' }
 
@@ -66,6 +68,11 @@ export function RecipeForm({ initial, submitLabel, isPending, submitError, onSub
   const [cookTimeMin, setCookTimeMin] = useState(initial.cookTimeMin)
   const [difficulty, setDifficulty] = useState<RecipeDifficulty | null>(initial.difficulty)
   const [openUnitRow, setOpenUnitRow] = useState<number | null>(null)
+  // Same key as the configurator, so a category created there shows up here
+  const { data: taxonomy } = useQuery({
+    queryKey: ['config-taxonomy'],
+    queryFn: () => api.config.taxonomy(),
+  })
 
   function handleSubmit() {
     if (isPending) return
@@ -148,9 +155,12 @@ export function RecipeForm({ initial, submitLabel, isPending, submitError, onSub
 
       <Text style={st.label}>Categoría *</Text>
       <View style={st.chipRow}>
-        {CATEGORIES.map((cat) => (
+        {categoryOptions(taxonomy?.mealCategories, category).map((cat) => (
           <TouchableOpacity
             key={cat}
+            testID={`recipe-category-${cat}`}
+            accessibilityRole="button"
+            aria-selected={category === cat}
             style={[st.chip, category === cat && st.chipActive]}
             onPress={() => setCategory(cat)}
           >
