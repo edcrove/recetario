@@ -12,7 +12,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { api } from '../../src/api/client'
 import { confirmAsync, notify } from '../../src/utils/platformAlert'
-import { expiryStatus, groupPantry, type PantryItem } from '../../src/utils/pantryView'
+import { expiryLabel, expiryStatus, groupPantry, type PantryItem } from '../../src/utils/pantryView'
 import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 import { useIsViewer } from '../../src/hooks/useIsViewer'
 import { refreshAfter } from '../../src/utils/menuCache'
@@ -155,11 +155,7 @@ export default function PantryScreen() {
                               : s.badgeOk,
                         ]}
                       >
-                        {status === 'vencido'
-                          ? 'Vencido'
-                          : status === 'pronto'
-                            ? 'Vence pronto'
-                            : `Vence ${item.expiryDate}`}
+                        {expiryLabel(status, item.expiryDate!)}
                       </Text>
                     ) : null}
                   </View>

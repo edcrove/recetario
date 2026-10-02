@@ -24,6 +24,18 @@ export function expiryStatus(expiryDate: string | null, today: Date): ExpiryStat
   return 'ok'
 }
 
+/** Badge text: "Vencido", "Vence pronto", or the day it expires ("Vence el 12 oct"). */
+export function expiryLabel(status: ExpiryStatus, expiryDate: string): string {
+  if (status === 'vencido') return 'Vencido'
+  if (status === 'pronto') return 'Vence pronto'
+  const day = new Date(`${expiryDate}T00:00:00Z`).toLocaleDateString('es-AR', {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  })
+  return `Vence el ${day}`
+}
+
 export interface PantryGroups {
   inStock: PantryItem[]
   outOfStock: PantryItem[]
