@@ -20,7 +20,7 @@ suggestionsRoute.use('/suggestions/*', authMiddleware)
 
 const bodySchema = z
   .object({
-    ingredients: z.array(z.string().min(1)).optional(),
+    ingredients: z.array(z.string().trim().min(1)).optional(),
     usePantry: z.boolean().optional(),
     date: z.iso.date().optional(),
   })

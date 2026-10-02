@@ -122,7 +122,7 @@ export type Source = z.infer<typeof SourceSchema>
 
 // Ingredient
 export const IngredientSchema = z.object({
-  name: z.string().min(1).max(200),
+  name: z.string().trim().min(1).max(200),
   quantity: z.number().positive().nullable(), // null = "to taste"
   unit: UnitSchema.nullable(),
   presentation: z.string().optional(), // "diced", "melted", etc.
@@ -133,7 +133,7 @@ export type Ingredient = z.infer<typeof IngredientSchema>
 
 // Step
 export const StepSchema = z.object({
-  text: z.string().min(1).max(4000),
+  text: z.string().trim().min(1).max(4000),
   // Auto-detected (or agent-set) timer duration in seconds; drives cook-mode
   // tap-to-start timers. See parseStepDurationSeconds.
   durationSeconds: z.number().int().positive().optional(),
@@ -151,7 +151,7 @@ export const TranslationSchema = z.object({
 // Recipe (full)
 export const RecipeSchema = z.object({
   id: z.uuid().optional(), // optional on create
-  title: z.string().min(1).max(200),
+  title: z.string().trim().min(1).max(200),
   servings: z.number().int().positive(),
   category: CategorySchema,
   tags: z.array(z.string().max(50)).max(30).default([]),

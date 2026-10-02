@@ -82,10 +82,10 @@ const createCanonicalRoute = defineRoute({
       content: {
         'application/json': {
           schema: z.object({
-            name: z.string().min(1),
+            name: z.string().trim().min(1),
             familyId: z.uuid().nullable().optional(),
             // Agent-friendly alternative to familyId: resolves (or creates) by name.
-            familyName: z.string().min(1).optional(),
+            familyName: z.string().trim().min(1).optional(),
           }),
         },
       },
@@ -124,10 +124,10 @@ const setSynonymRoute = defineRoute({
         'application/json': {
           schema: z
             .object({
-              surface: z.string().min(1),
+              surface: z.string().trim().min(1),
               canonicalId: z.uuid().optional(),
               // Agent-friendly alternative to canonicalId.
-              canonicalName: z.string().min(1).optional(),
+              canonicalName: z.string().trim().min(1).optional(),
             })
             .refine((b) => b.canonicalId || b.canonicalName, {
               message: 'canonicalId or canonicalName is required',
