@@ -128,7 +128,7 @@ describe.skipIf(skip).sequential('Menu integration tests', () => {
     expect(await res.json()).toEqual([])
   })
 
-  it('POST /v1/menu default servings is 1 when not provided', async () => {
+  it('POST /v1/menu without servings: 1 for a legacy API-key owner (no profile)', async () => {
     const res = await app.request('/v1/menu', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: auth },
@@ -783,5 +783,63 @@ describe.skipIf(skip).sequential('Menu — cross-tenant recipe leak (IDOR)', () 
       })
     ).json()
     expect(JSON.stringify(list)).toContain(SECRET_INGREDIENT)
+  })
+})
+
+// 2026-10-02 review: a dish planned without servings (the agent's addToMenu)
+// got 1 portion, ignoring the profile's "Porciones por defecto".
+describe.skipIf(skip).sequential('Menu — default portions come from the profile', () => {
+  async function planWithoutServings(token: string, date: string) {
+    const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+    const rec = await app.request('/v1/recipes', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(baseRecipe),
+    })
+    const { id } = (await rec.json()) as { id: string }
+    const res = await app.request('/v1/menu', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ date, slot: 'Cena', recipeId: id }),
+    })
+    expect(res.status).toBe(200)
+    return ((await res.json()) as { servings: number }).servings
+  }
+
+  it("uses the profile's default portions", async () => {
+    const { token } = await register(`porciones-${Date.now()}@example.com`)
+    await app.request('/auth/profile', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ preferredServings: 5 }),
+    })
+    expect(await planWithoutServings(token, '2031-01-06')).toBe(5)
+  })
+
+  it('a user without a saved preference gets 2, like the app shows', async () => {
+    const { token } = await register(`sin-perfil-${Date.now()}@example.com`)
+    expect(await planWithoutServings(token, '2031-01-07')).toBe(2)
+  })
+
+  it('explicit servings still win', async () => {
+    const { token } = await register(`explicito-${Date.now()}@example.com`)
+    const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+    await app.request('/auth/profile', {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ preferredServings: 5 }),
+    })
+    const rec = await app.request('/v1/recipes', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(baseRecipe),
+    })
+    const { id } = (await rec.json()) as { id: string }
+    const res = await app.request('/v1/menu', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ date: '2031-01-08', slot: 'Cena', recipeId: id, servings: 3 }),
+    })
+    expect(((await res.json()) as { servings: number }).servings).toBe(3)
   })
 })

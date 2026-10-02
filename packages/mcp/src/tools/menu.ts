@@ -10,7 +10,7 @@ export function registerMenuTools(server: McpServer, api: ReturnType<typeof crea
   // addToMenu
   server.tool(
     'addToMenu',
-    'Add a recipe to a meal slot for a specific date (a slot can hold several recipes). Servings defaults to 1; pass the number of people eating.',
+    "Add a recipe to a meal slot for a specific date (a slot can hold several recipes). Servings defaults to the user's default portions (profile preferredServings); pass it when a different number of people is eating.",
     {
       date: z
         .string()
@@ -18,7 +18,12 @@ export function registerMenuTools(server: McpServer, api: ReturnType<typeof crea
         .describe('Date in YYYY-MM-DD format'),
       slot: MenuSlot.describe('Meal slot: Desayuno, Almuerzo, Merienda, Cena, or Snacks/Otros'),
       recipeId: z.uuid().describe('Recipe UUID to assign to this slot'),
-      servings: z.number().int().positive().optional().default(1).describe('Number of servings'),
+      servings: z
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe("Number of servings; omit for the user's default portions"),
     },
     async ({ date, slot, recipeId, servings }) => {
       const entry = await api.request('/v1/menu', {
