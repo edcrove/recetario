@@ -80,11 +80,16 @@ export default function CollectionsScreen() {
         ListEmptyComponent={<Text style={s.empty}>Sin colecciones. ¡Creá una arriba!</Text>}
         renderItem={({ item }) => (
           <TouchableOpacity
+            testID={`collection-${item.id}`}
             style={s.card}
             onPress={() =>
               router.push({
                 pathname: '/collections/[id]',
-                params: { id: item.id, name: item.name },
+                params: {
+                  id: item.id,
+                  name: item.name,
+                  ...(item.emoji ? { emoji: item.emoji } : {}),
+                },
               } as never)
             }
           >
