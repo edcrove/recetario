@@ -24,7 +24,9 @@ export function invalidateMenuWeek(queryClient: QueryClient, weekStart: string):
  *   cook-now suggestions;
  * - goals (daily targets): the planner's per-day summary and the suggestions;
  * - recipe (edited or deleted): titles, nutrition and ingredients wherever the
- *   recipe is planned, listed or collected.
+ *   recipe is planned, listed or collected;
+ * - household (joining, leaving, a member removed or re-roled): everything
+ *   shared with the housemates.
  */
 const STALE_AFTER = {
   pantry: [['pantry'], ['shopping-list'], ['menu-gap'], ['suggestions']],
@@ -37,6 +39,18 @@ const STALE_AFTER = {
     ['menu-gap'],
     ['suggestions'],
     ['collections'],
+    ['collection-recipes'],
+  ],
+  household: [
+    ['households'],
+    ['recipes'],
+    ['library'],
+    ['menu'],
+    ['day-nutrition'],
+    ['shopping-list'],
+    ['menu-gap'],
+    ['pantry'],
+    ['suggestions'],
     ['collection-recipes'],
   ],
 } as const
