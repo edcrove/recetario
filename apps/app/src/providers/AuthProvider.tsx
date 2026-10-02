@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { authStorage as storage } from '../utils/authStorage'
 import { api, setOnUnauthorized } from '../api/client'
 import { queryClient } from './QueryProvider'
+import { jwtSubject } from '../utils/jwtSubject'
 
 const TOKEN_KEY = 'auth_token'
 
@@ -39,10 +40,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUserId(null)
       return
     }
+    // Known from the token right away; /auth/me confirms it
+    setUserId(jwtSubject(token))
     api.auth
       .me()
       .then((me) => setUserId(me.id))
-      .catch(() => setUserId(null))
+      // Keep the token's id: a 401 signs out anyway (onUnauthorized), and a
+      // network blip shouldn't make every own dish and recipe read-only
+      .catch(() => {})
   }, [token])
 
   // Every session change drops the query cache: it is a module singleton with a
