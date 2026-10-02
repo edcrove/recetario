@@ -103,7 +103,12 @@ describe('PantryScreen', () => {
     fireEvent.change(screen.getByTestId('pantry-new-name'), { target: { value: 'Fideos' } })
     fireEvent.click(screen.getByTestId('pantry-add'))
     await waitFor(() =>
-      expect(refreshed()).toEqual(['["pantry"]', '["menu-gap"]', '["suggestions"]']),
+      expect(refreshed()).toEqual([
+        '["pantry"]',
+        '["shopping-list"]',
+        '["menu-gap"]',
+        '["suggestions"]',
+      ]),
     )
     spy.mockClear()
     fireEvent.click(screen.getByTestId('pantry-toggle-arroz'))

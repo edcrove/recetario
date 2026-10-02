@@ -25,7 +25,12 @@ describe('refreshAfter', () => {
   }
 
   it("a pantry edit refreshes the pantry, every week's missing view and the suggestions", async () => {
-    expect(await keysAfter('pantry')).toEqual([['pantry'], ['menu-gap'], ['suggestions']])
+    expect(await keysAfter('pantry')).toEqual([
+      ['pantry'],
+      ['shopping-list'],
+      ['menu-gap'],
+      ['suggestions'],
+    ])
   })
 
   it("a goal change refreshes every day's summary and the suggestions", async () => {
