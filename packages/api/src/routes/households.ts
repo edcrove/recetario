@@ -22,7 +22,9 @@ const createRoute = defineRoute({
   security: [{ ApiKeyAuth: [] }],
   request: {
     body: {
-      content: { 'application/json': { schema: z.object({ name: z.string().min(1).max(100) }) } },
+      content: {
+        'application/json': { schema: z.object({ name: z.string().trim().min(1).max(100) }) },
+      },
       required: true,
     },
   },

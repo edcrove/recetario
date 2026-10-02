@@ -216,8 +216,9 @@ test.describe('Recipe detail: deep flows', () => {
 
       await page.goto(`/recipe/${a.id}`)
       await expect(page.getByText('Te puede gustar')).toBeVisible()
-      await page.locator('text=Te puede gustar').locator('xpath=following-sibling::*[1]').click()
-      await expect(page.getByText(b.title)).toBeVisible()
+      await page.getByTestId(`recipe-related-${b.id}`).click()
+      await expect(page).toHaveURL(new RegExp(`/recipe/${b.id}$`))
+      await expect(page.getByText(b.title).filter({ visible: true }).first()).toBeVisible()
     } finally {
       await deleteRecipeViaApi(page, a.id)
       await deleteRecipeViaApi(page, b.id)
@@ -317,6 +318,8 @@ test.describe('Menu planner: deep flows', () => {
     await page.getByText('−', { exact: true }).last().click()
 
     const before = await page.locator('[data-testid^="menu-entry-"]').count()
+    // Removing asks first (confirm dialog on web)
+    page.once('dialog', (dialog) => void dialog.accept())
     await page.getByTestId('menu-modal-delete').click()
     await expect(page.getByTestId('menu-modal-save')).not.toBeVisible()
     await expect(page.locator('[data-testid^="menu-entry-"]')).toHaveCount(before - 1)

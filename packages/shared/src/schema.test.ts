@@ -216,6 +216,20 @@ describe('RecipeSchema', () => {
     expect(() => RecipeSchema.parse({ ...validRecipe, category: ' ' })).toThrow()
   })
 
+  it('rejects a blank title, ingredient name or step, and trims padded ones', () => {
+    expect(() => RecipeSchema.parse({ ...validRecipe, title: '   ' })).toThrow()
+    const blankIngredient = [{ name: ' ', quantity: 1, unit: 'g' }]
+    expect(() => RecipeSchema.parse({ ...validRecipe, ingredients: blankIngredient })).toThrow()
+    expect(() => RecipeSchema.parse({ ...validRecipe, steps: [{ text: '\t ' }] })).toThrow()
+    const r = RecipeSchema.parse({
+      ...validRecipe,
+      title: ' Sopa ',
+      ingredients: [{ name: ' agua ', quantity: 1, unit: 'l' }],
+      steps: [{ text: ' Hervir. ' }],
+    })
+    expect([r.title, r.ingredients[0]!.name, r.steps[0]!.text]).toEqual(['Sopa', 'agua', 'Hervir.'])
+  })
+
   it('fails with invalid unit in ingredient', () => {
     expect(() =>
       RecipeSchema.parse({

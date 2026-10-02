@@ -2,9 +2,10 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
-const { mockDelete, mockRefreshAfter } = vi.hoisted(() => ({
+const { mockDelete, mockRefreshAfter, mockRelations } = vi.hoisted(() => ({
   mockDelete: vi.fn().mockResolvedValue(undefined),
   mockRefreshAfter: vi.fn(async () => []),
+  mockRelations: vi.fn().mockResolvedValue([]),
 }))
 vi.mock('../utils/menuCache', () => ({ refreshAfter: mockRefreshAfter }))
 vi.mock('../utils/platformAlert', () => ({
@@ -36,6 +37,7 @@ vi.mock('../api/client', () => ({
       }),
       delete: mockDelete,
     },
+    taxonomy: { relations: mockRelations },
   },
 }))
 
@@ -67,6 +69,35 @@ describe('RecipeDetailScreen', () => {
     fireEvent.click(await screen.findByTestId('recipe-delete'))
     await waitFor(() => expect(mockDelete).toHaveBeenCalled())
     await waitFor(() => expect(mockRefreshAfter).toHaveBeenCalledWith(expect.anything(), 'recipe'))
+  })
+
+  it('"Te puede gustar" names each related recipe by its title, not its id', async () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const TO = '4f14540b-bbdd-4e36-abba-c156fddefc02'
+    mockRelations.mockResolvedValueOnce([
+      {
+        fromId: 'test-id',
+        toId: TO,
+        relationType: 'similar',
+        createdBy: 'user',
+        toTitle: 'Ñoquis',
+      },
+      {
+        fromId: 'test-id',
+        toId: TO,
+        relationType: 'variation',
+        createdBy: 'agent',
+        toTitle: 'Ñoquis',
+      },
+    ])
+    wrap(<RecipeDetailScreen />)
+    expect(await screen.findByText('Te puede gustar')).toBeInTheDocument()
+    const rows = screen.getAllByTestId(`recipe-related-${TO}`)
+    expect(rows.map((r) => r.textContent)).toEqual(['SimilarÑoquis›', 'VariaciónÑoquis›'])
+    expect(screen.queryByText(/4f14540b/)).toBeNull()
+    // Same recipe under two relation types: each row keyed on its own
+    expect(errors.mock.calls.flat().join(' ')).not.toMatch(/same key/)
+    errors.mockRestore()
   })
 
   it('renders recipe title after load', async () => {

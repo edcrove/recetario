@@ -163,7 +163,11 @@ test.describe('Collections screen', () => {
     await expect(page.getByPlaceholder('Nueva colección…')).toBeVisible()
     await page.getByText(collection.name).click()
 
-    await expect(page.getByTestId('collection-detail-title')).toContainText(collection.name)
+    await expect(page.getByTestId('collection-detail-title')).toHaveText(`🍰 ${collection.name}`)
+    // Reloading the detail keeps its own emoji, not the generic 📋 (2026-10-02
+    // review: the link carried the name but not the emoji)
+    await page.reload()
+    await expect(page.getByTestId('collection-detail-title')).toHaveText(`🍰 ${collection.name}`)
     await expect(page.getByTestId(`collection-recipe-${recipe.id}`)).toBeVisible()
 
     page.once('dialog', (dialog) => void dialog.accept())

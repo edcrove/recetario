@@ -30,7 +30,7 @@ profileRoute.use('/profile', authMiddleware)
 const errorSchema = z.object({ error: z.string() })
 
 const userPatchSchema = z.object({
-  displayName: z.string().min(1).max(100).optional(),
+  displayName: z.string().trim().min(1).max(100).optional(),
   avatarUrl: z.url({ protocol: HTTP_URL_PROTOCOL }).optional(),
 })
 
@@ -117,12 +117,12 @@ const patchProfileRoute = defineRoute({
             preferredServings: z.number().int().min(1).max(20).optional(),
             dietaryRestrictions: z.array(z.enum(VALID_DIETARY)).optional(),
             allergens: z
-              .array(z.string().min(1).max(50))
+              .array(z.string().trim().min(1).max(50))
               .optional()
               .describe(
                 `Allergen keys (${ALLERGENS.join(', ')}). Spanish names such as "maní" or "lácteos" are mapped to their key.`,
               ),
-            goals: z.array(z.string().min(1).max(100)).optional(),
+            goals: z.array(z.string().trim().min(1).max(100)).optional(),
             timezone: z
               .string()
               .refine(isTimeZone, { message: 'Unknown IANA time zone' })

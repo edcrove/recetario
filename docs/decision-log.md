@@ -263,6 +263,17 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
 - **Status**: revisit when `node-forge` publishes a fixed version (Dependabot will propose it):
   remove the ignore in the same PR that takes the fix.
 
+### D-2026-10-02-5 · A housemate's planned dish is read-only in the planner
+
+- **Decision**: the week view keeps showing every housemate's dishes, but only your own get the
+  edit modal and the ✕; a housemate's chip is disabled. The modal's "Eliminar del menú" now
+  asks first like the ✕ does.
+- **Why**: menu writes are owner-scoped in the API, so those buttons always failed with
+  "No se pudo quitar…". Letting members edit each other's dishes would change the API's
+  write rule; that stays a product call, not a bug fix.
+- **Where it lives**: `apps/app/app/menu/index.tsx` (`canEdit`), `e2e/household-menu.spec.ts`.
+- **Status**: revisit when households want a jointly edited menu.
+
 ## 2026-09-30 — Dependency & maintenance session (PRs #125, #140, #147, #148, #124)
 
 ### D-2026-09-30-12 · Production startup guard, closed sign-up and release step
