@@ -216,8 +216,9 @@ test.describe('Recipe detail: deep flows', () => {
 
       await page.goto(`/recipe/${a.id}`)
       await expect(page.getByText('Te puede gustar')).toBeVisible()
-      await page.locator('text=Te puede gustar').locator('xpath=following-sibling::*[1]').click()
-      await expect(page.getByText(b.title)).toBeVisible()
+      await page.getByTestId(`recipe-related-${b.id}`).click()
+      await expect(page).toHaveURL(new RegExp(`/recipe/${b.id}$`))
+      await expect(page.getByText(b.title).filter({ visible: true }).first()).toBeVisible()
     } finally {
       await deleteRecipeViaApi(page, a.id)
       await deleteRecipeViaApi(page, b.id)
