@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for db/index.ts</title>
+    <title>Code coverage report for db/slug.ts</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../prettify.css" />
     <link rel="stylesheet" href="../base.css" />
@@ -19,34 +19,34 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../index.html">All files</a> / <a href="index.html">db</a> index.ts</h1>
+        <h1><a href="../index.html">All files</a> / <a href="index.html">db</a> slug.ts</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>9/9</span>
+                <span class='fraction'>22/22</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>4/4</span>
+                <span class='fraction'>10/10</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>2/2</span>
+                <span class='fraction'>5/5</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>8/8</span>
+                <span class='fraction'>18/18</span>
             </div>
         
             
@@ -90,59 +90,101 @@
 <a name='L25'></a><a href='#L25'>25</a>
 <a name='L26'></a><a href='#L26'>26</a>
 <a name='L27'></a><a href='#L27'>27</a>
-<a name='L28'></a><a href='#L28'>28</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">31x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { drizzle } from 'drizzle-orm/postgres-js'
-import postgres from 'postgres'
-import * as schema from './schema/index.js'
-&nbsp;
-let _db: ReturnType&lt;typeof drizzle&gt; | null = null
-&nbsp;
-export function getDb() {
-  if (!_db) {
-    const url = process.env['DATABASE_URL']
-    if (!url) throw new Error('DATABASE_URL is not set')
-    const client = postgres(url)
-    _db = drizzle(client, { schema })
-  }
-  return _db
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/** "Comida Rápida" → "comida-rpida": lowercase, dashes, ASCII only. */
+export function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
 }
 &nbsp;
-export { schema }
+/** True when a slug has at least one usable character (not only dashes). */
+export function isUsableSlug(slug: string): boolean {
+  return /[a-z0-9]/.test(slug)
+}
 &nbsp;
-// Nulls the cached drizzle client so the next getDb() call opens a fresh
-// connection — for unit tests re-exercising getDb()'s own init/singleton
-// logic against mocked postgres/drizzle modules (see db/index.test.ts).
-// This does NOT touch actual Postgres data. Integration tests wanting a
-// clean database between files must use resetTestDb() from
-// __tests__/integration/globalSetup.ts instead.
-export function resetDb() {
-  _db = null
+/** Tag spellings with a usable slug, trimmed, one per slug (first spelling wins). */
+export function tagEntries(names: string[]): { name: string; slug: string }[] {
+  const seen = new Map&lt;string, string&gt;()
+  for (const raw of names) {
+    const name = raw.trim()
+    const slug = slugify(name)
+    if (isUsableSlug(slug) &amp;&amp; !seen.has(slug)) seen.set(slug, name)
+  }
+  return [...seen].map(([slug, name]) =&gt; ({ name, slug }))
+}
+&nbsp;
+/**
+ * Replaces the spelling(s) of the tag `fromSlug` with `toName` (or drops them
+ * when null), keeping one spelling per slug. Pure, for rename/merge/delete.
+ */
+export function replaceTag(tags: string[], fromSlug: string, toName: string | null): string[] {
+  const out: string[] = []
+  const seen = new Set&lt;string&gt;()
+  for (const tag of tags) {
+    const next = slugify(tag.trim()) === fromSlug ? toName : tag
+    if (next === null) continue
+    const slug = slugify(next.trim())
+    if (seen.has(slug)) continue
+    seen.add(slug)
+    out.push(next)
+  }
+  return out
 }
 &nbsp;</pre></td></tr></table></pre>
 
@@ -151,7 +193,7 @@ export function resetDb() {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-10-02T15:06:20.352Z
+                at 2026-10-02T15:06:20.371Z
             </div>
         <script src="../prettify.js"></script>
         <script>
