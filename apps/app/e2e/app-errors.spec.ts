@@ -66,3 +66,40 @@ testUnauth('too many login attempts get a readable message', async ({ page }) =>
     page.getByText('Demasiados intentos. Esperá un minuto y probá de nuevo.'),
   ).toBeVisible()
 })
+
+// 2026-10-02 review: these screens showed a failed load as their empty state —
+// "0 sesiones", "La biblioteca está vacía", "Sin colecciones", the form to
+// create a household, and the profile with default targets that a tap on a
+// stepper would then save over the real ones.
+for (const [path, api, message, emptyText] of [
+  [
+    '/stats',
+    '**/v1/cook-sessions/stats*',
+    'No se pudieron cargar las estadísticas.',
+    'sesiones de cocina',
+  ],
+  ['/library', '**/v1/library*', 'No se pudo cargar la biblioteca.', 'La biblioteca está vacía'],
+  [
+    '/collections',
+    '**/v1/collections',
+    'No se pudieron cargar las colecciones.',
+    'Sin colecciones',
+  ],
+  ['/household', '**/v1/households/mine', 'No se pudo cargar tu hogar.', 'Crear hogar'],
+  ['/profile', '**/auth/profile', 'No se pudo cargar tu perfil.', 'Calorías'],
+] as const) {
+  test(`${path}: a failed load says so instead of showing the empty screen`, async ({ page }) => {
+    let failing = true
+    await page.route(api, (route) =>
+      failing && route.request().method() === 'GET'
+        ? route.fulfill({ status: 500, contentType: 'application/json', body: '{}' })
+        : route.fallback(),
+    )
+    await page.goto(path)
+    await expect(page.getByText(message)).toBeVisible({ timeout: 15000 })
+    await expect(page.getByText(emptyText, { exact: false })).toHaveCount(0)
+    failing = false
+    await page.getByTestId('error-retry').click()
+    await expect(page.getByText(message)).toHaveCount(0)
+  })
+}

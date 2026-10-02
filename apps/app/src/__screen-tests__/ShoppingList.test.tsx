@@ -71,6 +71,22 @@ describe('ShoppingListScreen', () => {
     expect(screen.getByTestId('shopping-progress')).toHaveTextContent('1 / 2')
   })
 
+  // 2026-10-02 review: items the pantry already has were listed as to-buy
+  it("marks what's already at home, counts it as done, and doesn't copy it", async () => {
+    mockShoppingList.mockResolvedValue([
+      entry({ ingredient: 'Arroz', key: 'arroz', aisle: 'almacen', pantryMatch: true }),
+      entry({ ingredient: 'Fideos', key: 'fideos', aisle: 'almacen' }),
+    ])
+    wrap(<ShoppingListScreen />)
+    expect(await screen.findByTestId('shopping-at-home-arroz')).toHaveTextContent('🏠 en casa')
+    expect(screen.queryByTestId('shopping-at-home-fideos')).toBeNull()
+    expect(screen.getByTestId('shopping-progress')).toHaveTextContent('1 / 2')
+    fireEvent.click(screen.getByTestId('shopping-copy'))
+    await waitFor(() => expect(mockCopy).toHaveBeenCalled())
+    expect(mockCopy.mock.calls[0]?.[0]).toContain('- Fideos')
+    expect(mockCopy.mock.calls[0]?.[0]).not.toContain('Arroz')
+  })
+
   it('persists a check and optimistically ticks the item', async () => {
     mockShoppingList.mockResolvedValue([
       entry({ ingredient: 'Harina', key: 'harina', aisle: 'almacen', quantity: 500, unit: 'g' }),

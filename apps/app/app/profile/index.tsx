@@ -17,9 +17,11 @@ import {
   type Allergen,
 } from '@recetario/shared'
 import { api } from '../../src/api/client'
+import { ErrorState } from '../../src/components/ErrorState'
 import { useAuth } from '../../src/providers/AuthProvider'
 import { useProfile, PROFILE_QUERY_KEY } from '../../src/hooks/useProfile'
 import { confirmAsync } from '../../src/utils/platformAlert'
+import { refreshAfter } from '../../src/utils/menuCache'
 import { DIETARY_LABELS } from '../../src/utils/allergenCheck'
 import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 import { useThemeContext } from '../../src/theme/themeContext'
@@ -52,12 +54,22 @@ export default function ProfileScreen() {
   const { signOut } = useAuth()
   const queryClient = useQueryClient()
 
-  const { data: user, isLoading: userLoading } = useQuery({
+  const {
+    data: user,
+    isLoading: userLoading,
+    error: userError,
+    refetch: refetchUser,
+  } = useQuery({
     queryKey: ['me'],
     queryFn: () => api.auth.me(),
   })
 
-  const { data: profile, isLoading: profileLoading } = useProfile()
+  const {
+    data: profile,
+    isLoading: profileLoading,
+    error: profileError,
+    refetch: refetchProfile,
+  } = useProfile()
 
   const [editingName, setEditingName] = useState(false)
   const [displayName, setDisplayName] = useState('')
@@ -72,7 +84,10 @@ export default function ProfileScreen() {
 
   const updateProfile = useMutation({
     mutationFn: api.auth.updateProfile,
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY }),
+    onSuccess: (_data, vars) => {
+      void queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY })
+      if ('nutritionTargets' in vars) void refreshAfter(queryClient, 'goals')
+    },
   })
 
   function toggleDiet(option: DietaryOption) {
@@ -147,6 +162,19 @@ export default function ProfileScreen() {
       </View>
     )
   }
+
+  // Without the saved profile the defaults would show, and a tap on a stepper
+  // would overwrite the real targets with them.
+  if (userError || profileError)
+    return (
+      <ErrorState
+        message="No se pudo cargar tu perfil."
+        onRetry={() => {
+          void refetchUser()
+          void refetchProfile()
+        }}
+      />
+    )
 
   const dietary = (profile?.dietaryRestrictions ?? []) as DietaryOption[]
   const servings = profile?.preferredServings ?? 2

@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { UpdateRecipe } from '@recetario/shared'
 import { api } from '../../../src/api/client'
 import { recipeToFormState } from '../../../src/utils/recipeForm'
+import { refreshAfter } from '../../../src/utils/menuCache'
 import { RecipeForm } from '../../../src/components/RecipeForm'
 import { useThemeColors, type ThemeColors } from '../../../src/theme/tokens'
 
@@ -22,8 +23,8 @@ export default function EditRecipeScreen() {
   const mutation = useMutation({
     mutationFn: (data: UpdateRecipe) => api.recipes.update(id, data),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['recipes'] })
       void queryClient.invalidateQueries({ queryKey: ['recipe', id] })
+      void refreshAfter(queryClient, 'recipe')
       if (router.canGoBack()) router.back()
       else router.replace(`/recipe/${id}?saved=1`)
     },

@@ -8,7 +8,9 @@ const m = vi.hoisted(() => ({
   updateProfile: vi.fn(),
   signOut: vi.fn(async () => undefined),
   confirm: vi.fn(async () => true),
+  refreshAfter: vi.fn(async () => []),
 }))
+vi.mock('../utils/menuCache', () => ({ refreshAfter: m.refreshAfter }))
 
 vi.mock('../api/client', () => ({
   api: {
@@ -65,6 +67,21 @@ describe('ProfileScreen targets and session', () => {
     )
   })
 
+  // 2026-10-02 review: a new goal only refreshed the profile, so the planner's
+  // per-day summary kept the old target for up to 30s.
+  it("changing a goal refreshes what's measured against it; a diet chip doesn't", async () => {
+    m.getProfile.mockResolvedValue({ ...baseProfile, nutritionTargets: null })
+    wrap()
+    fireEvent.click(await screen.findByTestId('target-daily_calories-plus'))
+    await waitFor(() => expect(m.refreshAfter).toHaveBeenCalledWith(expect.anything(), 'goals'))
+    m.refreshAfter.mockClear()
+    m.updateProfile.mockClear()
+    fireEvent.click(screen.getByTestId('profile-diet-chip-vegano'))
+    await waitFor(() => expect(m.updateProfile).toHaveBeenCalled())
+    await new Promise((r) => setTimeout(r, 0))
+    expect(m.refreshAfter).not.toHaveBeenCalled()
+  })
+
   it('a per-meal goal is stored under its menu slot', async () => {
     m.getProfile.mockResolvedValue({
       ...baseProfile,
@@ -113,5 +130,25 @@ describe('ProfileScreen targets and session', () => {
     expect(screen.getByTestId('profile-diet-chip-sin-lactosa')).toHaveTextContent(/^Sin lactosa$/)
     expect(screen.getByTestId('profile-diet-chip-vegano')).toHaveTextContent(/^Vegano$/)
     expect(screen.queryByText('sin-gluten')).toBeNull()
+  })
+})
+
+// 2026-10-02 review: a failed load showed the default targets, and a tap on a
+// stepper then overwrote the real ones with them
+describe('ProfileScreen load error', () => {
+  it('shows an error with no steppers, so nothing can overwrite the saved targets', async () => {
+    m.getProfile
+      .mockReset()
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockResolvedValue({
+        ...baseProfile,
+        nutritionTargets: null,
+      })
+    wrap()
+    expect(await screen.findByText('No se pudo cargar tu perfil.')).toBeInTheDocument()
+    expect(screen.queryByTestId('target-daily_calories-plus')).toBeNull()
+    fireEvent.click(screen.getByTestId('error-retry'))
+    expect(await screen.findByTestId('target-daily_calories-plus')).toBeInTheDocument()
+    expect(m.updateProfile).not.toHaveBeenCalled()
   })
 })

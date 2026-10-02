@@ -21,6 +21,7 @@ import { isForeignRecipe } from '../../src/utils/roles'
 import { isHttpUrl, sourceHost } from '../../src/utils/sourceHost'
 import { useAuth } from '../../src/providers/AuthProvider'
 import { confirmAsync, notify } from '../../src/utils/platformAlert'
+import { refreshAfter } from '../../src/utils/menuCache'
 import { NutritionBar } from '../../src/components/NutritionBar'
 
 type DetailTab = 'recipe' | 'history'
@@ -89,8 +90,8 @@ export default function RecipeDetailScreen() {
   const deleteMutation = useMutation({
     mutationFn: () => api.recipes.delete(id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['recipes'] })
       queryClient.removeQueries({ queryKey: ['recipe', id] })
+      void refreshAfter(queryClient, 'recipe')
       router.replace('/')
     },
     onError: () => notify('Error', 'No se pudo eliminar la receta.'),
