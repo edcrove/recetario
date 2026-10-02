@@ -79,7 +79,8 @@ test('creates a food type, rejects a duplicate, and its badge opens the recipes 
 test('creates a tag from its tab; a category badge lists my recipes and closes with Cerrar', async ({
   page,
 }) => {
-  const name = `zz-e2e-${Math.random().toString(36).slice(2, 8)}`
+  // Sorts first in the (virtualized) tags list, see below
+  const name = `0-e2e-${Math.random().toString(36).slice(2, 8)}`
   let recipeId: string | undefined
   try {
     const recipe = await createRecipeViaApi(page, { category: 'Postre' })
@@ -125,7 +126,9 @@ test('creates a tag from its tab; a category badge lists my recipes and closes w
 test("a recipe's tag shows in the tags tab, and renaming it renames it on the recipe", async ({
   page,
 }) => {
-  const tag = `zztag${Math.random().toString(36).slice(2, 8)}`
+  // Starts with a digit so it sorts first: the tags list is virtualized and the
+  // demo account has dozens of tags, so a name sorting last may not be rendered
+  const tag = `0tag${Math.random().toString(36).slice(2, 8)}`
   const renamed = `${tag}-nuevo`
   const recipe = await createRecipeViaApi(page, { tags: [tag] })
   const headers = await authHeaders(page)
