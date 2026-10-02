@@ -198,9 +198,26 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
   cada tab") found unbuilt by the 2026-10-01 test-base review.
 - **Where it lives**: `configRepository.create` / `usedBy`, `packages/api/src/routes/config.ts`,
   `packages/mcp/src/tools/configurator.ts`, `apps/app/app/config/index.tsx`.
-- **Status**: active. Known gaps, tracked separately: recipe tags (`recipes.tags` jsonb) never
-  write `recipe_tags`, so tag badges stay at 0; recipe categories are a fixed enum, so a
-  custom category cannot be used by recipes yet.
+- **Status**: active. Known gaps found here: recipe tags never reached `recipe_tags` (fixed by
+  D-2026-10-02-1); recipe categories are a fixed enum, so a custom category cannot be used by
+  recipes yet.
+
+### D-2026-10-02-1 · A recipe's tags feed each owner's tag registry
+
+- **Decision**: a recipe's `tags` list stays the field people and agents read, write and search
+  by. Every recipe create, update or copy links it to the owner's tags (`tags` +
+  `recipe_tags`), creating the tags it doesn't have yet. Spellings with the same slug share
+  one tag, and the first spelling names it. A tag with no slug characters stays on the recipe
+  but isn't registered. The configurator writes back: renaming a tag renames it on its
+  recipes; deleting removes it; merging, or deleting with reassignment, swaps it for the
+  target's name, without duplicates. The release step links recipes saved before this
+  (idempotent).
+- **Why**: latent bug found by D-2026-10-01-15. Nothing wrote `recipe_tags`, so tag badges
+  were always 0 and rename/merge/delete never touched real recipes.
+- **Where it lives**: `packages/api/src/db/recipe-tags.ts`, `slug.ts`,
+  `configRepository` (tag rename/delete/merge), `RecipeRepository.create`/`update`,
+  `scripts/release.ts`.
+- **Status**: active
 
 ## 2026-09-30 — Dependency & maintenance session (PRs #125, #140, #147, #148, #124)
 

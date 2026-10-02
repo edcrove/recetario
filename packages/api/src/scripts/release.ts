@@ -2,6 +2,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { migrate } from 'drizzle-orm/postgres-js/migrator'
 import { getDb } from '../db/index.js'
 import { seedTaxonomy } from './seed-taxonomy.js'
+import { backfillRecipeTags } from '../db/recipe-tags.js'
 
 /**
  * Deploy-time release step (Railway start command, before the server boots):
@@ -16,6 +17,8 @@ export async function release(db = getDb()): Promise<void> {
   console.log('Applying migrations…')
   await migrate(db, { migrationsFolder: MIGRATIONS_FOLDER })
   await seedTaxonomy(db)
+  const linked = await backfillRecipeTags()
+  if (linked > 0) console.log(`Linked the tags of ${linked} recipe(s)`)
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

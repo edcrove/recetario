@@ -3,17 +3,11 @@ import type { AnyPgColumn } from 'drizzle-orm/pg-core'
 import type { ConfigType, TaxonomyItem } from '@recetario/shared'
 import { schema } from './index.js'
 import { currentDb, inTransaction } from './transaction.js'
+import { slugify } from './slug.js'
+import { recipesWithTag, rewriteTagOnRecipes } from './recipe-tags.js'
 
 /** Why a delete didn't happen: the item isn't the caller's (or is a system one), or the reassign target isn't usable. */
 export type DeleteOutcome = 'deleted' | 'not_found' | 'bad_target'
-
-/** "Comida Rápida" → "comida-rpida": lowercase, dashes, ASCII only. */
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '')
-}
 
 /** System rows (no owner) plus the caller's own. */
 const systemOrOwn = (ownerColumn: AnyPgColumn, ownerId: string) =>
@@ -141,11 +135,7 @@ export const configRepository = {
               .set(values)
               .where(and(eq(schema.foodTypes.id, id), eq(schema.foodTypes.ownerId, ownerId)))
               .returning({ id: schema.foodTypes.id, name: schema.foodTypes.name })
-          : await db
-              .update(schema.tags)
-              .set(values)
-              .where(and(eq(schema.tags.id, id), eq(schema.tags.ownerId, ownerId)))
-              .returning({ id: schema.tags.id, name: schema.tags.name })
+          : await renameTag(ownerId, id, name)
     return row ?? null
   },
 
@@ -209,6 +199,8 @@ export const configRepository = {
       if (reassignTo) {
         if (reassignTo === id || owned.length < 2) return 'bad_target'
         await moveTagLinks(id, reassignTo)
+      } else {
+        await dropTagFromRecipes(id)
       }
       await db.delete(schema.tags).where(eq(schema.tags.id, id))
       return 'deleted'
@@ -388,18 +380,59 @@ export const configRepository = {
   },
 }
 
-/** Copies a tag's recipe links to another tag (skipping duplicates); returns how many recipes had it. */
+/** Slug and name of one of the owner's tags (undefined when it isn't theirs). */
+async function ownTag(ownerId: string, id: string) {
+  const [tag] = await currentDb()
+    .select({ slug: schema.tags.slug, name: schema.tags.name })
+    .from(schema.tags)
+    .where(and(eq(schema.tags.id, id), eq(schema.tags.ownerId, ownerId)))
+    .limit(1)
+  return tag
+}
+
+/** Renames a tag and the spelling on every recipe that has it. */
+async function renameTag(ownerId: string, id: string, name: string) {
+  return inTransaction(async () => {
+    const old = await ownTag(ownerId, id)
+    if (!old) return []
+    const rows = await currentDb()
+      .update(schema.tags)
+      .set({ name, slug: slugify(name) })
+      .where(eq(schema.tags.id, id))
+      .returning({ id: schema.tags.id, name: schema.tags.name })
+    await rewriteTagOnRecipes(await recipesWithTag(id), old.slug, name)
+    return rows
+  })
+}
+
+/** Removes a tag (about to be deleted) from the `tags` list of its recipes. */
+async function dropTagFromRecipes(id: string): Promise<void> {
+  const [tag] = await currentDb()
+    .select({ slug: schema.tags.slug })
+    .from(schema.tags)
+    .where(eq(schema.tags.id, id))
+  await rewriteTagOnRecipes(await recipesWithTag(id), tag!.slug, null)
+}
+
+/**
+ * Moves a tag's recipes to another tag (skipping duplicates), renaming the
+ * spelling on each recipe; returns how many recipes had it.
+ */
 async function moveTagLinks(fromId: string, toId: string): Promise<number> {
   const db = currentDb()
-  const links = await db
-    .select({ recipeId: schema.recipeTags.recipeId })
-    .from(schema.recipeTags)
-    .where(eq(schema.recipeTags.tagId, fromId))
-  if (links.length > 0) {
+  const recipeIds = await recipesWithTag(fromId)
+  if (recipeIds.length > 0) {
     await db
       .insert(schema.recipeTags)
-      .values(links.map((l) => ({ recipeId: l.recipeId, tagId: toId })))
+      .values(recipeIds.map((recipeId) => ({ recipeId, tagId: toId })))
       .onConflictDoNothing()
+    const tags = await db
+      .select({ id: schema.tags.id, slug: schema.tags.slug, name: schema.tags.name })
+      .from(schema.tags)
+      .where(or(eq(schema.tags.id, fromId), eq(schema.tags.id, toId)))
+    const from = tags.find((t) => t.id === fromId)!
+    const to = tags.find((t) => t.id === toId)!
+    await rewriteTagOnRecipes(recipeIds, from.slug, to.name)
   }
-  return links.length
+  return recipeIds.length
 }
