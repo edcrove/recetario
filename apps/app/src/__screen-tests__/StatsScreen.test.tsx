@@ -169,12 +169,23 @@ describe('StatsScreen: streak and weekly chart', () => {
   })
 })
 
-describe('StatsScreen: when the stats request fails', () => {
-  it('shows the empty states and an 8-week empty chart frame, not a crash', async () => {
-    mockStats.mockReset().mockRejectedValue(new Error('API 500'))
+// 2026-10-02 review: a failed load read as "0 sesiones" and an empty streak
+describe('StatsScreen load error', () => {
+  it('says the stats could not load, and retries', async () => {
+    mockStats
+      .mockReset()
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockResolvedValue({
+        since: '2026-07-01',
+        totalSessions: 3,
+        topRecipes: [],
+        frequencyByWeek: [],
+        streak: { current: 0, longest: 0 },
+      })
     wrap(<StatsScreen />)
-    expect(await screen.findByTestId('stats-streak')).toHaveTextContent('Cociná hoy')
-    expect(screen.getByText('Todavía no hay sesiones de cocina registradas.')).toBeInTheDocument()
-    expect(screen.getByText(/¡Empezá a cocinar/)).toBeInTheDocument()
+    expect(await screen.findByText('No se pudieron cargar las estadísticas.')).toBeInTheDocument()
+    expect(screen.queryByText('sesiones de cocina', { exact: false })).toBeNull()
+    fireEvent.click(screen.getByTestId('error-retry'))
+    expect(await screen.findByText('3')).toBeInTheDocument()
   })
 })

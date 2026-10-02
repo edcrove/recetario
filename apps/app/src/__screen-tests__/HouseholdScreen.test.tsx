@@ -309,3 +309,17 @@ describe('HouseholdScreen: change role and leave', () => {
     )
   })
 })
+
+// 2026-10-02 review: a failed load read as "no household yet" and offered to
+// create a second one
+describe('HouseholdScreen load error', () => {
+  it('says the household could not load instead of offering to create one', async () => {
+    m.mine.mockReset().mockRejectedValueOnce(new Error('boom')).mockResolvedValue([])
+    wrap()
+    expect(await screen.findByText('No se pudo cargar tu hogar.')).toBeInTheDocument()
+    expect(m.create).not.toHaveBeenCalled()
+    expect(screen.queryByPlaceholderText(/nombre/i)).toBeNull()
+    fireEvent.click(screen.getByTestId('error-retry'))
+    await waitFor(() => expect(m.mine).toHaveBeenCalledTimes(2))
+  })
+})

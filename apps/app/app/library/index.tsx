@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { LibraryRecipe } from '@recetario/shared'
 import { api } from '../../src/api/client'
+import { ErrorState } from '../../src/components/ErrorState'
 import { confirmAsync, notify } from '../../src/utils/platformAlert'
 import { useThemeColors, type ThemeColors } from '../../src/theme/tokens'
 
@@ -14,7 +15,12 @@ export default function LibraryScreen() {
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
 
-  const { data: recipes = [], isLoading } = useQuery({
+  const {
+    data: recipes = [],
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ['library', search],
     queryFn: () => api.library.list(search ? { search } : undefined),
   })
@@ -36,6 +42,9 @@ export default function LibraryScreen() {
     )
     if (confirmed && recipe.id) copyMutation.mutate(recipe.id)
   }
+
+  if (error)
+    return <ErrorState message="No se pudo cargar la biblioteca." onRetry={() => void refetch()} />
 
   return (
     <View style={s.container}>
