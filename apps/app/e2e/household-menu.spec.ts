@@ -108,6 +108,34 @@ test("a housemate's planned dish shows read-only; mine stays editable and asks b
   }
 })
 
+// 2026-10-02 review (a CI flake on #242): who is signed in only arrived with
+// GET /auth/me, so until it answered your own dishes were disabled like a
+// housemate's. The token already says who you are.
+test('your own dish opens right away, even while /auth/me is slow', async ({ page }) => {
+  const headers = await authHeaders(page)
+  const today = localToday()
+  const recipe = await createRecipeViaApi(page, { category: 'Cena' })
+  await page.request.post(`${API_URL}/v1/menu`, {
+    headers,
+    data: { date: today, slot: 'Cena', recipeId: recipe.id, servings: 2 },
+  })
+  await page.route('**/auth/me', async (route) => {
+    await new Promise((r) => setTimeout(r, 8000))
+    await route.fallback()
+  })
+  try {
+    await page.goto('/menu')
+    const chip = page.getByTestId(`menu-entry-${today}-Cena-${recipe.id}`)
+    await expect(chip).not.toHaveAttribute('aria-disabled', 'true', { timeout: 4000 })
+    await chip.click()
+    await expect(page.getByTestId('menu-modal-save')).toBeVisible({ timeout: 4000 })
+  } finally {
+    await page.unroute('**/auth/me')
+    await page.request.delete(`${API_URL}/v1/menu/${today}/Cena/${recipe.id}`, { headers })
+    await deleteRecipeViaApi(page, recipe.id)
+  }
+})
+
 // 2026-10-02 review: removing a member only refreshed "Mi hogar", so their
 // recipes stayed on home (and their dishes on the planner) for up to 30s.
 test('removing a housemate takes their recipes off home right away', async ({ page }, testInfo) => {

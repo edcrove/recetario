@@ -4,13 +4,14 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 // Sign-out, sign-in and a 401 must all drop the shared query cache, otherwise
 // the next user on a shared device sees the previous user's cached data.
 
-const { unauthorized, store } = vi.hoisted(() => ({
+const { unauthorized, store, mockMe } = vi.hoisted(() => ({
   unauthorized: { handler: null as (() => void) | null },
   store: new Map<string, string>(),
+  mockMe: vi.fn(),
 }))
 
 vi.mock('../api/client', () => ({
-  api: { auth: { me: vi.fn().mockResolvedValue({ id: 'user-a' }) } },
+  api: { auth: { me: mockMe } },
   setOnUnauthorized: (h: (() => void) | null) => {
     unauthorized.handler = h
   },
@@ -39,6 +40,7 @@ function seedCache() {
 beforeEach(() => {
   store.clear()
   queryClient.clear()
+  mockMe.mockReset().mockResolvedValue({ id: 'user-a' })
 })
 
 async function signedIn() {
@@ -89,5 +91,31 @@ describe('AuthProvider query cache', () => {
     act(() => unauthorized.handler?.())
 
     expect(queryClient.getQueryCache().getAll()).toHaveLength(2)
+  })
+})
+
+// 2026-10-02 review: userId only arrived with GET /auth/me, so right after the
+// app opened (or for good, if /me failed) every own dish and recipe read as
+// someone else's: the planner chips were disabled and Editar was hidden.
+describe('AuthProvider userId', () => {
+  const b64url = (o: object) =>
+    btoa(JSON.stringify(o)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  const jwt = `${b64url({ alg: 'HS256' })}.${b64url({ sub: 'user-from-token' })}.sig`
+
+  it("is the token's subject before /auth/me answers, and stays if /me fails", async () => {
+    let fail: (e: Error) => void = () => {}
+    mockMe.mockReturnValue(new Promise((_, reject) => (fail = reject)))
+    store.set('auth_token', jwt)
+    const { result } = renderHook(() => useAuth(), { wrapper })
+    await waitFor(() => expect(result.current.userId).toBe('user-from-token'))
+    await act(async () => fail(new Error('network')))
+    expect(result.current.userId).toBe('user-from-token')
+  })
+
+  it('takes the id /auth/me confirms', async () => {
+    mockMe.mockResolvedValue({ id: 'user-from-me' })
+    store.set('auth_token', jwt)
+    const { result } = renderHook(() => useAuth(), { wrapper })
+    await waitFor(() => expect(result.current.userId).toBe('user-from-me'))
   })
 })
