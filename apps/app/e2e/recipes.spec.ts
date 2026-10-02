@@ -539,3 +539,26 @@ test('home reaches recipes past the first page (the time filter finds an old one
     for (const id of [old.id, ...newer]) await deleteRecipeViaApi(page, id)
   }
 })
+
+// 2026-10-02 review: the form read quantities with parseFloat, so the decimal
+// comma used here ("1,5") was saved as 1 without a word.
+test('a quantity typed with a decimal comma is saved as written', async ({ page }) => {
+  const headers = await authHeaders(page)
+  const title = `E2E Coma ${Date.now()}`
+  let recipeId: string | undefined
+  try {
+    await page.goto('/recipe/new')
+    await page.getByPlaceholder('Nombre de la receta').fill(title)
+    await page.getByPlaceholder('Ingrediente').first().fill('Harina')
+    await page.getByPlaceholder('Cant.').first().fill('1,5')
+    await page.getByText('Guardar Receta').click()
+    await expect(page.getByTestId('recipe-saved-banner')).toBeVisible()
+    recipeId = page.url().split('/recipe/')[1]?.split(/[?#]/)[0]
+    const saved = (await (
+      await page.request.get(`${API_URL}/v1/recipes/${recipeId}`, { headers })
+    ).json()) as { ingredients: { quantity: number }[] }
+    expect(saved.ingredients[0]?.quantity).toBe(1.5)
+  } finally {
+    if (recipeId) await deleteRecipeViaApi(page, recipeId)
+  }
+})
