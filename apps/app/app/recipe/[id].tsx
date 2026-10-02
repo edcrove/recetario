@@ -306,7 +306,8 @@ export default function RecipeDetailScreen() {
               <Text style={s.sectionTitle}>Te puede gustar</Text>
               {relations.slice(0, 4).map((rel) => (
                 <TouchableOpacity
-                  key={rel.toId}
+                  key={`${rel.toId}-${rel.relationType}`}
+                  testID={`recipe-related-${rel.toId}`}
                   style={s.relatedRow}
                   onPress={() => router.push(`/recipe/${rel.toId}`)}
                 >
@@ -317,8 +318,8 @@ export default function RecipeDetailScreen() {
                         ? 'Similar'
                         : 'Inspiración'}
                   </Text>
-                  <Text style={s.relatedId} numberOfLines={1}>
-                    {rel.toId.slice(0, 8)}…
+                  <Text style={s.relatedTitle} numberOfLines={1}>
+                    {rel.toTitle}
                   </Text>
                   <Text style={s.chevron}>›</Text>
                 </TouchableOpacity>
@@ -429,7 +430,7 @@ const makeStyles = (c: ThemeColors) =>
       paddingVertical: 2,
       borderRadius: 10,
     },
-    relatedId: { flex: 1, fontSize: 13, color: c.ink },
+    relatedTitle: { flex: 1, fontSize: 14, color: c.ink },
     chevron: { fontSize: 18, color: c.inkSoft },
     sessionRow: {
       flexDirection: 'row',

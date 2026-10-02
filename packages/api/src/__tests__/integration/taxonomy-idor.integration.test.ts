@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
 
 const skip = process.env['SKIP_INTEGRATION'] === 'true'
 import app from '../../index.js'
+import { eq } from 'drizzle-orm'
 import { getDb, schema } from '../../db/index.js'
 import { TEST_API_KEY, resetTestDb } from './globalSetup.js'
 
@@ -27,6 +28,8 @@ describe.skipIf(skip).sequential('Taxonomy/relations cross-tenant authorization'
   let ownFoodTypeId: string
   let otherFoodTypeId: string
   let otherRecipeId: string
+  let ownRecipeId: string
+  let ownOtherRecipeId: string
 
   beforeAll(async () => {
     await resetTestDb()
@@ -63,6 +66,19 @@ describe.skipIf(skip).sequential('Taxonomy/relations cross-tenant authorization'
     })
     expect(otherRecipeRes.status).toBe(201)
     otherRecipeId = (await otherRecipeRes.json()).id
+
+    const own = async (title: string) =>
+      (
+        await (
+          await app.request('/v1/recipes', {
+            method: 'POST',
+            headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...baseRecipe, title }),
+          })
+        ).json()
+      ).id as string
+    ownRecipeId = await own('Mi Receta')
+    ownOtherRecipeId = await own('Mi Otra Receta')
   })
 
   describe('GET /v1/food-types', () => {
@@ -85,19 +101,39 @@ describe.skipIf(skip).sequential('Taxonomy/relations cross-tenant authorization'
       expect(res.status).toBe(404)
     })
 
-    it('creates a relation on a recipe the caller owns', async () => {
-      const ownRecipeRes = await app.request('/v1/recipes', {
-        method: 'POST',
-        headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...baseRecipe, title: 'Mi Receta' }),
-      })
-      const ownRecipeId = (await ownRecipeRes.json()).id
+    it('relates two of my recipes and returns the related title', async () => {
       const res = await app.request(`/v1/recipes/${ownRecipeId}/relations`, {
         method: 'POST',
         headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ toId: otherRecipeId, relationType: 'similar' }),
+        body: JSON.stringify({ toId: ownOtherRecipeId, relationType: 'similar' }),
       })
       expect(res.status).toBe(201)
+      expect((await res.json()).toTitle).toBe('Mi Otra Receta')
+    })
+
+    // 2026-10-02 review: the target was never checked, so a relation could point
+    // at someone else's private recipe (or at the recipe itself).
+    it("404s a relation to someone else's private recipe, and stores nothing", async () => {
+      const res = await app.request(`/v1/recipes/${ownRecipeId}/relations`, {
+        method: 'POST',
+        headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ toId: otherRecipeId, relationType: 'inspiration' }),
+      })
+      expect(res.status).toBe(404)
+      const stored = await getDb()
+        .select()
+        .from(schema.recipeRelations)
+        .where(eq(schema.recipeRelations.toId, otherRecipeId))
+      expect(stored).toEqual([])
+    })
+
+    it('400s a recipe related to itself', async () => {
+      const res = await app.request(`/v1/recipes/${ownRecipeId}/relations`, {
+        method: 'POST',
+        headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ toId: ownRecipeId, relationType: 'similar' }),
+      })
+      expect(res.status).toBe(400)
     })
   })
 
@@ -107,6 +143,26 @@ describe.skipIf(skip).sequential('Taxonomy/relations cross-tenant authorization'
         headers: { Authorization: authHeader },
       })
       expect(res.status).toBe(404)
+    })
+
+    it('lists only related recipes I can open, each with its title', async () => {
+      // A relation stored before the target was checked, pointing at a private recipe
+      await getDb()
+        .insert(schema.recipeRelations)
+        .values({ fromId: ownRecipeId, toId: otherRecipeId, relationType: 'variation' })
+      const res = await app.request(`/v1/recipes/${ownRecipeId}/relations`, {
+        headers: { Authorization: authHeader },
+      })
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual([
+        {
+          fromId: ownRecipeId,
+          toId: ownOtherRecipeId,
+          relationType: 'similar',
+          createdBy: 'user',
+          toTitle: 'Mi Otra Receta',
+        },
+      ])
     })
   })
 })

@@ -217,20 +217,49 @@ describe('POST /v1/collections/:id/recipes', () => {
 })
 
 describe('POST /v1/recipes/:id/relations', () => {
-  it('creates a recipe relation', async () => {
-    vi.mocked(recipeRepository.findById).mockResolvedValueOnce({
-      id: UUID,
-      title: 'Tarta',
-    } as never)
+  it('creates a recipe relation to a recipe the caller can open, returning its title', async () => {
+    vi.mocked(recipeRepository.findById)
+      .mockResolvedValueOnce({ id: UUID, title: 'Tarta' } as never)
+      .mockResolvedValueOnce({ id: UUID2, title: 'Pascualina' } as never)
     const res = await app.request(`/v1/recipes/${UUID}/relations`, {
       method: 'POST',
       headers: AUTH,
       body: JSON.stringify({ toId: UUID2, relationType: 'similar' }),
     })
     expect(res.status).toBe(201)
-    const body = await res.json()
-    expect(body.fromId).toBe(UUID)
-    expect(body.relationType).toBe('similar')
+    expect(await res.json()).toEqual({
+      fromId: UUID,
+      toId: UUID2,
+      relationType: 'similar',
+      createdBy: 'user',
+      toTitle: 'Pascualina',
+    })
+    expect(recipeRepository.findById).toHaveBeenLastCalledWith(UUID2, { visibleTo: 'dev' })
+  })
+
+  it('404s a related recipe the caller cannot open (someone else private one, or gone)', async () => {
+    vi.mocked(recipeRepository.findById)
+      .mockResolvedValueOnce({ id: UUID, title: 'Tarta' } as never)
+      .mockResolvedValueOnce(null)
+    const res = await app.request(`/v1/recipes/${UUID}/relations`, {
+      method: 'POST',
+      headers: AUTH,
+      body: JSON.stringify({ toId: UUID2, relationType: 'similar' }),
+    })
+    expect(res.status).toBe(404)
+    expect(await res.json()).toEqual({ error: 'Related recipe not found' })
+  })
+
+  it('rejects relating a recipe to itself', async () => {
+    vi.mocked(recipeRepository.findById).mockResolvedValue({ id: UUID, title: 'Tarta' } as never)
+    const res = await app.request(`/v1/recipes/${UUID}/relations`, {
+      method: 'POST',
+      headers: AUTH,
+      body: JSON.stringify({ toId: UUID, relationType: 'similar' }),
+    })
+    expect(res.status).toBe(400)
+    expect(await res.json()).toEqual({ error: 'A recipe cannot be related to itself' })
+    vi.mocked(recipeRepository.findById).mockReset()
   })
 
   it('rejects invalid relationType', async () => {
@@ -321,15 +350,29 @@ describe('GET /v1/recipes/:id/relations', () => {
       id: UUID,
       title: 'Tarta',
     } as never)
+    const UUID3 = '550e8400-e29b-41d4-a716-446655440003'
     mockSelect.mockReturnValue([
       { fromId: UUID, toId: UUID2, relationType: 'variation', createdBy: 'agent' },
+      { fromId: UUID, toId: UUID3, relationType: 'similar', createdBy: 'user' },
+    ])
+    // UUID3 is no longer visible to the caller (made private by a former housemate)
+    vi.mocked(recipeRepository.findByIds).mockResolvedValueOnce([
+      { id: UUID2, title: 'Pascualina' } as never,
     ])
     const res = await app.request(`/v1/recipes/${UUID}/relations`, {
       headers: { Authorization: 'Bearer test-key' },
     })
     expect(res.status).toBe(200)
-    const body = await res.json()
-    expect(body[0].relationType).toBe('variation')
+    expect(await res.json()).toEqual([
+      {
+        fromId: UUID,
+        toId: UUID2,
+        relationType: 'variation',
+        createdBy: 'agent',
+        toTitle: 'Pascualina',
+      },
+    ])
+    expect(recipeRepository.findByIds).toHaveBeenCalledWith([UUID2, UUID3], { visibleTo: 'dev' })
   })
 
   it('returns 404 when the recipe does not exist or is not owned by the caller (IDOR guard)', async () => {
