@@ -118,15 +118,35 @@ export const configRepository = {
     }
   },
 
-  /** Renames the caller's own item; null when it isn't theirs. */
+  /**
+   * Renames the caller's own item; null when it isn't theirs. Like create, a
+   * name whose slug another visible item already has (own, or a system one for
+   * categories and food types) is a duplicate.
+   */
   async rename(
     type: ConfigType,
     ownerId: string,
     id: string,
     name: string,
-  ): Promise<{ id: string; name: string } | null> {
+  ): Promise<{ id: string; name: string } | 'duplicate' | 'invalid' | null> {
     const db = currentDb()
-    const values = { name, slug: slugify(name) }
+    const slug = slugify(name.trim())
+    if (!slug.replace(/-/g, '')) return 'invalid'
+    const table =
+      type === 'categories'
+        ? schema.mealCategories
+        : type === 'food-types'
+          ? schema.foodTypes
+          : schema.tags
+    const visible =
+      type === 'tags' ? eq(schema.tags.ownerId, ownerId) : systemOrOwn(table.ownerId, ownerId)
+    const [taken] = await db
+      .select({ id: table.id })
+      .from(table)
+      .where(and(eq(table.slug, slug), visible, ne(table.id, id)))
+      .limit(1)
+    if (taken) return 'duplicate'
+    const values = { name, slug }
     const [row] =
       type === 'categories'
         ? await renameCategory(ownerId, id, name)

@@ -75,6 +75,20 @@ describe('PATCH /v1/config/:type/:id', () => {
     expect(res.status).toBe(404)
   })
 
+  it.each([
+    ['duplicate', 409, 'Already exists'],
+    ['invalid', 400, 'Invalid name'],
+  ] as const)('a %s rename is a %i', async (outcome, status, error) => {
+    config.rename.mockResolvedValue(outcome)
+    const res = await app.request(`/v1/config/categories/${ID}`, {
+      method: 'PATCH',
+      headers: AUTH,
+      body: JSON.stringify({ name: 'Cena' }),
+    })
+    expect(res.status).toBe(status)
+    expect(await res.json()).toEqual({ error })
+  })
+
   it('returns 400 for an unknown type', async () => {
     const res = await app.request(`/v1/config/colors/${ID}`, {
       method: 'PATCH',
