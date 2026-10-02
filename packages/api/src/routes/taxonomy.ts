@@ -48,7 +48,9 @@ taxonomyRoute.openapi(
     security: [{ ApiKeyAuth: [] }],
     request: {
       body: {
-        content: { 'application/json': { schema: z.object({ name: z.string().min(1).max(50) }) } },
+        content: {
+          'application/json': { schema: z.object({ name: z.string().trim().min(1).max(50) }) },
+        },
         required: true,
       },
     },
@@ -95,7 +97,7 @@ taxonomyRoute.openapi(
         content: {
           'application/json': {
             schema: z.object({
-              name: z.string().min(1).max(100),
+              name: z.string().trim().min(1).max(100),
               emoji: z.string().max(4).optional(),
               description: z.string().max(500).optional(),
             }),

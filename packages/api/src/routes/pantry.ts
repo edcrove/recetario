@@ -16,7 +16,7 @@ const errorSchema = z.object({ error: z.string() })
 const pantryItemSchema = PantryItemSchema
 
 const createBody = z.object({
-  name: z.string().min(1),
+  name: z.string().trim().min(1),
   quantity: z.string().nullable().optional(),
   unit: z.string().nullable().optional(),
   expiryDate: z.iso.date().nullable().optional(),

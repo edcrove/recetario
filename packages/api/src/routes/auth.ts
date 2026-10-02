@@ -36,7 +36,7 @@ const registerRoute = defineRoute({
           schema: z.object({
             email: z.email(),
             password: z.string().min(8),
-            displayName: z.string().min(1).max(100).optional(),
+            displayName: z.string().trim().min(1).max(100).optional(),
           }),
         },
       },
