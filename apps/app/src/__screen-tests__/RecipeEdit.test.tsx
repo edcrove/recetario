@@ -32,6 +32,9 @@ vi.mock('../api/client', () => ({
 }))
 
 import { useRouter } from 'expo-router'
+const { mockRefreshAfter } = vi.hoisted(() => ({ mockRefreshAfter: vi.fn(async () => []) }))
+vi.mock('../utils/menuCache', () => ({ refreshAfter: mockRefreshAfter }))
+
 import EditRecipeScreen from '../../app/recipe/[id]/edit'
 
 function wrap(ui: React.ReactElement) {
@@ -69,6 +72,17 @@ describe('EditRecipeScreen', () => {
     fireEvent.click(screen.getByText('Guardar Cambios'))
     await waitFor(() => expect(mockUpdate).toHaveBeenCalled())
     expect(mockUpdate.mock.calls[0]?.[1].ingredients[0].unit).toBe('tbsp')
+  })
+
+  // 2026-10-02 review: saving only refreshed the recipe lists, so the planner
+  // and shopping list kept the old title/ingredients for up to 30s.
+  it('saving refreshes everywhere the recipe shows', async () => {
+    mockUpdate.mockResolvedValue({})
+    mockRefreshAfter.mockClear()
+    wrap(<EditRecipeScreen />)
+    await screen.findByDisplayValue('Receta Original')
+    fireEvent.click(screen.getByText('Guardar Cambios'))
+    await waitFor(() => expect(mockRefreshAfter).toHaveBeenCalledWith(expect.anything(), 'recipe'))
   })
 
   it('sends the food types, including an emptied selection', async () => {

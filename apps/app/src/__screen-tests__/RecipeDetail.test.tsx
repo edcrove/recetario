@@ -1,6 +1,16 @@
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
+const { mockDelete, mockRefreshAfter } = vi.hoisted(() => ({
+  mockDelete: vi.fn().mockResolvedValue(undefined),
+  mockRefreshAfter: vi.fn(async () => []),
+}))
+vi.mock('../utils/menuCache', () => ({ refreshAfter: mockRefreshAfter }))
+vi.mock('../utils/platformAlert', () => ({
+  confirmAsync: vi.fn(async () => true),
+  notify: vi.fn(),
+}))
 
 vi.mock('../api/client', () => ({
   api: {
@@ -24,6 +34,7 @@ vi.mock('../api/client', () => ({
         notes: 'Muy rica',
         nutrition: { calories: 210, protein_g: 11, carbs_g: 17.5, fat_g: 22.7 },
       }),
+      delete: mockDelete,
     },
   },
 }))
@@ -49,6 +60,15 @@ function wrap(ui: React.ReactElement) {
 }
 
 describe('RecipeDetailScreen', () => {
+  // 2026-10-02 review: deleting only refreshed the recipe lists, so the planner,
+  // shopping list and collections kept showing the deleted recipe for 30s.
+  it('deleting the recipe refreshes everywhere it showed', async () => {
+    wrap(<RecipeDetailScreen />)
+    fireEvent.click(await screen.findByTestId('recipe-delete'))
+    await waitFor(() => expect(mockDelete).toHaveBeenCalled())
+    await waitFor(() => expect(mockRefreshAfter).toHaveBeenCalledWith(expect.anything(), 'recipe'))
+  })
+
   it('renders recipe title after load', async () => {
     wrap(<RecipeDetailScreen />)
     expect(await screen.findByText('Pasta Test')).toBeInTheDocument()

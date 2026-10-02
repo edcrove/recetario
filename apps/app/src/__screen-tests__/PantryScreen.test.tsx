@@ -54,8 +54,7 @@ const seed = () => [
   },
 ]
 
-function wrap() {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+function wrap(client = new QueryClient({ defaultOptions: { queries: { retry: false } } })) {
   return render(
     <QueryClientProvider client={client}>
       <PantryScreen />
@@ -91,6 +90,27 @@ describe('PantryScreen', () => {
     fireEvent.change(screen.getByTestId('pantry-new-name'), { target: { value: 'Fideos' } })
     fireEvent.click(screen.getByTestId('pantry-add'))
     await waitFor(() => expect(mockCreate).toHaveBeenCalledWith({ name: 'Fideos', inStock: true }))
+  })
+
+  // 2026-10-02 review: only ['pantry'] was refreshed, so "Tu semana" kept saying
+  // "falta: …" for what you had just added (cached for 30s).
+  it('adding, toggling or deleting refreshes what reads the pantry', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const spy = vi.spyOn(client, 'invalidateQueries')
+    const refreshed = () => spy.mock.calls.map((c) => JSON.stringify(c[0]?.queryKey))
+    wrap(client)
+    await screen.findByText('En casa')
+    fireEvent.change(screen.getByTestId('pantry-new-name'), { target: { value: 'Fideos' } })
+    fireEvent.click(screen.getByTestId('pantry-add'))
+    await waitFor(() =>
+      expect(refreshed()).toEqual(['["pantry"]', '["menu-gap"]', '["suggestions"]']),
+    )
+    spy.mockClear()
+    fireEvent.click(screen.getByTestId('pantry-toggle-arroz'))
+    await waitFor(() => expect(refreshed()).toContain('["menu-gap"]'))
+    spy.mockClear()
+    fireEvent.click(screen.getByTestId('pantry-delete-sal'))
+    await waitFor(() => expect(refreshed()).toContain('["menu-gap"]'))
   })
 
   it('toggles stock on an item', async () => {
