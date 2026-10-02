@@ -15,6 +15,7 @@ import { confirmAsync, notify } from '../../src/utils/platformAlert'
 import { expiryStatus, groupPantry, type PantryItem } from '../../src/utils/pantryView'
 import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 import { useIsViewer } from '../../src/hooks/useIsViewer'
+import { refreshAfter } from '../../src/utils/menuCache'
 import { ViewerNotice } from '../../src/components/ViewerNotice'
 
 export default function PantryScreen() {
@@ -33,7 +34,7 @@ export default function PantryScreen() {
     refetch,
   } = useQuery({ queryKey: ['pantry'], queryFn: () => api.pantry.list() })
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['pantry'] })
+  const invalidate = () => refreshAfter(queryClient, 'pantry')
 
   const add = useMutation({
     mutationFn: (name: string) => api.pantry.create({ name, inStock: true }),

@@ -125,3 +125,63 @@ test('pick/type ingredients → cook now + almost, and the weekly gap jumps to t
     for (const id of created) await page.request.delete(`${API_URL}/v1/recipes/${id}`, { headers })
   }
 })
+
+// 2026-10-02 review: adding what was missing to the pantry only refreshed the
+// pantry, so going back to "Tu semana" kept saying "falta: …" (30s cache).
+test('buying what a planned meal lacks makes it cookable in Tu semana right away', async ({
+  page,
+}) => {
+  const token = await page.evaluate(() => localStorage.getItem('auth_token'))
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+  const missing = `zz${Math.random().toString(36).slice(2, 7)}queso`
+  const week = weekStartUTC()
+  const recipeId = (
+    (await (
+      await page.request.post(`${API_URL}/v1/recipes`, {
+        headers,
+        data: {
+          title: `E2E Falta ${missing}`,
+          servings: 1,
+          category: 'Cena',
+          ingredients: [{ name: missing, quantity: 1, unit: 'unit' }],
+          steps: [{ text: 'Cocinar.' }],
+        },
+      })
+    ).json()) as { id: string }
+  ).id
+  await page.request.post(`${API_URL}/v1/menu`, {
+    headers,
+    data: { date: week, slot: 'Cena', recipeId, servings: 1 },
+  })
+  try {
+    await page.goto('/')
+    await page.getByTestId('home-heladera-button').click()
+    await page.getByTestId('heladera-tab-semana').click()
+    const meal = page.locator('[data-testid^="heladera-meal-"]', {
+      hasText: `E2E Falta ${missing}`,
+    })
+    await expect(meal).toContainText(`falta: ${missing}`)
+
+    // In-app (no reload, so the cache is what's on screen): buy it, come back
+    await page.getByText('‹ Volver').click()
+    await page.getByTestId('home-profile-button').click()
+    await page.getByText('Despensa').click()
+    await page.getByTestId('pantry-new-name').fill(missing)
+    await page.getByTestId('pantry-add').click()
+    await expect(page.locator('[data-testid^="pantry-item-"]', { hasText: missing })).toBeVisible()
+    await page.getByText('‹ Volver').click()
+    await page.getByTestId('home-heladera-button').click()
+    await page.getByTestId('heladera-tab-semana').click()
+    await expect(meal).toContainText('Cocinable')
+    await expect(meal).not.toContainText('falta:')
+  } finally {
+    await page.request.delete(`${API_URL}/v1/menu/${week}/Cena/${recipeId}`, { headers })
+    const items = (await (await page.request.get(`${API_URL}/v1/pantry`, { headers })).json()) as {
+      id: string
+      name: string
+    }[]
+    for (const i of items.filter((i) => i.name === missing))
+      await page.request.delete(`${API_URL}/v1/pantry/${i.id}`, { headers })
+    await page.request.delete(`${API_URL}/v1/recipes/${recipeId}`, { headers })
+  }
+})

@@ -8,7 +8,9 @@ const m = vi.hoisted(() => ({
   updateProfile: vi.fn(),
   signOut: vi.fn(async () => undefined),
   confirm: vi.fn(async () => true),
+  refreshAfter: vi.fn(async () => []),
 }))
+vi.mock('../utils/menuCache', () => ({ refreshAfter: m.refreshAfter }))
 
 vi.mock('../api/client', () => ({
   api: {
@@ -63,6 +65,21 @@ describe('ProfileScreen targets and session', () => {
         nutritionTargets: { ...DEFAULT_NUTRITION_TARGETS, daily_calories: 2100 },
       }),
     )
+  })
+
+  // 2026-10-02 review: a new goal only refreshed the profile, so the planner's
+  // per-day summary kept the old target for up to 30s.
+  it("changing a goal refreshes what's measured against it; a diet chip doesn't", async () => {
+    m.getProfile.mockResolvedValue({ ...baseProfile, nutritionTargets: null })
+    wrap()
+    fireEvent.click(await screen.findByTestId('target-daily_calories-plus'))
+    await waitFor(() => expect(m.refreshAfter).toHaveBeenCalledWith(expect.anything(), 'goals'))
+    m.refreshAfter.mockClear()
+    m.updateProfile.mockClear()
+    fireEvent.click(screen.getByTestId('profile-diet-chip-vegano'))
+    await waitFor(() => expect(m.updateProfile).toHaveBeenCalled())
+    await new Promise((r) => setTimeout(r, 0))
+    expect(m.refreshAfter).not.toHaveBeenCalled()
   })
 
   it('a per-meal goal is stored under its menu slot', async () => {
