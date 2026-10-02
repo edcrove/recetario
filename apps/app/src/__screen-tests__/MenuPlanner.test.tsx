@@ -40,6 +40,7 @@ vi.mock('expo-router', () => ({
 }))
 vi.mock('../utils/platformAlert', () => ({ confirmAsync: mockConfirm, notify: mockNotify }))
 vi.mock('../hooks/useIsViewer', () => ({ useIsViewer: mockIsViewer }))
+vi.mock('../providers/AuthProvider', () => ({ useAuth: () => ({ userId: 'me' }) }))
 
 import MenuWeekScreen from '../../app/menu/index'
 
@@ -47,6 +48,8 @@ const monday = getWeekStart(new Date())
 const RID = '550e8400-e29b-41d4-a716-446655440000'
 const entry = (over: Partial<MenuEntry> = {}): MenuEntry =>
   ({
+    id: `entry-${over.slot ?? 'Cena'}-${over.ownerId ?? 'me'}`,
+    ownerId: 'me',
     date: addDays(monday, 1),
     slot: 'Cena',
     recipeId: RID,
@@ -115,6 +118,51 @@ describe('MenuWeekScreen (planner)', () => {
     fireEvent.click(screen.getByText('+'))
     fireEvent.click(screen.getByTestId('menu-modal-save'))
     await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith(addDays(monday, 1), 'Cena', RID, 5))
+  })
+
+  it('"Eliminar del menú" in the modal asks first and removes only when confirmed', async () => {
+    mockGetWeek.mockResolvedValue([entry()])
+    wrap()
+    fireEvent.click(await screen.findByTestId(`menu-entry-${addDays(monday, 1)}-Cena-${RID}`))
+    mockConfirm.mockResolvedValueOnce(false)
+    fireEvent.click(screen.getByTestId('menu-modal-delete'))
+    await waitFor(() =>
+      expect(mockConfirm).toHaveBeenCalledWith('Quitar del menú', '¿Quitar "Milanesas" de cena?'),
+    )
+    expect(mockRemove).not.toHaveBeenCalled()
+    expect(screen.getByTestId('menu-modal-delete')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('menu-modal-delete'))
+    await waitFor(() => expect(mockRemove).toHaveBeenCalledWith(addDays(monday, 1), 'Cena', RID))
+    await waitFor(() => expect(screen.queryByTestId('menu-modal-delete')).toBeNull())
+  })
+
+  it("a housemate's dish shows but can't be edited or removed (the API only takes your own)", async () => {
+    mockGetWeek.mockResolvedValue([
+      entry({ ownerId: 'partner' }),
+      entry({ slot: 'Almuerzo', recipeName: 'Guiso' }),
+    ])
+    wrap()
+    const day = addDays(monday, 1)
+    const theirs = await screen.findByTestId(`menu-entry-${day}-Cena-${RID}`)
+    expect(theirs).toHaveTextContent('Milanesas')
+    expect(theirs).toBeDisabled()
+    expect(screen.queryByTestId(`menu-remove-${day}-Cena-${RID}`)).toBeNull()
+    fireEvent.click(theirs)
+    expect(screen.queryByTestId('menu-modal-delete')).toBeNull()
+    // Mine, next to it, stays editable
+    expect(screen.getByTestId(`menu-entry-${day}-Almuerzo-${RID}`)).toBeEnabled()
+    expect(screen.getByTestId(`menu-remove-${day}-Almuerzo-${RID}`)).toBeInTheDocument()
+  })
+
+  it('two housemates planning the same dish in one slot both show, each its own chip', async () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mockGetWeek.mockResolvedValue([entry(), entry({ ownerId: 'partner', servings: 2 })])
+    wrap()
+    const chips = await screen.findAllByTestId(`menu-entry-${addDays(monday, 1)}-Cena-${RID}`)
+    expect(chips.map((c) => c.textContent)).toEqual(['Milanesas4 porc.', 'Milanesas2 porc.'])
+    // Keyed by entry, not recipe: React reconciles the two chips separately
+    expect(errors.mock.calls.flat().join(' ')).not.toMatch(/same key/)
+    errors.mockRestore()
   })
 
   it('notifies when removing fails', async () => {
