@@ -1,17 +1,15 @@
-import type { Recipe } from '@recetario/shared'
-
-/** The API's largest page for GET /v1/recipes. */
+/** The API's largest page for GET /v1/recipes and GET /v1/library. */
 export const RECIPES_PAGE = 100
 
 /**
- * Every recipe the caller can see, page by page. Home and the menu picker used
- * one page of 50, so from the 51st recipe on the oldest ones never showed
- * (and the time/difficulty filters only looked at those 50).
+ * Every recipe a paged list endpoint returns, page by page. Home and the menu
+ * picker used one page of 50 (the library one of 30), so past the first page
+ * the oldest never showed (and client-side filters only looked at that page).
  */
-export async function fetchAllRecipes(
-  list: (params: { limit: number; offset: number }) => Promise<Recipe[]>,
-): Promise<Recipe[]> {
-  const all: Recipe[] = []
+export async function fetchAllRecipes<T>(
+  list: (params: { limit: number; offset: number }) => Promise<T[]>,
+): Promise<T[]> {
+  const all: T[] = []
   for (;;) {
     const page = await list({ limit: RECIPES_PAGE, offset: all.length })
     all.push(...page)
