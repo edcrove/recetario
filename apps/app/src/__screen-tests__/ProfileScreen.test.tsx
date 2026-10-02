@@ -132,3 +132,23 @@ describe('ProfileScreen targets and session', () => {
     expect(screen.queryByText('sin-gluten')).toBeNull()
   })
 })
+
+// 2026-10-02 review: a failed load showed the default targets, and a tap on a
+// stepper then overwrote the real ones with them
+describe('ProfileScreen load error', () => {
+  it('shows an error with no steppers, so nothing can overwrite the saved targets', async () => {
+    m.getProfile
+      .mockReset()
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockResolvedValue({
+        ...baseProfile,
+        nutritionTargets: null,
+      })
+    wrap()
+    expect(await screen.findByText('No se pudo cargar tu perfil.')).toBeInTheDocument()
+    expect(screen.queryByTestId('target-daily_calories-plus')).toBeNull()
+    fireEvent.click(screen.getByTestId('error-retry'))
+    expect(await screen.findByTestId('target-daily_calories-plus')).toBeInTheDocument()
+    expect(m.updateProfile).not.toHaveBeenCalled()
+  })
+})

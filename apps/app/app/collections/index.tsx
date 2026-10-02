@@ -11,6 +11,7 @@ import {
 import { useRouter } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../src/api/client'
+import { ErrorState } from '../../src/components/ErrorState'
 import { notify } from '../../src/utils/platformAlert'
 import { useThemeColors, type ThemeColors } from '../../src/theme/tokens'
 
@@ -22,7 +23,12 @@ export default function CollectionsScreen() {
   const [newName, setNewName] = useState('')
   const [newEmoji, setNewEmoji] = useState('')
 
-  const { data: collections = [], isLoading } = useQuery({
+  const {
+    data: collections = [],
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ['collections'],
     queryFn: () => api.taxonomy.collections(),
   })
@@ -43,6 +49,11 @@ export default function CollectionsScreen() {
       <View style={s.center}>
         <ActivityIndicator size="large" />
       </View>
+    )
+
+  if (error)
+    return (
+      <ErrorState message="No se pudieron cargar las colecciones." onRetry={() => void refetch()} />
     )
 
   return (

@@ -136,3 +136,27 @@ describe('HeladeraScreen', () => {
     expect(await screen.findByText(/Planificá tu semana/)).toBeInTheDocument()
   })
 })
+
+// 2026-10-02 review: failed loads read as "nothing to cook" / "plan your week"
+describe('HeladeraScreen load errors', () => {
+  it('says the suggestions could not load', async () => {
+    mockSuggest.mockReset().mockRejectedValue(new Error('boom'))
+    wrap()
+    fireEvent.change(await screen.findByTestId('heladera-input'), { target: { value: 'pollo' } })
+    fireEvent.click(screen.getByTestId('heladera-add'))
+    expect(await screen.findByText('No se pudieron cargar las sugerencias.')).toBeInTheDocument()
+  })
+
+  it('says the week could not load, and retries', async () => {
+    mockGap.mockReset().mockRejectedValueOnce(new Error('boom')).mockResolvedValue({
+      missing: [],
+      meals: [],
+    })
+    wrap()
+    fireEvent.click(await screen.findByTestId('heladera-tab-semana'))
+    expect(await screen.findByText('No se pudo cargar tu semana.')).toBeInTheDocument()
+    expect(screen.queryByText(/Planificá tu semana/)).toBeNull()
+    fireEvent.click(screen.getByTestId('error-retry'))
+    expect(await screen.findByText(/Planificá tu semana/)).toBeInTheDocument()
+  })
+})

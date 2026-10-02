@@ -17,6 +17,7 @@ import {
   type Allergen,
 } from '@recetario/shared'
 import { api } from '../../src/api/client'
+import { ErrorState } from '../../src/components/ErrorState'
 import { useAuth } from '../../src/providers/AuthProvider'
 import { useProfile, PROFILE_QUERY_KEY } from '../../src/hooks/useProfile'
 import { confirmAsync } from '../../src/utils/platformAlert'
@@ -53,12 +54,22 @@ export default function ProfileScreen() {
   const { signOut } = useAuth()
   const queryClient = useQueryClient()
 
-  const { data: user, isLoading: userLoading } = useQuery({
+  const {
+    data: user,
+    isLoading: userLoading,
+    error: userError,
+    refetch: refetchUser,
+  } = useQuery({
     queryKey: ['me'],
     queryFn: () => api.auth.me(),
   })
 
-  const { data: profile, isLoading: profileLoading } = useProfile()
+  const {
+    data: profile,
+    isLoading: profileLoading,
+    error: profileError,
+    refetch: refetchProfile,
+  } = useProfile()
 
   const [editingName, setEditingName] = useState(false)
   const [displayName, setDisplayName] = useState('')
@@ -151,6 +162,19 @@ export default function ProfileScreen() {
       </View>
     )
   }
+
+  // Without the saved profile the defaults would show, and a tap on a stepper
+  // would overwrite the real targets with them.
+  if (userError || profileError)
+    return (
+      <ErrorState
+        message="No se pudo cargar tu perfil."
+        onRetry={() => {
+          void refetchUser()
+          void refetchProfile()
+        }}
+      />
+    )
 
   const dietary = (profile?.dietaryRestrictions ?? []) as DietaryOption[]
   const servings = profile?.preferredServings ?? 2

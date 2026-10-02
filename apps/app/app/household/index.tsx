@@ -10,6 +10,7 @@ import {
 } from 'react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../src/api/client'
+import { ErrorState } from '../../src/components/ErrorState'
 import { useAuth } from '../../src/providers/AuthProvider'
 import { confirmAsync, notify } from '../../src/utils/platformAlert'
 import {
@@ -47,7 +48,12 @@ export default function HouseholdScreen() {
   // `${householdId}:${userId}` of the member whose role picker is open
   const [roleEditFor, setRoleEditFor] = useState<string | null>(null)
 
-  const { data: households = [], isLoading } = useQuery({
+  const {
+    data: households = [],
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ['households'],
     queryFn: () => api.households.mine(),
     enabled: !!token,
@@ -137,6 +143,10 @@ export default function HouseholdScreen() {
       </View>
     )
   }
+
+  // Not "no household yet": that would offer to create a second one
+  if (error)
+    return <ErrorState message="No se pudo cargar tu hogar." onRetry={() => void refetch()} />
 
   return (
     <ScrollView style={s.container} contentContainerStyle={s.content}>
