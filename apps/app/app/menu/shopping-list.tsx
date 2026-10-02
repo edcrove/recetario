@@ -16,6 +16,7 @@ import { formatShoppingQty } from '../../src/utils/menuLogic'
 import { formatDate } from '../../src/utils/weekMath'
 import {
   groupShoppingByAisle,
+  isCovered,
   shoppingListText,
   shoppingProgress,
 } from '../../src/utils/shoppingSections'
@@ -172,8 +173,15 @@ export default function ShoppingListScreen() {
             <View style={[styles.checkbox, item.checked && styles.checkboxOn]}>
               {item.checked && <Text style={styles.checkmark}>✓</Text>}
             </View>
-            <Text style={[styles.name, item.checked && styles.nameChecked]}>{item.ingredient}</Text>
-            <Text style={[styles.qty, item.checked && styles.qtyChecked]}>
+            <Text style={[styles.name, isCovered(item) && styles.nameChecked]}>
+              {item.ingredient}
+            </Text>
+            {item.pantryMatch && !item.checked && (
+              <Text testID={`shopping-at-home-${item.key}`} style={styles.atHome}>
+                🏠 en casa
+              </Text>
+            )}
+            <Text style={[styles.qty, isCovered(item) && styles.qtyChecked]}>
               {formatShoppingQty(item)}
             </Text>
           </TouchableOpacity>
@@ -294,5 +302,6 @@ const makeStyles = (c: ThemeColors) =>
     nameChecked: { color: c.inkSoft, textDecorationLine: 'line-through' },
     qty: { fontSize: 14, color: c.inkSoft, marginLeft: 12 },
     qtyChecked: { color: c.inkSoft, textDecorationLine: 'line-through' },
+    atHome: { fontSize: 12, color: c.sage, fontWeight: '600', marginLeft: 8 },
     empty: { textAlign: 'center', color: c.inkSoft, marginTop: 40 },
   })

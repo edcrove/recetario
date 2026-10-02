@@ -8,10 +8,18 @@ export interface ShoppingSection {
 }
 
 /**
+ * Nothing left to buy: checked off, or already in the household's pantry (the
+ * API marks those with pantryMatch).
+ */
+export function isCovered(item: ShoppingListEntry): boolean {
+  return item.checked || item.pantryMatch
+}
+
+/**
  * Buckets the flat shopping list into aisle sections in the canonical aisle
- * order (empty aisles dropped, "otros" last). Within a section, unchecked items
- * come first so ticked-off items collapse to the bottom; the original order is
- * otherwise preserved (the API already sorts alphabetically).
+ * order (empty aisles dropped, "otros" last). Within a section, what is still
+ * to buy comes first so covered items collapse to the bottom; the original
+ * order is otherwise preserved (the API already sorts alphabetically).
  */
 export function groupShoppingByAisle(items: ShoppingListEntry[]): ShoppingSection[] {
   const buckets = new Map<Aisle, ShoppingListEntry[]>()
@@ -25,16 +33,16 @@ export function groupShoppingByAisle(items: ShoppingListEntry[]): ShoppingSectio
   for (const aisle of AISLE_ORDER) {
     const list = buckets.get(aisle)
     if (!list || list.length === 0) continue
-    const data = [...list].sort((a, b) => Number(a.checked) - Number(b.checked))
-    const checkedCount = list.filter((i) => i.checked).length
+    const data = [...list].sort((a, b) => Number(isCovered(a)) - Number(isCovered(b)))
+    const checkedCount = list.filter(isCovered).length
     sections.push({ aisle, title: AISLE_LABELS[aisle], data, checkedCount })
   }
   return sections
 }
 
-/** Overall check-off progress across the whole list. */
+/** Overall progress across the whole list (what's at home already counts). */
 export function shoppingProgress(items: ShoppingListEntry[]): { checked: number; total: number } {
-  return { checked: items.filter((i) => i.checked).length, total: items.length }
+  return { checked: items.filter(isCovered).length, total: items.length }
 }
 
 /**
@@ -46,7 +54,7 @@ export function shoppingListText(
   weekLabel: string,
   formatQty: (item: ShoppingListEntry) => string,
 ): string | null {
-  const pending = items.filter((i) => !i.checked)
+  const pending = items.filter((i) => !isCovered(i))
   if (pending.length === 0) return null
   const blocks = groupShoppingByAisle(pending).map(
     (s) => `${s.title}\n${s.data.map((i) => `- ${i.ingredient}: ${formatQty(i)}`).join('\n')}`,
