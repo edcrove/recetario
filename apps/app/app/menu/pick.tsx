@@ -12,6 +12,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { api } from '../../src/api/client'
+import { ErrorState } from '../../src/components/ErrorState'
 import { invalidateMenuWeek } from '../../src/utils/menuCache'
 import { fetchAllRecipes } from '../../src/utils/allRecipes'
 import { formatDate } from '../../src/utils/weekMath'
@@ -47,7 +48,12 @@ export default function PickRecipeScreen() {
   const [maxTotalTime, setMaxTotalTime] = useState<number | null>(null)
   const [difficulty, setDifficulty] = useState<RecipeDifficulty | null>(null)
 
-  const { data: recipes = [], isLoading } = useQuery({
+  const {
+    data: recipes = [],
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ['recipes', query],
     queryFn: () =>
       query.trim() ? api.recipes.search({ q: query }) : fetchAllRecipes(api.recipes.list),
@@ -90,6 +96,12 @@ export default function PickRecipeScreen() {
     },
     onError: () => notify('Error', 'No se pudo agregar la receta al menú.'),
   })
+
+  // Not "No hay recetas aún": that would be wrong when the load just failed
+  if (error)
+    return (
+      <ErrorState message="No se pudieron cargar tus recetas." onRetry={() => void refetch()} />
+    )
 
   return (
     <View style={styles.container}>
