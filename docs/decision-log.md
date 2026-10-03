@@ -12,6 +12,21 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
 
 ---
 
+## 2026-10-03 — Security workflow
+
+### D-2026-10-03-2 · Acknowledge GHSA-vfj7-8cjw-p6xm (braces) until a fix ships
+
+- **Decision**: `pnpm.auditConfig.ignoreGhsas` also lists GHSA-vfj7-8cjw-p6xm, so
+  `pnpm audit --audit-level=high` passes. Any other high or critical advisory still fails it.
+- **Why**: the advisory (stack exhaustion on deeply nested brace patterns) affects
+  `braces <=3.0.3` and no patched version exists (3.0.3 is the latest on npm). It reaches us
+  only through `expo > @expo/cli > metro > metro-file-map > micromatch`, which expands the
+  build's own glob patterns at bundle time; no user input reaches it, and the module is not in
+  the web bundle or the api/mcp builds.
+- **Where it lives**: root `package.json` (`pnpm.auditConfig`), `.github/workflows/security.yml`.
+- **Status**: revisit when `braces` (or `micromatch`) publishes a fixed version: remove the
+  ignore in the same PR that takes the fix.
+
 ## 2026-10-01 — Audit fixes
 
 ### D-2026-10-01-1 · API error contract and transactional writes
