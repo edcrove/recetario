@@ -1,5 +1,56 @@
 # Changelog
 
+## [0.4.0](https://github.com/edcrove/recetario/compare/api-v0.3.1...api-v0.4.0) (2026-10-03)
+
+
+### Features
+
+* **api:** production guard, closed sign-up and release step for railway ([#161](https://github.com/edcrove/recetario/issues/161)) ([5cf8044](https://github.com/edcrove/recetario/commit/5cf804405a1971051f823bfb4b7a36a8779828f4))
+* **app:** home diet filter that combines with the food type ([#223](https://github.com/edcrove/recetario/issues/223)) ([f1002ca](https://github.com/edcrove/recetario/commit/f1002ca564b959187104cb88e4d3e85c1f206abc))
+* **collections:** delete a collection; e2e cleanup that checks itself ([#198](https://github.com/edcrove/recetario/issues/198)) ([955c512](https://github.com/edcrove/recetario/commit/955c512f20b6d731cc565975df3a2d6ea9e01ad9))
+* **data:** capture servings, source and nutrition per cook session; last login ([#196](https://github.com/edcrove/recetario/issues/196)) ([7c56f20](https://github.com/edcrove/recetario/commit/7c56f20b549bf12dba1f0b28c452d1933c60f708))
+* **household:** accept or decline invitations in the app and via mcp ([#163](https://github.com/edcrove/recetario/issues/163)) ([d58ffff](https://github.com/edcrove/recetario/commit/d58ffffba546e17798ebb36c1a1022319027ce70))
+* **household:** change a member's role and leave a household ([#219](https://github.com/edcrove/recetario/issues/219)) ([07037e7](https://github.com/edcrove/recetario/commit/07037e74f80c2a5fa949c0f0a73116ba2d57dde0))
+* **menu:** planned dishes can be marked cooked or skipped ([#204](https://github.com/edcrove/recetario/issues/204)) ([0750b70](https://github.com/edcrove/recetario/commit/0750b70df69c6f3a2d6240ff1fb24ca8ad7626cf))
+* **nutrition:** compare each meal against its per-meal goal ([#188](https://github.com/edcrove/recetario/issues/188)) ([599f4f2](https://github.com/edcrove/recetario/commit/599f4f2a2fe4f6c0b5e976a9eb989ba51ce93cf8))
+* **stats:** cooking streak and a weekly chart of at least 8 weeks ([#222](https://github.com/edcrove/recetario/issues/222)) ([d7ceef0](https://github.com/edcrove/recetario/commit/d7ceef0737bd485f9886dbb550b4f6c7652f6d59))
+* **suggestions:** rank by expiring pantry items, recent cooks and ratings ([#201](https://github.com/edcrove/recetario/issues/201)) ([0d7aac7](https://github.com/edcrove/recetario/commit/0d7aac7cb1e169e37f32cbbe77e12604393cc924))
+
+
+### Bug Fixes
+
+* a dish planned without servings gets the profile's default portions ([#243](https://github.com/edcrove/recetario/issues/243)) ([9256acf](https://github.com/edcrove/recetario/commit/9256acf03b5ccb3ed5924c29ab6ed87c85bf7194))
+* accept only http(s) urls for recipe sources, images and avatars ([#158](https://github.com/edcrove/recetario/issues/158)) ([d84cbc2](https://github.com/edcrove/recetario/commit/d84cbc2f29054127c386c32955f456f91bd76be6))
+* allergen enum with curated spanish derivatives and a profile picker ([#171](https://github.com/edcrove/recetario/issues/171)) ([5e98f8e](https://github.com/edcrove/recetario/commit/5e98f8ea9003d0e162da7351097f0a7b5a037714))
+* **api:** case-insensitive emails, size limits, accent-insensitive search, proxy-aware rate limit ([#175](https://github.com/edcrove/recetario/issues/175)) ([6ca61c4](https://github.com/edcrove/recetario/commit/6ca61c43fb8c8d360d1831e67e698827a7d4716b))
+* **api:** config and households via repositories; config scoped to caller ([#211](https://github.com/edcrove/recetario/issues/211)) ([33b5f78](https://github.com/edcrove/recetario/commit/33b5f785c269389c33554989c13d799a19c69435))
+* **api:** rate-limit login and register per ip before the first deploy ([#157](https://github.com/edcrove/recetario/issues/157)) ([42828c3](https://github.com/edcrove/recetario/commit/42828c308e5705cbb7532660aeab23e15c7e2d37))
+* **api:** recipe tags feed the tag registry; tag edits reach recipes ([#225](https://github.com/edcrove/recetario/issues/225)) ([2100ca4](https://github.com/edcrove/recetario/commit/2100ca47bf39854d488508dcff9b92829527012a))
+* **api:** reject blank names and trim padded ones ([#231](https://github.com/edcrove/recetario/issues/231)) ([bef6c45](https://github.com/edcrove/recetario/commit/bef6c458850a6ff163a299dad8e573b26ac995f6))
+* **api:** share household content only after the invite is accepted ([#154](https://github.com/edcrove/recetario/issues/154)) ([769bfa9](https://github.com/edcrove/recetario/commit/769bfa93a56f17046f79736dfd4478c7a63a7e23))
+* **api:** stop duplicating system taxonomy on every release ([#162](https://github.com/edcrove/recetario/issues/162)) ([c577c81](https://github.com/edcrove/recetario/commit/c577c8159360b892fe1a7b6aa08d96b41a40c901))
+* **api:** suggestions without a date use the user's day, not UTC ([#247](https://github.com/edcrove/recetario/issues/247)) ([a8ec8e9](https://github.com/edcrove/recetario/commit/a8ec8e933dcbe9f2e966b9d6cfcea09d1ddc4376))
+* **api:** transactional writes, protected system catalog and one json error contract ([#165](https://github.com/edcrove/recetario/issues/165)) ([6693d20](https://github.com/edcrove/recetario/commit/6693d209aca8f44e5370a2eef337ca1b9c929d7a))
+* **api:** week nutrition uses the household entries and rollup of the day view ([#183](https://github.com/edcrove/recetario/issues/183)) ([ebbe18c](https://github.com/edcrove/recetario/commit/ebbe18c03debd0e30f159c425195c5e7f3e4141d))
+* **app:** forgot-password screen no longer promises an email that is never sent ([#160](https://github.com/edcrove/recetario/issues/160)) ([b8fc49a](https://github.com/edcrove/recetario/commit/b8fc49a4bf82271655606619fc38b17ce093f920))
+* **app:** home food-type chips filter with and without a search term ([#167](https://github.com/edcrove/recetario/issues/167)) ([21d05f3](https://github.com/edcrove/recetario/commit/21d05f3983694b7ce51982fa3fb8c1fef50fbbff))
+* check diet tags against ingredients, tell unknown from unmet ([#173](https://github.com/edcrove/recetario/issues/173)) ([481c158](https://github.com/edcrove/recetario/commit/481c15804caab7f006b32e60d91c0e7fe45ef03a))
+* **ci:** drop api pretest that rebuilt shared while other tests read it ([#228](https://github.com/edcrove/recetario/issues/228)) ([326c939](https://github.com/edcrove/recetario/commit/326c93941b26fee076dcba0b75bd4816210bc46f))
+* **config:** usage badge lists its recipes and each tab can create items ([#224](https://github.com/edcrove/recetario/issues/224)) ([a689b79](https://github.com/edcrove/recetario/commit/a689b798ebac0dd2cc632a2a9bb59688ffee0c62))
+* **data:** pantry expiry_date is a date column ([#207](https://github.com/edcrove/recetario/issues/207)) ([56d2d83](https://github.com/edcrove/recetario/commit/56d2d834c07faf7b0c8fafd4d6a4e55ddd827e92))
+* **data:** timestamptz, date columns, profile keeps the device time zone ([#197](https://github.com/edcrove/recetario/issues/197)) ([03afdb5](https://github.com/edcrove/recetario/commit/03afdb56d419ef86c96cd36cb4a07f5730766cae))
+* day and week nutrition report one person's intake ([#172](https://github.com/edcrove/recetario/issues/172)) ([b13cddb](https://github.com/edcrove/recetario/commit/b13cddb61adcfc4240625b1612372e56cd8391c2))
+* deleting a recipe takes its upcoming dishes off the menu ([#242](https://github.com/edcrove/recetario/issues/242)) ([a497a9b](https://github.com/edcrove/recetario/commit/a497a9b8dddd0b2724b7ecb073855d011af427d0))
+* **households:** viewers read-only on pantry and shopping checks; private recipes ([#182](https://github.com/edcrove/recetario/issues/182)) ([f349b01](https://github.com/edcrove/recetario/commit/f349b0149e6d0aee2af7cbc46e3d2532749509de))
+* **mcp:** delete tools, per-serving macros, whoami and cook history ([#164](https://github.com/edcrove/recetario/issues/164)) ([9748631](https://github.com/edcrove/recetario/commit/97486312f48fb645b0c50a5cdd22acd6936bf397))
+* **nutrition:** keep recipe nutrition consistent with edits ([#187](https://github.com/edcrove/recetario/issues/187)) ([5567c3c](https://github.com/edcrove/recetario/commit/5567c3c3faed7e2b14e1a98ea7bfa52e60679a83))
+* recipes can use custom categories, matched by slug ([#226](https://github.com/edcrove/recetario/issues/226)) ([2f039be](https://github.com/edcrove/recetario/commit/2f039bedfb1368030b02b67c728b4848da3e1720))
+* related recipes show their title and only point at recipes you can open ([#232](https://github.com/edcrove/recetario/issues/232)) ([391b1e0](https://github.com/edcrove/recetario/commit/391b1e0cd0b52e350708663194c361877725d8ee))
+* renaming a taxonomy item onto a name in use is refused, and the app says so ([#244](https://github.com/edcrove/recetario/issues/244)) ([0b394d6](https://github.com/edcrove/recetario/commit/0b394d6877c8217bec631ebd8e67801b92ba45c4))
+* **security:** ssrf guard resolves dns and re-checks redirects; reset revokes sessions ([#180](https://github.com/edcrove/recetario/issues/180)) ([dbe853e](https://github.com/edcrove/recetario/commit/dbe853e8c92fe6b7c81d646b4d1da6ccb234ae52))
+* **shared:** partial recipe updates no longer wipe steps, tags and images ([#155](https://github.com/edcrove/recetario/issues/155)) ([dba9395](https://github.com/edcrove/recetario/commit/dba93955d837210301b925d02bc96c7e74cebf47))
+* **stats:** name top recipes by title and use one time window ([#184](https://github.com/edcrove/recetario/issues/184)) ([cdf0cfc](https://github.com/edcrove/recetario/commit/cdf0cfcf0d9563b7469a862da44bf16105846c3f))
+
 ## [0.3.1](https://github.com/edcrove/recetario/compare/api-v0.3.0...api-v0.3.1) (2026-09-30)
 
 
