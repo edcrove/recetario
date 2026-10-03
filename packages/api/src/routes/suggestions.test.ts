@@ -23,6 +23,9 @@ vi.mock('../db/ingredient-repository.js', () => ({
 vi.mock('../db/menu-repository.js', () => ({
   menuRepository: { getDayNutritionInputs: vi.fn(async () => ({ entries: [], target: null })) },
 }))
+const { mockUserToday } = vi.hoisted(() => ({ mockUserToday: vi.fn(async () => '2026-07-06') }))
+vi.mock('../db/user-time.js', () => ({ userToday: mockUserToday }))
+
 vi.mock('../db/index.js', () => ({
   getDb: vi.fn(() => {
     throw new Error('DB not available in tests')
@@ -152,5 +155,21 @@ describe('POST /v1/suggestions/from-ingredients — secondary signals', () => {
       'dev',
       new Date('2026-07-03T00:00:00Z'),
     )
+  })
+})
+
+// 2026-10-02 review: without a date, "today" was the server's UTC day, so
+// from 21:00 in Uruguay the expiring window started tomorrow.
+describe("POST /v1/suggestions/from-ingredients — the user's day", () => {
+  it("without a date, windows start on the user's today", async () => {
+    mockUserToday.mockResolvedValueOnce('2026-10-02')
+    const res = await app.request('/v1/suggestions/from-ingredients', {
+      method: 'POST',
+      headers: AUTH,
+      body: JSON.stringify({ ingredients: ['arroz'] }),
+    })
+    expect(res.status).toBe(200)
+    expect(mockUserToday).toHaveBeenCalledWith('dev')
+    expect(mockPantry.listExpiringNames).toHaveBeenLastCalledWith('dev', '2026-10-05')
   })
 })
