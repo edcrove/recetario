@@ -103,3 +103,36 @@ for (const [path, api, message, emptyText] of [
     await expect(page.getByText(message)).toHaveCount(0)
   })
 }
+
+// 2026-10-02 review: a failed history load read "Todavía no cocinaste esta receta"
+test("a recipe's history says when it could not load, and retries", async ({ page }) => {
+  const headers = await authHeaders(page)
+  const { id } = (await (
+    await page.request.post(`${API_URL}/v1/recipes`, {
+      headers,
+      data: {
+        title: `E2E Historial ${Date.now()}`,
+        servings: 2,
+        category: 'Cena',
+        ingredients: [{ name: 'sal', quantity: 1, unit: 'g' }],
+      },
+    })
+  ).json()) as { id: string }
+  let failing = true
+  await page.route('**/v1/cook-sessions?*', (route) =>
+    failing
+      ? route.fulfill({ status: 500, contentType: 'application/json', body: '{}' })
+      : route.fallback(),
+  )
+  try {
+    await page.goto(`/recipe/${id}`)
+    await page.getByTestId('recipe-tab-history').click()
+    await expect(page.getByText(/No se pudo cargar el historial/)).toBeVisible({ timeout: 15000 })
+    await expect(page.getByText('Todavía no cocinaste esta receta.')).toHaveCount(0)
+    failing = false
+    await page.getByTestId('history-retry').click()
+    await expect(page.getByText('Todavía no cocinaste esta receta.')).toBeVisible()
+  } finally {
+    await page.request.delete(`${API_URL}/v1/recipes/${id}`, { headers })
+  }
+})
