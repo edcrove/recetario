@@ -27,6 +27,74 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
 - **Status**: revisit when `braces` (or `micromatch`) publishes a fixed version: remove the
   ignore in the same PR that takes the fix.
 
+## 2026-10-02/03 — Review-session bug sweep (PRs #230–#250) and Auditar 2026-10-03
+
+### D-2026-10-03-1 · Review-session fixes are tracked as one retro row
+
+- **Decision**: bugs found and fixed in the same review session (no prior story) ship with
+  "Bug found in a review session; no story" in the PR body. After the session one Notion
+  Bug row (Status Done, `Found by` = manual) lists every PR, so the escaped-defect count stays
+  complete. Decisions those fixes take still get their own entry here.
+- **Why**: Auditar 2026-10-03 found the 21 sweep PRs had no Notion trace and several of their
+  rules had never been logged. A story per one-line fix was more ceremony than value.
+- **Where it lives**: Notion "Bug sweep 2026-10-02: 21 escaped defects fixed in #230–#250".
+- **Status**: active
+
+### D-2026-10-02-12 · Required names are trimmed and must not be blank
+
+- **Decision**: every required name (recipe title, ingredient name, step text, pantry item,
+  household, taxonomy item, canonical ingredient, display name) is trimmed and needs at least
+  one character; a blank one is a 400 on every route and from MCP.
+- **Where it lives**: shared `RecipeSchema` and the route schemas, PR #231,
+  `blank-names.integration.test.ts`.
+- **Status**: active
+
+### D-2026-10-02-11 · Recipe relations only point at recipes you can open
+
+- **Decision**: creating a relation to yourself is a 400; to a recipe the caller can't see,
+  a 404. Listing relations hides targets the caller can't open and returns each target's
+  title (`toTitle`).
+- **Where it lives**: `packages/api/src/routes/taxonomy.ts`, PR #232,
+  `taxonomy-idor.integration.test.ts`.
+- **Status**: active. Known gap (Auditar 2026-10-03): the source recipe is still loaded
+  owner-only, so housemates get a 404 on its relations.
+
+### D-2026-10-02-10 · Pantry-covered shopping items count as done
+
+- **Decision**: a shopping-list item whose ingredient is in stock in the pantry is shown with
+  "🏠 en casa", counts as done in the progress bar and is left out of "Copiar lista", the same
+  as a checked item. Extends D-2026-10-01-10.
+- **Where it lives**: `apps/app/src/utils/shoppingSections.ts` (`isCovered`), PR #236.
+- **Status**: active
+
+### D-2026-10-02-9 · Renaming onto a name in use is refused
+
+- **Decision**: renaming a taxonomy item to a slug already used by another item the caller
+  can see returns 409 (duplicate) or 400 (invalid); the app shows the error instead of
+  closing the modal. Extends D-2026-10-01-15, which only covered create.
+- **Where it lives**: `packages/api/src/db/config-repository.ts`, `app/config/index.tsx`,
+  PR #244.
+- **Status**: active
+
+### D-2026-10-02-8 · Server-side "today" is the user's day
+
+- **Decision**: when the API needs today's date (suggestions without a `date`, the future-menu
+  cleanup on recipe delete) it uses the profile time zone (`userToday`), not UTC. Extends
+  D-2026-10-01-9.
+- **Where it lives**: `packages/api/src/db/user-time.ts`, PRs #242 and #247.
+- **Status**: active
+
+### D-2026-10-02-7 · Planned servings default from the profile
+
+- **Decision**: `servings` is optional on `POST /v1/menu` and MCP `addToMenu`. When omitted
+  it is the caller's `preferredServings`, else 2 (1 for an API-key owner with no profile).
+  The app's picker starts from the same profile value.
+- **Why**: every pick defaulted to 2 portions regardless of the family, and agents had to
+  guess. This changes the MCP contract, so agents should stop sending a fixed 2.
+- **Where it lives**: `packages/api/src/db/menu-repository.ts` (`defaultServings`),
+  `packages/shared/src/menu.ts`, `packages/mcp/src/tools/menu.ts`, PRs #241 and #243.
+- **Status**: revisit when households have a size (then default to it).
+
 ## 2026-10-01 — Audit fixes
 
 ### D-2026-10-01-1 · API error contract and transactional writes
@@ -335,8 +403,8 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
 
 - **Decision**: `POST /auth/login` and `POST /auth/register` share a per-IP sliding
   window of 10 requests/minute (`AUTH_RATE_LIMIT_MAX_REQUESTS`); over it they return 429
-  with `Retry-After: 60`. The client IP is the rightmost `X-Forwarded-For` entry (one
-  proxy hop, e.g. Railway), else the socket address. The per-account recipe limiter now
+  with `Retry-After: 60`. The client IP is the rightmost `X-Forwarded-For` entry only when
+  `TRUST_PROXY=true` (one proxy hop, e.g. Railway; since PR #175), else the socket address. The per-account recipe limiter now
   applies to writes only, and both limiters prune empty windows (full sweep once a minute).
   CI, docker-compose and the integration suite raise the auth limit via env.
 - **Why**: Auditar 2026-09-30 found no brute-force protection on the unauthenticated
@@ -409,7 +477,8 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
   recipe is household-visible. Adding a recipe the caller cannot read returns `404`.
 - **Why**: consistent with household-shared recipes (sharing epic). Was left open in #125
   for owner confirmation; the owner confirmed by approving the merge.
-- **Where it lives**: `packages/api/src/routes/taxonomy.ts` (`getVisibleOwnerIds`), PR #125.
+- **Where it lives**: PR #125; since D-2026-10-01-12 the visibility check sits in the
+  collection repository (`getVisibleOwnerIds`), not in `routes/taxonomy.ts`.
 - **Status**: active
 
 ### D-2026-09-30-2 · React / React Native move only with the Expo SDK
