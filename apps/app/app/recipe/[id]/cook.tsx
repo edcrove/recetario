@@ -12,6 +12,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../src/api/client'
+import { ErrorState } from '../../../src/components/ErrorState'
 import { useCookTimers, formatTime } from '../../../src/hooks/useStepTimer'
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake'
 import { IngredientChecklist } from '../../../src/components/IngredientChecklist'
@@ -41,7 +42,12 @@ export default function CookModeScreen() {
   const [ratingNote, setRatingNote] = useState('')
   const [finishedSteps, setFinishedSteps] = useState<number[]>([])
 
-  const { data: recipe, isLoading } = useQuery({
+  const {
+    data: recipe,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ['recipe', id],
     queryFn: () => api.recipes.get(id),
   })
@@ -137,6 +143,10 @@ export default function CookModeScreen() {
         <ActivityIndicator size="large" style={s.loader} />
       </SafeAreaView>
     )
+
+  // Not "Esta receta no tiene pasos": that would be wrong when the load failed
+  if (error)
+    return <ErrorState message="No se pudo cargar la receta." onRetry={() => void refetch()} />
 
   const total = steps.length
   const { isFirst, isLast, actionLabel } = cookModeNav(total, stepIndex)
