@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.4.0](https://github.com/edcrove/recetario/compare/mcp-v0.3.1...mcp-v0.4.0) (2026-10-03)
+
+
+### Features
+
+* **collections:** delete a collection; e2e cleanup that checks itself ([#198](https://github.com/edcrove/recetario/issues/198)) ([955c512](https://github.com/edcrove/recetario/commit/955c512f20b6d731cc565975df3a2d6ea9e01ad9))
+* **data:** capture servings, source and nutrition per cook session; last login ([#196](https://github.com/edcrove/recetario/issues/196)) ([7c56f20](https://github.com/edcrove/recetario/commit/7c56f20b549bf12dba1f0b28c452d1933c60f708))
+* **household:** accept or decline invitations in the app and via mcp ([#163](https://github.com/edcrove/recetario/issues/163)) ([d58ffff](https://github.com/edcrove/recetario/commit/d58ffffba546e17798ebb36c1a1022319027ce70))
+* **household:** change a member's role and leave a household ([#219](https://github.com/edcrove/recetario/issues/219)) ([07037e7](https://github.com/edcrove/recetario/commit/07037e74f80c2a5fa949c0f0a73116ba2d57dde0))
+* **menu:** planned dishes can be marked cooked or skipped ([#204](https://github.com/edcrove/recetario/issues/204)) ([0750b70](https://github.com/edcrove/recetario/commit/0750b70df69c6f3a2d6240ff1fb24ca8ad7626cf))
+* **nutrition:** sugars, saturated fat and sodium when known ([#203](https://github.com/edcrove/recetario/issues/203)) ([70ee0dd](https://github.com/edcrove/recetario/commit/70ee0ddabb64d4f61dbfacd7783dbaf831625697))
+* **stats:** cooking streak and a weekly chart of at least 8 weeks ([#222](https://github.com/edcrove/recetario/issues/222)) ([d7ceef0](https://github.com/edcrove/recetario/commit/d7ceef0737bd485f9886dbb550b4f6c7652f6d59))
+
+
+### Bug Fixes
+
+* a dish planned without servings gets the profile's default portions ([#243](https://github.com/edcrove/recetario/issues/243)) ([9256acf](https://github.com/edcrove/recetario/commit/9256acf03b5ccb3ed5924c29ab6ed87c85bf7194))
+* accept only http(s) urls for recipe sources, images and avatars ([#158](https://github.com/edcrove/recetario/issues/158)) ([d84cbc2](https://github.com/edcrove/recetario/commit/d84cbc2f29054127c386c32955f456f91bd76be6))
+* allergen enum with curated spanish derivatives and a profile picker ([#171](https://github.com/edcrove/recetario/issues/171)) ([5e98f8e](https://github.com/edcrove/recetario/commit/5e98f8ea9003d0e162da7351097f0a7b5a037714))
+* **api:** case-insensitive emails, size limits, accent-insensitive search, proxy-aware rate limit ([#175](https://github.com/edcrove/recetario/issues/175)) ([6ca61c4](https://github.com/edcrove/recetario/commit/6ca61c43fb8c8d360d1831e67e698827a7d4716b))
+* check diet tags against ingredients, tell unknown from unmet ([#173](https://github.com/edcrove/recetario/issues/173)) ([481c158](https://github.com/edcrove/recetario/commit/481c15804caab7f006b32e60d91c0e7fe45ef03a))
+* **config:** usage badge lists its recipes and each tab can create items ([#224](https://github.com/edcrove/recetario/issues/224)) ([a689b79](https://github.com/edcrove/recetario/commit/a689b798ebac0dd2cc632a2a9bb59688ffee0c62))
+* day and week nutrition report one person's intake ([#172](https://github.com/edcrove/recetario/issues/172)) ([b13cddb](https://github.com/edcrove/recetario/commit/b13cddb61adcfc4240625b1612372e56cd8391c2))
+* **mcp:** build recipe tool inputs from shared schemas ([#181](https://github.com/edcrove/recetario/issues/181)) ([3fdacd0](https://github.com/edcrove/recetario/commit/3fdacd01c25f2139de4015204d859012409ebd02))
+* **mcp:** delete tools, per-serving macros, whoami and cook history ([#164](https://github.com/edcrove/recetario/issues/164)) ([9748631](https://github.com/edcrove/recetario/commit/97486312f48fb645b0c50a5cdd22acd6936bf397))
+* **nutrition:** keep recipe nutrition consistent with edits ([#187](https://github.com/edcrove/recetario/issues/187)) ([5567c3c](https://github.com/edcrove/recetario/commit/5567c3c3faed7e2b14e1a98ea7bfa52e60679a83))
+* recipes can use custom categories, matched by slug ([#226](https://github.com/edcrove/recetario/issues/226)) ([2f039be](https://github.com/edcrove/recetario/commit/2f039bedfb1368030b02b67c728b4848da3e1720))
+* **security:** ssrf guard resolves dns and re-checks redirects; reset revokes sessions ([#180](https://github.com/edcrove/recetario/issues/180)) ([dbe853e](https://github.com/edcrove/recetario/commit/dbe853e8c92fe6b7c81d646b4d1da6ccb234ae52))
+
 ## [0.3.1](https://github.com/edcrove/recetario/compare/mcp-v0.3.0...mcp-v0.3.1) (2026-09-30)
 
 
