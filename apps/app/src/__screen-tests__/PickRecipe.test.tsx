@@ -276,4 +276,14 @@ describe('PickRecipeScreen: goal preview', () => {
     expect(screen.queryByTestId('pick-projection-a1')).toBeNull()
     expect(mockDay).not.toHaveBeenCalled()
   })
+
+  // 2026-10-02 review: a failed load read "No hay recetas aún"
+  it('says the recipes could not load, and retries', async () => {
+    mockList.mockRejectedValueOnce(new Error('boom')).mockResolvedValue([])
+    wrap()
+    expect(await screen.findByText('No se pudieron cargar tus recetas.')).toBeInTheDocument()
+    expect(screen.queryByText('No hay recetas aún')).toBeNull()
+    fireEvent.click(screen.getByTestId('error-retry'))
+    expect(await screen.findByText('No hay recetas aún')).toBeInTheDocument()
+  })
 })

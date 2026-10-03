@@ -87,6 +87,12 @@ for (const [path, api, message, emptyText] of [
   ],
   ['/household', '**/v1/households/mine', 'No se pudo cargar tu hogar.', 'Crear hogar'],
   ['/profile', '**/auth/profile', 'No se pudo cargar tu perfil.', 'Calorías'],
+  [
+    '/menu/pick?date=2027-01-04&slot=Cena&weekStart=2027-01-04',
+    '**/v1/recipes?*',
+    'No se pudieron cargar tus recetas.',
+    'No hay recetas aún',
+  ],
 ] as const) {
   test(`${path}: a failed load says so instead of showing the empty screen`, async ({ page }) => {
     let failing = true
