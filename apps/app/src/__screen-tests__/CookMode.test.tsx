@@ -274,3 +274,18 @@ describe('CookModeScreen timer reaching 0:00', () => {
     expect(onStepTimerComplete).toHaveBeenCalledTimes(2)
   })
 })
+
+// 2026-10-02 review: a failed load read "Esta receta no tiene pasos."
+describe('CookModeScreen load error', () => {
+  it('says the recipe could not load, and retries', async () => {
+    mockGet
+      .mockReset()
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockResolvedValue({ id: 'r1', title: 'Sopa', servings: 2, ingredients: [], steps: [] })
+    wrap()
+    expect(await screen.findByText('No se pudo cargar la receta.')).toBeInTheDocument()
+    expect(screen.queryByText('Esta receta no tiene pasos.')).toBeNull()
+    fireEvent.click(screen.getByTestId('error-retry'))
+    expect(await screen.findByText('Esta receta no tiene pasos.')).toBeInTheDocument()
+  })
+})

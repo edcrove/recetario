@@ -176,3 +176,15 @@ test("a recipe's history says when it could not load, and retries", async ({ pag
     await page.request.delete(`${API_URL}/v1/recipes/${id}`, { headers })
   }
 })
+
+// 2026-10-02 review: cook mode showed a failed load as "Esta receta no tiene pasos."
+test('cook mode says when the recipe could not load', async ({ page }) => {
+  await page.route('**/v1/recipes/*', (route) =>
+    route.request().method() === 'GET'
+      ? route.fulfill({ status: 500, contentType: 'application/json', body: '{}' })
+      : route.fallback(),
+  )
+  await page.goto('/recipe/550e8400-e29b-41d4-a716-446655440000/cook')
+  await expect(page.getByText('No se pudo cargar la receta.')).toBeVisible({ timeout: 15000 })
+  await expect(page.getByText('Esta receta no tiene pasos.')).toHaveCount(0)
+})
