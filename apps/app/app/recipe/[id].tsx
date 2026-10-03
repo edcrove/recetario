@@ -75,7 +75,11 @@ export default function RecipeDetailScreen() {
   })
   const forkSourceTitle = forkSource?.title
 
-  const { data: sessions = [] } = useQuery({
+  const {
+    data: sessions = [],
+    error: sessionsError,
+    refetch: refetchSessions,
+  } = useQuery({
     queryKey: ['cook-sessions', id],
     queryFn: () => api.cookSessions.listByRecipe(id),
     enabled: detailTab === 'history' && !!recipe,
@@ -193,7 +197,14 @@ export default function RecipeDetailScreen() {
 
       {detailTab === 'history' && (
         <View>
-          {sessions.length === 0 ? (
+          {sessionsError ? (
+            // Not "never cooked": that would be wrong when the load just failed
+            <TouchableOpacity testID="history-retry" onPress={() => void refetchSessions()}>
+              <Text style={s.emptyHistory}>
+                No se pudo cargar el historial. Tocá para reintentar.
+              </Text>
+            </TouchableOpacity>
+          ) : sessions.length === 0 ? (
             <Text style={s.emptyHistory}>Todavía no cocinaste esta receta.</Text>
           ) : (
             sessions.map((session) => (

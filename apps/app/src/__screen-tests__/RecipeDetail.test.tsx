@@ -2,7 +2,8 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
-const { mockDelete, mockRefreshAfter, mockRelations } = vi.hoisted(() => ({
+const { mockDelete, mockRefreshAfter, mockRelations, mockSessions } = vi.hoisted(() => ({
+  mockSessions: vi.fn().mockResolvedValue([]),
   mockDelete: vi.fn().mockResolvedValue(undefined),
   mockRefreshAfter: vi.fn(async () => []),
   mockRelations: vi.fn().mockResolvedValue([]),
@@ -38,6 +39,7 @@ vi.mock('../api/client', () => ({
       delete: mockDelete,
     },
     taxonomy: { relations: mockRelations },
+    cookSessions: { listByRecipe: mockSessions },
   },
 }))
 
@@ -209,5 +211,16 @@ describe('RecipeDetailScreen', () => {
     expect(screen.queryByText('Porciones:')).toBeNull()
     fireEvent.click(screen.getByTestId('recipe-tab-recipe'))
     expect(screen.getByTestId('servings-plus')).toBeInTheDocument()
+  })
+
+  // 2026-10-02 review: a failed history load read "Todavía no cocinaste esta receta"
+  it('says the history could not load, and retries', async () => {
+    mockSessions.mockRejectedValueOnce(new Error('boom')).mockResolvedValue([])
+    wrap(<RecipeDetailScreen />)
+    fireEvent.click(await screen.findByTestId('recipe-tab-history'))
+    expect(await screen.findByText(/No se pudo cargar el historial/)).toBeInTheDocument()
+    expect(screen.queryByText('Todavía no cocinaste esta receta.')).toBeNull()
+    fireEvent.click(screen.getByTestId('history-retry'))
+    expect(await screen.findByText('Todavía no cocinaste esta receta.')).toBeInTheDocument()
   })
 })
