@@ -104,7 +104,7 @@ export default function RecipeDetailScreen() {
   async function confirmDelete() {
     const ok = await confirmAsync(
       'Eliminar receta',
-      `¿Eliminar "${recipe?.title}"? También se quita del menú y de tus colecciones.`,
+      `¿Eliminar "${recipe?.title}"? También se quita de los próximos menús y de tus colecciones.`,
     )
     if (ok) deleteMutation.mutate()
   }

@@ -104,6 +104,46 @@ for (const [path, api, message, emptyText] of [
   })
 }
 
+// 2026-10-02 review: the delete confirmation says the recipe also leaves the
+// menu, but its upcoming dishes stayed as unremovable "(eliminada)" chips.
+test('deleting a planned recipe takes its upcoming dishes off the planner', async ({ page }) => {
+  const headers = await authHeaders(page)
+  const d = new Date()
+  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  const title = `E2E Planificada ${Date.now()}`
+  const { id } = (await (
+    await page.request.post(`${API_URL}/v1/recipes`, {
+      headers,
+      data: {
+        title,
+        servings: 2,
+        category: 'Cena',
+        ingredients: [{ name: 'sal', quantity: 1, unit: 'g' }],
+      },
+    })
+  ).json()) as { id: string }
+  await page.request.post(`${API_URL}/v1/menu`, {
+    headers,
+    data: { date: today, slot: 'Cena', recipeId: id, servings: 2 },
+  })
+  try {
+    await page.goto(`/recipe/${id}`)
+    page.once('dialog', (dlg) => {
+      expect(dlg.message()).toContain('También se quita de los próximos menús')
+      void dlg.accept()
+    })
+    await page.getByTestId('recipe-delete').click()
+    await expect(page.getByPlaceholder(/buscar recetas/i)).toBeVisible()
+    await page.goto('/menu')
+    await expect(page.getByTestId(`menu-day-${today}`)).toBeVisible()
+    await expect(page.getByText(`${title} (eliminada)`)).toHaveCount(0)
+    await expect(page.getByText(title)).toHaveCount(0)
+  } finally {
+    await page.request.delete(`${API_URL}/v1/menu/${today}/Cena/${id}`, { headers })
+    await page.request.delete(`${API_URL}/v1/recipes/${id}`, { headers })
+  }
+})
+
 // 2026-10-02 review: a failed history load read "Todavía no cocinaste esta receta"
 test("a recipe's history says when it could not load, and retries", async ({ page }) => {
   const headers = await authHeaders(page)

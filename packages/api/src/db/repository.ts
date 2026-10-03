@@ -7,6 +7,7 @@ import {
   inArray,
   desc,
   lte,
+  gte,
   isNull,
   type AnyColumn,
   type SQL,
@@ -25,6 +26,7 @@ import { schema } from './index.js'
 import { currentDb, inTransaction, InvalidReferenceError } from './transaction.js'
 import { syncRecipeTags } from './recipe-tags.js'
 import { slugify } from './slug.js'
+import { userToday } from './user-time.js'
 
 type DbRow = typeof schema.recipes.$inferSelect
 type IngredientRow = typeof schema.ingredients.$inferSelect
@@ -635,14 +637,32 @@ export class RecipeRepository {
     return this.findById(fork.id!, { ownedBy: callerId })
   }
 
+  /**
+   * Deletes the caller's recipe. Its upcoming planned dishes (today on, in the
+   * user's time zone) leave every menu, as the app's confirmation promises;
+   * past or cooked/skipped ones stay as history with their title snapshot (the
+   * FK nulls their recipe id).
+   */
   async delete(id: string, ownerId: string): Promise<boolean> {
-    const db = this.db
-    const result = await db
-      .delete(schema.recipes)
-      .where(and(eq(schema.recipes.id, id), eq(schema.recipes.ownerId, ownerId)))
-      .returning({ id: schema.recipes.id })
-
-    return result.length > 0
+    return inTransaction(async () => {
+      const db = this.db
+      const owned = await db
+        .select({ id: schema.recipes.id })
+        .from(schema.recipes)
+        .where(and(eq(schema.recipes.id, id), eq(schema.recipes.ownerId, ownerId)))
+      if (owned.length === 0) return false
+      await db
+        .delete(schema.menuEntries)
+        .where(
+          and(
+            eq(schema.menuEntries.recipeId, id),
+            eq(schema.menuEntries.status, 'planned'),
+            gte(schema.menuEntries.date, await userToday(ownerId)),
+          ),
+        )
+      await db.delete(schema.recipes).where(eq(schema.recipes.id, id))
+      return true
+    })
   }
 
   async upsert(ownerId: string, data: CreateRecipe): Promise<{ recipe: Recipe; created: boolean }> {
