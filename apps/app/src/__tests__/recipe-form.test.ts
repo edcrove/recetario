@@ -200,6 +200,42 @@ describe('buildPayload', () => {
     expect(result.difficulty).toBe('media')
   })
 
+  // Auditar 2026-10-03: seed and MCP recipes store only a total; saving the
+  // edit form without touching the times sent totalTimeMin: null and erased it.
+  it('keeps a stored total while prep and cook stay blank', () => {
+    const times = { prepTimeMin: '', cookTimeMin: '', difficulty: null, totalTimeMin: '45' }
+    const result = buildPayload(
+      'T',
+      '4',
+      'Postre',
+      '',
+      '',
+      validIngredients,
+      validSteps,
+      [],
+      [],
+      times,
+    )
+    expect(result).toMatchObject({ prepTimeMin: null, cookTimeMin: null, totalTimeMin: 45 })
+  })
+
+  it('a prep or cook time replaces the stored total with their sum', () => {
+    const times = { prepTimeMin: '10', cookTimeMin: '', difficulty: null, totalTimeMin: '45' }
+    const result = buildPayload(
+      'T',
+      '4',
+      'Postre',
+      '',
+      '',
+      validIngredients,
+      validSteps,
+      [],
+      [],
+      times,
+    )
+    expect(result.totalTimeMin).toBe(10)
+  })
+
   // Clearing cook (prep kept) must null cookTimeMin AND recompute a consistent
   // total — never omit cook and leave a stale value + desynced total on edit.
   it('nulls a cleared cook time and keeps total consistent with prep only', () => {
@@ -387,6 +423,21 @@ describe('recipeToFormState', () => {
     expect(form.category).toBe('Cena')
     expect(form.tags).toBe('italiana, rápida')
     expect(form.notes).toBe('Al dente')
+  })
+
+  it('carries a total-only time so a save keeps it', () => {
+    expect(recipeToFormState({ ...recipe, totalTimeMin: 45 }).totalTimeMin).toBe('45')
+  })
+
+  it('leaves the total out when prep or cook exist (it is their sum)', () => {
+    const form = recipeToFormState({
+      ...recipe,
+      prepTimeMin: 10,
+      cookTimeMin: 20,
+      totalTimeMin: 30,
+    })
+    expect(form).toMatchObject({ prepTimeMin: '10', cookTimeMin: '20', totalTimeMin: '' })
+    expect(recipeToFormState(recipe).totalTimeMin).toBe('')
   })
 
   it('converts null quantity to empty string', () => {

@@ -272,6 +272,28 @@ test.describe('Recipes: form on a phone and save feedback', () => {
   })
 })
 
+test.describe('Recipes: edit keeps a total-only time', () => {
+  // Auditar 2026-10-03: seed and MCP recipes only store totalTimeMin; saving
+  // the edit form without touching the times erased it.
+  test('saving the edit form untouched keeps the stored total time', async ({ page }) => {
+    const headers = await authHeaders(page)
+    const { id } = await createRecipeViaApi(page, { totalTimeMin: 45 })
+    try {
+      await page.goto(`/recipe/${id}/edit`)
+      await expect(page.getByTestId('recipe-total-time-hint')).toContainText('45 min')
+      await page.getByText('Guardar Cambios').click()
+      await expect(page.getByTestId('recipe-saved-banner')).toBeVisible()
+      const recipe = (await (
+        await page.request.get(`${API_URL}/v1/recipes/${id}`, { headers })
+      ).json()) as { totalTimeMin: number | null }
+      expect(recipe.totalTimeMin).toBe(45)
+      await expect(page.getByText(/45 min/).first()).toBeVisible()
+    } finally {
+      await deleteRecipeViaApi(page, id)
+    }
+  })
+})
+
 test.describe('Recipes: diet tags', () => {
   test('a tag the ingredients contradict is refused with the reason', async ({ page }) => {
     await page.getByText('+ Nueva Receta').click()

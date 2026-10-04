@@ -29,6 +29,8 @@ export interface RecipeTimes {
   prepTimeMin: string
   cookTimeMin: string
   difficulty: RecipeDifficulty | null
+  /** A stored total with no prep/cook split (seeds, MCP); kept while both stay blank. */
+  totalTimeMin?: string
 }
 
 /** Parses a form-string minute value; returns undefined unless a positive int. */
@@ -78,7 +80,10 @@ export function buildPayload(
     if (!times) return {}
     const prep = parsePositiveInt(times.prepTimeMin) ?? null
     const cook = parsePositiveInt(times.cookTimeMin) ?? null
-    const total = prep !== null || cook !== null ? (prep ?? 0) + (cook ?? 0) : null
+    const total =
+      prep !== null || cook !== null
+        ? (prep ?? 0) + (cook ?? 0)
+        : (parsePositiveInt(times.totalTimeMin) ?? null)
     return {
       prepTimeMin: prep,
       cookTimeMin: cook,
@@ -143,6 +148,8 @@ export interface RecipeFormState {
   steps: StepRow[]
   prepTimeMin: string
   cookTimeMin: string
+  /** Only set for a recipe whose time has no prep/cook split; see RecipeTimes. */
+  totalTimeMin: string
   difficulty: RecipeDifficulty | null
   foodTypeIds: string[]
   dietaryTags: string[]
@@ -165,6 +172,10 @@ export function recipeToFormState(recipe: Recipe): RecipeFormState {
     steps: recipe.steps.map((s) => ({ text: s.text })),
     prepTimeMin: recipe.prepTimeMin != null ? String(recipe.prepTimeMin) : '',
     cookTimeMin: recipe.cookTimeMin != null ? String(recipe.cookTimeMin) : '',
+    totalTimeMin:
+      recipe.prepTimeMin == null && recipe.cookTimeMin == null && recipe.totalTimeMin != null
+        ? String(recipe.totalTimeMin)
+        : '',
     difficulty: recipe.difficulty ?? null,
     foodTypeIds: recipe.foodTypeIds ?? [],
     dietaryTags: recipe.dietaryTags ?? [],
