@@ -28,6 +28,7 @@ import {
 } from '../../src/utils/profileTargets'
 import { confirmAsync, notify } from '../../src/utils/platformAlert'
 import { apiErrorMessage } from '../../src/utils/apiError'
+import { canChangePassword, passwordChangeError } from '../../src/utils/passwordChange'
 import { refreshAfter } from '../../src/utils/menuCache'
 import { DIETARY_LABELS } from '../../src/utils/allergenCheck'
 import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
@@ -52,7 +53,7 @@ export default function ProfileScreen() {
   const s = makeStyles(colors)
   const themeCtx = useThemeContext()
   const router = useRouter()
-  const { signOut } = useAuth()
+  const { signOut, signIn } = useAuth()
   const queryClient = useQueryClient()
 
   const {
@@ -147,6 +148,20 @@ export default function ProfileScreen() {
   function updateMealTarget(slot: string, delta: number) {
     saveProfile((p) => ({ nutritionTargets: withMealCalories(p?.nutritionTargets, slot, delta) }))
   }
+
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const changePassword = useMutation({
+    mutationFn: () => api.auth.changePassword({ currentPassword, newPassword }),
+    onSuccess: async ({ token }) => {
+      // Other sessions are signed out; this one keeps going with the new token
+      await signIn(token)
+      setCurrentPassword('')
+      setNewPassword('')
+      notify('Contraseña cambiada', 'Las otras sesiones abiertas se cerraron.')
+    },
+  })
+  const passwordError = passwordChangeError(changePassword.error, newPassword)
 
   async function handleSignOut() {
     await signOut()
@@ -382,6 +397,44 @@ export default function ProfileScreen() {
         <Text style={s.chevron}>›</Text>
       </TouchableOpacity>
 
+      <Text style={s.sectionTitle}>Cambiar contraseña</Text>
+      <TextInput
+        testID="password-current"
+        style={s.passwordInput}
+        placeholder="Contraseña actual"
+        placeholderTextColor={colors.inkSoft}
+        secureTextEntry
+        autoComplete="current-password"
+        value={currentPassword}
+        onChangeText={setCurrentPassword}
+      />
+      <TextInput
+        testID="password-new"
+        style={s.passwordInput}
+        placeholder="Nueva contraseña (mínimo 8 caracteres)"
+        placeholderTextColor={colors.inkSoft}
+        secureTextEntry
+        autoComplete="new-password"
+        value={newPassword}
+        onChangeText={setNewPassword}
+      />
+      {passwordError ? (
+        <Text testID="password-error" style={s.passwordError}>
+          {passwordError}
+        </Text>
+      ) : null}
+      <TouchableOpacity
+        testID="password-save"
+        accessibilityRole="button"
+        style={[s.passwordBtn, !canChangePassword(currentPassword, newPassword) && s.disabled]}
+        disabled={!canChangePassword(currentPassword, newPassword) || changePassword.isPending}
+        onPress={() => changePassword.mutate()}
+      >
+        <Text style={s.passwordBtnText}>
+          {changePassword.isPending ? 'Guardando…' : 'Cambiar contraseña'}
+        </Text>
+      </TouchableOpacity>
+
       {/* Sign out */}
       <TouchableOpacity
         testID="profile-signout"
@@ -518,4 +571,25 @@ const makeStyles = (c: ThemeColors) =>
       marginTop: 24,
     },
     signOutText: { color: c.danger, fontSize: 16, fontWeight: '600' },
+    passwordInput: {
+      borderWidth: 1,
+      borderColor: c.line,
+      borderRadius: 8,
+      padding: 12,
+      fontSize: 15,
+      color: c.ink,
+      backgroundColor: c.surface,
+      marginBottom: 8,
+    },
+    passwordError: { color: c.danger, fontSize: 13, marginBottom: 8 },
+    passwordBtn: {
+      backgroundColor: c.terracotta,
+      borderRadius: 10,
+      paddingVertical: 12,
+      alignItems: 'center',
+      minHeight: 44,
+      justifyContent: 'center',
+    },
+    passwordBtnText: { color: c.surface, fontSize: 15, fontWeight: '700' },
+    disabled: { opacity: 0.5 },
   })

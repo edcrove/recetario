@@ -71,6 +71,7 @@ test.describe('Auth: forgot password', () => {
     await page.goto('/auth/forgot')
     await expect(page.getByText('Restablecer contraseña')).toBeVisible()
     await expect(page.getByTestId('forgot-explainer')).toContainText('Todavía no enviamos emails')
+    await expect(page.getByTestId('forgot-explainer')).toContainText('Perfil → Cambiar contraseña')
     await expect(page.getByPlaceholder('vos@ejemplo.com')).toHaveCount(0)
     await expect(page.getByText(/Revisá tu email|Enviar link/)).toHaveCount(0)
   })
@@ -81,6 +82,33 @@ test.describe('Auth: forgot password', () => {
     await expect(page.getByTestId('forgot-explainer')).toBeVisible()
     await page.getByTestId('forgot-back').click()
     await expect(page).toHaveURL(/auth\/login/)
+  })
+})
+
+// Story (Auditar 2026-10-03): the temporary password from a reset could never
+// be replaced. A fresh user, so the shared demo account keeps its password.
+test.describe('Auth: change password', () => {
+  test('changes it from the profile; the old one stops working', async ({ page }) => {
+    const email = `cambio-e2e-${Date.now()}-${Math.floor(Math.random() * 1e4)}@example.com`
+    const reg = await page.request.post(`${API_URL}/auth/register`, {
+      data: { email, password: 'temporal123' },
+    })
+    const { token } = (await reg.json()) as { token: string }
+    await page.goto('/auth/login')
+    await page.evaluate((jwt) => localStorage.setItem('auth_token', jwt), token)
+    await page.goto('/profile')
+    await page.getByTestId('password-current').fill('temporal123')
+    await page.getByTestId('password-new').fill('mi-clave-nueva')
+    page.once('dialog', (d) => void d.accept())
+    await page.getByTestId('password-save').click()
+    await expect(page.getByTestId('password-current')).toHaveValue('')
+    // Still signed in on this device
+    await expect(page.getByTestId('profile-signout')).toBeVisible()
+
+    const login = (password: string) =>
+      page.request.post(`${API_URL}/auth/login`, { data: { email, password } })
+    expect((await login('temporal123')).status()).toBe(401)
+    expect((await login('mi-clave-nueva')).status()).toBe(200)
   })
 })
 

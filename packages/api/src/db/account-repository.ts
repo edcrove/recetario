@@ -84,6 +84,18 @@ export const accountRepository = {
     return user ?? null
   },
 
+  /**
+   * Stores a new password hash and stamps passwordChangedAt, which revokes
+   * every JWT issued before now (see middleware/auth.ts isRevoked).
+   */
+  async updatePassword(id: string, passwordHash: string): Promise<void> {
+    const now = new Date()
+    await currentDb()
+      .update(schema.users)
+      .set({ passwordHash, passwordChangedAt: now, updatedAt: now })
+      .where(eq(schema.users.id, id))
+  },
+
   async findProfileRow(userId: string): Promise<ProfileRow | null> {
     const [row] = await currentDb()
       .select()

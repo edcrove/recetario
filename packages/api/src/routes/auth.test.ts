@@ -42,6 +42,9 @@ vi.mock('../db/account-repository.js', () => ({
       return (mockUsersInsert() as unknown[])[0]
     }),
     recordLogin: vi.fn(async () => mockUsersUpdate({ lastLoginAt: new Date() })),
+    updatePassword: vi.fn(async (_id: string, passwordHash: string) =>
+      mockUsersUpdate({ passwordHash }),
+    ),
   },
 }))
 
@@ -267,6 +270,80 @@ describe('GET /auth/me', () => {
     expect(res.status).toBe(401)
     const body = await res.json()
     expect(body.error).toContain('not found')
+  })
+})
+
+// Story (Auditar 2026-10-03): a temporary password from reset-password could
+// never be replaced; the profile can now change it.
+describe('POST /auth/password', () => {
+  const USER_ID = '0f8fad5b-d9cb-469f-a165-70867728950e'
+  async function call(body: unknown, auth?: string) {
+    const { signJwt } = await import('../auth/service.js')
+    const token = auth ?? (await signJwt({ sub: USER_ID, email: DEMO_USER.email }))
+    return app.request('/auth/password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    })
+  }
+  async function withPassword(password: string) {
+    const { hashPassword } = await import('../auth/service.js')
+    mockUsersSelect.mockReturnValue([
+      { ...DEMO_USER, id: USER_ID, passwordHash: await hashPassword(password) },
+    ])
+  }
+  beforeEach(() => mockUsersUpdate.mockClear())
+
+  it('changes it with the right current password and returns a fresh token', async () => {
+    await withPassword('temporal123')
+    const res = await call({ currentPassword: 'temporal123', newPassword: 'mi-clave-nueva' })
+    expect(res.status).toBe(200)
+    const { token } = await res.json()
+    const { verifyJwt, verifyPassword } = await import('../auth/service.js')
+    expect((await verifyJwt(token))?.sub).toBe(USER_ID)
+    const stored = (mockUsersUpdate.mock.calls[0]?.[0] as { passwordHash: string }).passwordHash
+    expect(await verifyPassword('mi-clave-nueva', stored)).toBe(true)
+  })
+
+  it('refuses a wrong current password (401) and changes nothing', async () => {
+    await withPassword('temporal123')
+    const res = await call({ currentPassword: 'otra-cosa', newPassword: 'mi-clave-nueva' })
+    expect(res.status).toBe(401)
+    expect((await res.json()).error).toBe('Current password is incorrect')
+    expect(mockUsersUpdate).not.toHaveBeenCalledWith(
+      expect.objectContaining({ passwordHash: expect.anything() }),
+    )
+  })
+
+  it('refuses the same password again, or a short one (400)', async () => {
+    await withPassword('temporal123')
+    expect(
+      (await call({ currentPassword: 'temporal123', newPassword: 'temporal123' })).status,
+    ).toBe(400)
+    expect((await call({ currentPassword: 'temporal123', newPassword: 'corta' })).status).toBe(400)
+  })
+
+  it('needs a signed-in user: no token, an API-key owner or a deleted user get 401', async () => {
+    const anon = await app.request('/auth/password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentPassword: 'a', newPassword: 'bbbbbbbb' }),
+    })
+    expect(anon.status).toBe(401)
+
+    vi.stubEnv('DEV_API_KEY', 'dev-key')
+    mockUsersSelect.mockImplementation(() => {
+      throw new Error('db down')
+    })
+    const dev = await call({ currentPassword: 'a', newPassword: 'bbbbbbbb' }, 'dev-key')
+    vi.unstubAllEnvs()
+    mockUsersSelect.mockReset()
+    expect(dev.status).toBe(401)
+
+    mockUsersSelect.mockReturnValue([])
+    const gone = await call({ currentPassword: 'a', newPassword: 'bbbbbbbb' })
+    expect(gone.status).toBe(401)
+    expect((await gone.json()).error).toBe('User not found')
   })
 })
 

@@ -8,15 +8,16 @@ export default function ForgotPasswordScreen() {
   const router = useRouter()
 
   // No email provider yet (decision log D-2026-09-30-11): be honest and send
-  // people to whoever runs the household, who resets it with the admin script.
+  // people to whoever runs this Recetario (has the server and its reset script).
   return (
     <View style={s.container}>
       <View style={s.inner}>
         <Text style={s.icon}>🔑</Text>
         <Text style={s.title}>Restablecer contraseña</Text>
         <Text testID="forgot-explainer" style={s.body}>
-          Todavía no enviamos emails. Pedile a quien administra tu hogar en Recetario que te
-          restablezca la contraseña: te va a pasar una contraseña temporal para entrar.
+          Todavía no enviamos emails. Pedile a quien administra Recetario (quien lo instaló) que te
+          restablezca la contraseña: te va a pasar una contraseña temporal. Después cambiala en
+          Perfil → Cambiar contraseña.
         </Text>
         <TouchableOpacity
           testID="forgot-back"

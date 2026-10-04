@@ -188,6 +188,8 @@ export const api = {
         body: JSON.stringify(data),
       }),
     me: () => request<User>('/auth/me'),
+    changePassword: (data: { currentPassword: string; newPassword: string }) =>
+      request<{ token: string }>('/auth/password', { method: 'POST', body: JSON.stringify(data) }),
     updateMe: (data: { displayName?: string; avatarUrl?: string }) =>
       request<User>('/auth/me', {
         method: 'PATCH',
