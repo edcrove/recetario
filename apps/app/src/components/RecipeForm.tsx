@@ -34,6 +34,7 @@ export const EMPTY_FORM: RecipeFormState = {
   steps: [{ text: '' }],
   prepTimeMin: '',
   cookTimeMin: '',
+  totalTimeMin: '',
   difficulty: null,
   foodTypeIds: [],
   dietaryTags: [],
@@ -86,7 +87,7 @@ export function RecipeForm({ initial, submitLabel, isPending, submitError, onSub
       steps,
       undefined,
       foodTypeIds,
-      { prepTimeMin, cookTimeMin, difficulty },
+      { prepTimeMin, cookTimeMin, difficulty, totalTimeMin: initial.totalTimeMin },
     )
     const { valid, errors: fieldErrors } = validatePayload(payload)
     if (!valid) {
@@ -182,7 +183,7 @@ export function RecipeForm({ initial, submitLabel, isPending, submitError, onSub
             value={prepTimeMin}
             onChangeText={setPrepTimeMin}
             keyboardType="numeric"
-            placeholder="10"
+            placeholder="min"
           />
         </View>
         <View style={st.timeCol}>
@@ -194,10 +195,16 @@ export function RecipeForm({ initial, submitLabel, isPending, submitError, onSub
             value={cookTimeMin}
             onChangeText={setCookTimeMin}
             keyboardType="numeric"
-            placeholder="15"
+            placeholder="min"
           />
         </View>
       </View>
+      {initial.totalTimeMin ? (
+        <Text testID="recipe-total-time-hint" style={st.hint}>
+          Tiempo total guardado: {initial.totalTimeMin} min. Se mantiene mientras prep. y cocción
+          queden vacíos.
+        </Text>
+      ) : null}
       <Text style={st.label}>Dificultad</Text>
       <View style={st.chipRow}>
         {DIFFICULTIES.map((d) => (
@@ -389,6 +396,7 @@ const makeStyles = (c: ThemeColors) =>
     container: { flex: 1, backgroundColor: c.surface },
     content: { padding: 16, paddingBottom: 40 },
     label: { fontSize: 14, fontWeight: '600', marginBottom: 4, color: c.ink, marginTop: 12 },
+    hint: { fontSize: 12, color: c.inkSoft, marginTop: 4 },
     input: {
       borderWidth: 1,
       borderColor: c.line,
