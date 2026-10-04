@@ -15,6 +15,8 @@ authRoute.use('/login', authRateLimitMiddleware)
 authRoute.use('/register', authRateLimitMiddleware)
 // JWT (app) or API key (MCP agents): same rules as every other authenticated route
 authRoute.use('/me', authMiddleware)
+authRoute.use('/password', authRateLimitMiddleware)
+authRoute.use('/password', authMiddleware)
 
 const userResponseSchema = UserSchema
 
@@ -166,4 +168,59 @@ authRoute.openapi(meRoute, async (c) => {
     },
     200,
   )
+})
+
+// POST /auth/password — change your own password (current + new). Every other
+// session's token stops working; the caller gets a fresh one.
+const changePasswordRoute = defineRoute({
+  method: 'post',
+  path: '/password',
+  security: [{ BearerAuth: [] }],
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            currentPassword: z.string().min(1),
+            newPassword: z.string().min(8).max(200),
+          }),
+        },
+      },
+      required: true,
+    },
+  },
+  responses: {
+    200: {
+      content: { 'application/json': { schema: z.object({ token: z.string() }) } },
+      description: 'Password changed; a new token for this session',
+    },
+    400: { content: { 'application/json': { schema: errorSchema } }, description: 'Invalid' },
+    401: {
+      content: { 'application/json': { schema: errorSchema } },
+      description: 'Not a user session',
+    },
+    // Not 401: the session is valid, and the app signs out on any 401.
+    403: {
+      content: { 'application/json': { schema: errorSchema } },
+      description: 'Wrong current password',
+    },
+  },
+})
+
+authRoute.openapi(changePasswordRoute, async (c) => {
+  const userId: string = c.get('ownerId')
+  const { currentPassword, newPassword } = c.req.valid('json')
+  // API keys (agents) and legacy owners have no password to change
+  if (!UUID_RE.test(userId)) return c.json({ error: 'User not found' }, 401)
+  const user = await accountRepository.findUserById(userId)
+  if (!user) return c.json({ error: 'User not found' }, 401)
+  if (!(await verifyPassword(currentPassword, user.passwordHash))) {
+    return c.json({ error: 'Current password is incorrect' }, 403)
+  }
+  if (currentPassword === newPassword) {
+    return c.json({ error: 'The new password must be different' }, 400)
+  }
+  await accountRepository.updatePassword(user.id, await hashPassword(newPassword))
+  const token = await signJwt({ sub: user.id, email: user.email })
+  return c.json({ token }, 200)
 })

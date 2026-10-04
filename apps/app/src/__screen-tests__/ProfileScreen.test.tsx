@@ -9,6 +9,9 @@ const m = vi.hoisted(() => ({
   signOut: vi.fn(async () => undefined),
   confirm: vi.fn(async () => true),
   refreshAfter: vi.fn(async () => []),
+  changePassword: vi.fn(),
+  signIn: vi.fn(async () => undefined),
+  notify: vi.fn(),
 }))
 vi.mock('../utils/menuCache', () => ({ refreshAfter: m.refreshAfter }))
 
@@ -19,13 +22,20 @@ vi.mock('../api/client', () => ({
       getProfile: m.getProfile,
       updateProfile: m.updateProfile,
       updateMe: vi.fn(),
+      changePassword: m.changePassword,
     },
   },
 }))
 vi.mock('../providers/AuthProvider', () => ({
-  useAuth: () => ({ token: 't', userId: 'u1', isLoading: false, signOut: m.signOut }),
+  useAuth: () => ({
+    token: 't',
+    userId: 'u1',
+    isLoading: false,
+    signOut: m.signOut,
+    signIn: m.signIn,
+  }),
 }))
-vi.mock('../utils/platformAlert', () => ({ confirmAsync: m.confirm, notify: vi.fn() }))
+vi.mock('../utils/platformAlert', () => ({ confirmAsync: m.confirm, notify: m.notify }))
 
 import ProfileScreen from '../../app/profile/index'
 
@@ -170,5 +180,49 @@ describe('ProfileScreen load error', () => {
     fireEvent.click(screen.getByTestId('error-retry'))
     expect(await screen.findByTestId('target-daily_calories-plus')).toBeInTheDocument()
     expect(m.updateProfile).not.toHaveBeenCalled()
+  })
+})
+
+// Story (Auditar 2026-10-03): a temporary password could never be replaced.
+describe('ProfileScreen change password', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    m.getProfile.mockResolvedValue({ ...baseProfile, nutritionTargets: null })
+  })
+
+  it('changes it, keeps the session with the new token and clears the fields', async () => {
+    m.changePassword.mockResolvedValue({ token: 'nuevo-token' })
+    wrap()
+    const save = await screen.findByTestId('password-save')
+    expect(save).toBeDisabled()
+    fireEvent.change(screen.getByTestId('password-current'), { target: { value: 'temporal123' } })
+    fireEvent.change(screen.getByTestId('password-new'), { target: { value: 'corta' } })
+    expect(screen.getByTestId('password-error')).toHaveTextContent('al menos 8 caracteres')
+    fireEvent.change(screen.getByTestId('password-new'), { target: { value: 'mi-clave-nueva' } })
+    expect(screen.queryByTestId('password-error')).toBeNull()
+    fireEvent.click(save)
+    await waitFor(() =>
+      expect(m.changePassword).toHaveBeenCalledWith({
+        currentPassword: 'temporal123',
+        newPassword: 'mi-clave-nueva',
+      }),
+    )
+    await waitFor(() => expect(m.signIn).toHaveBeenCalledWith('nuevo-token'))
+    expect(m.notify).toHaveBeenCalledWith('Contraseña cambiada', expect.any(String))
+    expect(screen.getByTestId('password-current')).toHaveValue('')
+  })
+
+  it('says when the current password is wrong', async () => {
+    m.changePassword.mockRejectedValue(
+      new Error('API 403: {"error":"Current password is incorrect"}'),
+    )
+    wrap()
+    fireEvent.change(await screen.findByTestId('password-current'), { target: { value: 'otra' } })
+    fireEvent.change(screen.getByTestId('password-new'), { target: { value: 'mi-clave-nueva' } })
+    fireEvent.click(screen.getByTestId('password-save'))
+    expect(await screen.findByTestId('password-error')).toHaveTextContent(
+      'La contraseña actual no es correcta.',
+    )
+    expect(m.signIn).not.toHaveBeenCalled()
   })
 })

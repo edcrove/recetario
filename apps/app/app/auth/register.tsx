@@ -56,7 +56,7 @@ export default function RegisterScreen() {
       } else if (msg.includes('429')) {
         setError('Demasiados intentos. Esperá un minuto y probá de nuevo.')
       } else if (msg.includes('403') || msg.includes('closed')) {
-        setError('El registro está cerrado. Pedile una cuenta a quien administra tu hogar.')
+        setError('El registro está cerrado. Pedile una cuenta a quien administra Recetario.')
       } else {
         setError('Error al registrarse. Intentá de nuevo.')
       }
