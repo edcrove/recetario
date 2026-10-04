@@ -52,9 +52,49 @@ test.describe('AllergenWarning banner (route interception)', () => {
       await expect(page.getByText('Alérgenos:')).toBeVisible()
       await expect(page.getByText('No cumple:')).toBeVisible()
       await expect(page.getByText('Sin verificar:')).toBeVisible()
+      await expect(page.getByTestId('allergen-disclaimer')).toContainText('verificá la etiqueta')
     } finally {
       await page.unroute('**/auth/profile')
       await deleteRecipeViaApi(page, recipe.id)
+    }
+  })
+
+  // Auditar 2026-10-03 (Nutrition): soy sauce hides wheat; a recipe with no
+  // match is still only a name check.
+  test('a hidden source warns, and no match still says to check the label', async ({ page }) => {
+    const withSoy = await createRecipeViaApi(page, {
+      ingredients: [{ name: 'salsa de soja', quantity: 30, unit: 'ml' }],
+    })
+    const plain = await createRecipeViaApi(page, {
+      ingredients: [{ name: 'arroz', quantity: 200, unit: 'g' }],
+    })
+    try {
+      await page.route('**/auth/profile', (route) =>
+        route.request().method() === 'GET'
+          ? route.fulfill({
+              status: 200,
+              contentType: 'application/json',
+              body: JSON.stringify({
+                preferredServings: 2,
+                dietaryRestrictions: [],
+                allergens: ['gluten'],
+                goals: [],
+                timezone: null,
+                nutritionTargets: null,
+              }),
+            })
+          : route.fallback(),
+      )
+      await page.goto(`/recipe/${withSoy.id}`)
+      await expect(page.getByTestId('allergen-warning')).toContainText('Gluten (TACC)')
+      await page.goto(`/recipe/${plain.id}`)
+      await expect(page.getByTestId('allergen-disclaimer')).toContainText(
+        'No encontramos tus alérgenos',
+      )
+    } finally {
+      await page.unroute('**/auth/profile')
+      await deleteRecipeViaApi(page, withSoy.id)
+      await deleteRecipeViaApi(page, plain.id)
     }
   })
 })

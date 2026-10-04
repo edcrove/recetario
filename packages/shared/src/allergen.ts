@@ -80,6 +80,10 @@ const ALLERGEN_TERMS: Record<Allergen, { terms: string[]; except?: string[] }> =
       'seitan',
       'cuscus',
       'bulgur',
+      // Brewed soy sauce is made with wheat (tamari usually too)
+      'salsa de soja',
+      'shoyu',
+      'tamari',
     ],
     except: [
       'harina de maiz',
@@ -126,6 +130,9 @@ const ALLERGEN_TERMS: Record<Allergen, { terms: string[]; except?: string[] }> =
       'caseina',
       'ghee',
       'chantilly',
+      'caseinato',
+      'bechamel',
+      'besamel',
     ],
     except: [
       'leche de coco',
@@ -143,7 +150,10 @@ const ALLERGEN_TERMS: Record<Allergen, { terms: string[]; except?: string[] }> =
       'manteca vegetal',
     ],
   },
-  huevo: { terms: ['huevo', 'clara', 'yema', 'mayonesa', 'merengue', 'albumina'] },
+  huevo: {
+    terms: ['huevo', 'clara', 'yema', 'mayonesa', 'merengue', 'albumina', 'alioli'],
+    except: ['mayonesa vegana'],
+  },
   pescado: {
     terms: [
       'pescado',
@@ -159,6 +169,18 @@ const ALLERGEN_TERMS: Record<Allergen, { terms: string[]; except?: string[] }> =
       'lenguado',
       'pejerrey',
       'surimi',
+      'kani kama',
+      'kanikama',
+      'corvina',
+      'brotola',
+      'mero',
+      'boqueron',
+      'bonito',
+      'pez espada',
+      'pez',
+      // Worcestershire sauce is made with anchovies
+      'salsa inglesa',
+      'worcestershire',
     ],
   },
   crustaceos: {
@@ -171,6 +193,9 @@ const ALLERGEN_TERMS: Record<Allergen, { terms: string[]; except?: string[] }> =
       'cangrejo',
       'langosta',
       'centolla',
+      'cigala',
+      'bogavante',
+      'krill',
     ],
   },
   moluscos: {
@@ -187,10 +212,12 @@ const ALLERGEN_TERMS: Record<Allergen, { terms: string[]; except?: string[] }> =
       'berberecho',
       'sepia',
       'caracol',
+      'chipiron',
+      'navaja',
     ],
   },
   // "maníes" singularizes to "manie", so the plural is listed too.
-  mani: { terms: ['mani', 'manies', 'cacahuate', 'cacahuete'] },
+  mani: { terms: ['mani', 'manies', 'cacahuate', 'cacahuete', 'garrapiñada'] },
   frutos_secos: {
     terms: [
       'nuez',
@@ -203,10 +230,14 @@ const ALLERGEN_TERMS: Record<Allergen, { terms: string[]; except?: string[] }> =
       'pistacho',
       'pecan',
       'macadamia',
+      'mazapan',
+      'turron',
+      'praline',
+      'nougat',
     ],
     except: ['nuez moscada'],
   },
-  soja: { terms: ['soja', 'soya', 'tofu', 'edamame', 'miso', 'tempeh'] },
+  soja: { terms: ['soja', 'soya', 'tofu', 'edamame', 'miso', 'tempeh', 'shoyu', 'tamari'] },
   sesamo: { terms: ['sesamo', 'ajonjoli', 'tahini', 'tahina'] },
   apio: { terms: ['apio'] },
   mostaza: { terms: ['mostaza'] },
@@ -217,11 +248,14 @@ const ALLERGEN_TERMS: Record<Allergen, { terms: string[]; except?: string[] }> =
 const norm = (s: string) => normalizeIngredientKey(s)
 
 /**
- * Words that only mean the allergen in their plural — normalization would turn
- * "vainillas" (ladyfingers, wheat) into "vainilla" (the spice). Matched on the
- * accent-free, lowercased raw name.
+ * Phrases normalization would lose, matched on the accent-free, lowercased raw
+ * name: "vainillas" (ladyfingers, wheat) would become "vainilla" (the spice),
+ * and "frutos secos" would become "fruto" (as "frutos rojos" becomes "fruto rojo").
  */
-const PLURAL_ONLY_TERMS: Partial<Record<Allergen, string[]>> = { gluten: ['vainillas'] }
+const RAW_TERMS: Partial<Record<Allergen, string[]>> = {
+  gluten: ['vainillas'],
+  frutos_secos: ['frutos secos', 'fruto seco'],
+}
 
 /**
  * Labels that declare the product free of the allergen ("Fideos sin TACC",
@@ -230,6 +264,7 @@ const PLURAL_ONLY_TERMS: Partial<Record<Allergen, string[]>> = { gluten: ['vaini
  */
 const FREE_FROM_EXTRA: Partial<Record<Allergen, string[]>> = {
   gluten: ['sin tacc', 'libre de gluten', 'apto celiaco', 'apto para celiaco'],
+  frutos_secos: ['sin frutos secos'],
 }
 
 interface NormalizedTerms {
@@ -325,7 +360,7 @@ export function ingredientHasAllergen(ingredientName: string, allergen: string):
   let padded = ` ${ing} `
   if (freeFrom.some((q) => hasPhrase(padded, q))) return false
   const raw = ` ${plainLower(ingredientName).replace(/[^a-z0-9ñ]+/g, ' ')} `
-  if ((PLURAL_ONLY_TERMS[key] ?? []).some((t) => raw.includes(` ${t} `))) return true
+  if ((RAW_TERMS[key] ?? []).some((t) => raw.includes(` ${t} `))) return true
   for (const phrase of except) padded = padded.split(` ${phrase} `).join('  ')
   return terms.some((t) => hasPhrase(padded, t))
 }

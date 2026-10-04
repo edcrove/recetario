@@ -16,11 +16,22 @@ export function AllergenWarning({ recipe }: Props) {
   if (!profile) return null
 
   const { matchedAllergens, unmetDietary, unverifiedDietary } = checkAllergens(recipe, profile)
+  // Matching is by ingredient name, so a recipe with no match is not proof it
+  // is safe: anyone with allergies always sees the caveat.
+  const hasAllergies = (profile.allergens ?? []).length > 0
 
-  if (matchedAllergens.length + unmetDietary.length + unverifiedDietary.length === 0) return null
+  if (matchedAllergens.length + unmetDietary.length + unverifiedDietary.length === 0) {
+    if (!hasAllergies) return null
+    return (
+      <Text testID="allergen-disclaimer" style={s.note}>
+        No encontramos tus alérgenos en los nombres de los ingredientes. Es una detección
+        automática: verificá la etiqueta de cada producto.
+      </Text>
+    )
+  }
 
   return (
-    <View style={s.container}>
+    <View testID="allergen-warning" style={s.container}>
       {matchedAllergens.length > 0 && (
         <View style={s.row}>
           <Text style={s.icon}>⚠️</Text>
@@ -49,6 +60,11 @@ export function AllergenWarning({ recipe }: Props) {
           </Text>
         </View>
       )}
+      {hasAllergies && (
+        <Text testID="allergen-disclaimer" style={s.caveat}>
+          Detección automática por nombre: verificá la etiqueta de cada producto.
+        </Text>
+      )}
     </View>
   )
 }
@@ -68,4 +84,6 @@ const makeStyles = (c: ThemeColors) =>
     icon: { fontSize: 14 },
     text: { flex: 1, fontSize: 13, color: c.warningInk, lineHeight: 18 },
     bold: { fontWeight: '700' },
+    caveat: { fontSize: 12, color: c.warningInk, fontStyle: 'italic', marginTop: 2 },
+    note: { fontSize: 12, color: c.inkSoft, fontStyle: 'italic', marginVertical: 8 },
   })

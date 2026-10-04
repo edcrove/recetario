@@ -14,6 +14,18 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
 
 ## 2026-10-03 — Security workflow
 
+### D-2026-10-04-1 · Allergen detection always says it is by name
+
+- **Decision**: the allergen table also catches sources that don't name the allergen
+  (soy sauce → gluten, Worcestershire → fish, mazapán/turrón → nuts, bechamel → milk,
+  alioli → egg, more fish/shellfish species). Anyone with allergies always sees a caveat
+  on the recipe: "verificá la etiqueta", even when nothing matched.
+- **Why**: Auditar 2026-10-03 (Nutrition): matching by ingredient name can't see
+  everything a product contains, and no warning read as "safe".
+- **Where it lives**: `packages/shared/src/allergen.ts`,
+  `apps/app/src/components/AllergenWarning.tsx`.
+- **Status**: active
+
 ### D-2026-10-03-2 · Acknowledge GHSA-vfj7-8cjw-p6xm (braces) until a fix ships
 
 - **Decision**: `pnpm.auditConfig.ignoreGhsas` also lists GHSA-vfj7-8cjw-p6xm, so
