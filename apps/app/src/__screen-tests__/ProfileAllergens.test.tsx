@@ -2,9 +2,14 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
-const { mockGetProfile, mockUpdateProfile } = vi.hoisted(() => ({
+const { mockGetProfile, mockUpdateProfile, mockNotify } = vi.hoisted(() => ({
   mockGetProfile: vi.fn(),
   mockUpdateProfile: vi.fn(),
+  mockNotify: vi.fn(),
+}))
+vi.mock('../utils/platformAlert', () => ({
+  confirmAsync: vi.fn(async () => true),
+  notify: mockNotify,
 }))
 
 vi.mock('../api/client', () => ({
@@ -68,5 +73,34 @@ describe('Profile allergen picker', () => {
     fireEvent.click(screen.getByTestId('allergen-chip-leche'))
     await waitFor(() => expect(mockUpdateProfile).toHaveBeenCalled())
     expect(mockUpdateProfile.mock.calls[0]?.[0]).toEqual({ allergens: [] })
+  })
+
+  // Auditar 2026-10-03: each tap built its list from the last refetch, so a
+  // second quick tap overwrote the first (huevo + leche saved only leche).
+  it('two quick taps save both allergens, one request after the other', async () => {
+    let finishFirst: (v: unknown) => void = () => {}
+    mockUpdateProfile.mockImplementationOnce(() => new Promise((r) => (finishFirst = r)))
+    wrap()
+    await screen.findByTestId('allergen-chip-huevo')
+    await waitFor(() => expect(mockGetProfile).toHaveBeenCalled())
+    fireEvent.click(screen.getByTestId('allergen-chip-huevo'))
+    fireEvent.click(screen.getByTestId('allergen-chip-mani'))
+    await waitFor(() => expect(mockUpdateProfile).toHaveBeenCalledTimes(1))
+    expect(mockUpdateProfile.mock.calls[0]?.[0]).toEqual({ allergens: ['leche', 'huevo'] })
+    finishFirst({})
+    await waitFor(() => expect(mockUpdateProfile).toHaveBeenCalledTimes(2))
+    expect(mockUpdateProfile.mock.calls[1]?.[0]).toEqual({ allergens: ['leche', 'huevo', 'mani'] })
+  })
+
+  it('a failed save says so and reloads what was really saved', async () => {
+    mockUpdateProfile.mockRejectedValueOnce(new Error('API 500: {"error":"boom"}'))
+    wrap()
+    await screen.findByTestId('allergen-chip-mani')
+    await waitFor(() => expect(mockGetProfile).toHaveBeenCalledTimes(1))
+    fireEvent.click(screen.getByTestId('allergen-chip-mani'))
+    await waitFor(() =>
+      expect(mockNotify).toHaveBeenCalledWith('No se pudo guardar el perfil', expect.any(String)),
+    )
+    await waitFor(() => expect(mockGetProfile).toHaveBeenCalledTimes(2))
   })
 })

@@ -664,6 +664,27 @@ test.describe('Profile screen (/profile)', () => {
     }
   })
 
+  // Auditar 2026-10-03: two quick taps saved only the second allergen.
+  test('two allergens tapped quickly are both saved', async ({ page }) => {
+    const token = await page.evaluate(() => localStorage.getItem('auth_token'))
+    const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+    await page.request.patch(`${API_URL}/auth/profile`, { headers, data: { allergens: [] } })
+    try {
+      await page.goto('/profile')
+      await expect(page.getByTestId('allergen-chip-huevo')).toBeVisible()
+      await page.getByTestId('allergen-chip-huevo').click()
+      await page.getByTestId('allergen-chip-leche').click()
+      await expect
+        .poll(async () => {
+          const res = await page.request.get(`${API_URL}/auth/profile`, { headers })
+          return ((await res.json()) as { allergens: string[] }).allergens.sort()
+        })
+        .toEqual(['huevo', 'leche'])
+    } finally {
+      await page.request.patch(`${API_URL}/auth/profile`, { headers, data: { allergens: [] } })
+    }
+  })
+
   test('edits the display name inline', async ({ page }) => {
     const token = await page.evaluate(() => localStorage.getItem('auth_token'))
     const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
