@@ -11,11 +11,12 @@ import {
   type StepRow,
   type FieldErrors,
   type RecipeFormState,
+  errorSummary,
+  saveErrorMessage,
 } from '../utils/recipeForm'
 import { DIFFICULTIES } from '../utils/recipeMeta'
 import { DIETARY_LABELS } from '../utils/allergenCheck'
 import { api } from '../api/client'
-import { apiErrorMessage } from '../utils/apiError'
 import { unitLabel } from '../utils/displayIngredient'
 import { FoodTypePicker } from './FoodTypePicker'
 import { confirmAsync } from '../utils/platformAlert'
@@ -129,7 +130,8 @@ export function RecipeForm({ initial, submitLabel, isPending, submitError, onSub
     }
   }
 
-  const generalError = errors.general ?? (submitError ? apiErrorMessage(submitError) : undefined)
+  const generalError = errors.general ?? (submitError ? saveErrorMessage(submitError) : undefined)
+  const summary = errorSummary(errors)
 
   return (
     <ScrollView style={st.container} contentContainerStyle={st.content}>
@@ -338,6 +340,7 @@ export function RecipeForm({ initial, submitLabel, isPending, submitError, onSub
       </TouchableOpacity>
 
       <Text style={st.sectionTitle}>Pasos de preparación</Text>
+      {errors.steps ? <Text style={st.errorText}>{errors.steps}</Text> : null}
       {steps.map((step, i) => (
         <View key={i} style={st.stepRow}>
           <Text style={st.stepNum}>{i + 1}.</Text>
@@ -377,6 +380,11 @@ export function RecipeForm({ initial, submitLabel, isPending, submitError, onSub
         multiline
       />
 
+      {summary ? (
+        <Text testID="recipe-form-error-summary" style={st.errorText}>
+          {summary}
+        </Text>
+      ) : null}
       {generalError ? <Text style={st.errorText}>{generalError}</Text> : null}
 
       <TouchableOpacity

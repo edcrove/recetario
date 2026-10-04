@@ -1,3 +1,4 @@
+import { apiErrorMessage } from './apiError'
 import { CreateRecipeSchema, SYSTEM_CATEGORIES } from '@recetario/shared'
 import type { Category, Recipe, RecipeDifficulty, Unit } from '@recetario/shared'
 
@@ -117,6 +118,63 @@ export function buildPayload(
   }
 }
 
+type Issue = { code: string; path: ReadonlyArray<PropertyKey> }
+
+/** Spanish copy for one validation issue; never the raw (English) Zod message. */
+function issueMessage(issue: Issue): { field: keyof FieldErrors; message: string } {
+  const [field, index, sub] = issue.path
+  const n = typeof index === 'number' ? index + 1 : 0
+  const tooBig = issue.code === 'too_big'
+  switch (field) {
+    case 'title':
+      return {
+        field: 'title',
+        message: tooBig ? 'El título puede tener hasta 200 caracteres.' : 'Poné un título.',
+      }
+    case 'servings':
+      return { field: 'servings', message: 'Las porciones tienen que ser un número mayor que 0.' }
+    case 'category':
+      return { field: 'category', message: 'Elegí una categoría.' }
+    case 'ingredients':
+      if (sub === 'quantity')
+        return {
+          field: 'ingredients',
+          message: `Revisá la cantidad del ingrediente ${n}: usá un número como 2, 1,5 o 1/2.`,
+        }
+      if (n > 0) return { field: 'ingredients', message: `Revisá el ingrediente ${n}.` }
+      return {
+        field: 'ingredients',
+        message: tooBig ? 'Puede tener hasta 200 ingredientes.' : 'Agregá al menos un ingrediente.',
+      }
+    case 'steps':
+      if (n > 0) return { field: 'steps', message: `Revisá el paso ${n}.` }
+      if (tooBig) return { field: 'steps', message: 'Puede tener hasta 150 pasos.' }
+      return { field: 'general', message: 'Revisá los pasos de la receta.' }
+    case 'prepTimeMin':
+    case 'cookTimeMin':
+    case 'totalTimeMin':
+      return { field: 'general', message: 'Los tiempos van en minutos enteros.' }
+    default:
+      return { field: 'general', message: 'Revisá los datos de la receta.' }
+  }
+}
+
+const FIELD_NAMES: Partial<Record<keyof FieldErrors, string>> = {
+  title: 'título',
+  servings: 'porciones',
+  category: 'categoría',
+  ingredients: 'ingredientes',
+  steps: 'pasos',
+}
+
+/** "Revisá: título, ingredientes." — shown next to the save button. */
+export function errorSummary(errors: FieldErrors): string | undefined {
+  const names = (Object.keys(FIELD_NAMES) as Array<keyof FieldErrors>)
+    .filter((k) => errors[k])
+    .map((k) => FIELD_NAMES[k])
+  return names.length > 0 ? `Revisá: ${names.join(', ')}.` : undefined
+}
+
 export function validatePayload(payload: ReturnType<typeof buildPayload>): {
   valid: boolean
   errors: FieldErrors
@@ -126,16 +184,25 @@ export function validatePayload(payload: ReturnType<typeof buildPayload>): {
 
   const errors: FieldErrors = {}
   for (const issue of result.error.issues) {
-    const path = issue.path[0]
-    if (path === 'title') errors.title = issue.message
-    else if (path === 'servings') errors.servings = issue.message
-    else if (path === 'category') errors.category = issue.message
-    else if (path === 'ingredients' && issue.path[2] === 'quantity')
-      errors.ingredients = `Revisá la cantidad del ingrediente ${Number(issue.path[1]) + 1}: usá un número como 2, 1,5 o 1/2.`
-    else if (path === 'ingredients') errors.ingredients = issue.message
-    else errors.general = issue.message
+    const { field, message } = issueMessage(issue)
+    errors[field] ??= message
   }
   return { valid: false, errors }
+}
+
+/**
+ * The save error from the API in Spanish: 403/404 mean the recipe isn't yours
+ * (or is gone), 5xx is the server's fault (its text is English or HTML); 4xx
+ * validation keeps the API's own message (diet conflicts are already Spanish).
+ */
+export function saveErrorMessage(message: string): string {
+  const status = /^API (\d+):/.exec(message)?.[1]
+  if (status === '404')
+    return 'No encontramos esta receta: puede que la hayan borrado o no sea tuya.'
+  if (status === '403') return 'No tenés permiso para editar esta receta.'
+  if (status && Number(status) >= 500)
+    return 'No se pudo guardar la receta por un error del servidor. Probá de nuevo.'
+  return apiErrorMessage(message)
 }
 
 export interface RecipeFormState {
