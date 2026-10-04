@@ -212,3 +212,59 @@ describe('allergen table (every curated term, every false friend)', () => {
     expect(ingredientHasAllergen('leche entera', '')).toBe(false)
   })
 })
+
+// Auditar 2026-10-03 (Nutrition): sauces, sweets and species that hide an
+// allergen without naming it.
+const HIDDEN: Array<[string, (typeof ALLERGENS)[number]]> = [
+  ['salsa de soja', 'gluten'],
+  ['salsa de soja', 'soja'],
+  ['shoyu', 'gluten'],
+  ['shoyu', 'soja'],
+  ['tamari', 'gluten'],
+  ['tamari', 'soja'],
+  ['salsa inglesa', 'pescado'],
+  ['salsa Worcestershire', 'pescado'],
+  ['frutos secos', 'frutos_secos'],
+  ['mix de frutos secos', 'frutos_secos'],
+  ['fruto seco picado', 'frutos_secos'],
+  ['mazapán', 'frutos_secos'],
+  ['turrón', 'frutos_secos'],
+  ['praliné de avellanas', 'frutos_secos'],
+  ['nougat', 'frutos_secos'],
+  ['garrapiñadas', 'mani'],
+  ['corvina', 'pescado'],
+  ['brótola', 'pescado'],
+  ['mero', 'pescado'],
+  ['boquerones', 'pescado'],
+  ['bonito en aceite', 'pescado'],
+  ['pez espada', 'pescado'],
+  ['kani kama', 'pescado'],
+  ['kanikama', 'pescado'],
+  ['cigalas', 'crustaceos'],
+  ['bogavante', 'crustaceos'],
+  ['krill', 'crustaceos'],
+  ['chipirones', 'moluscos'],
+  ['navajas', 'moluscos'],
+  ['caseinato de sodio', 'leche'],
+  ['salsa bechamel', 'leche'],
+  ['salsa besamel', 'leche'],
+  ['alioli', 'huevo'],
+]
+
+const NOT_HIDDEN: Array<[string, (typeof ALLERGENS)[number]]> = [
+  ['frutos rojos', 'frutos_secos'],
+  ['frutas secas', 'frutos_secos'],
+  ['galletitas sin frutos secos', 'frutos_secos'],
+  ['salsa de soja sin TACC', 'gluten'],
+  ['pan dorado', 'pescado'],
+  ['mayonesa vegana', 'huevo'],
+]
+
+describe('allergen table: hidden sources', () => {
+  it.each(HIDDEN)('"%s" contains %s', (ingredient, allergen) => {
+    expect(ingredientHasAllergen(ingredient, allergen)).toBe(true)
+  })
+  it.each(NOT_HIDDEN)('"%s" does not contain %s', (ingredient, allergen) => {
+    expect(ingredientHasAllergen(ingredient, allergen)).toBe(false)
+  })
+})
