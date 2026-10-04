@@ -4,6 +4,8 @@ import {
   categoryOptions,
   parseQuantity,
   validatePayload,
+  errorSummary,
+  saveErrorMessage,
   recipeToFormState,
 } from '../utils/recipeForm'
 import type { IngredientRow, StepRow } from '../utils/recipeForm'
@@ -396,6 +398,85 @@ describe('validatePayload', () => {
     )
     expect(valid).toBe(false)
     expect(errors.general).toBeDefined()
+  })
+})
+
+// Auditar 2026-10-03: the form showed Zod's English text ("Too small:
+// expected string to have >=1 characters") in a Spanish app.
+describe('validation messages are Spanish', () => {
+  const ENGLISH = /too small|too big|expected|invalid|required/i
+
+  it('names each missing field in Spanish', () => {
+    const { errors } = validatePayload(buildPayload('', '0', 'Postre', '', '', [], validSteps))
+    expect(errors).toMatchObject({
+      title: 'Poné un título.',
+      servings: 'Las porciones tienen que ser un número mayor que 0.',
+      ingredients: 'Agregá al menos un ingrediente.',
+    })
+    for (const message of Object.values(errors)) expect(message).not.toMatch(ENGLISH)
+  })
+
+  it('too long a title, too many items and a bad row say so', () => {
+    const many = Array.from({ length: 201 }, () => validIngredients[0]!)
+    const { errors } = validatePayload(
+      buildPayload('x'.repeat(201), '4', 'Postre', '', '', many, [{ text: 'x'.repeat(5001) }]),
+    )
+    expect(errors.title).toBe('El título puede tener hasta 200 caracteres.')
+    expect(errors.ingredients).toBe('Puede tener hasta 200 ingredientes.')
+    const row = validatePayload(
+      buildPayload(
+        'T',
+        '4',
+        'Postre',
+        '',
+        '',
+        [{ ...validIngredients[0]!, name: 'x'.repeat(201) }],
+        validSteps,
+      ),
+    )
+    expect(row.errors.ingredients).toBe('Revisá el ingrediente 1.')
+  })
+
+  it('a bad step, a time or an unknown field fall back to Spanish too', () => {
+    const base = buildPayload('T', '4', 'Postre', '', '', validIngredients, validSteps)
+    const cases: Array<
+      [Record<string, unknown>, keyof ReturnType<typeof validatePayload>['errors'], string]
+    > = [
+      [{ steps: [{ text: 5 }] }, 'steps', 'Revisá el paso 1.'],
+      [
+        { steps: Array.from({ length: 151 }, () => ({ text: 'a' })) },
+        'steps',
+        'Puede tener hasta 150 pasos.',
+      ],
+      [{ prepTimeMin: 1.5 }, 'general', 'Los tiempos van en minutos enteros.'],
+      [{ category: '' }, 'category', 'Elegí una categoría.'],
+      [{ visibility: 'secret' }, 'general', 'Revisá los datos de la receta.'],
+    ]
+    for (const [patch, field, message] of cases) {
+      const { errors } = validatePayload({ ...base, ...patch } as unknown as typeof base)
+      expect(errors[field]).toBe(message)
+    }
+  })
+
+  it('the summary next to the save button lists the fields to fix', () => {
+    expect(errorSummary({ title: 'x', ingredients: 'y', general: 'z' })).toBe(
+      'Revisá: título, ingredientes.',
+    )
+    expect(errorSummary({ general: 'z' })).toBeUndefined()
+    expect(errorSummary({})).toBeUndefined()
+  })
+
+  it('a 404/403 on save is explained in Spanish; other API errors keep their message', () => {
+    expect(saveErrorMessage('API 404: {"error":"Recipe not found"}')).toMatch(/No encontramos/)
+    expect(saveErrorMessage('API 403: {"error":"Forbidden"}')).toMatch(/No tenés permiso/)
+    expect(saveErrorMessage('API 400: {"error":"\\"vegano\\" no se cumple"}')).toBe(
+      '"vegano" no se cumple',
+    )
+    expect(saveErrorMessage('API 500: {"error":"Internal server error"}')).toMatch(
+      /error del servidor. Probá de nuevo/,
+    )
+    expect(saveErrorMessage('API 502: <html>')).toMatch(/error del servidor/)
+    expect(saveErrorMessage('Network down')).toBe('Network down')
   })
 })
 

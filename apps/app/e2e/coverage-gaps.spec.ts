@@ -417,7 +417,9 @@ test.describe('New recipe form: row management and error branches', () => {
     await page.getByPlaceholder('Nombre de la receta').fill('Receta Que Falla')
     await page.getByPlaceholder('Ingrediente').first().fill('sal')
     await page.getByText('Guardar Receta').click()
-    await expect(page.getByText('boom').first()).toBeVisible()
+    await expect(
+      page.getByText(/No se pudo guardar la receta por un error del servidor/),
+    ).toBeVisible()
   })
 
   test('a server error without a message shows a generic one; visibility toggles back', async ({
@@ -438,7 +440,9 @@ test.describe('New recipe form: row management and error branches', () => {
     await page.getByPlaceholder('Nombre de la receta').fill('Receta Que Falla')
     await page.getByPlaceholder('Ingrediente').first().fill('sal')
     await page.getByText('Guardar Receta').click()
-    await expect(page.getByText('Error del servidor (502)')).toBeVisible()
+    await expect(
+      page.getByText(/No se pudo guardar la receta por un error del servidor/),
+    ).toBeVisible()
   })
 })
 
@@ -458,7 +462,7 @@ test.describe('Edit recipe form: validation and error branches', () => {
       await page.getByTestId('unit-option-0-l').click()
       await page.getByPlaceholder('Picado, etc.').first().fill('fría')
       await page.getByText('Guardar Cambios').click()
-      await expect(page.getByText(/Too small|obligatorio|título/i).first()).toBeVisible()
+      await expect(page.getByText('Poné un título.')).toBeVisible()
     } finally {
       await deleteRecipeViaApi(page, recipe.id)
     }
@@ -475,7 +479,9 @@ test.describe('Edit recipe form: validation and error branches', () => {
       await page.goto(`/recipe/${recipe.id}/edit`)
       await expect(page.getByPlaceholder('Nombre de la receta')).toHaveValue(recipe.title)
       await page.getByText('Guardar Cambios').click()
-      await expect(page.getByText('boom').first()).toBeVisible()
+      await expect(
+        page.getByText(/No se pudo guardar la receta por un error del servidor/),
+      ).toBeVisible()
     } finally {
       await page.unroute(`**/v1/recipes/${recipe.id}`)
       await deleteRecipeViaApi(page, recipe.id)

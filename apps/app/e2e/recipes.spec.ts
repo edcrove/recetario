@@ -93,10 +93,13 @@ test.describe('Recipes: create via form', () => {
     await page.getByText('+ Nueva Receta').click()
     await expect(page.getByPlaceholder('Nombre de la receta')).toBeVisible()
     await page.getByText('Guardar Receta').click()
-    // Zod produces "Too small: expected string to have >=1 characters" or similar
-    await expect(
-      page.getByText(/Too small|obligatorio|requerido|1 char|título/i).first(),
-    ).toBeVisible()
+    // Auditar 2026-10-03: this used to show Zod's English "Too small: …"
+    await expect(page.getByText('Poné un título.')).toBeVisible()
+    await expect(page.getByText('Agregá al menos un ingrediente.')).toBeVisible()
+    await expect(page.getByTestId('recipe-form-error-summary')).toHaveText(
+      'Revisá: título, ingredientes.',
+    )
+    await expect(page.getByText(/Too small|expected/i)).toHaveCount(0)
   })
 
   test('creates a recipe and it appears in the list', async ({ page }) => {
