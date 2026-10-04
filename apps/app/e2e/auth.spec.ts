@@ -119,6 +119,35 @@ test.describe('Auth: change password', () => {
   })
 })
 
+test.describe('Auth: change password errors', () => {
+  test('says what went wrong for each refusal, in Spanish', async ({ page }) => {
+    const email = `cambio-err-${Date.now()}-${Math.floor(Math.random() * 1e4)}@example.com`
+    const reg = await page.request.post(`${API_URL}/auth/register`, {
+      data: { email, password: 'temporal123' },
+    })
+    const { token } = (await reg.json()) as { token: string }
+    await page.goto('/auth/login')
+    await page.evaluate((jwt) => localStorage.setItem('auth_token', jwt), token)
+    await page.goto('/profile')
+    await page.getByTestId('password-current').fill('temporal123')
+    await page.getByTestId('password-new').fill('mi-clave-nueva')
+    const cases: Array<[number, string]> = [
+      [400, 'La nueva contraseña tiene que ser distinta'],
+      [429, 'Demasiados intentos'],
+      [500, 'No se pudo cambiar la contraseña'],
+    ]
+    for (const [status, message] of cases) {
+      await page.route('**/auth/password', (route) =>
+        route.fulfill({ status, contentType: 'application/json', body: '{"error":"x"}' }),
+      )
+      await page.getByTestId('password-save').click()
+      await expect(page.getByTestId('password-error')).toContainText(message)
+      await page.unroute('**/auth/password')
+    }
+    await expect(page.getByTestId('profile-signout')).toBeVisible()
+  })
+})
+
 test.describe('Auth: register', () => {
   const uniqueEmail = `e2e+${Date.now()}@recetario.app`
 
