@@ -25,12 +25,24 @@ export function registerNutritionGoalTools(
       per_meal: z
         .record(z.string(), mealTarget)
         .optional()
-        .describe('Optional per-meal targets keyed by meal slot'),
+        .describe(
+          'Optional per-meal targets keyed by meal slot. Omit to keep the ones already set; pass {} to clear them.',
+        ),
     },
     async (args) => {
+      // The API replaces nutritionTargets whole, so an omitted per_meal would
+      // wipe the stored per-meal goals: carry them over.
+      let targets = args
+      if (args.per_meal === undefined) {
+        const current = (await api.request('/auth/profile')) as {
+          nutritionTargets?: { per_meal?: Record<string, z.infer<typeof mealTarget>> } | null
+        }
+        const perMeal = current.nutritionTargets?.per_meal
+        if (perMeal) targets = { ...args, per_meal: perMeal }
+      }
       const profile = await api.request('/auth/profile', {
         method: 'PATCH',
-        body: JSON.stringify({ nutritionTargets: args }),
+        body: JSON.stringify({ nutritionTargets: targets }),
       })
       return { content: [{ type: 'text' as const, text: JSON.stringify(profile, null, 2) }] }
     },

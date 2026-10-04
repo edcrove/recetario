@@ -20,6 +20,11 @@ import { api } from '../../src/api/client'
 import { ErrorState } from '../../src/components/ErrorState'
 import { useAuth } from '../../src/providers/AuthProvider'
 import { useProfile, PROFILE_QUERY_KEY } from '../../src/hooks/useProfile'
+import {
+  withDailyTarget,
+  withMealCalories,
+  type DailyTargetField,
+} from '../../src/utils/profileTargets'
 import { confirmAsync } from '../../src/utils/platformAlert'
 import { refreshAfter } from '../../src/utils/menuCache'
 import { DIETARY_LABELS } from '../../src/utils/allergenCheck'
@@ -37,14 +42,6 @@ const DIETARY_OPTIONS = [
 ] as const
 
 type DietaryOption = (typeof DIETARY_OPTIONS)[number]
-
-// Same bounds as NutritionTargetsSchema, so the stepper never sends a 400.
-const TARGET_MAX = {
-  daily_calories: 10000,
-  daily_protein_g: 600,
-  daily_carbs_g: 1500,
-  daily_fat_g: 600,
-} as const
 
 export default function ProfileScreen() {
   const colors = useThemeColors()
@@ -112,42 +109,18 @@ export default function ProfileScreen() {
     updateProfile.mutate({ preferredServings: next })
   }
 
-  function updateTarget(
-    field: 'daily_calories' | 'daily_protein_g' | 'daily_carbs_g' | 'daily_fat_g',
-    delta: number,
-  ) {
-    const t =
-      (profile?.nutritionTargets as Record<string, number> | null) ??
-      (DEFAULT_NUTRITION_TARGETS as Record<string, number>)
-    const current = t[field] ?? 0
-    const next = Math.min(TARGET_MAX[field], Math.max(0, current + delta))
+  function updateTarget(field: DailyTargetField, delta: number) {
     updateProfile.mutate({
-      nutritionTargets: {
-        daily_calories: t['daily_calories'] ?? DEFAULT_NUTRITION_TARGETS.daily_calories,
-        daily_protein_g: t['daily_protein_g'] ?? DEFAULT_NUTRITION_TARGETS.daily_protein_g,
-        daily_carbs_g: t['daily_carbs_g'] ?? DEFAULT_NUTRITION_TARGETS.daily_carbs_g,
-        daily_fat_g: t['daily_fat_g'] ?? DEFAULT_NUTRITION_TARGETS.daily_fat_g,
-        [field]: next,
-      },
-    } as never)
+      nutritionTargets: withDailyTarget(profile?.nutritionTargets, field, delta),
+    })
   }
 
   const PER_MEAL_SLOTS = ['Desayuno', 'Almuerzo', 'Merienda', 'Cena'] as const
 
   function updateMealTarget(slot: string, delta: number) {
-    const t = (profile?.nutritionTargets as Record<string, unknown> | null) ?? {}
-    const daily = {
-      daily_calories: (t['daily_calories'] as number) ?? DEFAULT_NUTRITION_TARGETS.daily_calories,
-      daily_protein_g:
-        (t['daily_protein_g'] as number) ?? DEFAULT_NUTRITION_TARGETS.daily_protein_g,
-      daily_carbs_g: (t['daily_carbs_g'] as number) ?? DEFAULT_NUTRITION_TARGETS.daily_carbs_g,
-      daily_fat_g: (t['daily_fat_g'] as number) ?? DEFAULT_NUTRITION_TARGETS.daily_fat_g,
-    }
-    const perMeal = { ...((t['per_meal'] as Record<string, { calories?: number }>) ?? {}) }
-    const currentCal = perMeal[slot]?.calories ?? 0
-    const nextCal = Math.max(0, currentCal + delta)
-    perMeal[slot] = { ...perMeal[slot], calories: nextCal }
-    updateProfile.mutate({ nutritionTargets: { ...daily, per_meal: perMeal } } as never)
+    updateProfile.mutate({
+      nutritionTargets: withMealCalories(profile?.nutritionTargets, slot, delta),
+    })
   }
 
   async function handleSignOut() {

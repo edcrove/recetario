@@ -52,6 +52,57 @@ describe('nutrition goal tools', () => {
     expect(body.nutritionTargets.per_meal.Almuerzo.calories).toBe(700)
   })
 
+  // Auditar 2026-10-03: omitting per_meal wiped the stored per-meal goals.
+  it('setNutritionGoals without per_meal keeps the stored per-meal goals', async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            nutritionTargets: { daily_calories: 1800, per_meal: { Cena: { calories: 600 } } },
+          }),
+      })
+      .mockResolvedValue({ ok: true, json: () => Promise.resolve({ ok: 1 }) })
+    vi.stubGlobal('fetch', mockFetch)
+    const server = createMcpServer()
+    registerNutritionGoalTools(server, createApiClient())
+    await getToolHandler(server, 'setNutritionGoals')(
+      { daily_calories: 2000, daily_protein_g: 100, daily_carbs_g: 250, daily_fat_g: 70 },
+      {},
+    )
+    const [getUrl, getOptions] = mockFetch.mock.calls[0] as [string, { method?: string }]
+    expect(getUrl).toContain('/auth/profile')
+    expect(getOptions.method).toBeUndefined()
+    const [, options] = mockFetch.mock.calls[1] as [string, { method: string; body: string }]
+    expect(options.method).toBe('PATCH')
+    expect(JSON.parse(options.body)).toEqual({
+      nutritionTargets: {
+        daily_calories: 2000,
+        daily_protein_g: 100,
+        daily_carbs_g: 250,
+        daily_fat_g: 70,
+        per_meal: { Cena: { calories: 600 } },
+      },
+    })
+  })
+
+  it('setNutritionGoals without per_meal and none stored sends only the daily targets', async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ nutritionTargets: null }) })
+      .mockResolvedValue({ ok: true, json: () => Promise.resolve({ ok: 1 }) })
+    vi.stubGlobal('fetch', mockFetch)
+    const server = createMcpServer()
+    registerNutritionGoalTools(server, createApiClient())
+    await getToolHandler(server, 'setNutritionGoals')(
+      { daily_calories: 2000, daily_protein_g: 100, daily_carbs_g: 250, daily_fat_g: 70 },
+      {},
+    )
+    const [, options] = mockFetch.mock.calls[1] as [string, { body: string }]
+    expect(JSON.parse(options.body).nutritionTargets).not.toHaveProperty('per_meal')
+  })
+
   it('getDayNutrition GETs the day rollup', async () => {
     const rollup = { date: '2026-07-06', totals: { calories: 1500 }, delta: { calories: -500 } }
     const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(rollup) })

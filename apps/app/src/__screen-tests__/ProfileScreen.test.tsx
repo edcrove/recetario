@@ -96,6 +96,26 @@ describe('ProfileScreen targets and session', () => {
     )
   })
 
+  // Auditar 2026-09-30 / 2026-10-03: the daily stepper sent only the four
+  // daily fields, and the API replaces the whole object, so per_meal was lost.
+  it('changing a daily target keeps the per-meal goals', async () => {
+    m.getProfile.mockResolvedValue({
+      ...baseProfile,
+      nutritionTargets: { ...DEFAULT_NUTRITION_TARGETS, per_meal: { Cena: { calories: 600 } } },
+    })
+    wrap()
+    fireEvent.click(await screen.findByTestId('target-daily_calories-plus'))
+    await waitFor(() =>
+      expect(m.updateProfile.mock.calls[0]?.[0]).toEqual({
+        nutritionTargets: {
+          ...DEFAULT_NUTRITION_TARGETS,
+          daily_calories: 2100,
+          per_meal: { Cena: { calories: 600 } },
+        },
+      }),
+    )
+  })
+
   it('daily targets never go below zero', async () => {
     m.getProfile.mockResolvedValue({
       ...baseProfile,
