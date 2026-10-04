@@ -77,6 +77,13 @@ function hasMeat(ingredientName: string): boolean {
 
 const hasHoney = (name: string) => ` ${norm(name)} `.includes(' miel ')
 
+// Lactose-free dairy still contains milk (the allergy), but fits a sin-lactosa diet.
+const LACTOSE_FREE = ['sin lactosa', 'deslactosada', 'deslactosado', 'cero lactosa'].map(norm)
+const isLactoseFree = (name: string) => {
+  const padded = ` ${norm(name)} `
+  return LACTOSE_FREE.some((q) => padded.includes(` ${q} `))
+}
+
 /**
  * Ingredient checks for the diets that can be decided from ingredient names.
  * keto/paleo depend on amounts and are never auto-checked.
@@ -93,7 +100,7 @@ const VIOLATES: Partial<Record<DietaryTag, (ingredientName: string) => boolean>>
     ingredientHasAllergen(n, 'huevo') ||
     hasHoney(n),
   'sin-gluten': (n) => ingredientHasAllergen(n, 'gluten'),
-  'sin-lactosa': (n) => ingredientHasAllergen(n, 'leche'),
+  'sin-lactosa': (n) => ingredientHasAllergen(n, 'leche') && !isLactoseFree(n),
 }
 
 export interface DietaryConflict {
