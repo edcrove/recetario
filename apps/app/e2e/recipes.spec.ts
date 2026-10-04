@@ -102,6 +102,24 @@ test.describe('Recipes: create via form', () => {
     await expect(page.getByText(/Too small|expected/i)).toHaveCount(0)
   })
 
+  test('too long or invalid fields each say what to fix, in Spanish', async ({ page }) => {
+    await page.getByText('+ Nueva Receta').click()
+    await page.getByPlaceholder('Nombre de la receta').fill('x'.repeat(201))
+    await page.getByPlaceholder('4').fill('0')
+    await page.getByPlaceholder('Ingrediente').first().fill('y'.repeat(201))
+    await page.getByPlaceholder('Paso 1').fill('z'.repeat(4001))
+    await page.getByText('Guardar Receta').click()
+    await expect(page.getByText('El título puede tener hasta 200 caracteres.')).toBeVisible()
+    await expect(
+      page.getByText('Las porciones tienen que ser un número mayor que 0.'),
+    ).toBeVisible()
+    await expect(page.getByText('Revisá el ingrediente 1.')).toBeVisible()
+    await expect(page.getByText('Revisá el paso 1.')).toBeVisible()
+    await expect(page.getByTestId('recipe-form-error-summary')).toHaveText(
+      'Revisá: título, porciones, ingredientes, pasos.',
+    )
+  })
+
   test('creates a recipe and it appears in the list', async ({ page }) => {
     const recipeName = `E2E Receta ${Date.now()}`
 
@@ -305,7 +323,30 @@ test.describe('Recipes: diet tags', () => {
     await page.getByPlaceholder('Ingrediente').first().fill('Chorizo')
     await page.getByTestId('diet-chip-vegano').click()
     await page.getByText('Guardar Receta').click()
-    await expect(page.getByText(/"vegano" no se cumple: contiene Chorizo/)).toBeVisible()
+    await expect(page.getByTestId('recipe-diet-error')).toContainText(
+      'Vegano: "Chorizo" parece no cumplirlo',
+    )
+  })
+
+  // Auditar 2026-10-03: a celiac family's "Fideos sin TACC" was refused as gluten.
+  test('a "sin TACC" product can be tagged Sin gluten', async ({ page }) => {
+    const headers = await authHeaders(page)
+    await page.getByText('+ Nueva Receta').click()
+    const title = `E2E Sin TACC ${Date.now()}`
+    await page.getByPlaceholder('Nombre de la receta').fill(title)
+    await page.getByPlaceholder('Ingrediente').first().fill('Fideos sin TACC')
+    await page.getByTestId('diet-chip-sin-gluten').click()
+    await page.getByText('Guardar Receta').click()
+    await expect(page).toHaveURL(/\/recipe\/[0-9a-f-]{36}/)
+    const id = /\/recipe\/([0-9a-f-]{36})/.exec(page.url())![1]!
+    try {
+      const recipe = (await (
+        await page.request.get(`${API_URL}/v1/recipes/${id}`, { headers })
+      ).json()) as { dietaryTags: string[] }
+      expect(recipe.dietaryTags).toEqual(['sin-gluten'])
+    } finally {
+      await deleteRecipeViaApi(page, id)
+    }
   })
 
   // Auditar 2026-09-30: an empty list was sent as "leave unchanged", so the

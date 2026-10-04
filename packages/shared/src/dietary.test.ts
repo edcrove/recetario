@@ -38,6 +38,23 @@ describe('dietaryConflicts', () => {
     expect(dietaryConflicts(ing('Leche de coco'), ['sin-lactosa'])).toEqual([])
   })
 
+  // Auditar 2026-10-03: a celiac family couldn't tag their "Fideos sin TACC"
+  // recipe sin-gluten, nor a lactose-free one sin-lactosa.
+  it('free-from products fit the diet they are made for', () => {
+    expect(
+      dietaryConflicts(ing('Fideos sin TACC', 'Galletitas sin TACC', 'Vainilla'), ['sin-gluten']),
+    ).toEqual([])
+    expect(
+      dietaryConflicts(ing('Leche deslactosada', 'Leche sin lactosa'), ['sin-lactosa']),
+    ).toEqual([])
+  })
+
+  it('lactose-free dairy is still dairy for vegano, and wheat stays gluten', () => {
+    expect(dietaryConflicts(ing('Leche deslactosada'), ['vegano'])).toHaveLength(1)
+    expect(dietaryConflicts(ing('Vainillas', 'Fideos'), ['sin-gluten'])).toHaveLength(2)
+    expect(dietaryConflicts(ing('Queso sin sal'), ['sin-lactosa'])).toHaveLength(1)
+  })
+
   it('skips plant-based look-alikes and undecidable diets', () => {
     expect(dietaryConflicts(ing('Carne de soja', 'Hamburguesa de lentejas'), ['vegano'])).toEqual(
       [],

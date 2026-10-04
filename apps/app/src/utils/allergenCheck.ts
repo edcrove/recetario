@@ -1,14 +1,11 @@
 import type { Recipe } from '@recetario/shared'
-import { dietaryStatus, ingredientHasAllergen } from '@recetario/shared'
+import {
+  DIETARY_LABELS as SHARED_DIETARY_LABELS,
+  dietaryStatus,
+  ingredientHasAllergen,
+} from '@recetario/shared'
 
-export const DIETARY_LABELS: Record<string, string> = {
-  vegano: 'Vegano',
-  vegetariano: 'Vegetariano',
-  'sin-gluten': 'Sin gluten',
-  'sin-lactosa': 'Sin lactosa',
-  keto: 'Keto',
-  paleo: 'Paleo',
-}
+export const DIETARY_LABELS: Record<string, string> = SHARED_DIETARY_LABELS
 
 export interface DietaryProfile {
   allergens?: string[]

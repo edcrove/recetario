@@ -422,6 +422,41 @@ test.describe('New recipe form: row management and error branches', () => {
     ).toBeVisible()
   })
 
+  // The other 4xx answers keep the API's own text: its validation details,
+  // else its error field; a non-JSON 4xx says which status it was.
+  test('a 4xx creating the recipe shows what the API said', async ({ page }) => {
+    const answers = [
+      {
+        status: 400,
+        body: JSON.stringify({
+          error: 'Validation error',
+          details: [{ path: 'title', message: 'Ya tenés una receta con ese título.' }],
+        }),
+        shown: 'Ya tenés una receta con ese título.',
+      },
+      {
+        status: 409,
+        body: JSON.stringify({ error: 'Esa receta ya existe.' }),
+        shown: 'Esa receta ya existe.',
+      },
+      { status: 400, body: 'no es json', shown: 'Error del servidor (400)' },
+    ]
+    let next = 0
+    await page.route('**/v1/recipes', (route) => {
+      if (route.request().method() !== 'POST') return route.fallback()
+      const a = answers[next++]!
+      return route.fulfill({ status: a.status, body: a.body })
+    })
+    await page.getByText('+ Nueva Receta').click()
+    await page.getByPlaceholder('Nombre de la receta').fill('Receta Que Falla')
+    await page.getByPlaceholder('Ingrediente').first().fill('sal')
+    for (const a of answers) {
+      await page.getByText('Guardar Receta').click()
+      await expect(page.getByText(a.shown)).toBeVisible()
+    }
+    await expect(page.getByTestId('recipe-diet-error')).toHaveCount(0)
+  })
+
   test('a server error without a message shows a generic one; visibility toggles back', async ({
     page,
   }) => {

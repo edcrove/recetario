@@ -249,7 +249,13 @@ describe('NewRecipeScreen', () => {
       new Error(
         `API 400: ${JSON.stringify({
           error: 'Validation error',
-          details: [{ path: 'dietaryTags', message: '"vegano" no se cumple: contiene Chorizo' }],
+          details: [
+            {
+              path: 'dietaryTags',
+              message:
+                'Vegano: "Chorizo" parece no cumplirlo. Quitá la etiqueta o revisá el ingrediente.',
+            },
+          ],
         })}`,
       ),
     )
@@ -262,7 +268,11 @@ describe('NewRecipeScreen', () => {
     fireEvent.click(screen.getByText('Guardar Receta'))
     await waitFor(() => expect(mockCreate).toHaveBeenCalled())
     expect(mockCreate.mock.calls[0]?.[0].dietaryTags).toEqual(['vegano'])
-    expect(await screen.findByText('"vegano" no se cumple: contiene Chorizo')).toBeInTheDocument()
+    // Shown next to the diet chips, not repeated at the bottom of the form
+    expect(await screen.findByTestId('recipe-diet-error')).toHaveTextContent(
+      'Vegano: "Chorizo" parece no cumplirlo.',
+    )
+    expect(screen.getAllByText(/parece no cumplirlo/)).toHaveLength(1)
   })
 
   it("offers the account's own categories and saves the one picked", async () => {

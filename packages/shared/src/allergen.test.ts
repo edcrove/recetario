@@ -107,3 +107,25 @@ describe('ingredientHasAllergen', () => {
     expect(has('Maní', '')).toBe(false)
   })
 })
+
+// Auditar 2026-10-03: free-from labels rule the allergen out; plurals that mean
+// something else stay distinct.
+describe('free-from labels and plural-only terms', () => {
+  it('"sin <allergen>" means the product is free of it', () => {
+    expect(has('Chocolate sin leche', 'leche')).toBe(false)
+    expect(has('Mayonesa sin huevo', 'huevo')).toBe(false)
+    expect(has('Fideos sin TACC', 'gluten')).toBe(false)
+    expect(has('Pan apto celíaco', 'gluten')).toBe(false)
+  })
+
+  it('an unrelated "sin" keeps the allergen', () => {
+    expect(has('Galletitas sin azúcar', 'gluten')).toBe(true)
+    expect(has('Leche deslactosada', 'leche')).toBe(true)
+  })
+
+  it('"vainillas" (ladyfingers) is gluten, the spice "vainilla" is not', () => {
+    expect(has('Vainillas', 'gluten')).toBe(true)
+    expect(has('vainillas trituradas', 'gluten')).toBe(true)
+    expect(has('Vainilla', 'gluten')).toBe(false)
+  })
+})
