@@ -282,6 +282,41 @@ test.describe('Recipes: diet tags', () => {
     await page.getByText('Guardar Receta').click()
     await expect(page.getByText(/"vegano" no se cumple: contiene Chorizo/)).toBeVisible()
   })
+
+  // Auditar 2026-09-30: an empty list was sent as "leave unchanged", so the
+  // last diet tag and food type could never be removed.
+  test('unticking the last diet tag and food type on an edit clears them', async ({ page }) => {
+    const headers = await authHeaders(page)
+    const types = (await (
+      await page.request.get(`${API_URL}/v1/food-types`, { headers })
+    ).json()) as Array<{ id: string }>
+    const foodTypeId = types[0]!.id
+    const { id } = await createRecipeViaApi(page, {
+      ingredients: [{ name: 'Lentejas', quantity: 200, unit: 'g' }],
+      dietaryTags: ['vegano'],
+      foodTypeIds: [foodTypeId],
+    })
+    try {
+      const before = (await (
+        await page.request.get(`${API_URL}/v1/recipes/${id}`, { headers })
+      ).json()) as { dietaryTags: string[]; foodTypeIds: string[] }
+      expect(before).toMatchObject({ dietaryTags: ['vegano'], foodTypeIds: [foodTypeId] })
+
+      await page.goto(`/recipe/${id}/edit`)
+      await page.getByTestId('diet-chip-vegano').click()
+      await page.getByTestId(`food-type-chip-${foodTypeId}`).click()
+      await page.getByText('Guardar Cambios').click()
+      await expect(page.getByTestId('recipe-saved-banner')).toBeVisible()
+
+      const recipe = (await (
+        await page.request.get(`${API_URL}/v1/recipes/${id}`, { headers })
+      ).json()) as { dietaryTags?: string[]; foodTypeIds?: string[] }
+      expect(recipe.dietaryTags ?? []).toEqual([])
+      expect(recipe.foodTypeIds ?? []).toEqual([])
+    } finally {
+      await deleteRecipeViaApi(page, id)
+    }
+  })
 })
 
 test.describe('Recipes: detail view', () => {

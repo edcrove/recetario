@@ -95,8 +95,10 @@ export function buildPayload(
       .map((t) => t.trim())
       .filter(Boolean),
     notes: notes.trim() || undefined,
-    dietaryTags: dietaryTags && dietaryTags.length > 0 ? dietaryTags : undefined,
-    foodTypeIds: foodTypeIds && foodTypeIds.length > 0 ? foodTypeIds : undefined,
+    // An empty list is sent as [] so an edit can clear the last tag/type;
+    // only an absent list means "leave unchanged".
+    dietaryTags,
+    foodTypeIds,
     ...timeFields,
     ingredients: ingredients
       .filter((i) => i.name.trim())

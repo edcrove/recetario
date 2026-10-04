@@ -119,9 +119,11 @@ describe('buildPayload', () => {
     expect(result.dietaryTags).toEqual(['vegano'])
   })
 
-  it('omits dietaryTags when empty array', () => {
+  // Auditar 2026-09-30: [] was turned into undefined ("leave unchanged"), so
+  // unticking the last diet chip on an edit kept the old tag.
+  it('sends an empty dietaryTags list so an edit can clear the last one', () => {
     const result = buildPayload('Torta', '4', 'Postre', '', '', validIngredients, validSteps, [])
-    expect(result.dietaryTags).toBeUndefined()
+    expect(result.dietaryTags).toEqual([])
   })
 
   it('omits dietaryTags when undefined', () => {
@@ -155,7 +157,7 @@ describe('buildPayload', () => {
     expect(result.foodTypeIds).toEqual(['ft-1', 'ft-2'])
   })
 
-  it('omits foodTypeIds when empty array', () => {
+  it('sends an empty foodTypeIds list so an edit can clear the last one', () => {
     const result = buildPayload(
       'Torta',
       '4',
@@ -167,7 +169,7 @@ describe('buildPayload', () => {
       undefined,
       [],
     )
-    expect(result.foodTypeIds).toBeUndefined()
+    expect(result.foodTypeIds).toEqual([])
   })
 
   it('omits foodTypeIds when undefined', () => {
