@@ -15,6 +15,7 @@ import {
   ALLERGEN_LABELS,
   DEFAULT_NUTRITION_TARGETS,
   type Allergen,
+  type Profile,
 } from '@recetario/shared'
 import { api } from '../../src/api/client'
 import { ErrorState } from '../../src/components/ErrorState'
@@ -25,12 +26,15 @@ import {
   withMealCalories,
   type DailyTargetField,
 } from '../../src/utils/profileTargets'
-import { confirmAsync } from '../../src/utils/platformAlert'
+import { confirmAsync, notify } from '../../src/utils/platformAlert'
+import { apiErrorMessage } from '../../src/utils/apiError'
 import { refreshAfter } from '../../src/utils/menuCache'
 import { DIETARY_LABELS } from '../../src/utils/allergenCheck'
 import { useThemeColors, fonts, type ThemeColors } from '../../src/theme/tokens'
 import { useThemeContext } from '../../src/theme/themeContext'
 import type { ThemePreference } from '../../src/theme/themeContext'
+
+type ProfilePatch = Parameters<typeof api.auth.updateProfile>[0]
 
 const DIETARY_OPTIONS = [
   'vegano',
@@ -77,50 +81,71 @@ export default function ProfileScreen() {
       void queryClient.invalidateQueries({ queryKey: ['me'] })
       setEditingName(false)
     },
+    onError: (err) => notify('No se pudo guardar el nombre', apiErrorMessage(String(err))),
   })
 
+  // Every profile change is applied to the cache right away and the requests
+  // run one after another (scope), so quick taps build on each other instead
+  // of each starting from the last refetch — two allergens tapped quickly
+  // used to save only the second.
   const updateProfile = useMutation({
     mutationFn: api.auth.updateProfile,
+    scope: { id: 'profile' },
     onSuccess: (_data, vars) => {
-      void queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY })
       if ('nutritionTargets' in vars) void refreshAfter(queryClient, 'goals')
+    },
+    onError: (err) => notify('No se pudo guardar el perfil', apiErrorMessage(String(err))),
+    onSettled: () => {
+      // Re-read the saved profile once the last pending change is done
+      // (or right away after a failure, so the screen shows what was kept).
+      if (queryClient.isMutating({ predicate: (m) => m.options.scope?.id === 'profile' }) <= 1)
+        void queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY })
     },
   })
 
+  function saveProfile(build: (current: Profile | undefined) => ProfilePatch) {
+    const current = queryClient.getQueryData<Profile>(PROFILE_QUERY_KEY) ?? profile
+    const patch = build(current)
+    if (current) queryClient.setQueryData<Profile>(PROFILE_QUERY_KEY, { ...current, ...patch })
+    updateProfile.mutate(patch)
+  }
+
   function toggleDiet(option: DietaryOption) {
-    const current = (profile?.dietaryRestrictions ?? []) as DietaryOption[]
-    const next = current.includes(option)
-      ? current.filter((d) => d !== option)
-      : [...current, option]
-    updateProfile.mutate({ dietaryRestrictions: next })
+    saveProfile((p) => {
+      const current = (p?.dietaryRestrictions ?? []) as DietaryOption[]
+      return {
+        dietaryRestrictions: current.includes(option)
+          ? current.filter((d) => d !== option)
+          : [...current, option],
+      }
+    })
   }
 
   function toggleAllergen(key: Allergen) {
-    const current = (profile?.allergens ?? []).filter((a): a is Allergen =>
-      (ALLERGENS as readonly string[]).includes(a),
-    )
-    const next = current.includes(key) ? current.filter((a) => a !== key) : [...current, key]
-    updateProfile.mutate({ allergens: next })
+    saveProfile((p) => {
+      const current = (p?.allergens ?? []).filter((a): a is Allergen =>
+        (ALLERGENS as readonly string[]).includes(a),
+      )
+      return {
+        allergens: current.includes(key) ? current.filter((a) => a !== key) : [...current, key],
+      }
+    })
   }
 
   function updateServings(delta: number) {
-    const current = profile?.preferredServings ?? 2
-    const next = Math.max(1, Math.min(20, current + delta))
-    updateProfile.mutate({ preferredServings: next })
+    saveProfile((p) => ({
+      preferredServings: Math.max(1, Math.min(20, (p?.preferredServings ?? 2) + delta)),
+    }))
   }
 
   function updateTarget(field: DailyTargetField, delta: number) {
-    updateProfile.mutate({
-      nutritionTargets: withDailyTarget(profile?.nutritionTargets, field, delta),
-    })
+    saveProfile((p) => ({ nutritionTargets: withDailyTarget(p?.nutritionTargets, field, delta) }))
   }
 
   const PER_MEAL_SLOTS = ['Desayuno', 'Almuerzo', 'Merienda', 'Cena'] as const
 
   function updateMealTarget(slot: string, delta: number) {
-    updateProfile.mutate({
-      nutritionTargets: withMealCalories(profile?.nutritionTargets, slot, delta),
-    })
+    saveProfile((p) => ({ nutritionTargets: withMealCalories(p?.nutritionTargets, slot, delta) }))
   }
 
   async function handleSignOut() {
