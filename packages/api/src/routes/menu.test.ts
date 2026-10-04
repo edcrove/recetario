@@ -119,6 +119,22 @@ describe('POST /v1/menu', () => {
     expect(mockRepo.upsert).toHaveBeenCalledOnce()
   })
 
+  // Auditar 2026-10-03: a recipe the caller can't see was accepted (200).
+  it('returns 404 when the recipe does not exist or is not visible', async () => {
+    mockRepo.upsert.mockResolvedValue(null)
+    const res = await app.request('/v1/menu', {
+      method: 'POST',
+      headers: { ...AUTH, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        date: '2026-06-30',
+        slot: 'Almuerzo',
+        recipeId: '550e8400-e29b-41d4-a716-446655440000',
+      }),
+    })
+    expect(res.status).toBe(404)
+    expect(await res.json()).toEqual({ error: 'Recipe not found' })
+  })
+
   it('returns 400 on invalid body', async () => {
     const res = await app.request('/v1/menu', {
       method: 'POST',

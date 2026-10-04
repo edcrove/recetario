@@ -3,6 +3,8 @@ import { describe, it, expect, beforeAll } from 'vitest'
 const skip = process.env['SKIP_INTEGRATION'] === 'true'
 import app from '../../index.js'
 import { TEST_API_KEY, resetTestDb } from './globalSetup.js'
+import { getDb, schema } from '../../db/index.js'
+import { HIDDEN_RECIPE_TITLE } from '../../db/menu-repository.js'
 
 const auth = `Bearer ${TEST_API_KEY}`
 
@@ -703,24 +705,48 @@ describe.skipIf(skip).sequential('Menu — cross-tenant recipe leak (IDOR)', () 
     })
     privateRecipeId = (await rec.json()).id
 
-    // Attacker plants the victim's private recipe id in their OWN menu.
-    const planted = await app.request('/v1/menu', {
-      method: 'POST',
-      headers: attackerAuth(),
-      body: JSON.stringify({ date: week, slot: 'Cena', recipeId: privateRecipeId, servings: 2 }),
+    // The API refuses to plan a recipe the caller can't see (below). Rows
+    // planted before that rule — or by a member of two households, with the
+    // title snapshot of the other one — can still exist, so plant one straight
+    // in the DB and check every read stays blind to it.
+    const me = await (
+      await app.request('/auth/me', { headers: { Authorization: `Bearer ${attacker.token}` } })
+    ).json()
+    await getDb().insert(schema.menuEntries).values({
+      ownerId: me.id,
+      date: week,
+      slot: 'Cena',
+      recipeId: privateRecipeId,
+      recipeTitle: SECRET_TITLE,
+      servings: 2,
     })
-    expect(planted.status).toBe(200)
-    // The POST response itself already carries no title (write-side snapshot fix).
-    expect((await planted.json()).recipeName).toBeUndefined()
   })
 
-  it('GET /v1/menu (week view) does not resolve the victim title', async () => {
+  // Auditar 2026-10-03: this used to answer 200 and create the entry, and a
+  // missing id answered 400, so the status told whether a private id existed.
+  it('POST /v1/menu refuses a recipe the caller cannot see, same as a missing one', async () => {
+    for (const recipeId of [privateRecipeId, '00000000-0000-4000-8000-000000000000']) {
+      const res = await app.request('/v1/menu', {
+        method: 'POST',
+        headers: attackerAuth(),
+        body: JSON.stringify({ date: week, slot: 'Almuerzo', recipeId, servings: 2 }),
+      })
+      expect(res.status).toBe(404)
+      expect(await res.json()).toEqual({ error: 'Recipe not found' })
+    }
+    const wk = await (
+      await app.request(`/v1/menu?weekStart=${week}`, { headers: attackerAuth() })
+    ).json()
+    expect(wk.filter((e: { slot: string }) => e.slot === 'Almuerzo')).toEqual([])
+  })
+
+  it('GET /v1/menu (week view) shows a neutral name, never the victim title', async () => {
     const res = await app.request(`/v1/menu?weekStart=${week}`, { headers: attackerAuth() })
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(JSON.stringify(body)).not.toContain(SECRET_TITLE)
     const entry = body.find((e: { recipeId: string }) => e.recipeId === privateRecipeId)
-    expect(entry?.recipeName).toBeUndefined()
+    expect(entry?.recipeName).toBe(HIDDEN_RECIPE_TITLE)
   })
 
   it('GET /v1/menu/shopping-list does not leak the victim ingredients', async () => {
@@ -759,7 +785,7 @@ describe.skipIf(skip).sequential('Menu — cross-tenant recipe leak (IDOR)', () 
     })
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.recipeName).toBeUndefined()
+    expect(body.recipeName).toBe(HIDDEN_RECIPE_TITLE)
     expect(JSON.stringify(body)).not.toContain(SECRET_TITLE)
   })
 
