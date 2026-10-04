@@ -13,6 +13,7 @@ import {
   type RecipeFormState,
   errorSummary,
   saveErrorMessage,
+  dietTagErrors,
 } from '../utils/recipeForm'
 import { DIFFICULTIES } from '../utils/recipeMeta'
 import { DIETARY_LABELS } from '../utils/allergenCheck'
@@ -130,7 +131,9 @@ export function RecipeForm({ initial, submitLabel, isPending, submitError, onSub
     }
   }
 
-  const generalError = errors.general ?? (submitError ? saveErrorMessage(submitError) : undefined)
+  const dietError = dietTagErrors(submitError)
+  const generalError =
+    errors.general ?? (submitError && !dietError ? saveErrorMessage(submitError) : undefined)
   const summary = errorSummary(errors)
 
   return (
@@ -239,6 +242,11 @@ export function RecipeForm({ initial, submitLabel, isPending, submitError, onSub
           )
         })}
       </View>
+      {dietError ? (
+        <Text testID="recipe-diet-error" style={st.errorText}>
+          {dietError}
+        </Text>
+      ) : null}
 
       <Text style={st.label}>Visibilidad</Text>
       <TouchableOpacity

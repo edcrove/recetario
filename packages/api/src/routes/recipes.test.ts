@@ -249,8 +249,9 @@ describe('dietary tags vs ingredients', () => {
     })
     expect(res.status).toBe(400)
     const body = await res.json()
-    expect(body.details[0].message).toContain('vegano')
-    expect(body.details[0].message).toContain('Chorizo')
+    expect(body.details[0].message).toBe(
+      'Vegano: "Chorizo" parece no cumplirlo. Quitá la etiqueta o revisá el ingrediente.',
+    )
     expect(mockRepo.upsert).not.toHaveBeenCalled()
   })
 

@@ -6,6 +6,7 @@ import {
   UpdateRecipeSchema,
   LibraryRecipeSchema,
   dietaryConflicts,
+  DIETARY_LABELS,
 } from '@recetario/shared'
 import { recipeRepository } from '../db/repository.js'
 import { authMiddleware } from '../middleware/auth.js'
@@ -39,7 +40,7 @@ function dietaryTagError(
     error: 'Validation error',
     details: conflicts.map((c) => ({
       path: 'dietaryTags',
-      message: `"${c.tag}" no se cumple: contiene ${c.ingredient}`,
+      message: `${DIETARY_LABELS[c.tag]}: "${c.ingredient}" parece no cumplirlo. Quitá la etiqueta o revisá el ingrediente.`,
     })),
   }
 }

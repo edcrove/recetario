@@ -205,6 +205,24 @@ export function saveErrorMessage(message: string): string {
   return apiErrorMessage(message)
 }
 
+/**
+ * The API's diet-tag conflicts ("Sin gluten: "Fideos" parece no cumplirlo…"),
+ * shown right under the diet chips instead of at the bottom of the form.
+ */
+export function dietTagErrors(message: string | undefined): string | undefined {
+  const m = message ? /^API 400: (.*)$/s.exec(message) : null
+  if (!m) return undefined
+  try {
+    const body = JSON.parse(m[1]!) as { details?: Array<{ path?: unknown; message?: string }> }
+    const lines = (body.details ?? [])
+      .filter((d) => d.path === 'dietaryTags' && d.message)
+      .map((d) => d.message!)
+    return lines.length > 0 ? lines.join('\n') : undefined
+  } catch {
+    return undefined
+  }
+}
+
 export interface RecipeFormState {
   title: string
   servings: string

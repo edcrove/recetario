@@ -6,6 +6,7 @@ import {
   validatePayload,
   errorSummary,
   saveErrorMessage,
+  dietTagErrors,
   recipeToFormState,
 } from '../utils/recipeForm'
 import type { IngredientRow, StepRow } from '../utils/recipeForm'
@@ -706,5 +707,29 @@ describe('parseQuantity', () => {
       validSteps,
     )
     expect(payload.ingredients[0]?.quantity).toBe(1.5)
+  })
+})
+
+describe('dietTagErrors', () => {
+  it('pulls the diet-tag conflicts out of an API 400', () => {
+    const body = {
+      error: 'Validation error',
+      details: [
+        { path: 'dietaryTags', message: 'Sin gluten: "Fideos" parece no cumplirlo.' },
+        { path: 'dietaryTags', message: 'Vegano: "Queso" parece no cumplirlo.' },
+        { path: 'title', message: 'otro' },
+      ],
+    }
+    expect(dietTagErrors(`API 400: ${JSON.stringify(body)}`)).toBe(
+      'Sin gluten: "Fideos" parece no cumplirlo.\nVegano: "Queso" parece no cumplirlo.',
+    )
+  })
+
+  it('is undefined for anything else', () => {
+    expect(dietTagErrors(undefined)).toBeUndefined()
+    expect(dietTagErrors('API 500: {"error":"x"}')).toBeUndefined()
+    expect(dietTagErrors('API 400: not json')).toBeUndefined()
+    expect(dietTagErrors('API 400: {"details":[{"path":"title","message":"x"}]}')).toBeUndefined()
+    expect(dietTagErrors('API 400: {"error":"x"}')).toBeUndefined()
   })
 })

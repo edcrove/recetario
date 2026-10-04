@@ -36,6 +36,16 @@ export const DIETARY_TAGS = [
 export const DietaryTagSchema = z.enum(DIETARY_TAGS)
 export type DietaryTag = z.infer<typeof DietaryTagSchema>
 
+/** How each diet is named to people (app chips, API error messages). */
+export const DIETARY_LABELS: Record<DietaryTag, string> = {
+  vegano: 'Vegano',
+  vegetariano: 'Vegetariano',
+  'sin-gluten': 'Sin gluten',
+  'sin-lactosa': 'Sin lactosa',
+  keto: 'Keto',
+  paleo: 'Paleo',
+}
+
 // Nutrition per serving
 export const NutritionSchema = z.object({
   calories: z.number().min(0),

@@ -71,7 +71,6 @@ const ALLERGEN_TERMS: Record<Allergen, { terms: string[]; except?: string[] }> =
       'galletita',
       'galleta',
       'bizcochuelo',
-      'vainilla',
       'masa',
       'tapa de empanada',
       'tapa de tarta',
@@ -97,10 +96,8 @@ const ALLERGEN_TERMS: Record<Allergen, { terms: string[]; except?: string[] }> =
       'pasta de membrillo',
       'pasta de batata',
       'pasta de sesamo',
-      'esencia de vainilla',
-      'extracto de vainilla',
-      'chaucha de vainilla',
-      'vaina de vainilla',
+      'pasta de aceituna',
+      'trigo sarraceno',
     ],
   },
   leche: {
@@ -219,15 +216,47 @@ const ALLERGEN_TERMS: Record<Allergen, { terms: string[]; except?: string[] }> =
 
 const norm = (s: string) => normalizeIngredientKey(s)
 
-const NORMALIZED: Record<Allergen, { terms: string[]; except: string[] }> = Object.fromEntries(
-  ALLERGENS.map((a) => [
-    a,
-    {
-      terms: ALLERGEN_TERMS[a].terms.map(norm),
-      except: (ALLERGEN_TERMS[a].except ?? []).map(norm),
-    },
-  ]),
-) as Record<Allergen, { terms: string[]; except: string[] }>
+/**
+ * Words that only mean the allergen in their plural — normalization would turn
+ * "vainillas" (ladyfingers, wheat) into "vainilla" (the spice). Matched on the
+ * accent-free, lowercased raw name.
+ */
+const PLURAL_ONLY_TERMS: Partial<Record<Allergen, string[]>> = { gluten: ['vainillas'] }
+
+/**
+ * Labels that declare the product free of the allergen ("Fideos sin TACC",
+ * "galletitas sin gluten"): such an ingredient never counts as containing it.
+ * Every "sin <term>" is free-from too ("chocolate sin leche").
+ */
+const FREE_FROM_EXTRA: Partial<Record<Allergen, string[]>> = {
+  gluten: ['sin tacc', 'libre de gluten', 'apto celiaco', 'apto para celiaco'],
+}
+
+interface NormalizedTerms {
+  terms: string[]
+  except: string[]
+  freeFrom: string[]
+}
+
+const NORMALIZED: Record<Allergen, NormalizedTerms> = Object.fromEntries(
+  ALLERGENS.map((a) => {
+    const terms = ALLERGEN_TERMS[a].terms.map(norm)
+    return [
+      a,
+      {
+        terms,
+        except: (ALLERGEN_TERMS[a].except ?? []).map(norm),
+        freeFrom: [...terms.map((t) => `sin ${t}`), ...(FREE_FROM_EXTRA[a] ?? []).map(norm)],
+      },
+    ]
+  }),
+) as Record<Allergen, NormalizedTerms>
+
+const plainLower = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
 
 // Free-text names people (and older profiles) use for an allergen → its key.
 const ALLERGEN_ALIASES: Record<string, Allergen> = {
@@ -280,7 +309,8 @@ const hasPhrase = (padded: string, phrase: string) =>
 
 /**
  * True when an ingredient contains the allergen. The ingredient is normalized
- * (case/accents/plurals/presentation), known false friends are cut out first
+ * (case/accents/plurals/presentation); a free-from label ("sin TACC", "sin
+ * leche") rules the allergen out; known false friends are cut out
  * ("nuez moscada", "leche de coco", "manteca de maní"), and then any curated
  * term must appear as a whole word or phrase — so "panceta" is not "pan".
  * An allergen outside the enum (legacy free text) matches as its own term.
@@ -291,8 +321,11 @@ export function ingredientHasAllergen(ingredientName: string, allergen: string):
   const key = toAllergenKey(allergen)
   if (!key) return hasPhrase(` ${ing} `, norm(allergen))
 
-  const { terms, except } = NORMALIZED[key]
+  const { terms, except, freeFrom } = NORMALIZED[key]
   let padded = ` ${ing} `
+  if (freeFrom.some((q) => hasPhrase(padded, q))) return false
+  const raw = ` ${plainLower(ingredientName).replace(/[^a-z0-9ñ]+/g, ' ')} `
+  if ((PLURAL_ONLY_TERMS[key] ?? []).some((t) => raw.includes(` ${t} `))) return true
   for (const phrase of except) padded = padded.split(` ${phrase} `).join('  ')
   return terms.some((t) => hasPhrase(padded, t))
 }

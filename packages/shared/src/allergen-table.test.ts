@@ -61,6 +61,17 @@ const EXPECTED: Record<(typeof ALLERGENS)[number], { contains: string[]; notCont
         'extracto de vainilla',
         'chaucha de vainilla',
         'vaina de vainilla',
+        // Auditar 2026-10-03: free-from labels and false friends
+        'vainilla',
+        'azúcar vainillada',
+        'fideos sin TACC',
+        'galletitas sin TACC',
+        'pasta sin gluten',
+        'rebozador sin TACC',
+        'premezcla libre de gluten',
+        'trigo sarraceno',
+        'alforfón',
+        'pasta de aceitunas',
       ],
     },
     leche: {
