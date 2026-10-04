@@ -103,6 +103,18 @@ describe('POST /v1/cook-sessions', () => {
     expect(mockCreate).toHaveBeenCalledWith('dev', SESSION.recipeId, {})
   })
 
+  // Auditar 2026-10-03: another household's private recipe was logged (201).
+  it('returns 404 when the recipe does not exist or is not visible', async () => {
+    mockCreate.mockResolvedValue(null)
+    const res = await app.request('/v1/cook-sessions', {
+      method: 'POST',
+      headers: AUTH,
+      body: JSON.stringify({ recipeId: SESSION.recipeId, rating: 1 }),
+    })
+    expect(res.status).toBe(404)
+    expect(await res.json()).toEqual({ error: 'Recipe not found' })
+  })
+
   it('returns 400 for invalid rating', async () => {
     const res = await app.request('/v1/cook-sessions', {
       method: 'POST',

@@ -40,7 +40,7 @@ export const cookSessionsRepository = {
     ownerId: string,
     recipeId: string,
     input: CookSessionInput = {},
-  ): Promise<CookSessionRow> {
+  ): Promise<CookSessionRow | null> {
     const db = getDb()
     // Snapshot the recipe's current title — see 2026-07-03 audit finding:
     // deleting the recipe now sets recipeId to null instead of destroying
@@ -54,18 +54,22 @@ export const cookSessionsRepository = {
       .from(schema.recipes)
       .where(and(eq(schema.recipes.id, recipeId), inArray(schema.recipes.ownerId, visibleOwners)))
       .limit(1)
+    // A recipe the caller can't see is refused (route → 404), not logged with a
+    // null title: those rows polluted per-recipe ratings and told the caller
+    // that a private id existed (Auditar 2026-10-03).
+    if (!recipe) return null
 
     const [session] = await db
       .insert(schema.cookSessions)
       .values({
         ownerId,
         recipeId,
-        recipeTitle: recipe?.title,
+        recipeTitle: recipe.title,
         rating: input.rating ?? null,
         notes: input.notes ?? null,
         servings: input.servings ?? null,
         source: input.source ?? null,
-        nutritionSnapshot: recipe?.nutrition ?? null,
+        nutritionSnapshot: recipe.nutrition ?? null,
       })
       .returning()
     return session!

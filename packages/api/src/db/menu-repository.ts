@@ -15,9 +15,18 @@ import { getDb, schema } from './index.js'
 import { getVisibleOwnerIds, UUID_RE } from './household-visibility.js'
 
 type MenuRow = typeof schema.menuEntries.$inferSelect
-type RecipeRow = typeof schema.recipes.$inferSelect
 
-function mapToMenuEntry(row: MenuRow, recipe?: Pick<RecipeRow, 'title'>): MenuEntry {
+/** Shown instead of the title of a planned recipe the caller can't open. */
+export const HIDDEN_RECIPE_TITLE = 'Receta de otro hogar'
+
+/**
+ * `visibleTitle` is the live title of the planned recipe when the caller can
+ * see it. An entry whose recipe was deleted keeps the title snapshot taken when
+ * it was planned; one pointing at a recipe the caller can't see never shows its
+ * title — not even the snapshot (a member of two households could plan one
+ * household's private recipe into the other's week).
+ */
+function mapToMenuEntry(row: MenuRow, visibleTitle?: string): MenuEntry {
   return {
     id: row.id,
     ownerId: row.ownerId,
@@ -25,11 +34,11 @@ function mapToMenuEntry(row: MenuRow, recipe?: Pick<RecipeRow, 'title'>): MenuEn
     slot: row.slot as MenuSlot,
     recipeId: row.recipeId,
     servings: row.servings,
-    // Prefer the live recipe's current title; fall back to the snapshot
-    // taken when the entry was created (recipe may have been deleted since).
-    // The final `?? undefined` only matters for rows predating this column.
-    /* v8 ignore next -- fallback chain: live title, else snapshot; both arms hit only with legacy rows */
-    recipeName: recipe?.title ?? row.recipeTitle ?? undefined,
+    recipeName:
+      row.recipeId === null
+        ? /* v8 ignore next -- a null snapshot only exists on rows predating the column */
+          (row.recipeTitle ?? undefined)
+        : (visibleTitle ?? HIDDEN_RECIPE_TITLE),
     status: row.status,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -41,13 +50,15 @@ export class MenuRepository {
     return getDb()
   }
 
-  async upsert(ownerId: string, data: CreateMenuEntry): Promise<MenuEntry> {
+  /** null when the recipe doesn't exist or the caller can't see it (route → 404). */
+  async upsert(ownerId: string, data: CreateMenuEntry): Promise<MenuEntry | null> {
     const db = this.db
 
-    // Snapshot the title only from a recipe the user can actually see (own OR
-    // household) — the same visibility as reads. Without this owner filter, a
-    // POST with someone else's private recipe id would leak its title into the
-    // attacker's menu entry (cross-tenant IDOR).
+    // Only a recipe the user can actually see (own OR household) can be planned —
+    // the same visibility as reads. A recipe from another household used to be
+    // accepted: its title then showed in this household's week while its
+    // ingredients silently dropped from the shopping list (Auditar 2026-10-03),
+    // and 200-vs-400 told the caller whether a private id existed.
     const visibleOwners = await getVisibleOwnerIds(ownerId)
     const [recipe] = await db
       .select({ title: schema.recipes.title })
@@ -56,6 +67,7 @@ export class MenuRepository {
         and(eq(schema.recipes.id, data.recipeId), inArray(schema.recipes.ownerId, visibleOwners)),
       )
       .limit(1)
+    if (!recipe) return null
 
     const servings = data.servings ?? (await this.defaultServings(ownerId))
     const [row] = await db
@@ -65,7 +77,7 @@ export class MenuRepository {
         date: data.date,
         slot: data.slot,
         recipeId: data.recipeId,
-        recipeTitle: recipe?.title,
+        recipeTitle: recipe.title,
         servings,
       })
       .onConflictDoUpdate({
@@ -82,7 +94,7 @@ export class MenuRepository {
     /* v8 ignore next -- upsert always returns a row; defensive guard for the driver contract */
     if (!row) throw new Error('Failed to upsert menu entry')
 
-    return mapToMenuEntry(row, recipe)
+    return mapToMenuEntry(row, recipe.title)
   }
 
   /**
@@ -152,7 +164,7 @@ export class MenuRepository {
       .where(and(eq(schema.recipes.id, recipeId), inArray(schema.recipes.ownerId, visibleOwners)))
       .limit(1)
 
-    return mapToMenuEntry(row, recipe)
+    return mapToMenuEntry(row, recipe?.title)
   }
 
   async getWeek(ownerId: string, weekStart: string): Promise<MenuEntry[]> {
@@ -195,10 +207,7 @@ export class MenuRepository {
     const recipeMap = new Map(recipes.map((r) => [r.id, r.title]))
 
     return rows.map((row) => {
-      const title = row.recipeId ? recipeMap.get(row.recipeId) : undefined
-      /* v8 ignore next -- undefined title only for orphaned (deleted-recipe) entries */
-      const recipeName = title !== undefined ? { title } : undefined
-      return mapToMenuEntry(row, recipeName)
+      return mapToMenuEntry(row, row.recipeId ? recipeMap.get(row.recipeId) : undefined)
     })
   }
 

@@ -35,6 +35,10 @@ const createRoute = defineRoute({
   },
   responses: {
     201: { content: { 'application/json': { schema: sessionSchema } }, description: 'Created' },
+    404: {
+      content: { 'application/json': { schema: z.object({ error: z.string() }) } },
+      description: 'Recipe not found (or not visible to the caller)',
+    },
   },
 })
 
@@ -43,6 +47,7 @@ cookSessionsRoute.openapi(createRoute, async (c) => {
   const { recipeId, ...input } = c.req.valid('json')
 
   const session = await cookSessionsRepository.create(ownerId, recipeId, input)
+  if (!session) return c.json({ error: 'Recipe not found' }, 404)
 
   return c.json(
     {

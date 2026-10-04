@@ -50,6 +50,10 @@ const postMenuRoute = defineRoute({
       content: { 'application/json': { schema: errorSchema } },
       description: 'Household viewers cannot modify the menu',
     },
+    404: {
+      content: { 'application/json': { schema: errorSchema } },
+      description: 'Recipe not found (or not visible to the caller)',
+    },
   },
 })
 
@@ -60,6 +64,7 @@ menuRoute.openapi(postMenuRoute, async (c) => {
   if (await isViewerAnywhere(ownerId)) return c.json({ error: 'Forbidden' }, 403)
   const body = c.req.valid('json')
   const entry = await menuRepository.upsert(ownerId, body)
+  if (!entry) return c.json({ error: 'Recipe not found' }, 404)
   return c.json(entry, 200)
 })
 

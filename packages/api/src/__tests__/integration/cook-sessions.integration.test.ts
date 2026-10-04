@@ -47,17 +47,22 @@ describe.skipIf(skip).sequential('Cook sessions — cross-tenant title leak (IDO
     privateRecipeId = (await rec.json()).id
   })
 
-  it('POST /v1/cook-sessions does not leak another owner’s private recipe title', async () => {
-    const res = await app.request('/v1/cook-sessions', {
-      method: 'POST',
-      headers: auth(attacker.token),
-      body: JSON.stringify({ recipeId: privateRecipeId, rating: 5 }),
-    })
-    expect(res.status).toBe(201)
-    const body = await res.json()
-    // The session is created (history), but with NO leaked title.
-    expect(body.recipeTitle).toBeNull()
-    expect(JSON.stringify(body)).not.toContain(SECRET_TITLE)
+  // Auditar 2026-10-03: the session used to be created (201, null title),
+  // polluting the recipe's ratings and telling apart private from missing ids.
+  it('POST /v1/cook-sessions refuses another owner’s private recipe like a missing one', async () => {
+    for (const recipeId of [privateRecipeId, '00000000-0000-4000-8000-000000000000']) {
+      const res = await app.request('/v1/cook-sessions', {
+        method: 'POST',
+        headers: auth(attacker.token),
+        body: JSON.stringify({ recipeId, rating: 1 }),
+      })
+      expect(res.status).toBe(404)
+      expect(JSON.stringify(await res.json())).not.toContain(SECRET_TITLE)
+    }
+    const mine = await (
+      await app.request('/v1/cook-sessions', { headers: auth(attacker.token) })
+    ).json()
+    expect(mine).toEqual([])
   })
 
   it('still snapshots the title for the owner’s own recipe', async () => {
