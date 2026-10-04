@@ -102,6 +102,24 @@ test.describe('Recipes: create via form', () => {
     await expect(page.getByText(/Too small|expected/i)).toHaveCount(0)
   })
 
+  test('too long or invalid fields each say what to fix, in Spanish', async ({ page }) => {
+    await page.getByText('+ Nueva Receta').click()
+    await page.getByPlaceholder('Nombre de la receta').fill('x'.repeat(201))
+    await page.getByPlaceholder('4').fill('0')
+    await page.getByPlaceholder('Ingrediente').first().fill('y'.repeat(201))
+    await page.getByPlaceholder('Paso 1').fill('z'.repeat(4001))
+    await page.getByText('Guardar Receta').click()
+    await expect(page.getByText('El título puede tener hasta 200 caracteres.')).toBeVisible()
+    await expect(
+      page.getByText('Las porciones tienen que ser un número mayor que 0.'),
+    ).toBeVisible()
+    await expect(page.getByText('Revisá el ingrediente 1.')).toBeVisible()
+    await expect(page.getByText('Revisá el paso 1.')).toBeVisible()
+    await expect(page.getByTestId('recipe-form-error-summary')).toHaveText(
+      'Revisá: título, porciones, ingredientes, pasos.',
+    )
+  })
+
   test('creates a recipe and it appears in the list', async ({ page }) => {
     const recipeName = `E2E Receta ${Date.now()}`
 
