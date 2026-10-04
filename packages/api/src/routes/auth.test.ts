@@ -305,10 +305,10 @@ describe('POST /auth/password', () => {
     expect(await verifyPassword('mi-clave-nueva', stored)).toBe(true)
   })
 
-  it('refuses a wrong current password (401) and changes nothing', async () => {
+  it('refuses a wrong current password (403, keeps the session) and changes nothing', async () => {
     await withPassword('temporal123')
     const res = await call({ currentPassword: 'otra-cosa', newPassword: 'mi-clave-nueva' })
-    expect(res.status).toBe(401)
+    expect(res.status).toBe(403)
     expect((await res.json()).error).toBe('Current password is incorrect')
     expect(mockUsersUpdate).not.toHaveBeenCalledWith(
       expect.objectContaining({ passwordHash: expect.anything() }),

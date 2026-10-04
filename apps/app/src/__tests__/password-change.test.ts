@@ -13,7 +13,7 @@ describe('canChangePassword', () => {
 describe('passwordChangeError', () => {
   const err = (m: string) => new Error(m)
   it('explains the API answers in Spanish', () => {
-    expect(passwordChangeError(err('API 401: {"error":"Current password is incorrect"}'), '')).toBe(
+    expect(passwordChangeError(err('API 403: {"error":"Current password is incorrect"}'), '')).toBe(
       'La contraseña actual no es correcta.',
     )
     expect(passwordChangeError(err('API 400: {}'), '')).toMatch(/distinta y de 8 caracteres/)

@@ -24,7 +24,8 @@ describe.skipIf(skip)('POST /auth/password', () => {
       headers: { ...json, Authorization: `Bearer ${oldToken}` },
       body: JSON.stringify({ currentPassword: 'no-es', newPassword: 'mi-clave-nueva' }),
     })
-    expect(wrong.status).toBe(401)
+    // 403, not 401: the app signs out on any 401
+    expect(wrong.status).toBe(403)
 
     const res = await app.request('/auth/password', {
       method: 'POST',

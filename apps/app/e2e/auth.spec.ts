@@ -97,8 +97,15 @@ test.describe('Auth: change password', () => {
     await page.goto('/auth/login')
     await page.evaluate((jwt) => localStorage.setItem('auth_token', jwt), token)
     await page.goto('/profile')
-    await page.getByTestId('password-current').fill('temporal123')
+    await page.getByTestId('password-current').fill('no-es-esta')
+    await page.getByTestId('password-new').fill('corta')
+    await expect(page.getByTestId('password-error')).toContainText('al menos 8 caracteres')
     await page.getByTestId('password-new').fill('mi-clave-nueva')
+    await page.getByTestId('password-save').click()
+    await expect(page.getByTestId('password-error')).toHaveText(
+      'La contraseña actual no es correcta.',
+    )
+    await page.getByTestId('password-current').fill('temporal123')
     page.once('dialog', (d) => void d.accept())
     await page.getByTestId('password-save').click()
     await expect(page.getByTestId('password-current')).toHaveValue('')

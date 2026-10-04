@@ -197,7 +197,12 @@ const changePasswordRoute = defineRoute({
     400: { content: { 'application/json': { schema: errorSchema } }, description: 'Invalid' },
     401: {
       content: { 'application/json': { schema: errorSchema } },
-      description: 'Wrong current password, or not a user session',
+      description: 'Not a user session',
+    },
+    // Not 401: the session is valid, and the app signs out on any 401.
+    403: {
+      content: { 'application/json': { schema: errorSchema } },
+      description: 'Wrong current password',
     },
   },
 })
@@ -210,7 +215,7 @@ authRoute.openapi(changePasswordRoute, async (c) => {
   const user = await accountRepository.findUserById(userId)
   if (!user) return c.json({ error: 'User not found' }, 401)
   if (!(await verifyPassword(currentPassword, user.passwordHash))) {
-    return c.json({ error: 'Current password is incorrect' }, 401)
+    return c.json({ error: 'Current password is incorrect' }, 403)
   }
   if (currentPassword === newPassword) {
     return c.json({ error: 'The new password must be different' }, 400)

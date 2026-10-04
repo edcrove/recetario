@@ -214,7 +214,7 @@ describe('ProfileScreen change password', () => {
 
   it('says when the current password is wrong', async () => {
     m.changePassword.mockRejectedValue(
-      new Error('API 401: {"error":"Current password is incorrect"}'),
+      new Error('API 403: {"error":"Current password is incorrect"}'),
     )
     wrap()
     fireEvent.change(await screen.findByTestId('password-current'), { target: { value: 'otra' } })
