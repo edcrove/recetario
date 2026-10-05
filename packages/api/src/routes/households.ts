@@ -1,6 +1,11 @@
 import { createRouter } from './router.js'
 import { createRoute as defineRoute, z } from '@hono/zod-openapi'
-import { HouseholdMemberSchema, HouseholdSchema } from '@recetario/shared'
+import {
+  HouseholdDinerInputSchema,
+  HouseholdDinerSchema,
+  HouseholdMemberSchema,
+  HouseholdSchema,
+} from '@recetario/shared'
 import { accountRepository } from '../db/account-repository.js'
 import { householdRepository } from '../db/household-repository.js'
 import { authMiddleware } from '../middleware/auth.js'
@@ -242,6 +247,85 @@ householdsRoute.openapi(leaveRoute, async (c) => {
   if (result === 'not_member') return c.json({ error: 'Household not found' }, 404)
   if (result === 'owner') {
     return c.json({ error: 'The owner cannot leave the household' }, 409)
+  }
+  return c.body(null, 204)
+})
+
+// ── Diners: who eats at the household's table, with or without an account ──
+const dinerParams = z.object({ id: z.uuid(), dinerId: z.uuid() })
+const dinerBody = {
+  content: { 'application/json': { schema: HouseholdDinerInputSchema } },
+  required: true,
+}
+const dinerErrors = {
+  403: { content: { 'application/json': { schema: errorSchema } }, description: 'Viewer' },
+  404: { content: { 'application/json': { schema: errorSchema } }, description: 'Not found' },
+}
+
+// POST /households/:id/diners
+const addDinerRoute = defineRoute({
+  method: 'post',
+  path: '/{id}/diners',
+  security: [{ ApiKeyAuth: [] }],
+  request: { params: z.object({ id: z.uuid() }), body: dinerBody },
+  responses: {
+    201: {
+      content: { 'application/json': { schema: HouseholdDinerSchema } },
+      description: 'Added',
+    },
+    ...dinerErrors,
+  },
+})
+
+householdsRoute.openapi(addDinerRoute, async (c) => {
+  const { id } = c.req.valid('param')
+  const access = await householdRepository.canEditDiners(id, c.get('ownerId'))
+  if (access === 'not_member') return c.json({ error: 'Household not found' }, 404)
+  if (access === 'no') return c.json({ error: 'Forbidden' }, 403)
+  return c.json(await householdRepository.addDiner(id, c.req.valid('json')), 201)
+})
+
+// PUT /households/:id/diners/:dinerId — replaces name, allergens and diets
+const updateDinerRoute = defineRoute({
+  method: 'put',
+  path: '/{id}/diners/{dinerId}',
+  security: [{ ApiKeyAuth: [] }],
+  request: { params: dinerParams, body: dinerBody },
+  responses: {
+    200: {
+      content: { 'application/json': { schema: HouseholdDinerSchema } },
+      description: 'Updated',
+    },
+    ...dinerErrors,
+  },
+})
+
+householdsRoute.openapi(updateDinerRoute, async (c) => {
+  const { id, dinerId } = c.req.valid('param')
+  const access = await householdRepository.canEditDiners(id, c.get('ownerId'))
+  if (access === 'not_member') return c.json({ error: 'Household not found' }, 404)
+  if (access === 'no') return c.json({ error: 'Forbidden' }, 403)
+  const diner = await householdRepository.updateDiner(id, dinerId, c.req.valid('json'))
+  if (!diner) return c.json({ error: 'Diner not found' }, 404)
+  return c.json(diner, 200)
+})
+
+// DELETE /households/:id/diners/:dinerId
+const removeDinerRoute = defineRoute({
+  method: 'delete',
+  path: '/{id}/diners/{dinerId}',
+  security: [{ ApiKeyAuth: [] }],
+  request: { params: dinerParams },
+  responses: { 204: { description: 'Removed' }, ...dinerErrors },
+})
+
+householdsRoute.openapi(removeDinerRoute, async (c) => {
+  const { id, dinerId } = c.req.valid('param')
+  const access = await householdRepository.canEditDiners(id, c.get('ownerId'))
+  if (access === 'not_member') return c.json({ error: 'Household not found' }, 404)
+  if (access === 'no') return c.json({ error: 'Forbidden' }, 403)
+  if (!(await householdRepository.removeDiner(id, dinerId))) {
+    return c.json({ error: 'Diner not found' }, 404)
   }
   return c.body(null, 204)
 })

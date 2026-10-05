@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native'
-import { useProfile } from '../hooks/useProfile'
+import { useDietaryContext } from '../hooks/useDietaryContext'
+import { whoFor } from '../utils/householdDiners'
 import { allergenLabel, type Recipe } from '@recetario/shared'
 import { checkAllergens, DIETARY_LABELS } from '../utils/allergenCheck'
 import { useThemeColors, type ThemeColors } from '../theme/tokens'
@@ -11,9 +12,16 @@ interface Props {
 
 export function AllergenWarning({ recipe }: Props) {
   const s = makeStyles(useThemeColors())
-  const { data: profile } = useProfile()
+  const { profile, own, diners } = useDietaryContext()
 
-  if (!profile) return null
+  if (!profile || !own) return null
+
+  // "Maní (Sofi)": with diners in the household, say whom each one is for
+  const forWhom = (restriction: string) => {
+    const who = whoFor(restriction, own, diners)
+    return who.length > 0 && who.join() !== 'vos' ? ` (${who.join(', ')})` : ''
+  }
+  const dietLabel = (d: string) => `${DIETARY_LABELS[d] ?? d}${forWhom(d)}`
 
   const { matchedAllergens, unmetDietary, unverifiedDietary } = checkAllergens(recipe, profile)
   // Matching is by ingredient name, so a recipe with no match is not proof it
@@ -37,7 +45,7 @@ export function AllergenWarning({ recipe }: Props) {
           <Text style={s.icon}>⚠️</Text>
           <Text style={s.text}>
             <Text style={s.bold}>Alérgenos: </Text>
-            {matchedAllergens.map(allergenLabel).join(', ')}
+            {matchedAllergens.map((a) => `${allergenLabel(a)}${forWhom(a)}`).join(', ')}
           </Text>
         </View>
       )}
@@ -46,7 +54,7 @@ export function AllergenWarning({ recipe }: Props) {
           <Text style={s.icon}>🚫</Text>
           <Text style={s.text}>
             <Text style={s.bold}>No cumple: </Text>
-            {unmetDietary.map((d) => DIETARY_LABELS[d] ?? d).join(', ')}
+            {unmetDietary.map(dietLabel).join(', ')}
           </Text>
         </View>
       )}
@@ -55,8 +63,7 @@ export function AllergenWarning({ recipe }: Props) {
           <Text style={s.icon}>ℹ️</Text>
           <Text style={s.text}>
             <Text style={s.bold}>Sin verificar: </Text>
-            {unverifiedDietary.map((d) => DIETARY_LABELS[d] ?? d).join(', ')} (la receta no lo
-            indica)
+            {unverifiedDietary.map(dietLabel).join(', ')} (la receta no lo indica)
           </Text>
         </View>
       )}

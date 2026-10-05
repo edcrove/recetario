@@ -201,3 +201,109 @@ test('removing a housemate takes their recipes off home right away', async ({ pa
     })
   }
 })
+
+// Story (Auditar 2026-10-03): one parent records the kid's allergy once in Mi
+// hogar; the other parent, who never set it, sees the warning on a recipe.
+test("a kid's allergy and diet set by one parent warn the other", async ({ page }, testInfo) => {
+  const headers = await authHeaders(page)
+  const myToken = headers.Authorization.replace('Bearer ', '')
+  const mine = (await (
+    await page.request.get(`${API_URL}/v1/households/mine`, { headers })
+  ).json()) as { id: string }[]
+  let householdId = mine[0]?.id
+  if (!householdId) {
+    const hh = await page.request.post(`${API_URL}/v1/households`, {
+      headers,
+      data: { name: `E2E Hogar Comensales ${Date.now()}` },
+    })
+    householdId = ((await hh.json()) as { id: string }).id
+  }
+
+  const email = `pareja-e2e-${testInfo.parallelIndex}-${Date.now()}@example.com`
+  const reg = (await (
+    await page.request.post(`${API_URL}/auth/register`, {
+      data: { email, password: 'password123' },
+    })
+  ).json()) as { token: string; user: { id: string } }
+  const theirHeaders = { Authorization: `Bearer ${reg.token}`, 'Content-Type': 'application/json' }
+  await page.request.post(`${API_URL}/v1/households/${householdId}/invite`, {
+    headers,
+    data: { userId: reg.user.id, role: 'member' },
+  })
+  await page.request.post(`${API_URL}/v1/households/${householdId}/accept`, {
+    headers: theirHeaders,
+  })
+
+  const kid = `Sofi ${Date.now()}`
+  page.on('dialog', (d) => void d.accept())
+  await page.goto('/household')
+  await page.getByTestId(`household-diner-add-${householdId}`).click()
+  await page.getByTestId('household-diner-name').fill(kid)
+  await page.getByTestId('household-diner-allergen-mani').click()
+  await page.getByTestId('household-diner-save').click()
+  const row = page.getByText(kid)
+  await expect(row).toBeVisible()
+  const diners = (
+    (await (await page.request.get(`${API_URL}/v1/households/mine`, { headers })).json()) as {
+      id: string
+      diners: { id: string; name: string }[]
+    }[]
+  ).find((h) => h.id === householdId)!.diners
+  const dinerId = diners.find((d) => d.name === kid)!.id
+
+  // Edit: the kid is vegan too (and an edit can be cancelled)
+  await page.getByTestId(`household-diner-edit-${dinerId}`).click()
+  await page.getByTestId('household-diner-cancel').click()
+  await page.getByTestId(`household-diner-edit-${dinerId}`).click()
+  await page.getByTestId('household-diner-diet-vegano').click()
+  await page.getByTestId('household-diner-save').click()
+  await expect(page.getByTestId(`household-diner-${dinerId}`)).toContainText('Vegano')
+
+  // A failed save says so
+  await page.route(`**/v1/households/${householdId}/diners`, (route) =>
+    route.fulfill({ status: 500, contentType: 'application/json', body: '{}' }),
+  )
+  await page.getByTestId(`household-diner-add-${householdId}`).click()
+  await page.getByTestId('household-diner-name').fill('Otro')
+  const failed = page.waitForEvent('dialog')
+  await page.getByTestId('household-diner-save').click()
+  expect((await failed).message()).toContain('No se pudo guardar')
+  await page.unroute(`**/v1/households/${householdId}/diners`)
+  await page.getByTestId('household-diner-cancel').click()
+
+  const recipe = (await (
+    await page.request.post(`${API_URL}/v1/recipes`, {
+      headers: theirHeaders,
+      data: {
+        title: `E2E Alfajor de maní ${Date.now()}`,
+        servings: 2,
+        category: 'Postre',
+        ingredients: [
+          { name: 'maní', quantity: 100, unit: 'g' },
+          { name: 'manteca', quantity: 50, unit: 'g' },
+        ],
+        steps: [{ text: 'Mezclar.' }],
+      },
+    })
+  ).json()) as { id: string }
+
+  try {
+    // Now as the other parent, who set nothing themselves
+    await page.evaluate((jwt) => localStorage.setItem('auth_token', jwt), reg.token)
+    await page.goto(`/recipe/${recipe.id}`)
+    const warning = page.getByTestId('allergen-warning')
+    await expect(warning).toContainText(`Maní (${kid})`)
+    await expect(warning).toContainText(`Vegano (${kid})`)
+
+    // Back as the first parent: removing the kid asks first
+    await page.evaluate((jwt) => localStorage.setItem('auth_token', jwt), myToken)
+    await page.goto('/household')
+    await page.getByTestId(`household-diner-remove-${dinerId}`).click()
+    await expect(page.getByTestId(`household-diner-${dinerId}`)).toHaveCount(0)
+  } finally {
+    await page.request.delete(`${API_URL}/v1/households/${householdId}/diners/${dinerId}`, {
+      headers,
+    })
+    await page.request.delete(`${API_URL}/v1/recipes/${recipe.id}`, { headers: theirHeaders })
+  }
+})

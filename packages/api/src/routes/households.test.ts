@@ -124,6 +124,15 @@ describe('GET /v1/households/mine', () => {
             email: 'ana@x.com',
           },
         ],
+        diners: [
+          {
+            id: '00000000-0000-4000-8000-0000000000d1',
+            householdId: '00000000-0000-4000-8000-000000000001',
+            name: 'Sofi',
+            allergens: ['mani'],
+            dietaryRestrictions: [],
+          },
+        ],
       },
     ]
     const spy = vi.spyOn(householdRepository, 'listForUser').mockResolvedValueOnce(households)
@@ -468,5 +477,71 @@ describe('POST /v1/households/:id/leave', () => {
   it('requires auth (401)', async () => {
     const res = await app.request(`/v1/households/${HH_ID}/leave`, { method: 'POST' })
     expect(res.status).toBe(401)
+  })
+})
+
+// Story (Auditar 2026-10-03): a kid's allergies, set once for the household,
+// warn every member.
+describe('household diners', () => {
+  const HH = '00000000-0000-4000-8000-0000000000a1'
+  const DINER = '00000000-0000-4000-8000-0000000000d1'
+  const auth = { Authorization: 'Bearer test-key', 'Content-Type': 'application/json' }
+  const sofi = { name: 'Sofi', allergens: ['maní'], dietaryRestrictions: ['sin-gluten'] }
+  const saved = { id: DINER, householdId: HH, ...sofi, allergens: ['mani'] }
+  const send = (method: string, path: string, body?: unknown) =>
+    app.request(`/v1/households/${HH}${path}`, {
+      method,
+      headers: auth,
+      body: body === undefined ? undefined : JSON.stringify(body),
+    })
+
+  afterEach(() => vi.restoreAllMocks())
+
+  it('a member adds one (201)', async () => {
+    vi.spyOn(householdRepository, 'canEditDiners').mockResolvedValueOnce('yes')
+    const add = vi.spyOn(householdRepository, 'addDiner').mockResolvedValueOnce(saved)
+    const res = await send('POST', '/diners', sofi)
+    expect(res.status).toBe(201)
+    expect(await res.json()).toEqual(saved)
+    expect(add).toHaveBeenCalledWith(HH, sofi)
+  })
+
+  it('needs a name and known diets (400)', async () => {
+    expect((await send('POST', '/diners', { ...sofi, name: '  ' })).status).toBe(400)
+    expect((await send('POST', '/diners', { ...sofi, dietaryRestrictions: ['x'] })).status).toBe(
+      400,
+    )
+  })
+
+  it('a viewer cannot change them (403); an outsider sees no household (404)', async () => {
+    const access = vi.spyOn(householdRepository, 'canEditDiners')
+    access.mockResolvedValue('no')
+    expect((await send('POST', '/diners', sofi)).status).toBe(403)
+    expect((await send('PUT', `/diners/${DINER}`, sofi)).status).toBe(403)
+    expect((await send('DELETE', `/diners/${DINER}`)).status).toBe(403)
+    access.mockResolvedValue('not_member')
+    expect((await send('POST', '/diners', sofi)).status).toBe(404)
+    expect((await send('PUT', `/diners/${DINER}`, sofi)).status).toBe(404)
+    expect((await send('DELETE', `/diners/${DINER}`)).status).toBe(404)
+  })
+
+  it('updates one (200) or says it is gone (404)', async () => {
+    vi.spyOn(householdRepository, 'canEditDiners').mockResolvedValue('yes')
+    const update = vi.spyOn(householdRepository, 'updateDiner')
+    update.mockResolvedValueOnce(saved)
+    const ok = await send('PUT', `/diners/${DINER}`, sofi)
+    expect(ok.status).toBe(200)
+    expect(update).toHaveBeenCalledWith(HH, DINER, sofi)
+    update.mockResolvedValueOnce(null)
+    expect((await send('PUT', `/diners/${DINER}`, sofi)).status).toBe(404)
+  })
+
+  it('removes one (204) or says it is gone (404)', async () => {
+    vi.spyOn(householdRepository, 'canEditDiners').mockResolvedValue('yes')
+    const remove = vi.spyOn(householdRepository, 'removeDiner')
+    remove.mockResolvedValueOnce(true)
+    expect((await send('DELETE', `/diners/${DINER}`)).status).toBe(204)
+    remove.mockResolvedValueOnce(false)
+    expect((await send('DELETE', `/diners/${DINER}`)).status).toBe(404)
   })
 })

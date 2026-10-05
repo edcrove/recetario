@@ -155,6 +155,13 @@
       "when": 1790839858176,
       "tag": "0021_public_hammerhead",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1791209259559,
+      "tag": "0022_nappy_johnny_blaze",
+      "breakpoints": true
     }
   ]
 }

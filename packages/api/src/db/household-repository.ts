@@ -1,9 +1,32 @@
 import { and, eq, inArray, isNull } from 'drizzle-orm'
-import type { HouseholdRole } from '@recetario/shared'
+import { normalizeAllergens, type HouseholdDiner, type HouseholdRole } from '@recetario/shared'
 import { getDb, schema } from './index.js'
 import { currentDb, inTransaction } from './transaction.js'
 
 type MemberRow = typeof schema.householdMembers.$inferSelect
+type DinerRow = typeof schema.householdDiners.$inferSelect
+
+function toDiner(d: DinerRow): HouseholdDiner {
+  return {
+    id: d.id,
+    householdId: d.householdId,
+    name: d.name,
+    allergens: d.allergens,
+    dietaryRestrictions: d.dietaryRestrictions,
+  }
+}
+
+export interface DinerFields {
+  name: string
+  allergens: string[]
+  dietaryRestrictions: string[]
+}
+
+const dinerValues = (f: DinerFields) => ({
+  name: f.name,
+  allergens: normalizeAllergens(f.allergens),
+  dietaryRestrictions: [...new Set(f.dietaryRestrictions)],
+})
 
 export interface MemberView {
   userId: string
@@ -40,6 +63,7 @@ export interface HouseholdView {
     displayName: string | null
     email: string
   }[]
+  diners: HouseholdDiner[]
 }
 
 export const householdRepository = {
@@ -72,6 +96,17 @@ export const householdRepository = {
         ),
       )
 
+    const diners = await db
+      .select()
+      .from(schema.householdDiners)
+      .where(
+        inArray(
+          schema.householdDiners.householdId,
+          memberships.map(({ household }) => household.id),
+        ),
+      )
+      .orderBy(schema.householdDiners.createdAt)
+
     return memberships.map(({ household }) => ({
       id: household.id,
       name: household.name,
@@ -87,11 +122,12 @@ export const householdRepository = {
           displayName,
           email,
         })),
+      diners: diners.filter((d) => d.householdId === household.id).map(toDiner),
     }))
   },
 
   /** Creates the household with its owner as an accepted member, in one transaction. */
-  async create(ownerId: string, name: string): Promise<Omit<HouseholdView, 'members'>> {
+  async create(ownerId: string, name: string): Promise<Omit<HouseholdView, 'members' | 'diners'>> {
     return inTransaction(async () => {
       const db = currentDb()
       const [created] = await db.insert(schema.households).values({ name, ownerId }).returning()
@@ -205,6 +241,60 @@ export const householdRepository = {
     const deleted = await currentDb()
       .delete(schema.householdMembers)
       .where(and(membership(householdId, userId), isNull(schema.householdMembers.acceptedAt)))
+      .returning()
+    return deleted.length > 0
+  },
+
+  /**
+   * Who may change the household's diners: any accepted member but a viewer
+   * (the same rule as the shared menu).
+   */
+  async canEditDiners(householdId: string, userId: string): Promise<'yes' | 'no' | 'not_member'> {
+    const [me] = await currentDb()
+      .select()
+      .from(schema.householdMembers)
+      .where(membership(householdId, userId))
+      .limit(1)
+    if (!me?.acceptedAt) return 'not_member'
+    return me.role === 'viewer' ? 'no' : 'yes'
+  },
+
+  async addDiner(householdId: string, fields: DinerFields): Promise<HouseholdDiner> {
+    const [row] = await currentDb()
+      .insert(schema.householdDiners)
+      .values({ householdId, ...dinerValues(fields) })
+      .returning()
+    return toDiner(row!)
+  },
+
+  /** null when the diner is not in that household. */
+  async updateDiner(
+    householdId: string,
+    dinerId: string,
+    fields: DinerFields,
+  ): Promise<HouseholdDiner | null> {
+    const [row] = await currentDb()
+      .update(schema.householdDiners)
+      .set(dinerValues(fields))
+      .where(
+        and(
+          eq(schema.householdDiners.id, dinerId),
+          eq(schema.householdDiners.householdId, householdId),
+        ),
+      )
+      .returning()
+    return row ? toDiner(row) : null
+  },
+
+  async removeDiner(householdId: string, dinerId: string): Promise<boolean> {
+    const deleted = await currentDb()
+      .delete(schema.householdDiners)
+      .where(
+        and(
+          eq(schema.householdDiners.id, dinerId),
+          eq(schema.householdDiners.householdId, householdId),
+        ),
+      )
       .returning()
     return deleted.length > 0
   },

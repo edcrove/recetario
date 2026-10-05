@@ -31,6 +31,8 @@ const EXPECTED_TOOLS = [
   'respondToHouseholdInvitation',
   'changeHouseholdMemberRole',
   'leaveHousehold',
+  'setHouseholdDiner',
+  'removeHouseholdDiner',
   'mergeTags',
   'getTaxonomyUsage',
   'createTaxonomyItem',
@@ -80,14 +82,14 @@ describe('registerAllTools (main bootstrap)', () => {
     expect(registeredNames.sort()).toEqual(EXPECTED_TOOLS.sort())
   })
 
-  it('registers exactly 45 tools — no duplicates, no missing', async () => {
+  it('registers exactly 47 tools — no duplicates, no missing', async () => {
     const server = createMcpServer()
     const apiClient = createApiClient()
     const spy = vi.spyOn(server, 'tool')
 
     await registerAllTools(server, apiClient)
 
-    expect(spy).toHaveBeenCalledTimes(45)
+    expect(spy).toHaveBeenCalledTimes(47)
   })
 })
 
