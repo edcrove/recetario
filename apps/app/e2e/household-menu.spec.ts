@@ -201,3 +201,75 @@ test('removing a housemate takes their recipes off home right away', async ({ pa
     })
   }
 })
+
+// Story (Auditar 2026-10-03): one parent records the kid's allergy once in Mi
+// hogar; the other parent, who never set it, sees the warning on a recipe.
+test("a kid's allergy set by one parent warns the other", async ({ page }, testInfo) => {
+  const headers = await authHeaders(page)
+  const mine = (await (
+    await page.request.get(`${API_URL}/v1/households/mine`, { headers })
+  ).json()) as { id: string }[]
+  let householdId = mine[0]?.id
+  if (!householdId) {
+    const hh = await page.request.post(`${API_URL}/v1/households`, {
+      headers,
+      data: { name: `E2E Hogar Comensales ${Date.now()}` },
+    })
+    householdId = ((await hh.json()) as { id: string }).id
+  }
+
+  const email = `pareja-e2e-${testInfo.parallelIndex}-${Date.now()}@example.com`
+  const reg = (await (
+    await page.request.post(`${API_URL}/auth/register`, {
+      data: { email, password: 'password123' },
+    })
+  ).json()) as { token: string; user: { id: string } }
+  const theirHeaders = { Authorization: `Bearer ${reg.token}`, 'Content-Type': 'application/json' }
+  await page.request.post(`${API_URL}/v1/households/${householdId}/invite`, {
+    headers,
+    data: { userId: reg.user.id, role: 'member' },
+  })
+  await page.request.post(`${API_URL}/v1/households/${householdId}/accept`, {
+    headers: theirHeaders,
+  })
+
+  const kid = `Sofi ${Date.now()}`
+  await page.goto('/household')
+  await page.getByTestId(`household-diner-add-${householdId}`).click()
+  await page.getByTestId('household-diner-name').fill(kid)
+  await page.getByTestId('household-diner-allergen-mani').click()
+  await page.getByTestId('household-diner-save').click()
+  await expect(page.getByText(kid)).toBeVisible()
+  const diners = (
+    (await (await page.request.get(`${API_URL}/v1/households/mine`, { headers })).json()) as {
+      id: string
+      diners: { id: string; name: string }[]
+    }[]
+  ).find((h) => h.id === householdId)!.diners
+  const dinerId = diners.find((d) => d.name === kid)!.id
+
+  const recipe = (await (
+    await page.request.post(`${API_URL}/v1/recipes`, {
+      headers: theirHeaders,
+      data: {
+        title: `E2E Alfajor de maní ${Date.now()}`,
+        servings: 2,
+        category: 'Postre',
+        ingredients: [{ name: 'maní', quantity: 100, unit: 'g' }],
+        steps: [{ text: 'Mezclar.' }],
+      },
+    })
+  ).json()) as { id: string }
+
+  try {
+    // Now as the other parent
+    await page.evaluate((jwt) => localStorage.setItem('auth_token', jwt), reg.token)
+    await page.goto(`/recipe/${recipe.id}`)
+    await expect(page.getByTestId('allergen-warning')).toContainText(`Maní (${kid})`)
+  } finally {
+    await page.request.delete(`${API_URL}/v1/households/${householdId}/diners/${dinerId}`, {
+      headers,
+    })
+    await page.request.delete(`${API_URL}/v1/recipes/${recipe.id}`, { headers: theirHeaders })
+  }
+})

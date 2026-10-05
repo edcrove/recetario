@@ -2,11 +2,15 @@ import React from 'react'
 import { render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
-const { mockGetProfile } = vi.hoisted(() => ({ mockGetProfile: vi.fn() }))
+const { mockGetProfile, mockHouseholds } = vi.hoisted(() => ({
+  mockGetProfile: vi.fn(),
+  mockHouseholds: vi.fn(),
+}))
 
 vi.mock('../api/client', () => ({
-  api: { auth: { getProfile: mockGetProfile } },
+  api: { auth: { getProfile: mockGetProfile }, households: { mine: mockHouseholds } },
 }))
+vi.mock('../providers/AuthProvider', () => ({ useAuth: () => ({ token: 't', userId: 'me' }) }))
 
 import { AllergenBadge } from '../components/AllergenBadge'
 
@@ -21,7 +25,10 @@ const recipeWithMilk = {
 }
 
 describe('AllergenBadge', () => {
-  beforeEach(() => mockGetProfile.mockReset())
+  beforeEach(() => {
+    mockGetProfile.mockReset()
+    mockHouseholds.mockReset().mockResolvedValue([])
+  })
 
   it('renders nothing when there is no conflict', async () => {
     mockGetProfile.mockResolvedValue({ allergens: [], dietaryRestrictions: [] })

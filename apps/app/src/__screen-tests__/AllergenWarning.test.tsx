@@ -1,13 +1,17 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { Recipe } from '@recetario/shared'
 
-const { mockGetProfile } = vi.hoisted(() => ({ mockGetProfile: vi.fn() }))
+const { mockGetProfile, mockHouseholds } = vi.hoisted(() => ({
+  mockGetProfile: vi.fn(),
+  mockHouseholds: vi.fn(),
+}))
 
 vi.mock('../api/client', () => ({
-  api: { auth: { getProfile: mockGetProfile } },
+  api: { auth: { getProfile: mockGetProfile }, households: { mine: mockHouseholds } },
 }))
+vi.mock('../providers/AuthProvider', () => ({ useAuth: () => ({ token: 't', userId: 'me' }) }))
 
 import { AllergenWarning } from '../components/AllergenWarning'
 
@@ -24,7 +28,10 @@ const recipe = (...names: string[]) =>
 
 // Auditar 2026-10-03 (Nutrition): detection is by name, so it must say so.
 describe('AllergenWarning', () => {
-  beforeEach(() => mockGetProfile.mockReset())
+  beforeEach(() => {
+    mockGetProfile.mockReset()
+    mockHouseholds.mockReset().mockResolvedValue([])
+  })
 
   it('warns about a hidden source and adds the label caveat', async () => {
     mockGetProfile.mockResolvedValue({ allergens: ['gluten'], dietaryRestrictions: [] })
@@ -54,5 +61,31 @@ describe('AllergenWarning', () => {
     const { container } = wrap(<AllergenWarning recipe={recipe('Arroz')} />)
     await new Promise((r) => setTimeout(r, 0))
     expect(container).toBeEmptyDOMElement()
+  })
+
+  // Story (Auditar 2026-10-03): a kid's allergy, set by the other parent,
+  // warns me too and says whom it is for.
+  it("warns about a household diner's allergy and names them", async () => {
+    mockGetProfile.mockResolvedValue({ allergens: ['leche'], dietaryRestrictions: [] })
+    mockHouseholds.mockResolvedValue([
+      {
+        members: [{ userId: 'me', acceptedAt: '2026-10-01' }],
+        diners: [
+          {
+            id: 'd1',
+            householdId: 'h1',
+            name: 'Sofi',
+            allergens: ['mani', 'leche'],
+            dietaryRestrictions: ['vegano'],
+          },
+        ],
+      },
+    ])
+    wrap(<AllergenWarning recipe={recipe('Maní tostado', 'Manteca')} />)
+    const warning = await screen.findByTestId('allergen-warning')
+    await waitFor(() => expect(warning).toHaveTextContent('Maní (Sofi)'))
+    expect(warning).toHaveTextContent('Leche y lácteos (vos, Sofi)')
+    expect(warning).toHaveTextContent('Vegano (Sofi)')
+    expect(screen.getByTestId('allergen-disclaimer')).toBeInTheDocument()
   })
 })

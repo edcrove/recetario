@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native'
-import { useProfile } from '../hooks/useProfile'
+import { useDietaryContext } from '../hooks/useDietaryContext'
 import type { Recipe } from '@recetario/shared'
 import { checkAllergens } from '../utils/allergenCheck'
 import { useThemeColors } from '../theme/tokens'
@@ -15,7 +15,7 @@ interface Props {
 // actually happens.
 export function AllergenBadge({ recipe }: Props) {
   const c = useThemeColors()
-  const { data: profile } = useProfile()
+  const { profile } = useDietaryContext()
 
   if (!profile) return null
 

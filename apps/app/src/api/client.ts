@@ -7,6 +7,8 @@ import type {
   LibraryRecipe,
   User,
   Household,
+  HouseholdDiner,
+  HouseholdDinerInput,
   HouseholdMember,
   HouseholdRole,
   PantryItem,
@@ -349,5 +351,17 @@ export const api = {
       }),
     leave: (householdId: string) =>
       request<void>(`/v1/households/${householdId}/leave`, { method: 'POST' }),
+    addDiner: (householdId: string, diner: HouseholdDinerInput) =>
+      request<HouseholdDiner>(`/v1/households/${householdId}/diners`, {
+        method: 'POST',
+        body: JSON.stringify(diner),
+      }),
+    updateDiner: (householdId: string, dinerId: string, diner: HouseholdDinerInput) =>
+      request<HouseholdDiner>(`/v1/households/${householdId}/diners/${dinerId}`, {
+        method: 'PUT',
+        body: JSON.stringify(diner),
+      }),
+    removeDiner: (householdId: string, dinerId: string) =>
+      request<void>(`/v1/households/${householdId}/diners/${dinerId}`, { method: 'DELETE' }),
   },
 }

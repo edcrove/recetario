@@ -205,6 +205,23 @@ export const householdMembers = pgTable(
   (t) => [uniqueIndex('household_members_pk').on(t.householdId, t.userId)],
 )
 
+// Someone who eats at the household's table (a kid without an account, a
+// grandparent): their allergens and diets warn every member of the household.
+export const householdDiners = pgTable(
+  'household_diners',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    householdId: uuid('household_id')
+      .notNull()
+      .references(() => households.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    allergens: jsonb('allergens').$type<string[]>().notNull().default([]),
+    dietaryRestrictions: jsonb('dietary_restrictions').$type<string[]>().notNull().default([]),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('household_diners_household_idx').on(t.householdId)],
+)
+
 export const apiKeys = pgTable('api_keys', {
   id: uuid('id').primaryKey().defaultRandom(),
   keyHash: text('key_hash').notNull().unique(),

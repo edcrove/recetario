@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
 import type { createApiClient } from '../index.js'
-import { AllergenSchema } from '@recetario/shared'
+import { AllergenSchema, DietaryTagSchema } from '@recetario/shared'
 
 export function registerIdentityTools(server: McpServer, api: ReturnType<typeof createApiClient>) {
   server.tool('whoami', 'Get the current authenticated user profile', async () => {
@@ -53,7 +53,7 @@ export function registerIdentityTools(server: McpServer, api: ReturnType<typeof 
 
   server.tool(
     'listHouseholdMembers',
-    "List the households the current user belongs to, with each member's name, email, role and whether they accepted. A membership with acceptedAt null is a pending invitation (use respondToHouseholdInvitation).",
+    "List the households the current user belongs to, with each member's name, email, role and whether they accepted, and the household's diners (people who eat there, with or without an account, and their allergens and diets — every member is warned about them). A membership with acceptedAt null is a pending invitation (use respondToHouseholdInvitation).",
     async () => {
       const households = (await api.request('/v1/households/mine')) as Array<{
         id: string
@@ -117,6 +117,43 @@ export function registerIdentityTools(server: McpServer, api: ReturnType<typeof 
     async ({ householdId }) => {
       await api.request(`/v1/households/${householdId}/leave`, { method: 'POST' })
       return { content: [{ type: 'text' as const, text: 'Left the household.' }] }
+    },
+  )
+
+  server.tool(
+    'setHouseholdDiner',
+    "Add or update someone who eats at the household's table — a kid without an account, a grandparent, or a member — with their allergens and diets. Every member of the household then sees the warnings on recipes and the menu. Without dinerId it adds a new diner; with it, it replaces that diner's name, allergens and diets. Viewers can't change diners. Get householdId and dinerId from listHouseholdMembers.",
+    {
+      householdId: z.string().uuid().describe('Household the diner eats in'),
+      dinerId: z.string().uuid().optional().describe('Existing diner to replace; omit to add'),
+      name: z.string().min(1).max(60).describe('Who it is, e.g. "Sofi"'),
+      allergens: z
+        .array(AllergenSchema)
+        .default([])
+        .describe(
+          'Their allergens as keys of the 14 major allergens ("TACC" → gluten, "nueces" → frutos_secos, "lácteos" → leche).',
+        ),
+      dietaryRestrictions: z.array(DietaryTagSchema).default([]).describe('Their diets'),
+    },
+    async ({ householdId, dinerId, ...fields }) => {
+      const diner = await api.request(
+        `/v1/households/${householdId}/diners${dinerId ? `/${dinerId}` : ''}`,
+        { method: dinerId ? 'PUT' : 'POST', body: JSON.stringify(fields) },
+      )
+      return { content: [{ type: 'text' as const, text: JSON.stringify(diner, null, 2) }] }
+    },
+  )
+
+  server.tool(
+    'removeHouseholdDiner',
+    'Remove a diner from the household; their allergens and diets stop warning the members. Confirm with the user first. Get householdId and dinerId from listHouseholdMembers.',
+    {
+      householdId: z.string().uuid().describe('Household the diner eats in'),
+      dinerId: z.string().uuid().describe('Diner to remove'),
+    },
+    async ({ householdId, dinerId }) => {
+      await api.request(`/v1/households/${householdId}/diners/${dinerId}`, { method: 'DELETE' })
+      return { content: [{ type: 'text' as const, text: 'Diner removed.' }] }
     },
   )
 }

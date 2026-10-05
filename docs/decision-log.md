@@ -14,6 +14,22 @@ each entry against the code, the ADRs, `CLAUDE.md` and the Notion roadmap.
 
 ## 2026-10-03 — Security workflow
 
+### D-2026-10-05-1 · Household diners: allergies and diets everyone in the household sees
+
+- **Decision**: a household has diners: name + allergens + diets, with or without an
+  account (a kid, a grandparent). Any accepted member but a viewer can add, edit or
+  remove them. Every warning (recipe banner, list badge) checks the viewer's own
+  profile plus the diners of every household they joined, and names whom each is for
+  ("Maní (Sofi)"). Members' personal profiles stay private: someone who wants their
+  allergy shared adds themselves as a diner.
+- **Why**: Auditar 2026-10-03 (Parent): allergies lived only in each personal profile, so
+  the other parent never saw a kid's allergy and a child without an account had to be
+  ticked by every adult as their own.
+- **Where it lives**: `household_diners` table, `PUT|POST|DELETE /v1/households/:id/diners`,
+  diners in `GET /v1/households/mine`, MCP `setHouseholdDiner` / `removeHouseholdDiner`,
+  `apps/app/src/components/HouseholdDiners.tsx`, `src/hooks/useDietaryContext.ts`.
+- **Status**: active
+
 ### D-2026-10-04-1 · Allergen detection always says it is by name
 
 - **Decision**: the allergen table also catches sources that don't name the allergen

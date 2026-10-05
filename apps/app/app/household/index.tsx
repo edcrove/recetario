@@ -12,6 +12,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../src/api/client'
 import { refreshAfter } from '../../src/utils/menuCache'
 import { ErrorState } from '../../src/components/ErrorState'
+import { HouseholdDiners } from '../../src/components/HouseholdDiners'
 import { useAuth } from '../../src/providers/AuthProvider'
 import { confirmAsync, notify } from '../../src/utils/platformAlert'
 import {
@@ -291,6 +292,12 @@ export default function HouseholdScreen() {
                 )}
               </View>
             ))}
+
+            <HouseholdDiners
+              householdId={hh.id}
+              diners={hh.diners ?? []}
+              canEdit={!!myRole && myRole !== 'viewer'}
+            />
 
             {/* Invite */}
             {canManageMembers &&

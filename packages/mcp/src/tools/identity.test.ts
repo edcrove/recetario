@@ -18,6 +18,8 @@ describe('registerIdentityTools', () => {
     expect(names).toContain('respondToHouseholdInvitation')
     expect(names).toContain('changeHouseholdMemberRole')
     expect(names).toContain('leaveHousehold')
+    expect(names).toContain('setHouseholdDiner')
+    expect(names).toContain('removeHouseholdDiner')
   })
 })
 
@@ -246,5 +248,55 @@ describe('household tools: agent-facing contract', () => {
     expect(description).toMatch(/respondToHouseholdInvitation with accept=false/)
     expect(description).toMatch(/sharing .* stops/)
     expect(shape['householdId']!.description).toBe('Household to leave')
+  })
+})
+
+describe('household diners', () => {
+  const HH = '550e8400-e29b-41d4-a716-446655440000'
+  const DINER = '550e8400-e29b-41d4-a716-4466554400d1'
+  const setup = () => {
+    const server = createMcpServer()
+    const spy = vi.spyOn(server, 'tool')
+    registerIdentityTools(server, mockApi as never)
+    return spy
+  }
+
+  it('setHouseholdDiner without an id adds one', async () => {
+    const spy = setup()
+    mockRequest.mockReset().mockResolvedValueOnce({ id: DINER, name: 'Sofi' })
+    const fields = { name: 'Sofi', allergens: ['mani'], dietaryRestrictions: [] }
+    const result = await getHandler(spy, 'setHouseholdDiner')({ householdId: HH, ...fields })
+    expect(mockRequest).toHaveBeenCalledWith(`/v1/households/${HH}/diners`, {
+      method: 'POST',
+      body: JSON.stringify(fields),
+    })
+    expect(JSON.stringify(result)).toContain('Sofi')
+  })
+
+  it('setHouseholdDiner with an id replaces it', async () => {
+    const spy = setup()
+    mockRequest.mockReset().mockResolvedValueOnce({ id: DINER })
+    const fields = { name: 'Sofi', allergens: [], dietaryRestrictions: ['vegano'] }
+    await getHandler(spy, 'setHouseholdDiner')({ householdId: HH, dinerId: DINER, ...fields })
+    expect(mockRequest).toHaveBeenCalledWith(`/v1/households/${HH}/diners/${DINER}`, {
+      method: 'PUT',
+      body: JSON.stringify(fields),
+    })
+  })
+
+  it('removeHouseholdDiner DELETEs it and confirms', async () => {
+    const spy = setup()
+    mockRequest.mockReset().mockResolvedValueOnce(undefined)
+    const result = (await getHandler(
+      spy,
+      'removeHouseholdDiner',
+    )({
+      householdId: HH,
+      dinerId: DINER,
+    })) as { content: { text: string }[] }
+    expect(mockRequest).toHaveBeenCalledWith(`/v1/households/${HH}/diners/${DINER}`, {
+      method: 'DELETE',
+    })
+    expect(result.content[0]!.text).toBe('Diner removed.')
   })
 })
