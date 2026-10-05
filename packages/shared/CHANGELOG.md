@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.4.0](https://github.com/edcrove/recetario/compare/shared-v0.3.1...shared-v0.4.0) (2026-10-05)
+
+
+### Features
+
+* **household:** diners whose allergies and diets warn every member ([#264](https://github.com/edcrove/recetario/issues/264)) ([553ea16](https://github.com/edcrove/recetario/commit/553ea166d2cf0db64dce3f53463f9a99dba88ec3))
+* **menu:** planned dishes can be marked cooked or skipped ([#204](https://github.com/edcrove/recetario/issues/204)) ([0750b70](https://github.com/edcrove/recetario/commit/0750b70df69c6f3a2d6240ff1fb24ca8ad7626cf))
+* **nutrition:** compare each meal against its per-meal goal ([#188](https://github.com/edcrove/recetario/issues/188)) ([599f4f2](https://github.com/edcrove/recetario/commit/599f4f2a2fe4f6c0b5e976a9eb989ba51ce93cf8))
+* **nutrition:** sugars, saturated fat and sodium when known ([#203](https://github.com/edcrove/recetario/issues/203)) ([70ee0dd](https://github.com/edcrove/recetario/commit/70ee0ddabb64d4f61dbfacd7783dbaf831625697))
+* **stats:** cooking streak and a weekly chart of at least 8 weeks ([#222](https://github.com/edcrove/recetario/issues/222)) ([d7ceef0](https://github.com/edcrove/recetario/commit/d7ceef0737bd485f9886dbb550b4f6c7652f6d59))
+* **suggestions:** rank by expiring pantry items, recent cooks and ratings ([#201](https://github.com/edcrove/recetario/issues/201)) ([0d7aac7](https://github.com/edcrove/recetario/commit/0d7aac7cb1e169e37f32cbbe77e12604393cc924))
+
+
+### Bug Fixes
+
+* a dish planned without servings gets the profile's default portions ([#243](https://github.com/edcrove/recetario/issues/243)) ([9256acf](https://github.com/edcrove/recetario/commit/9256acf03b5ccb3ed5924c29ab6ed87c85bf7194))
+* accept only http(s) urls for recipe sources, images and avatars ([#158](https://github.com/edcrove/recetario/issues/158)) ([d84cbc2](https://github.com/edcrove/recetario/commit/d84cbc2f29054127c386c32955f456f91bd76be6))
+* allergen enum with curated spanish derivatives and a profile picker ([#171](https://github.com/edcrove/recetario/issues/171)) ([5e98f8e](https://github.com/edcrove/recetario/commit/5e98f8ea9003d0e162da7351097f0a7b5a037714))
+* **api:** case-insensitive emails, size limits, accent-insensitive search, proxy-aware rate limit ([#175](https://github.com/edcrove/recetario/issues/175)) ([6ca61c4](https://github.com/edcrove/recetario/commit/6ca61c43fb8c8d360d1831e67e698827a7d4716b))
+* **api:** reject blank names and trim padded ones ([#231](https://github.com/edcrove/recetario/issues/231)) ([bef6c45](https://github.com/edcrove/recetario/commit/bef6c458850a6ff163a299dad8e573b26ac995f6))
+* **api:** transactional writes, protected system catalog and one json error contract ([#165](https://github.com/edcrove/recetario/issues/165)) ([6693d20](https://github.com/edcrove/recetario/commit/6693d209aca8f44e5370a2eef337ca1b9c929d7a))
+* **api:** week nutrition uses the household entries and rollup of the day view ([#183](https://github.com/edcrove/recetario/issues/183)) ([ebbe18c](https://github.com/edcrove/recetario/commit/ebbe18c03debd0e30f159c425195c5e7f3e4141d))
+* check diet tags against ingredients, tell unknown from unmet ([#173](https://github.com/edcrove/recetario/issues/173)) ([481c158](https://github.com/edcrove/recetario/commit/481c15804caab7f006b32e60d91c0e7fe45ef03a))
+* day and week nutrition report one person's intake ([#172](https://github.com/edcrove/recetario/issues/172)) ([b13cddb](https://github.com/edcrove/recetario/commit/b13cddb61adcfc4240625b1612372e56cd8391c2))
+* import reads thousands, kJ and fiber; nutrition targets bounded and consistent ([#179](https://github.com/edcrove/recetario/issues/179)) ([51996d6](https://github.com/edcrove/recetario/commit/51996d6a7e9377e4c6bd8ebd2dc61749e57e3fd5))
+* **nutrition:** keep recipe nutrition consistent with edits ([#187](https://github.com/edcrove/recetario/issues/187)) ([5567c3c](https://github.com/edcrove/recetario/commit/5567c3c3faed7e2b14e1a98ea7bfa52e60679a83))
+* recipes can use custom categories, matched by slug ([#226](https://github.com/edcrove/recetario/issues/226)) ([2f039be](https://github.com/edcrove/recetario/commit/2f039bedfb1368030b02b67c728b4848da3e1720))
+* related recipes show their title and only point at recipes you can open ([#232](https://github.com/edcrove/recetario/issues/232)) ([391b1e0](https://github.com/edcrove/recetario/commit/391b1e0cd0b52e350708663194c361877725d8ee))
+* **shared:** catch hidden allergen sources and say detection is by name ([#261](https://github.com/edcrove/recetario/issues/261)) ([03a8e22](https://github.com/edcrove/recetario/commit/03a8e22cf19e64e826fe9d9c05ca022f3bf93cdd))
+* **shared:** gluten-free and lactose-free products fit their diet ([#259](https://github.com/edcrove/recetario/issues/259)) ([5709951](https://github.com/edcrove/recetario/commit/570995111caaa8219bab1534769350d7b2cfbe51))
+* **shared:** partial recipe updates no longer wipe steps, tags and images ([#155](https://github.com/edcrove/recetario/issues/155)) ([dba9395](https://github.com/edcrove/recetario/commit/dba93955d837210301b925d02bc96c7e74cebf47))
+* **units:** scaled counts snap to halves and read as kitchen fractions ([#200](https://github.com/edcrove/recetario/issues/200)) ([bcb756b](https://github.com/edcrove/recetario/commit/bcb756b804b4f2abb8c1873e4733e8d1e78d51e2))
+* **units:** spanish density table and readable metric/imperial volumes ([#185](https://github.com/edcrove/recetario/issues/185)) ([75993e3](https://github.com/edcrove/recetario/commit/75993e3a6103f0a6c45b182759bbc390af2b85a2))
+
 ## [0.3.1](https://github.com/edcrove/recetario/compare/shared-v0.3.0...shared-v0.3.1) (2026-09-30)
 
 
