@@ -22,13 +22,13 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.19.17",
-    "@hono/swagger-ui": "^0.6.1",
+    "@hono/swagger-ui": "^0.6.2",
     "@hono/zod-openapi": "^1.6.3",
     "@recetario/shared": "workspace:*",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.4",
-    "hono": "^4.13.12",
-    "jose": "^6.2.13",
+    "hono": "^4.13.14",
+    "jose": "^6.2.14",
     "postgres": "^3.4.0",
     "zod": "^4.6.7"
   },
