@@ -33,8 +33,8 @@
     "react-native-web": "^0.21.4"
   },
   "devDependencies": {
-    "@babel/core": "^7.29.7",
-    "@playwright/test": "^1.64.1",
+    "@babel/core": "^7.29.13",
+    "@playwright/test": "^1.65.0",
     "@react-native/jest-preset": "^0.87.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.3",
@@ -48,7 +48,7 @@
     "@vitest/coverage-v8": "^4.1.12",
     "babel-jest": "^29.7.0",
     "babel-plugin-istanbul": "^8.0.0",
-    "babel-preset-expo": "^57.0.16",
+    "babel-preset-expo": "^57.0.17",
     "c8": "^11.0.0",
     "jest": "^29.7.0",
     "jest-expo": "^56.0.6",
