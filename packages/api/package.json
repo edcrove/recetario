@@ -21,7 +21,7 @@
     "reset-password": "tsx src/scripts/reset-password.ts"
   },
   "dependencies": {
-    "@hono/node-server": "^1.19.17",
+    "@hono/node-server": "^1.19.18",
     "@hono/swagger-ui": "^0.6.2",
     "@hono/zod-openapi": "^1.6.3",
     "@recetario/shared": "workspace:*",
