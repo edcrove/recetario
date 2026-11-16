@@ -40,7 +40,7 @@
     "@testing-library/react": "^16.3.3",
     "@testing-library/react-hooks": "^8.0.1",
     "@testing-library/react-native": "^14.1.0",
-    "@testing-library/user-event": "^14.6.8",
+    "@testing-library/user-event": "^14.6.10",
     "@types/jest": "^29.5.14",
     "@types/react": "~19.2.18",
     "@types/react-dom": "~19.2.7",
